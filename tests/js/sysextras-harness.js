@@ -1,9 +1,12 @@
 // Runs the system extras of jaxe.js against the real FMOD 2.03.12 wasm
-// under Node: command replay inspection, the DSP lock, audio table sound
-// info, memory and file statistics, the network settings, and speaker
-// positions. The web build serves all of them, so every call here is
-// expected to work for real, with dead handles still reporting 30
-// (ERR_INVALID_HANDLE) and the handle table left as it was found.
+// under Node.
+// The extras are command replay inspection, the DSP lock, and audio table
+// sound info.
+// The list also holds memory and file statistics, the network settings, and
+// speaker positions.
+// The web build serves all of them, so every call here works for real.
+// Dead handles report 30 (ERR_INVALID_HANDLE), and the handle table ends as
+// it was found.
 // Usage: node sysextras-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');

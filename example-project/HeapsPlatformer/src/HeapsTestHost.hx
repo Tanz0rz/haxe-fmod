@@ -44,20 +44,22 @@ class HeapsTestHost implements TestHost {
         check("hardening_setup_reinit_single_updater", installs == 1, 'count=$installs');
     }
 
-    // Heaps has no engine-level volume control to bridge, so the checks
-    // drive the master bus through FmodManager and read it back
-    public function checkVolumeBridge(check:String->Bool->String->Void):Void {
+    // Heaps ships no global volume control, so the FMOD master bus is the
+    // one control. The checks drive it and read each change back. The
+    // focus-mute wiring the setup installs is checked through
+    // setFocusThroughEngine instead.
+    public function checkVolumeControls(check:String->Bool->String->Void):Void {
         FmodManager.SetMasterVolume(0.5);
-        check("heaps_bridge_volume", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
+        check("heaps_master_volume", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
             'value=${FmodManager.GetMasterVolume()}');
         FmodManager.SetMasterMute(true);
-        check("heaps_bridge_mute", FmodManager.IsMasterMuted(), "");
-        check("heaps_bridge_volume_kept", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
+        check("heaps_master_mute", FmodManager.IsMasterMuted(), "");
+        check("heaps_master_volume_kept", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
             'value=${FmodManager.GetMasterVolume()}');
         FmodManager.SetMasterMute(false);
-        check("heaps_bridge_mute_cleared", !FmodManager.IsMasterMuted(), "");
+        check("heaps_master_mute_cleared", !FmodManager.IsMasterMuted(), "");
         FmodManager.SetMasterVolume(1.0);
-        check("heaps_bridge_volume_restored", Math.abs(FmodManager.GetMasterVolume() - 1.0) < 0.001,
+        check("heaps_master_volume_restored", Math.abs(FmodManager.GetMasterVolume() - 1.0) < 0.001,
             'value=${FmodManager.GetMasterVolume()}');
     }
 

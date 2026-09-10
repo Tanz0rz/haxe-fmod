@@ -7,8 +7,9 @@ import haxe.io.Path;
 /**
  * Compiles hlaxe_fmod.hdll from source against the user's FMOD SDK.
  *
- * For users whose FMOD version differs from the pre-built hdlls
- * (which target 2.03.12) to compile a compatible hdll for HashLink builds.
+ * The pre-built hdlls target the version in fmod_expected_version. A user on
+ * a different FMOD version runs this command to get a matching hdll for
+ * HashLink builds.
  *
  * Usage: haxelib run haxefmod build-hdll
  *
@@ -116,7 +117,7 @@ class BuildHdll {
 			Sys.exit(1);
 		}
 
-		// 7. Verify output exists
+		// 8. Verify output exists
 		if (!FileSystem.exists(outputFile)) {
 			error("Compilation appeared to succeed but output file not found.");
 			Sys.exit(1);
@@ -189,7 +190,7 @@ class BuildHdll {
 			proc.stderr.readAll();
 			var code = proc.exitCode();
 			proc.close();
-			// cl.exe with no args exits non-zero but that's fine - it ran
+			// cl.exe with no args exits non-zero. The compiler still ran.
 			return platform == "windows" || code == 0;
 		} catch (e:Dynamic) {
 			return false;
@@ -202,7 +203,7 @@ class BuildHdll {
 		if (hlDir != null && hlDir != "") {
 			var inc = Path.join([hlDir, "include"]);
 			if (FileSystem.exists(Path.join([inc, "hl.h"]))) return inc;
-			// Maybe headers are directly in HASHLINK_DIR
+			// Maybe headers are directly in HASHLINK_DIR.
 			if (FileSystem.exists(Path.join([hlDir, "hl.h"]))) return hlDir;
 		}
 
@@ -295,7 +296,7 @@ class BuildHdll {
 					source,
 					// cl writes the .obj into the process cwd by default,
 					// which under haxelib run is the installed library
-					// directory (possibly read-only)
+					// directory (possibly read-only).
 					"/Fo" + Path.join([Path.directory(output), "hlaxe_fmod.obj"]),
 					'/I$hlInclude',
 					'/I$coreInc',

@@ -36,6 +36,10 @@ runs:
 
     - name: Provide FMOD SDK ${{ inputs.version }}
       shell: bash
+      env:
+        # The token reaches git through the environment, never through a
+        # string the runner pastes into the script body
+        SDK_TOKEN: ${{ inputs.token }}
       run: |
         CACHE_DIR="/tmp/fmod-sdk-cache-${{ inputs.version }}"
         # actions/cache resolves /tmp against the workspace drive root on
@@ -49,7 +53,7 @@ runs:
         esac
         if [ -z "$(ls -A "$CACHE_DIR" 2>/dev/null)" ]; then
           git clone --depth 1 --branch "${{ inputs.version }}" \
-            https://x-access-token:${{ inputs.token }}@github.com/Tanz0rz/fmod-sdk-cache.git \
+            "https://x-access-token:${SDK_TOKEN}@github.com/Tanz0rz/fmod-sdk-cache.git" \
             "$CACHE_DIR"
           # The clone's origin URL embeds the token. Never persist it (or any
           # git metadata) into the cache archive

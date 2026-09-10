@@ -30,7 +30,7 @@ class FmodHeapsSetup {
         FmodHeapsUpdater.init();
         var window = hxd.Window.getInstance();
         // Remove-then-add keeps exactly one wiring across repeated init
-        // calls
+        // calls.
         window.removeEventTarget(onWindowEvent);
         window.addEventTarget(onWindowEvent);
     }

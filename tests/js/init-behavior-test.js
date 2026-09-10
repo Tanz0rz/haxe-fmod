@@ -1,9 +1,11 @@
-// Validates jaxe.js init-time behavior that the wasm harnesses cannot reach
-// (they replace preRun/onRuntimeInitialized to run under Node): the
-// before-init update guard, the Emscripten memory knob, the software-format
-// branch when only a speaker mode is requested, and the channel-count
-// fallback. Runs against the real shim with a recording mock of the FMOD
-// module, so no SDK download is needed.
+// Validates jaxe.js init-time behavior that the wasm harnesses cannot
+// reach, because they replace preRun/onRuntimeInitialized to run under Node.
+// The behavior here is the before-init update guard and the Emscripten
+// memory knob.
+// It also holds the software-format branch for a request that names only a
+// speaker mode, plus the channel-count fallback.
+// Runs against the real shim with a recording mock of the FMOD module, so
+// no SDK download is needed.
 // Usage: node init-behavior-test.js
 const path = require('path');
 const fs = require('fs');
@@ -137,10 +139,10 @@ check('init_flags_translate_to_core_flags', got.init && got.init[3] === (0x10000
 check('settings_apply_before_initialize',
     calls.findIndex(c => c[0] === 'setSoftwareChannels') < calls.findIndex(c => c[0] === 'initialize'), '');
 
-// --- callback marshaling for shapes the wasm harnesses cannot author:
-// FMOD's JS glue delivers timeline beats with flat keys and has no
-// marshaler for the nested-beat struct, so the nested branch must read
-// the flat keys instead of enqueueing zeros ---
+// --- callback marshaling for shapes the wasm harnesses cannot author ---
+// FMOD's JS glue delivers timeline beats with flat keys.
+// The glue has no marshaler for the nested-beat struct.
+// The nested branch must read the flat keys instead of enqueueing zeros.
 function drain() {
     const events = [];
     while (jaxe.fmod_cb_next()) {
@@ -177,7 +179,7 @@ check('top_level_beat_flat_keys', got.length === 1 && got[0].bar === 3, JSON.str
 
 // DESTROYED records never reach the queue on this target (the documented
 // html5 limitation), even if a future glue starts delivering them. The
-// per-handle state cleanup still runs.
+// per-handle state cleanup runs in either case.
 jaxe.cbMasks[4242] = 0x22;
 jaxe.psKeys[4242] = 'key.wav';
 jaxe.callbackHandler(0x02 /* DESTROYED */, cbFakeEvent, null);

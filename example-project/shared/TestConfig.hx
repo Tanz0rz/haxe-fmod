@@ -5,10 +5,10 @@ package;
  *
  * Native targets: HAXEFMOD_TEST_STATE env var ("volume", "api-probe").
  * HTML5: "test" query parameter (e.g. http://localhost:8080/?test=api-probe).
- * testState() defaults to "volume" (the original volume/mute validation
- * flow). requestedState() returns null instead when nothing was asked
- * for, so a test build can fall back to the plain game and one build
- * serves every CI leg.
+ * The default from testState() is "volume", the original volume/mute
+ * validation flow. When nothing is asked for, requestedState() returns
+ * null instead. A test build then falls back to the plain game, and one
+ * build serves every CI leg.
  */
 class TestConfig {
     public static function testState():String {

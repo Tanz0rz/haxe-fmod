@@ -18,7 +18,7 @@ class PostBuild {
 	public static function run(platform:String, target:String, libRoot:String, projectDir:String):Void {
 		var sdkPath = checkSdk(platform, target, libRoot, projectDir);
 
-		// Use project directory for finding export/ output
+		// Use project directory for finding export/ output.
 		var exportDir = Path.join([projectDir, "export"]);
 		var dest = findLimeOutputDir(platform, target, exportDir);
 		if (dest == null) {
@@ -38,9 +38,9 @@ class PostBuild {
 	 * Stages the FMOD runtime files into destDir, creating it if needed.
 	 * platform is mac, linux, windows or html5. target is hl when the
 	 * program loads hlaxe_fmod.hdll at runtime (the HashLink VM, HL/C
-	 * output linked against libhl) and cpp when the binding was compiled
-	 * into the executable (hxcpp, Kha's Kore and Kore HL builds). html5
-	 * ignores target.
+	 * output linked against libhl). target is cpp when the binding
+	 * compiles into the executable (hxcpp, Kha's Kore and Kore HL builds).
+	 * html5 ignores target.
 	 */
 	public static function stage(platform:String, target:String, libRoot:String, projectDir:String, destDir:String):Void {
 		if (["mac", "linux", "windows", "html5"].indexOf(platform) == -1) {
@@ -63,8 +63,8 @@ class PostBuild {
 	}
 
 	/**
-	 * Resolves the SDK env var for the platform and stops the build when
-	 * it is unset, points at the wrong package, or holds a version this
+	 * Resolves the SDK env var for the platform. Stops the build when it
+	 * is unset, points at the wrong package, or holds a version this
 	 * release cannot use. Returns the SDK path.
 	 */
 	static function checkSdk(platform:String, target:String, libRoot:String, projectDir:String):String {
@@ -155,7 +155,7 @@ class PostBuild {
 	/** Stops the build when the two FMOD packages have been swapped. */
 	static function verifyPackage(platform:String, sdkPath:String, sdkEnvName:String):Void {
 		// A path that does not exist at all is a plain typo: the version
-		// check and the copy guards give a better message for that
+		// check and the copy guards give a better message for that.
 		if (!FileSystem.exists(sdkPath)) return;
 		var wantWeb = platform == "html5";
 		if (looksLikeWebSdk(sdkPath) == wantWeb) return;
@@ -195,7 +195,7 @@ class PostBuild {
 		}
 
 		// The lib-side expected-version file only goes missing when the
-		// package itself is broken - warn and continue
+		// package itself is broken - warn and continue.
 		if (!FileSystem.exists(versionFile)) {
 			log("WARNING: Could not verify FMOD SDK version");
 			log('  Missing: $versionFile');
@@ -210,7 +210,7 @@ class PostBuild {
 			return;
 		}
 
-		if (expectedHex == sdkHex) {
+		if (sameVersion(expectedHex, sdkHex)) {
 			var ver = hexToVersion(expectedHex);
 			if (sdkEnvName == "FMOD_SDK_WEB") {
 				log('FMOD SDK Web version $ver - OK');
@@ -220,13 +220,16 @@ class PostBuild {
 			return;
 		}
 
-		// Version mismatch - check for project-local custom-compiled hdll via marker file
-		// (HTML5 doesn't use hdlls, so marker files don't apply)
+		// Version mismatch - check for project-local custom-compiled hdll via marker file.
+		// HTML5 does not use hdlls, so marker files do not apply.
 		if (sdkEnvName != "FMOD_SDK_WEB") {
 			var markerFile = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
-			if (FileSystem.exists(markerFile)) {
+			var customHdll = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
+			// A marker left behind by a deleted hdll proves nothing: the
+			// build then falls back to the pre-built hdll for another SDK.
+			if (FileSystem.exists(markerFile) && FileSystem.exists(customHdll)) {
 				var markerHex = StringTools.trim(File.getContent(markerFile));
-				if (markerHex == sdkHex) {
+				if (sameVersion(markerHex, sdkHex)) {
 					var ver = hexToVersion(sdkHex);
 					log('FMOD SDK version $ver - OK (custom-compiled hdll from .haxefmod/)');
 					return;
@@ -238,7 +241,7 @@ class PostBuild {
 		var sdkVer = hexToVersion(sdkHex);
 
 		// html5: the JS shim's numeric tables are the expected version's
-		// values and the wasm has no version query, so any other web SDK
+		// values and the wasm has no version query. Any other web SDK
 		// creates wrong DSP effects. Hard error, like the HL gate.
 		if (sdkEnvName == "FMOD_SDK_WEB") {
 			Sys.println("");
@@ -254,7 +257,7 @@ class PostBuild {
 			Sys.exit(1);
 		}
 
-		// HL builds: mismatched hdll/SDK will crash at runtime - hard error
+		// HL builds: a mismatched hdll and SDK crash at runtime, so this is a hard error.
 		if (target == "hl") {
 			Sys.println("");
 			Sys.println("============================================================");
@@ -272,7 +275,7 @@ class PostBuild {
 			Sys.exit(1);
 		}
 
-		// Other targets: informational warning only (C++ compiles from source)
+		// Other targets: informational warning only (C++ compiles from source).
 		Sys.println("");
 		Sys.println("============================================================");
 		Sys.println('  WARNING: FMOD SDK version mismatch');
@@ -291,7 +294,7 @@ class PostBuild {
 			if (line.indexOf("FMOD_VERSION") != -1 && line.indexOf("#define") != -1) {
 				var idx = line.indexOf("0x");
 				if (idx != -1) {
-					// Extract the hex string (e.g. "0x00020312")
+					// Extract the hex string (e.g. "0x00020312").
 					var rest = line.substr(idx);
 					var end = 0;
 					while (end < rest.length) {
@@ -308,6 +311,18 @@ class PostBuild {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * True when two FMOD_VERSION literals name the same version. The
+	 * literals are compared as numbers, so 0x00020312, 0X20312, and the
+	 * marker file's text all agree.
+	 */
+	public static function sameVersion(a:String, b:String):Bool {
+		if (a == null || b == null) return false;
+		var x = Std.parseInt(StringTools.trim(a));
+		var y = Std.parseInt(StringTools.trim(b));
+		return x != null && y != null && x == y;
 	}
 
 	public static function hexToVersion(hex:String):String {
@@ -337,13 +352,13 @@ class PostBuild {
 	}
 
 	// Scans the hdll binary for the embedded "hlaxe_fmod_abi=<N>" marker.
-	// Returns the version, or 0 when no marker exists (an hdll built before the ABI marker existed).
+	// Returns the version, or 0 when the hdll carries no marker.
 	public static function scanHdllAbi(hdllPath:String):Int {
 		var bytes = File.getBytes(hdllPath);
 		var marker = "hlaxe_fmod_abi=";
-		var limit = bytes.length - marker.length - 4;
+		var limit = bytes.length - marker.length;
 		var i = 0;
-		while (i < limit) {
+		while (i <= limit) {
 			var matched = true;
 			for (j in 0...marker.length) {
 				if (bytes.get(i + j) != marker.charCodeAt(j)) {
@@ -369,9 +384,9 @@ class PostBuild {
 	}
 
 	// A custom hdll is only preferred while its version marker matches the
-	// SDK in use. A leftover .haxefmod/ from an older SDK experiment would
-	// otherwise ship next to mismatched runtime libraries and fail at
-	// startup, even though the SDK matches the pre-built expectation.
+	// SDK in use. A leftover .haxefmod/ from a different SDK would otherwise
+	// ship next to mismatched runtime libraries and fail at startup. That
+	// happens even when the SDK matches the pre-built expectation.
 	// A missing or unreadable marker means the custom hdll is trusted
 	// as-is (build-hdll always writes one).
 	public static function customHdllMatchesSdk(projectDir:String):Bool {
@@ -384,7 +399,7 @@ class PostBuild {
 		var sdkHex = parseFmodVersion(sdkHeader);
 		if (sdkHex == null) return true;
 		var markerHex = StringTools.trim(File.getContent(markerFile));
-		if (markerHex == sdkHex) return true;
+		if (sameVersion(markerHex, sdkHex)) return true;
 		log('Custom hdll in .haxefmod/ was built for FMOD ${hexToVersion(markerHex)},'
 			+ ' the SDK is ${hexToVersion(sdkHex)} - using the pre-built hdll.'
 			+ ' Run "haxelib run haxefmod build-hdll" to rebuild it, or delete .haxefmod/.');
@@ -392,9 +407,9 @@ class PostBuild {
 	}
 
 	// Tiered hdll resolution (project-local .haxefmod/ then pre-built) with a
-	// binding ABI check: an hdll compiled against an older native surface is
-	// missing prims and dies with a loader fatal at startup, so the build is
-	// stopped here with instructions instead.
+	// binding ABI check. An hdll compiled against a different native surface
+	// is missing prims and dies with a loader fatal at startup. The check
+	// stops the build here with instructions instead.
 	static function copyHdll(projectDir:String, libRoot:String, platformDir:String, destDir:String):Void {
 		var projectHdll = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
 		var prebuiltHdll = Path.join([libRoot, "templates", "bin", "hl", platformDir, "hlaxe_fmod.hdll"]);
@@ -409,7 +424,7 @@ class PostBuild {
 		}
 		if (source == null) {
 			// An HL build with no hdll dies at runtime with a bare loader
-			// error, so failing loudly here is the only useful outcome
+			// error, so the build stops here with the paths it checked.
 			log('ERROR: no hlaxe_fmod.hdll found');
 			log('  Checked: $projectHdll');
 			log('  Checked: $prebuiltHdll');
@@ -451,21 +466,31 @@ class PostBuild {
 		copyRequired(Path.join([sdkDir, "api", "core", "lib", "libfmod.dylib"]), Path.join([dest, "libfmod.dylib"]));
 		copyRequired(Path.join([sdkDir, "api", "studio", "lib", "libfmodstudio.dylib"]), Path.join([dest, "libfmodstudio.dylib"]));
 
-		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check
+		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check.
 		if (target == "hl") {
 			copyHdll(projectDir, libRoot, "Mac64", dest);
 		}
 
-		// Set rpath so executable finds dylibs next to it (C++ only - HL exe is bytecode, not Mach-O)
-		// Use Process to suppress stderr: rpath may already exist from lime/hxcpp
+		// Set rpath so the executable finds the dylibs next to it. C++ only,
+		// because the HL executable is bytecode. The output is captured
+		// because lime or hxcpp can have added the rpath already, and
+		// install_name_tool reports that as an error.
 		if (target != "hl") {
 			var exe = findExecutable(dest, [".dylib", ".ndll", ".hdll"]);
 			if (exe != null) {
 				try {
 					var proc = new sys.io.Process("install_name_tool", ["-add_rpath", "@executable_path", exe]);
-					proc.exitCode();
+					var out = proc.stdout.readAll().toString();
+					var err = proc.stderr.readAll().toString();
+					var code = proc.exitCode();
 					proc.close();
-				} catch (e:Dynamic) {}
+					if (code != 0 && err.indexOf("would duplicate") == -1) {
+						log('WARNING: install_name_tool exited with $code for $exe');
+						if (StringTools.trim(err + out) != "") log("  " + StringTools.trim(err + out));
+					}
+				} catch (e:Dynamic) {
+					log('WARNING: install_name_tool could not run: $e');
+				}
 			}
 		}
 
@@ -489,11 +514,11 @@ class PostBuild {
 	static function copyLinux(sdkDir:String, target:String, libRoot:String, binDir:String, projectDir:String, standalone:Bool):Void {
 		log('Copying FMOD shared libraries to $binDir');
 
-		// Copy .so files preserving symlinks (must use cp -P)
+		// Copy .so files preserving symlinks (must use cp -P).
 		copyGlobSymlinks(Path.join([sdkDir, "api", "core", "lib", "x86_64"]), "libfmod.so", binDir);
 		copyGlobSymlinks(Path.join([sdkDir, "api", "studio", "lib", "x86_64"]), "libfmodstudio.so", binDir);
 
-		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check
+		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check.
 		if (target == "hl") {
 			copyHdll(projectDir, libRoot, "Linux64", binDir);
 		}
@@ -501,10 +526,10 @@ class PostBuild {
 		// Modern Linux kernels refuse to load libraries flagged with an
 		// executable stack, and FMOD ships its .so files that way. The
 		// flag is one program header bit, so it is cleared right here and
-		// plain `lime test linux` works with no extra tooling installed.
+		// plain lime test linux works with no extra tooling installed.
 		clearExecstack(binDir);
 
-		// Create run.sh wrapper if it doesn't exist
+		// Create run.sh wrapper if it does not exist.
 		var runSh = Path.join([binDir, "run.sh"]);
 		if (!FileSystem.exists(runSh)) {
 			// .dat excluded: HL builds ship hlboot.dat next to the exe and
@@ -542,15 +567,15 @@ class PostBuild {
 	 * rewriting the PT_GNU_STACK program header's flags in place, the
 	 * same four byte edit patchelf performs. Returns true when the file
 	 * changed. Anything that does not parse as a little endian ELF64
-	 * with an executable stack entry comes back untouched, so a
-	 * malformed or foreign file can never be corrupted.
+	 * with an executable stack entry comes back untouched. A malformed
+	 * or foreign file can never be corrupted.
 	 */
 	public static function clearExecstackFile(path:String):Bool {
 		var bytes = try File.getBytes(path) catch (e:Dynamic) return false;
 		if (bytes.length < 64) return false;
 		if (bytes.get(0) != 0x7F || bytes.get(1) != 0x45
 			|| bytes.get(2) != 0x4C || bytes.get(3) != 0x46) return false;
-		// FMOD ships little endian ELF64 on the one supported Linux arch
+		// FMOD ships little endian ELF64 on the one supported Linux arch.
 		if (bytes.get(4) != 2 || bytes.get(5) != 1) return false;
 		var phoff = bytes.getInt32(0x20);
 		var phoffHigh = bytes.getInt32(0x24);
@@ -561,7 +586,7 @@ class PostBuild {
 		var changed = false;
 		for (i in 0...phnum) {
 			var base = phoff + i * phentsize;
-			if (base + 8 > bytes.length) return false;
+			if (base + phentsize > bytes.length) break;
 			if (bytes.getInt32(base) != 0x6474E551) continue; // PT_GNU_STACK
 			var flags = bytes.getInt32(base + 4);
 			if (flags & 1 == 0) continue; // PF_X already clear
@@ -585,7 +610,7 @@ class PostBuild {
 	}
 
 	static function isSymlink(path:String):Bool {
-		// Haxe sys has no lstat. Test -L works everywhere PostBuild handles symlinks (Linux only)
+		// Haxe sys has no lstat. Test -L works everywhere PostBuild handles symlinks (Linux only).
 		try {
 			var proc = new sys.io.Process("test", ["-L", path]);
 			var code = proc.exitCode();
@@ -604,13 +629,13 @@ class PostBuild {
 		copyRequired(Path.join([sdkDir, "api", "core", "lib", "x64", "fmod.dll"]), Path.join([binDir, "fmod.dll"]));
 		copyRequired(Path.join([sdkDir, "api", "studio", "lib", "x64", "fmodstudio.dll"]), Path.join([binDir, "fmodstudio.dll"]));
 
-		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check
+		// Copy hlaxe_fmod.hdll - tiered resolution with binding ABI check.
 		if (target == "hl") {
 			copyHdll(projectDir, libRoot, "Windows64", binDir);
 		}
 
 		// Launcher for a HashLink VM build: hl.exe on PATH, DLLs and hdll
-		// next to the bytecode
+		// next to the bytecode.
 		if (standalone && target == "hl" && !FileSystem.exists(Path.join([binDir, "run.cmd"]))) {
 			var bytecode = findBytecodeName(binDir);
 			if (bytecode != null) {
@@ -627,9 +652,9 @@ class PostBuild {
 		if (standalone) {
 			log('Copying FMOD web engine and jaxe.js to $libDir');
 			// lime bundles jaxe.js through include.xml. Every other build
-			// system gets it here, next to the engine it drives, and the
-			// page script-tags all three files in this order:
-			// fmodstudio.js, jaxe.js, then the game.
+			// system gets it here, next to the engine it drives. The page
+			// script-tags all three files in this order: fmodstudio.js,
+			// jaxe.js, then the game.
 			copyRequired(Path.join([libRoot, "native", "jaxe", "jaxe.js"]), Path.join([libDir, "jaxe.js"]));
 		} else {
 			log("Replacing FMOD placeholder files with real SDK files");
@@ -660,7 +685,7 @@ class PostBuild {
 
 	/**
 	 * Find the bin directory for a given target and platform.
-	 * Lime export structure: export/<target>/bin or export/<platform>/bin
+	 * Lime export structure: export/<target>/bin or export/<platform>/bin.
 	 */
 	static function findBinDir(exportDir:String, target:String, platform:String):Null<String> {
 		if (target == "hl") {
@@ -676,7 +701,7 @@ class PostBuild {
 			var dir = Path.join([exportDir, platform, "bin"]);
 			if (FileSystem.exists(dir) && FileSystem.isDirectory(dir)) return dir;
 
-			// Fallback: search for a directory starting with the platform name
+			// Fallback: search for a directory starting with the platform name.
 			if (FileSystem.exists(exportDir)) {
 				try {
 					for (entry in FileSystem.readDirectory(exportDir)) {
@@ -751,7 +776,7 @@ class PostBuild {
 	/** Copy files matching a prefix from srcDir to destDir, preserving symlinks on Linux. */
 	static function copyGlobSymlinks(srcDir:String, prefix:String, destDir:String):Void {
 		// Copying nothing silently produced binaries that only launched when
-		// stale libraries from an earlier build were still in the bin dir
+		// stale libraries from an earlier build were still in the bin dir.
 		if (!FileSystem.exists(srcDir)) {
 			log('ERROR: FMOD library directory not found: $srcDir');
 			log("  The FMOD_SDK directory has no libraries for this platform, so the");
@@ -760,32 +785,60 @@ class PostBuild {
 			Sys.exit(1);
 		}
 		var files = FileSystem.readDirectory(srcDir);
+		var copied = 0;
 		for (file in files) {
 			if (StringTools.startsWith(file, prefix)) {
-				// Use cp -P to preserve symlinks
-				Sys.command("cp", ["-P", Path.join([srcDir, file]), Path.join([destDir, file])]);
+				// cp -P keeps the symlinks FMOD ships next to the real files.
+				var code = Sys.command("cp", ["-P", Path.join([srcDir, file]), Path.join([destDir, file])]);
+				if (code != 0) {
+					log('ERROR: could not copy $file from $srcDir to $destDir (cp exited with $code)');
+					Sys.exit(1);
+				}
+				copied++;
 			}
+		}
+		if (copied == 0) {
+			log('ERROR: no file named $prefix* in $srcDir');
+			log("  The FMOD_SDK directory has no libraries for this platform, so the");
+			log("  build output would fail to launch. Re-download the FMOD Engine or");
+			log("  fix FMOD_SDK, then rebuild.");
+			Sys.exit(1);
 		}
 	}
 
-	/** Find the full path to the executable in a directory (by excluding known library extensions). */
+	/**
+	 * Finds the executable in a build directory by excluding the library
+	 * extensions. A versioned library such as libfmod.so.14 is excluded
+	 * too. Several candidates are reported, and the first in sorted order
+	 * is returned.
+	 */
 	static function findExecutable(dir:String, excludeExts:Array<String>):Null<String> {
 		if (!FileSystem.exists(dir)) return null;
-		for (file in FileSystem.readDirectory(dir)) {
-			if (file == "run.sh") continue;
-			var excluded = false;
-			for (ext in excludeExts) {
-				// Use indexOf instead of endsWith to catch versioned files like libfmod.so.14
-				if (file.indexOf(ext) != -1) {
-					excluded = true;
-					break;
-				}
-			}
-			if (excluded) continue;
+		var candidates:Array<String> = [];
+		var names = FileSystem.readDirectory(dir);
+		names.sort(Reflect.compare);
+		for (file in names) {
+			if (file == "run.sh" || isLibraryFile(file, excludeExts)) continue;
 			var fullPath = Path.join([dir, file]);
-			if (!FileSystem.isDirectory(fullPath)) return fullPath;
+			if (!FileSystem.isDirectory(fullPath)) candidates.push(fullPath);
 		}
-		return null;
+		if (candidates.length == 0) return null;
+		if (candidates.length > 1) {
+			log('WARNING: several files in $dir look like the executable, using ${candidates[0]}');
+			for (other in candidates.slice(1)) log('  also: $other');
+		}
+		return candidates[0];
+	}
+
+	/** True when the name ends in one of the extensions, with or without a version suffix. */
+	public static function isLibraryFile(file:String, excludeExts:Array<String>):Bool {
+		for (ext in excludeExts) {
+			if (StringTools.endsWith(file, ext)) return true;
+			// libfmod.so.14, libfmodstudio.so.14.5
+			var at = file.indexOf(ext + ".");
+			if (at != -1 && ~/^[0-9.]+$/.match(file.substr(at + ext.length + 1))) return true;
+		}
+		return false;
 	}
 
 	/**

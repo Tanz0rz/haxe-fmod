@@ -13,7 +13,7 @@ import haxefmod.runtime.FmodSettings;
     The first initialization wins. Settings are ignored if something
     already initialized FMOD, like an HTML5 preloader.
 
-    It adds FmodFlxUpdater so FmodManager.Update() runs every frame.
+    It adds FmodFlxUpdater so FmodManager.Update() runs after every frame.
 
     It reports window focus changes to FmodRuntime.setWindowFocused, so
     the muteWhenUnfocused setting takes effect.
@@ -61,7 +61,7 @@ class FmodFlxSetup {
         }
         #end
         // Remove-then-add keeps exactly one wiring across repeated init
-        // calls and across a destroyed-and-recreated FlxGame (fresh signal)
+        // calls and across a destroyed-and-recreated FlxGame (fresh signal).
         FlxG.sound.onVolumeChange.remove(volumeHandler);
         FlxG.sound.onVolumeChange.add(volumeHandler);
         applyVolume();

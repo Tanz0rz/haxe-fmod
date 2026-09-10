@@ -1,9 +1,9 @@
 /*
  * A minimal FMOD DSP plugin for the CI plugin-loading checks: one float
- * parameter, "Gain", applied to every sample. Built as a shared library
- * next to the example game (see the linux-cpp job) so the api-probe can
- * load it with StudioSystem.loadPlugin, create a unit from it, and run
- * audio through it.
+ * parameter, "Gain", applied to every sample. The linux-cpp job builds it
+ * as a shared library next to the example game. The api-probe then loads
+ * it with StudioSystem.loadPlugin, creates a unit from it, and runs audio
+ * through it.
  *
  * Build: gcc -shared -fPIC -o libtest_plugin_gain.so -I$FMOD_SDK/api/core/inc tests/native/test_plugin_gain.c
  */

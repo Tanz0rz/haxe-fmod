@@ -15,8 +15,9 @@ friends) live in haxefmod/core/DspEnums.hx and are not handled here.
 Run: python3 ci/gen-dsp-parameters.py          rewrite both files
      python3 ci/gen-dsp-parameters.py --check  fail if either is out of date
 
-The header is read from $FMOD_SDK/api/core/inc/fmod_dsp_effects.h, or
-from the SDK cache path below when FMOD_SDK is unset.
+The header is read from $FMOD_SDK/api/core/inc/fmod_dsp_effects.h. With
+FMOD_SDK unset it falls back to the private SDK cache checkout next to
+the repo, at the version fmod_expected_version names.
 """
 
 import os
@@ -24,7 +25,6 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_SDK = "/workspace/fmod/fmod-sdk-cache/sdk/2.03.12/linux"
 HAXE_OUT = os.path.join(ROOT, "haxefmod", "core", "DspParameters.hx")
 C_OUT = os.path.join(ROOT, "tests", "native", "faxe_dsp_parameters.h")
 
@@ -73,8 +73,25 @@ TYPEDEF = re.compile(r"typedef enum(?:\s+\w+)?\s*\{(.*?)\}\s*(FMOD_DSP_\w+)\s*;"
 ENTRY = re.compile(r"^\s*(FMOD_DSP_\w+)\s*(?:=\s*(-?\w+))?\s*,?\s*(?:/\*.*?\*/)?\s*$")
 
 
+def expected_version():
+    """Dotted FMOD version out of the BCD hex marker at the repo root."""
+    with open(os.path.join(ROOT, "fmod_expected_version")) as fh:
+        hex_version = fh.read().strip()
+    match = re.fullmatch(r"0x(\d{4})(\d{2})(\d{2})", hex_version)
+    if not match:
+        raise SystemExit(f"fmod_expected_version is not BCD hex: {hex_version}")
+    product, major, minor = match.groups()
+    return f"{int(product)}.{major}.{minor}"
+
+
+def default_sdk():
+    """The private SDK cache checkout that sits next to the repo."""
+    return os.path.join(os.path.dirname(ROOT), "fmod-sdk-cache",
+                        "sdk", expected_version(), "linux")
+
+
 def header_path():
-    sdk = os.environ.get("FMOD_SDK", DEFAULT_SDK)
+    sdk = os.environ.get("FMOD_SDK") or default_sdk()
     return os.path.join(sdk, "api", "core", "inc", "fmod_dsp_effects.h")
 
 

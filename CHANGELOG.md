@@ -3,6 +3,8 @@
 ## 3.0.0 (unreleased)
 
 ### Added
+- `FmodManager.IsAutoUpdate()` and `IsMuteWhenUnfocused()`, the getters for `SetAutoUpdate` and `SetMuteWhenUnfocused`. `FmodRuntime.setAutoUpdate`, `isAutoUpdate`, and `isMuteWhenUnfocused` back them.
+- `FmodFlxUpdater.isInstalled()` and `remove()`.
 - Init settings for the engine knobs FMOD only accepts before initialization: `FmodSettings.dspBufferSize` and `dspNumBuffers` (mixer latency, the web build starts at 2048 by 2 and takes the values as well), `softwareChannels` (the audible voice cap, separate from the virtual count in `numChannels`), `streamBufferSize`, `profiling` (turns on FMOD profiling so `Bus`, `EventInstance`, and `Dsp` `getCpuUsage()` report values), and `distanceFilter`. Defines `haxefmod_dsp_buffer_size` and `haxefmod_software_channels` set the first two from `Project.xml`.
 - `Channel.set3DDistanceFilter` and `ChannelGroup.set3DDistanceFilter` with their getters, FMOD's built-in muffling with distance. They need the `distanceFilter` setting on at init.
 - `StudioSystem.getVersion()` reports the FMOD engine the running build loaded, formatted like `2.03.12`, for diagnostics and bug reports.
@@ -72,6 +74,10 @@
 - The documentation site walks a new project from an empty build file to a playing sound with HaxeFlixel, Heaps, and Kha tabs on every step that differs, and one engine choice switches every tab group on the site. The Engine components guide covers all three component packages the same way, and the Tools CLI page documents `stage`. The README points at the site for setup and keeps the feature overview.
 
 ### Changed
+- `FmodFlxUpdater` hooks `FlxG.signals.postUpdate` instead of registering an `FlxG` plugin. A plugin updates before the state, so it pushed the emitter and listener positions of the frame before. Every `haxefmod.flixel` component installs the hook from its constructor, the way the Heaps and Kha components already do.
+- `FmodManager.StartSnapshot` restarts a snapshot that is fading out after `StopSnapshot`, instead of doing nothing while the fade runs.
+- `FmodManager.ClearAllCallbacks` shrinks every native callback mask, so instances and channels with no handler stop filling the callback queue.
+- `haxelib run haxefmod check` reads the expected FMOD version from the library instead of a literal, checks the hdll binding ABI the way the build does, requires only the haxelibs a lime project file names, and reports a skip instead of a failure in a Heaps or Kha project.
 - `FmodManager.SetWindowFocused` and `IsWindowFocused` moved to `FmodRuntime.setWindowFocused` and `isWindowFocused`. Reporting focus is engine plumbing, which the setup calls for HaxeFlixel, Heaps, and Kha already do at the runtime layer. `FmodManager.SetMuteWhenUnfocused`, the game-facing choice, stays.
 - `EventInstance.setCallback` and `EventDescription.setCallback` deliver every callback type when no mask is given, the default FMOD's API and its C# integration use. `EventCallbackType.PLAYBACK_ALL`, a haxefmod-only member that FMOD's enum does not have, is gone: pass `EventCallbackType.ALL` or an explicit mask.
 - `Sound.getFormat()` now returns the container `type` (`FmodSoundType`) and sample `format` (`FmodSoundFormat`) next to `channels` and `bits`.
@@ -87,11 +93,22 @@
 ### Deprecated
 - `FmodManager.PlaySound`, `CreateSound`, `PlaySoundOneShot`, `PlaySoundOneShotAt`, `PlaySoundOneShotAttached`, `StopAllSounds`, `PauseAllSounds`, `UnpauseAllSounds`, the `FmodSound` type, and the engine utilities' `PlaySoundOneShotAttached` are now `PlayEvent`, `CreateEvent`, `PlayOneShot`, `PlayOneShotAt`, `PlayOneShotAttached`, `StopAllEvents`, `PauseAllEvents`, `UnpauseAllEvents`, `FmodEvent`, and `PlayOneShotAttached`. The old names remain as deprecated aliases for this release and the compiler warns at every use.
 - `FmodManager.GetBusMute`, `SetBusVolumeMaster`, `GetBusVolumeMaster`, `SetBusMuteMaster`, and `GetBusMuteMaster` are now `IsBusMuted`, `SetMasterVolume`, `GetMasterVolume`, `SetMasterMute`, and `IsMasterMuted`. The old names remain as deprecated aliases for this release and the compiler warns at every use.
-- `FmodManager.SetEventParameterOnSong`, `GetEventParameterOnSong`, and `SetEventParameterOnSongWithLabel` are now `SetSongParameter`, `GetSongParameter`, and `SetSongParameterWithLabel`, so the song, global, and held-sound parameter calls read the same way. The old names remain as deprecated aliases for this release and the compiler warns at every use.
+- `FmodManager.SetEventParameterOnSong`, `GetEventParameterOnSong`, and `SetEventParameterOnSongWithLabel` are now `SetSongParameter`, `GetSongParameter`, and `SetSongParameterWithLabel`, so the song, global, and held-event parameter calls read the same way. The old names remain as deprecated aliases for this release and the compiler warns at every use.
 - `haxefmod.studio.CoreSound` is now `haxefmod.core.Sound`, the core `Sound` object next to `Channel`, `ChannelGroup`, `Dsp`, and `SoundGroup`. The old name remains as a deprecated alias for this release and the compiler warns at every use.
 - `CommandReplay.seekToTimeMs(timeMs)`, the millisecond form of `seekToTime`. The compiler warns at every use.
+- `Sound.getSyncPointName` and `getSyncPointOffset` are replaced by `getSyncPointInfo(point)`, which returns the name and offset together. The compiler warns at every use.
 
 ### Fixed
+- `FmodManager.SetAutoUpdate(false)` after init left FMOD unserviced: the runtime kept skipping its manual `update()` call because the resolved setting still said auto. The setting now follows the call.
+- A `.haxefmod/hlaxe_fmod.version` marker with no `hlaxe_fmod.hdll` next to it made PostBuild and `check` report a matching custom hdll, then ship the pre-built hdll for another FMOD version. The marker now counts only with the hdll present.
+- PostBuild compares FMOD version literals as numbers, so a header that writes `0X` or uppercase hex no longer fails the gate with two identical versions in the message.
+- PostBuild fails the build when no FMOD library matched the copy instead of reporting success, checks each copy's exit code, finds the ABI marker at the end of an hdll, keeps the executable-stack edits it made when a later program header is truncated, and no longer mistakes an asset whose name contains `.so` for a library.
+- `haxelib run haxefmod check` drains the child process's stderr, so a chatty `haxelib` or `haxe` no longer hangs it, and it reports every check it cannot verify instead of printing nothing.
+- `BankRegistry` drops the registry entry when a reload fails, so `refCount` and `loadingState` no longer describe a bank that was unloaded.
+- `ZoneTrigger` (the parameter trigger components) waits for initialization before latching its state, so the first value reaches FMOD on HTML5 instead of being dropped until the next edge crossing.
+- `FmodFlxEmitter.cullMaxDistance` keeps its `-1` default instead of being overwritten with the authored distance on the first check.
+- `FmodManager.OnceSongEvent` shrinks the native mask when it removes itself. `FmodManager.Initialize` warns when the runtime init fails. `GetCurrentSongPath` is empty after a `PlaySong` that failed.
+- `haxelib run haxefmod todos` no longer swallows a method chained after a regex literal while skipping the regex flags.
 - Pointing `FMOD_SDK` at the HTML5 FMOD Engine package (or `FMOD_SDK_WEB` at a desktop one) now fails the build with a message naming the swapped packages. Previously a native build got as far as copying libraries and died with an uncaught exception on macOS and Windows. Both packages ship the same `api/core/inc` headers, so the check is the platform's own core library rather than a header.
 - A desktop FMOD SDK missing the libraries for the platform being built now reports the missing file with setup instructions instead of an uncaught exception. Linux already did this, and macOS and Windows now match.
 - **Docs extension**: lone example blocks on pages with a language selector no longer get an added tab strip. The site's own tabs already govern every language-classed block on the page, so the Haxe translation now joins that toggle and shows when Haxe is picked at the top. Previously each lone block grew its own strip, an example repeated once per language showed orphaned strips over hidden code, and picking Haxe stacked identical snippets. Added strips remain only on guide and platform pages, which have no selector to extend. Example translations were also re-reviewed against the site's own snippets: invented file names, values, and setup lines are gone, and each fence mirrors the snippet's data and shape.

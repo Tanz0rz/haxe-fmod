@@ -1,28 +1,33 @@
 #!/usr/bin/env python3
 """Keeps the docs and the compiler in agreement about HTML5 support.
 
-A method FMOD's web build cannot run carries two things in the Haxe
-source: the phrase "(unsupported in HTML5)" in its doc comment, and the
-compile gate (the macro branch under
-`#if (macro || (js && !haxefmod_html5_allow_unsupported))`, see
-haxefmod/studio/native/Html5Gate.hx). ci/check-html5-gate.py proves each
-gate carries the phrase. This check proves the reverse: every method
-whose doc comment carries the phrase sits inside a gate, so a doc
-comment cannot promise an error the compiler does not raise.
+A method FMOD's web build cannot run carries two marks in the Haxe
+source. Its doc comment holds the phrase "unsupported in HTML5". Its
+body sits behind the compile gate, the macro branch under
+#if (macro || (js && !haxefmod_html5_allow_unsupported)). Look at
+haxefmod/studio/native/Html5Gate.hx for that gate.
 
-Doc comments on fields (settings, constants) may use the phrase without
-a gate, since there is nothing to gate on a field.
+ci/check-html5-gate.py proves each gate carries the phrase. This check
+proves the reverse. Every method whose doc comment carries the phrase
+sits inside a gate. A doc comment then cannot promise an error the
+compiler does not raise.
+
+Doc comments on fields (settings, constants) carry the phrase without a
+gate. A field has nothing to gate.
+
+Html5Gate.hx is skipped. It assembles the compile error text out of the
+same words.
 
 Run: python3 ci/check-html5-phrase.py
 """
-
 import os
 import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE = os.path.join(ROOT, "haxefmod")
-PHRASE = "(unsupported in HTML5)"
+PHRASE = "unsupported in HTML5"
+SKIP = {os.path.join(SOURCE, "studio", "native", "Html5Gate.hx")}
 GATE_OPEN = "#if (macro || (js && !haxefmod_html5_allow_unsupported))"
 
 FUNCTION = re.compile(r"^\s*(?:public|private|static|inline|override|macro|\s)*function\s+(\w+)")
@@ -70,9 +75,10 @@ def main():
     checked = 0
     for dirpath, _dirnames, filenames in os.walk(SOURCE):
         for name in sorted(filenames):
-            if name.endswith(".hx"):
+            path = os.path.join(dirpath, name)
+            if name.endswith(".hx") and path not in SKIP:
                 checked += 1
-                problems += check_file(os.path.join(dirpath, name))
+                problems += check_file(path)
     for problem in problems:
         print("FAIL: " + problem)
     print(f"check-html5-phrase: {checked} files, {len(problems)} ungated phrase(s)")

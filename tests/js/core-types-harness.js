@@ -1,8 +1,11 @@
 // Runs the core type bindings of jaxe.js against the real FMOD 2.03.12
-// wasm under Node: the packed FMOD_CREATESOUNDEXINFO on the memory create,
-// sync point handles as sorted indices, loop points with a unit per end,
-// the system ERROR mask (accepted, never raised by the web build), and
-// the second string slot of the callback queue.
+// wasm under Node.
+// The checks cover the packed FMOD_CREATESOUNDEXINFO on the memory create
+// and sync point handles as sorted indices.
+// Loop points with a unit per end come after those.
+// The system ERROR mask follows. The web build accepts that mask and never
+// raises it.
+// The final check reads the second string slot of the callback queue.
 // Usage: node core-types-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');

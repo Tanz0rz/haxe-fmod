@@ -11,10 +11,10 @@ import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
 
 /**
- * Probe for the last seven bindings: the preallocated DSP input, the mix
- * level setters on channels and groups, the DSP description by type, the
- * output plugin handle, and the replay cursor. The mixer edits are undone
- * before it returns.
+ * Probe for the last seven bindings. The first three are the preallocated
+ * DSP input, the mix level setters on channels and groups, and the DSP
+ * description by type. The output plugin handle and the replay cursor
+ * finish the set. The mixer edits are undone before it returns.
  */
 class ProbeLastSeven {
     public static function run(state:ApiProbeScenario):Void {
@@ -23,9 +23,9 @@ class ProbeLastSeven {
         var baseline = StudioSystem.liveHandleCount();
 
         // The preallocated input path. The only connections this library
-        // can hand over come from addInput, and FMOD refuses those with
-        // INVALID_PARAM, so the probe proves the refusal is clean and that
-        // a NULL or stale connection never reaches FMOD.
+        // can hand over come from addInput. FMOD refuses those with
+        // INVALID_PARAM. The probe proves the refusal is clean and that a
+        // NULL or stale connection never reaches FMOD.
         var echo = Dsp.create(DspType.ECHO);
         var fader = Dsp.create(DspType.FADER);
         var conn = echo.addInput(fader);
@@ -107,7 +107,7 @@ class ProbeLastSeven {
         #end
 
         // The output plugin handle. Setting the current handle back is a
-        // no-op that reports OK natively and INITIALIZED on the web build,
+        // no-op. It reports OK natively and INITIALIZED on the web build,
         // and the active output stays what it was either way. Another
         // handle would re-select the output device, so none is tried.
         var outputBefore = CoreSystem.getOutput();

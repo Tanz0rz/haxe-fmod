@@ -34,7 +34,8 @@ class FmodHeapsListener implements IHeapsTicker {
     var scene:Scene;
 
     /**
-        @param target The object to follow.
+        @param target The object to follow. Omit it to set one later with
+        setTarget. The listener stays idle until then.
         @param listenerIndex The listener to drive. Leave it at 0 unless the
         game uses multiple listeners through StudioSystem.setNumListeners.
     **/

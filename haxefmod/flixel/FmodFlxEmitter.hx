@@ -12,9 +12,8 @@ import haxefmod.studio.EventInstance;
 
     The instance follows the object's midpoint and velocity for as long as
     both are alive. FmodRuntime.update() pushes the positions, and
-    FmodManager.Update() calls it. This component needs no per-frame work
-    of its own for that. Make sure Update() runs every frame, or add
-    FmodFlxUpdater once.
+    FmodManager.Update() calls it. The constructor installs FmodFlxUpdater,
+    so Update() runs after every frame.
 
         var emitter = FmodFlxEmitter.play(FmodEvents.SFXEngine, car);
         add(emitter);
@@ -63,6 +62,7 @@ class FmodFlxEmitter extends FlxBasic {
     public function new(instance:EventInstance, target:FlxObject) {
         super();
         tracker = new EmitterTracker(instance, new FlxObjectPositionProvider(target));
+        FmodFlxUpdater.init();
     }
 
     /**

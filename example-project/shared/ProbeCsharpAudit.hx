@@ -7,19 +7,20 @@ import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
 
 /**
- * Probe for the members added by the audit against FMOD's C# integration:
- * bus port indices, parameter labels by index, parameter batches by ID,
- * the parameter description list, the user property lookups, the bank
- * string info pair, the mixer and stream buffer readback, and the
- * renamed getters.
+ * Probe for the members added by the audit against FMOD's C#
+ * integration. The first group covers bus port indices, parameter labels
+ * by index, and parameter batches by ID. The second group covers the
+ * parameter description list, the user property lookups, and the bank
+ * string info pair. Last come the mixer and stream buffer readback and
+ * the renamed getters.
  */
 class ProbeCsharpAudit {
     public static function run(state:ApiProbeScenario):Void {
         var baseline = StudioSystem.liveHandleCount();
 
-        // Bus port index: FMOD only routes buses to ports on consoles, so
-        // desktop reports FMOD_ERR_UNSUPPORTED on the setter and NONE on the
-        // getter, which is the shape the binding carries through
+        // Bus port index: FMOD only routes buses to ports on consoles.
+        // Desktop reports FMOD_ERR_UNSUPPORTED on the setter and NONE on
+        // the getter, which is the shape the binding carries through
         var master = StudioSystem.getBus(FmodBuses.Root);
         @:privateAccess state.check("audit_bus_port_index_none", master.getPortIndex() == FmodPortIndex.NONE,
             'index=${(master.getPortIndex() : Int)} result=${StudioSystem.lastResult().toString()}');

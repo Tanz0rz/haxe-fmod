@@ -23,18 +23,18 @@ import haxefmod.studio.Types;
  * to baseline.
  *
  * Churn phase: for the configured duration, every frame creates, starts,
- * immediately stops, and releases a small batch of instances - registering
- * a callback on one instance per batch to churn the dispatcher map under
- * sustained mutation - plus rotating lifecycle churn: PcmStream cycles
- * (with a DSP attached and detached mid-cycle), then DSP graph and reverb
- * zone cycles, then sound group, nested group, and channel callback
- * cycles, so every slot type recycles under the same pressure. The
- * families rotate across frames. Reverb zones churn the realistic way
- * (a persistent zone with property and active churn, no lifecycle
- * cycling) because zone create/release concurrent with stream
- * lifecycles crashes inside FMOD
- * itself (pure C repro in tests/native/fmod_churn_crash_repro.c). Every
- * heartbeat asserts the live handle count stays flat.
+ * immediately stops, and releases a small batch of instances. A callback
+ * on one instance per batch churns the dispatcher map under sustained
+ * mutation. Rotating lifecycle churn runs alongside it. PcmStream cycles
+ * come first, with a DSP attached and detached mid-cycle. DSP graph and
+ * reverb zone cycles follow. Sound group, nested group, and channel
+ * callback cycles come last, so every slot type recycles under the same
+ * pressure. The families rotate across frames. Reverb zones churn the
+ * realistic way: a persistent zone with property and active churn, and no
+ * lifecycle cycling. Zone create/release concurrent with stream
+ * lifecycles crashes inside FMOD itself (pure C repro in
+ * tests/native/fmod_churn_crash_repro.c). Every heartbeat asserts the
+ * live handle count stays flat.
  *
  * Duration comes from the STRESS_SECONDS env var (default 60 seconds;
  * HTML5 always uses the default). Select via
@@ -105,9 +105,9 @@ class StressScenario implements TestScenario {
         #end
         info("duration_seconds", Std.string(_durationSeconds));
 
-        // Warm the event description cache (the lookup allocates one
-        // persistent deduped handle) and create the persistent reverb zone
-        // so the baseline only moves if a phase below leaks handles
+        // Warm the event description cache, where the lookup allocates
+        // one persistent deduped handle. Create the persistent reverb zone
+        // too. The baseline then moves only if a phase below leaks handles
         StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         _persistentZone = Reverb3D.create();
         _baseline = StudioSystem.liveHandleCount();

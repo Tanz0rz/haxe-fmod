@@ -9,16 +9,16 @@ import haxe.macro.Expr;
  * Compile-time gate for calls FMOD's web build cannot make.
  *
  * A method that works on native targets only is declared twice in its
- * abstract: the real inline body, and under
- * `#if (macro || (js && !haxefmod_html5_allow_unsupported))` a macro
- * method that calls `block`. On a js build the macro runs at every call
- * site and stops compilation there, naming the method and the reason,
- * so a game cannot ship a web build that silently does nothing.
+ * abstract. One declaration is the real inline body. The other sits under
+ * `#if (macro || (js && !haxefmod_html5_allow_unsupported))` and is a
+ * macro method that calls `block`. On a js build the macro runs at every
+ * call site and stops compilation there. The error names the method and
+ * the reason.
  *
  * Projects that share code across targets and branch at runtime opt out
  * with `-D haxefmod_html5_allow_unsupported`. The call then compiles to
- * the real method, which returns FMOD_ERR_UNSUPPORTED in the browser,
- * and the library prints one warning per build saying so.
+ * the real method, which returns FMOD_ERR_UNSUPPORTED in the browser.
+ * The library prints one warning per build saying so.
  */
 class Html5Gate {
     #if macro

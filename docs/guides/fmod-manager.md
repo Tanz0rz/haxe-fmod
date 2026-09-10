@@ -1,6 +1,6 @@
 # FmodManager
 
-`haxefmod.FmodManager` is the helper class most games talk to. It owns six areas: lifecycle with banks, one background song slot, events, the mixer (buses, VCAs, and snapshots), global parameters, and game policy. Every call takes an FMOD Studio path or name and holds no handle. The song slot is its one piece of state. `PlayEvent` and `CreateEvent` return an `FmodEvent`, the one handle with a lifetime. `GetBus`, `GetVCA`, and `GetEventDescription` return FMOD's own objects for anything beyond the path calls. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
+`haxefmod.FmodManager` is the helper class most games talk to. It owns six areas. Those are lifecycle with banks, one background song slot, events, the mixer (buses, VCAs, and snapshots), global parameters, and game policy. Every call takes an FMOD Studio path or name and holds no handle. The song slot is its one piece of state. `PlayEvent` and `CreateEvent` return an `FmodEvent`, the one handle with a lifetime. `GetBus`, `GetVCA`, and `GetEventDescription` return FMOD's own objects for anything beyond the path calls. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
 
 Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup calls](components.md#setup) only keep `Update()` running and wire focus and volume.
 
@@ -12,7 +12,7 @@ Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup cal
 FmodManager.Initialize({liveUpdate: true, numChannels: 256});
 ```
 
-Call `FmodManager.Update()` once per frame. It delivers callbacks, pushes positions for attached instances, and drives song transitions. Audio continues without it, because a background thread (native) or timer (HTML5) services the FMOD mixer. Typed callbacks only arrive from `Update()`. `SetAutoUpdate(false)` turns the background servicing off for games that drive FMOD from their own loop.
+Call `FmodManager.Update()` once per frame. It delivers callbacks, pushes positions for attached instances, and drives song transitions. Audio continues without it, because a background thread (native) or timer (HTML5) services the FMOD mixer. Typed callbacks only arrive from `Update()`. `SetAutoUpdate(false)` turns the background servicing off for games that drive FMOD from their own loop. `IsAutoUpdate()` reports the state.
 
 `IsInitialized()` reports true once the engine and the default banks are usable. Native targets initialize synchronously, so it is true immediately. HTML5 initializes asynchronously, and games gate their first scene on it.
 
@@ -28,7 +28,7 @@ FmodManager.LoadBank("Level1.bank");
 FmodManager.UnloadBank("Level1.bank");
 ```
 
-Loads are counted. A bank loaded twice unloads on the second `UnloadBank`, so a level that loads a bank another level still holds does not pull it away. Native targets load synchronously. HTML5 loads asynchronously, so poll `IsBankLoaded` before the first event from the bank. `IsAnyBankLoading()` reports whether any bank is still loading, and `WaitForBanks()` blocks until every pending load completes on native targets. HTML5 cannot block, so it returns at once there. The [engine components](components.md) load a bank for a state's lifetime without any of these calls, and [Bank loading](bank-loading.md) covers the registry underneath.
+Loads are counted. A bank loaded twice unloads on the second `UnloadBank`. A level never pulls away a bank another level still holds. Native targets load synchronously. HTML5 loads asynchronously, so poll `IsBankLoaded` before the first event from the bank. `IsAnyBankLoading()` reports whether any bank is still loading, and `WaitForBanks()` blocks until every pending load completes on native targets. HTML5 cannot block, so it returns at once there. The [engine components](components.md) load a bank for a state's lifetime without any of these calls, and [Bank loading](bank-loading.md) covers the registry underneath.
 
 ## Music
 
@@ -76,7 +76,7 @@ FmodManager.PlayOneShot(FmodEvents.SFXCoin);
 FmodManager.PlayOneShotAt(FmodEvents.SFXCoin, 320, 240);
 ```
 
-`PlayEvent(path)` returns an `FmodEvent` for events you control over time. `CreateEvent(path)` returns the same handle without starting it, so parameters and a position land before the first frame plays, and `start()` plays it.
+`PlayEvent(path)` returns an `FmodEvent` for events you control over time. `CreateEvent(path)` returns the same handle without starting it. Parameters and a position land before the first frame, and `start()` plays it.
 
 ```haxe
 var engine = FmodManager.PlayEvent(FmodEvents.SFXEngine);
@@ -97,13 +97,13 @@ footstep.setParameterWithLabel("Surface", "Grass");
 footstep.start();
 ```
 
-`FmodEvent` wraps an `EventInstance` handle with the everyday operations. Playback: `start`, `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, and `isPlaying`. Mix: `getVolume`, `setVolume`, `getPitch`, `setPitch`, and `setPosition2D`. Parameters: `getParameter`, `setParameter`, and `setParameterWithLabel`. Lifecycle: `onEvent` and `release`. It is a Studio event instance, unrelated to `haxefmod.core.Sound`, which is a Core API sample. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The event plays to completion unless you stopped it first.
+`FmodEvent` wraps an `EventInstance` handle with the everyday operations. Playback: `start`, `stop` (with the authored fadeout), `stopImmediately`, `pause`, `unpause`, and `isPlaying`. Mix: `getVolume`, `setVolume`, `getPitch`, `setPitch`, and `setPosition2D`. Parameters: `getParameter`, `setParameter`, and `setParameterWithLabel`. Lifecycle: `onEvent` and `release`. Call `release()` when you are done with the handle. The handle becomes invalid immediately. The event plays to completion unless you stopped it first.
 
 The full event instance API is one cast away. `FmodEvent` is an abstract over `EventInstance`.
 
 ```haxe
-var sound = FmodManager.PlayEvent(FmodEvents.SFXEngine);
-var instance:haxefmod.studio.EventInstance = sound;
+var event = FmodManager.PlayEvent(FmodEvents.SFXEngine);
+var instance:haxefmod.studio.EventInstance = event;
 instance.setPosition2D(100, 50);
 instance.setTimelinePosition(2000);
 ```
@@ -116,7 +116,7 @@ Snapshots are events to FMOD, so these calls accept them too. The [Snapshots](#s
 
 | Call | Effect |
 |---|---|
-| `StopAllEvents()` | Stops every event routed through the master bus immediately. |
+| `StopAllEvents()` | Stops every event routed through the master bus immediately, the song included. |
 | `PauseAllEvents()` / `UnpauseAllEvents()` | Pauses the master bus and freezes every event at its position. Events started while paused queue up and play on unpause. |
 | `SetBusVolume(path, volume)` / `GetBusVolume(path)` | Linear bus volume, 0.0 silent to 1.0 full. |
 | `SetBusMute(path, mute)` / `IsBusMuted(path)` | Bus mute flag. Volume survives a mute and unmute round trip. |
@@ -145,7 +145,7 @@ A parameter local to one event is set on that event. The song takes `SetSongPara
 
 ## Snapshots
 
-A snapshot is a mixer state the sound designer authored in FMOD Studio: bus volumes, effect settings, and sends, with a blend curve. Underwater, paused, and low health are typical snapshots. The game applies one and removes it, and FMOD blends the mixer toward the authored state and back. Several snapshots can be active together.
+A snapshot is a mixer state the sound designer authored in FMOD Studio. It carries bus volumes, effect settings, sends, and a blend curve. Underwater, paused, and low health are typical snapshots. The game applies one and removes it, and FMOD blends the mixer toward the authored state and back. Several snapshots can be active together.
 
 ```haxe
 FmodManager.StartSnapshot(FmodSnapshots.Paused);
@@ -153,7 +153,7 @@ FmodManager.StartSnapshot(FmodSnapshots.Paused);
 FmodManager.StopSnapshot(FmodSnapshots.Paused);
 ```
 
-`StartSnapshot(path)` applies a snapshot until `StopSnapshot(path)` removes it with its authored fade. `StopSnapshotImmediately(path)` cuts. A second `StartSnapshot` for a snapshot that is already applied does nothing. `IsSnapshotActive(path)` reports whether it is applied, and stays true through the fade out. The generated `FmodSnapshots` class holds the paths as constants.
+`StartSnapshot(path)` applies a snapshot until `StopSnapshot(path)` removes it with its authored fade. `StopSnapshotImmediately(path)` cuts. A second `StartSnapshot` for a snapshot that is already applied does nothing. During the fade out it restarts the snapshot. `IsSnapshotActive(path)` reports whether it is applied, and stays true through the fade out. The generated `FmodSnapshots` class holds the paths as constants.
 
 A snapshot's intensity is authored in FMOD Studio and is not a parameter the API can set. To vary it at runtime, the sound designer automates the intensity on a parameter. The game then drives that parameter with `SetGlobalParameter`.
 
@@ -169,7 +169,7 @@ import haxefmod.runtime.FmodRuntime;
 FmodRuntime.setWindowFocused(false);
 ```
 
-`SetMuteWhenUnfocused(false)` keeps audio playing in the background. The `muteWhenUnfocused` setting and the `haxefmod_no_mute_when_unfocused` define do the same. The focus mute applies to the core master channel group, a separate node from the Studio master bus. It never disturbs a mute your game set on `bus:/`. Games that never lose focus can ignore all of this.
+`SetMuteWhenUnfocused(false)` keeps audio playing in the background, and `IsMuteWhenUnfocused()` reports the choice. The `muteWhenUnfocused` setting and the `haxefmod_no_mute_when_unfocused` define do the same. The focus mute applies to the core master channel group, a separate node from the Studio master bus. It never disturbs a mute your game set on `bus:/`. Games that never lose focus can ignore all of this.
 
 ## Sound TODO markers
 
@@ -191,7 +191,7 @@ FmodManager.Todo("door creak when the cellar opens");
 | Every FMOD Studio object by handle: events, buses, VCAs, snapshots, banks, command replay | `haxefmod.studio` | [Handles and results](handles-and-results.md), [Callbacks](callbacks.md), the Haxe tab on fmod.com |
 | The FMOD Core API: sounds, channels, groups, DSP, geometry | `haxefmod.core` | [Core API helpers](core-api.md) |
 
-`PlayEvent` and `CreateEvent` return the one handle with a lifetime. The cast above reaches the full `EventInstance` API from it. For FMOD's other objects the helper class hands out the object itself. `GetBus(path)`, `GetVCA(path)`, and `GetEventDescription(path)` return the same handles `haxefmod.studio` serves. They belong to FMOD and need no release. A bad path returns a null handle whose every call is a safe no-op. Use them for what the path calls do not cover. Examples are a bus's final volume after VCAs and snapshots, the channel group under a bus for effects, an event's length and distances, its parameters and labels, and preloading its sample data.
+`PlayEvent` and `CreateEvent` return the one handle with a lifetime. The cast above reaches the full `EventInstance` API from it. For FMOD's other objects the helper class hands out the object itself. `GetBus(path)`, `GetVCA(path)`, and `GetEventDescription(path)` return the same handles `haxefmod.studio` serves. They belong to FMOD and need no release. A bad path returns a null handle whose every call is a safe no-op. Use them for what the path calls do not cover. Examples are a bus's final volume after VCAs and snapshots, and the channel group under a bus for effects. An event's length, distances, parameters, labels, and sample data preloading come from its description.
 
 ```haxe
 var shown = FmodManager.GetBus(FmodBuses.Music).getFinalVolume();

@@ -16,7 +16,7 @@ if [ ! -f "$LOG_FILE" ]; then
 fi
 echo "OK"
 
-# 2. Check log is not empty (debug messages should be present)
+# 2. Check log is not empty (debug messages must be present)
 LINES=$(wc -l < "$LOG_FILE" | tr -d ' ')
 echo -n "  [2/3] Log has content .............. "
 if [ "$LINES" -eq 0 ]; then

@@ -22,11 +22,13 @@ interface TestHost {
     function checkSetupReinit(check:String->Bool->String->Void):Void;
 
     /**
-     * Drives the engine's own volume and mute controls and reports through
-     * check that each change landed on the FMOD master bus. Must leave the
-     * controls at full volume, unmuted.
+     * Drives whichever volume and mute controls the engine offers and
+     * reports each result through check. An engine with its own global
+     * volume proves that control lands on the FMOD master bus. An engine
+     * without one drives the FMOD master bus directly, so the checks cover
+     * the round trip only. Must leave full volume, unmuted.
      */
-    function checkVolumeBridge(check:String->Bool->String->Void):Void;
+    function checkVolumeControls(check:String->Bool->String->Void):Void;
 
     /** Raises the engine's own focus lost or gained event. */
     function setFocusThroughEngine(focused:Bool):Void;

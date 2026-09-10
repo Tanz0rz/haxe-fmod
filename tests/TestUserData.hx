@@ -5,6 +5,7 @@ import haxefmod.core.Channel;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspConnection;
+import haxefmod.core.Geometry;
 import haxefmod.core.PcmStream;
 import haxefmod.core.Reverb3D;
 import haxefmod.core.SoundGroup;
@@ -71,6 +72,7 @@ class TestUserData {
 		var conn:DspConnection = 101;
 		var sg:SoundGroup = 101;
 		var r3d:Reverb3D = 101;
+		var geo:Geometry = 101;
 		var pcm:PcmStream = 101;
 
 		evd.setUserData("evd");
@@ -86,6 +88,7 @@ class TestUserData {
 		conn.setUserData("conn");
 		sg.setUserData("sg");
 		r3d.setUserData("r3d");
+		geo.setUserData("geo");
 		pcm.setUserData("pcm");
 
 		// The same handle int in every family reads back its own value
@@ -102,8 +105,10 @@ class TestUserData {
 		assert("conn get", conn.getUserData() == "conn");
 		assert("sg get", sg.getUserData() == "sg");
 		assert("r3d get", r3d.getUserData() == "r3d");
+		assert("geo get", geo.getUserData() == "geo");
 		assert("pcm get", pcm.getUserData() == "pcm");
-		assert("count all kinds", UserData.count() == 14);
+		// One entry per family, so every kind in UserDataKind is covered above
+		assert("count all kinds", UserData.count() == UserDataKind.COUNT);
 
 		UserData.clear(UserDataKind.Dsp, 101);
 		assert("clear one kind", dsp.getUserData() == null && conn.getUserData() == "conn");
@@ -167,6 +172,9 @@ class TestUserData {
 		var pcm:PcmStream = 307;
 		pcm.setUserData(1); pcm.release();
 		assert("pcm cleared on release", pcm.getUserData() == null);
+		var geo:Geometry = 310;
+		geo.setUserData(1); geo.release();
+		assert("geometry cleared on release", geo.getUserData() == null);
 		var bank:Bank = 308;
 		bank.setUserData(1); bank.unload();
 		assert("bank cleared on unload", bank.getUserData() == null);
@@ -189,7 +197,7 @@ class TestUserData {
 		CallbackDispatcher.deliver(777, EventCallbackType.DESTROYED, 0, 0, 0, 0, 0, 0, "");
 		assert("destroyed clears userdata", evi.getUserData() == null);
 		assert("destroyed leaves other handles", other.getUserData() == "keep");
-		// The value is still readable from inside the Destroyed handler itself
+		// The value remains readable from inside the Destroyed handler itself
 		var seen:Dynamic = null;
 		NativeStudioStub.testCallbackMaskResult = 0;
 		other.setCallback(function(data) {

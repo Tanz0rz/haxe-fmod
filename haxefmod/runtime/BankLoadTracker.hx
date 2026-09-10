@@ -11,9 +11,9 @@ import haxefmod.studio.Types;
     Loading is refcounted through FmodRuntime.banks. dispose() releases
     this loader's references. The banks unload once nobody else holds
     them. Engine adapters call update() every frame.
-**/
+*/
 class BankLoadTracker {
-    /** True once every requested bank has finished loading. **/
+    /** True once every requested bank has finished loading. */
     public var loaded(default, null):Bool = false;
 
     var disposed:Bool = false;
@@ -37,7 +37,7 @@ class BankLoadTracker {
         it, a failed load is only visible through loadingState polling.
         @param async Loads in the background (default). Pass false to load
         synchronously on native targets.
-    **/
+    */
     public function new(bankFiles:Array<String>, ?onLoaded:Void->Void, ?onError:Void->Void, async:Bool = true) {
         this.onLoaded = onLoaded;
         this.onError = onError;
@@ -56,7 +56,7 @@ class BankLoadTracker {
         }
     }
 
-    /** Starts the loads once FMOD is ready, then polls until the banks settle. **/
+    /** Starts the loads once FMOD is ready, then polls until the banks settle. */
     public function update():Void {
         // A disposed loader has an empty path list. That reads as "all
         // banks loaded" and fires onLoaded after the banks were released.
@@ -83,7 +83,7 @@ class BankLoadTracker {
         if (onLoaded != null) onLoaded();
     }
 
-    /** Releases this loader's bank references (refcounted unload). **/
+    /** Releases this loader's bank references (refcounted unload). */
     public function dispose():Void {
         disposed = true;
         for (path in owned) {

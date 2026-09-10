@@ -1,9 +1,10 @@
 /*
  * Unit tests for native/shared/faxe_dspdata.h against a real FMOD SDK's
- * headers: the flat double layouts land in the right struct fields, the
- * listener count is range checked, the metering unpack mirrors the
- * struct, the descriptor unpack and texts cover every parameter type, and
- * the typed data parameter pack and unpack agree with the structs.
+ * headers. The flat double layouts land in the right struct fields. The
+ * listener count is range checked. The metering unpack mirrors the
+ * struct. The descriptor unpack and texts cover every parameter type.
+ * The typed data parameter pack and unpack agree with the structs.
+ * Build and run with:
  *
  *   gcc -std=c99 -Wall -Wextra -Werror -I<sdk>/api/core/inc \
  *       -o t tests/native/test_faxe_dspdata.c && ./t

@@ -1,9 +1,11 @@
 // Runs the init settings of jaxe.js against the real FMOD 2.03.12 wasm
-// under Node: the output type, the mixer buffer, the resampler, raw
-// speakers, memory tracking, driver info, and the pre-create hooks the
-// web build cannot serve (memory pool, thread attributes, file logging,
-// console ports), which must report 68 (ERR_UNSUPPORTED) and leave the
-// handle table alone. Unlike the other harnesses this one lets the shim's
+// under Node.
+// The served settings are the output type, the mixer buffer, the resampler,
+// raw speakers, memory tracking, and driver info.
+// The web build cannot serve four pre-create hooks: memory pool, thread
+// attributes, file logging, and console ports.
+// Those four must report 68 (ERR_UNSUPPORTED) and leave the handle table
+// alone. Unlike the other harnesses this one lets the shim's
 // own onRuntimeInitialized run, since that is where the settings apply.
 // Usage: node init-settings-harness.js  (needs FMOD_SDK_WEB)
 
@@ -78,7 +80,6 @@ async function main() {
     const baseline = jaxe.fmod_debug_live_handle_count();
     const ibuf = new Array(1024).fill(0);
     const fbuf = new Array(1024).fill(0);
-    const out = {};
 
     // What landed before initialize
     check('output_type_applied', jaxe.fmod_sys_get_output() === NOSOUND_NRT, `output=${jaxe.fmod_sys_get_output()}`);
@@ -120,7 +121,7 @@ async function main() {
     check('attach_port_dead_handle', jaxe.fmod_sys_attach_channel_group_to_port(0, -1, group, true) === 30, '');
     check('detach_port_dead_handle', jaxe.fmod_sys_detach_channel_group_from_port(group) === 30, '');
 
-    // Memory stats still work with tracking on
+    // Memory stats work with tracking on
     check('memory_stats_with_tracking', jaxe.fmod_sys_get_memory_stats(true, ibuf) === 0 && ibuf[0] > 0, `current=${ibuf[0]} max=${ibuf[1]}`);
 
     check('no_handle_leaks', jaxe.fmod_debug_live_handle_count() === baseline,

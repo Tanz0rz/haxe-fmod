@@ -24,13 +24,15 @@ import haxefmod.studio.Types;
  * "PAN_TEST:" line per check. CI gates on "PAN_TEST: COMPLETE" with no
  * "pass=false".
  *
- * Same flow as the flixel EmitterPanTestState: emitter follows an
- * object, detach and release on dispose, listener driving the listener
- * position, distance culling, the attached one-shot helper, and real
- * spatialization metered on the Spatial event's channel group. Heaps
- * objects carry no velocity, so the checks that need a known velocity
- * tick the component with a fixed elapsed time and move the object by a
- * known distance.
+ * The flow matches the flixel EmitterPanTestState. An emitter follows an
+ * object. A dispose call detaches the emitter and releases the instance.
+ * A listener drives the listener position. The scenario also covers
+ * distance culling and the attached one-shot helper. It meters real
+ * spatialization on the Spatial event's channel group.
+ *
+ * Heaps objects carry no velocity. The checks that need a known velocity
+ * tick the component with a fixed elapsed time. They then move the object
+ * by a known distance.
  *
  * Select via HAXEFMOD_TEST_STATE=pan-test (HashLink) or ?test=pan-test (browser).
  */
@@ -76,10 +78,10 @@ class PanTestScenario implements TestScenario {
         host.setStatus("PAN_TEST running");
         log("PAN_TEST: Starting");
 
-        // Warm the event description cache (the lookup allocates one
-        // persistent deduped handle), then capture the leak baseline: the
-        // emitter's instance is the only allocation after this point and
-        // dispose() must release it.
+        // Warm the event description cache first. The lookup allocates
+        // one persistent deduped handle. Then capture the leak baseline.
+        // From this point the emitter's instance is the only allocation,
+        // and dispose() releases it.
         StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         var baseline = StudioSystem.liveHandleCount();
 
@@ -184,9 +186,9 @@ class PanTestScenario implements TestScenario {
 
     /**
      * Runs the culling flow against a looping event with an explicit cull
-     * distance (the example bank has no authored 3D distances): cull when
-     * far, restart when near, restart when culling is disabled mid-cull,
-     * and leave one-shots alone entirely.
+     * distance. The example bank has no authored 3D distances. The phases
+     * cull when far, restart when near, and restart when culling is
+     * disabled mid-cull. One-shots stay untouched.
      */
     function startCullPhases():Void {
         // Warm the description lookups so their persistent dedup handles
@@ -386,11 +388,11 @@ class PanTestScenario implements TestScenario {
     var _peakR:Float = 0;
 
     /**
-     * Plays the looping 3D Spatial event 10 units left of the listener
-     * (which follows the listener object's center at 308, 228) and
-     * meters the instance's channel group. The metering DSP sits at the
-     * head of the group's chain, after the spatializer, so its input peaks
-     * are the panned stereo image.
+     * Plays the looping 3D Spatial event 10 units left of the listener.
+     * The listener follows the listener object's center at 308, 228. The
+     * check meters the instance's channel group. The metering DSP sits at
+     * the head of the group's chain, after the spatializer, so its input
+     * peaks are the panned stereo image.
      */
     function startSpatialEmitter():Void {
         _spatialSprite = sprite(290, 220);
@@ -496,11 +498,11 @@ class PanTestScenario implements TestScenario {
     }
 
     /**
-     * A real zone crossing driving a real event parameter through the
-     * trigger's instance variant, plus the contract that manual changes
-     * between crossings are not fought over. The global path runs both
-     * ways: the missing-name negative in create(), and a real crossing on
-     * the authored Intensity parameter below.
+     * A real zone crossing drives a real event parameter through the
+     * trigger's instance variant. The checks also cover the contract that
+     * manual changes between crossings are not fought over. The global
+     * path runs both ways: the missing-name negative in create(), and a
+     * real crossing on the authored Intensity parameter below.
      */
     function runParameterTriggerChecks():Void {
         var target = _listenerSprite; // sits at (300, 220)

@@ -28,7 +28,7 @@ Browsers refuse to start audio before the user interacts with the page. The libr
 
 ### Native-only calls
 
-A call to a feature the web build lacks is a compile error in a js build. The compiler stops at the call site, names the method and the reason, and points at the opt-out. A project that shares code across targets and branches at runtime sets `-D haxefmod_html5_allow_unsupported`. The calls then compile and return `FMOD_ERR_UNSUPPORTED` at runtime in the browser. The library prints one warning per build that says so.
+A call to a feature the web build lacks is a compile error in a js build. A js build refuses the call at compile time and names the method and the reason. Set `-D haxefmod_html5_allow_unsupported` to compile it anyway. The call then returns `FMOD_ERR_UNSUPPORTED` in the browser, and the build prints one warning.
 
 ## HashLink
 

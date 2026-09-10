@@ -5,10 +5,10 @@ import haxefmod.studio.Types;
 import hxd.Event;
 
 /**
- * Heaps port of the EZPlatformer example: the same two levels, the same
- * banks and events, and under -D audio_test the same shared scenarios
- * the flixel game runs, selected the same way (HAXEFMOD_TEST_STATE on
- * HashLink, ?test= in the browser).
+ * Heaps port of the EZPlatformer example. It carries the same two levels
+ * and the same banks and events. Under -D audio_test it runs the same
+ * shared scenarios as the flixel game. Selection takes the same route -
+ * HAXEFMOD_TEST_STATE on HashLink, ?test= in the browser.
  */
 class Main extends hxd.App {
     public static var instance:Main;
@@ -25,14 +25,15 @@ class Main extends hxd.App {
         mirrorTraceToFile();
         #end
         // The flixel game runs 320x240 doubled into a 640x480 window at
-        // 60 fps. The cap matters off-screen too: without vsync a virtual
-        // display spins thousands of frames per second and the scenarios'
-        // frame-counted waits expire before FMOD can deliver anything.
+        // 60 fps. The cap matters off-screen too. Without vsync a virtual
+        // display spins thousands of frames per second. The scenarios'
+        // frame-counted waits then expire before FMOD can deliver
+        // anything.
         s2d.scaleMode = LetterBox(320, 240);
-        // No fpsLimit in the browser: Heaps then runs its loop through
-        // setTimeout, which Chromium throttles to one call per second when
-        // it decides the window is in the background, and requestAnimationFrame
-        // caps at the display rate anyway
+        // No fpsLimit in the browser. Heaps then runs its loop through
+        // setTimeout. Chromium throttles setTimeout to one call per second
+        // when it decides the window is in the background. The display
+        // rate caps requestAnimationFrame anyway
         engine.backgroundColor = 0xffaaaaaa;
 
         #if audio_test_manual_update
@@ -48,8 +49,9 @@ class Main extends hxd.App {
                 stackSize: FmodThreadStackSize.STUDIO_UPDATE, affinity: FmodThreadAffinity.CORE_ALL}]});
         #elseif audio_test
         // The test builds turn on profiling and the distance filter so the
-        // api-probe can see both work, pin the buffer settings, and set the
-        // advanced settings to nondefault values the api-probe reads back
+        // api-probe can see both work. They also pin the buffer settings.
+        // The advanced settings take nondefault values that the api-probe
+        // reads back
         FmodManager.Initialize({profiling: true, distanceFilter: true,
             dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536,
             vol0VirtualVol: 0.01, randomSeed: 12345, commandQueueSize: 65536,

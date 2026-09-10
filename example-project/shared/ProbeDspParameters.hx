@@ -8,14 +8,14 @@ import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
 
 /**
- * Probe for the DSP parameter index enums. Creates a LOWPASS and a
- * CHANNELMIX unit, sets parameters through the enums, reads them back, and
- * asks getParameterInfo which parameter each index really is (FMOD names
- * every CHANNELMIX gain "Channel Gain" and every mapping "Channel
- * Mapping", so the name proves the group, the count proves the index
- * range). getParameterInfo is unsupported on html5 (the glue cannot
- * marshal the descriptor), so there the name checks assert that and the
- * counts still prove the ranges.
+ * Probe for the DSP parameter index enums. It creates a LOWPASS unit and
+ * a CHANNELMIX unit. It sets parameters through the enums and reads them
+ * back. getParameterInfo then reports which parameter each index really
+ * is. FMOD names every CHANNELMIX gain "Channel Gain" and every mapping
+ * "Channel Mapping", so the name proves the group. The count proves the
+ * index range. html5 does not support getParameterInfo, because the glue
+ * cannot marshal the descriptor. The name checks assert that result
+ * there, and the counts prove the ranges.
  */
 class ProbeDspParameters {
     static function checkName(state:ApiProbeScenario, name:String, dsp:Dsp, index:Int, expected:String):Void {

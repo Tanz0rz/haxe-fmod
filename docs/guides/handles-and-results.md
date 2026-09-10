@@ -19,12 +19,12 @@ The studio handles (`EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `
 
 ## Stale handles are safe
 
-Every call on a null or stale handle is a no-op. Getters return a default (`0`, `false`, `""`, `NULL`, or `null` for structs). Setters return `FMOD_ERR_INVALID_HANDLE`. There is no exception path. A sound that failed to play, or a handle kept past its release, never takes the game down.
+Every call on a null or stale handle is a no-op. Getters return a default (`0`, `false`, `""`, `NULL`, or `null` for structs). Setters return `FMOD_ERR_INVALID_HANDLE`. There is no exception path. An event that failed to play, or a handle kept past its release, never takes the game down.
 
 ```haxe
-var sound = FmodManager.PlayEvent("event:/SFX/Typo");
-sound.setVolume(0.5); // returns FMOD_ERR_INVALID_HANDLE, does nothing
-sound.release();      // also safe
+var event = FmodManager.PlayEvent("event:/SFX/Typo");
+event.setVolume(0.5); // returns FMOD_ERR_INVALID_HANDLE, does nothing
+event.release();      // also safe
 ```
 
 ## Lifetimes

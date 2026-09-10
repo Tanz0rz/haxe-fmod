@@ -6,10 +6,11 @@ import kha.Scheduler;
 import kha.System;
 
 /**
- * Kha port of the EZPlatformer example: the same two levels, the same
- * banks and events, and under -D audio_test the same shared scenarios
- * the flixel and Heaps games run, selected the same way
- * (HAXEFMOD_TEST_STATE natively, ?test= in the browser).
+ * Kha port of the EZPlatformer example. The port keeps the same two
+ * levels and the same banks and events. Under -D audio_test it runs the
+ * same shared scenarios as the flixel and Heaps games. Scenario selection
+ * works the same way: HAXEFMOD_TEST_STATE natively, ?test= in the
+ * browser.
  */
 class Main {
     public static var instance:Main;
@@ -47,9 +48,10 @@ class Main {
             threadAttributes: [{type: FmodThreadType.STUDIO_UPDATE, priority: FmodThreadPriority.STUDIO_UPDATE,
                 stackSize: FmodThreadStackSize.STUDIO_UPDATE, affinity: FmodThreadAffinity.CORE_ALL}]});
         #elseif audio_test
-        // The test builds turn on profiling and the distance filter so the
-        // api-probe can see both work, pin the buffer settings, and set the
-        // advanced settings to nondefault values the api-probe reads back
+        // The test builds enable profiling and the distance filter so the
+        // api-probe can confirm both work. The build pins the buffer
+        // settings. It sets the advanced settings to nondefault values
+        // that the api-probe reads back
         FmodManager.Initialize({profiling: true, distanceFilter: true,
             dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536,
             vol0VirtualVol: 0.01, randomSeed: 12345, commandQueueSize: 65536,

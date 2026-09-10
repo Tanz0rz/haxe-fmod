@@ -11,10 +11,11 @@ A line is the FMOD name and a Haxe type path, or the FMOD name, the
 word `cannot`, and the reason the type cannot exist on the Haxe side
 (it is only ever touched on FMOD's threads, or it belongs to a platform
 the library does not ship for). Every other FMOD type has a Haxe
-declaration, the same fields and values under the same names. The examples generator turns a type
-definition on fmod.com into the Haxe declaration or a comment with the
-reason through this table, so the table is the single place that says
-how an FMOD type appears on the Haxe side.
+declaration, the same fields and values under the same names. The
+examples generator reads this table. It turns a type definition on
+fmod.com into the Haxe declaration, or into a comment with the reason.
+The table is the one place that says how an FMOD type appears on the
+Haxe side.
 
 This check reads the SDK headers (ci/fmod_headers.py) and fails when:
   - a type in the headers has no line in the table (nothing is allowed
@@ -23,14 +24,15 @@ This check reads the SDK headers (ci/fmod_headers.py) and fails when:
   - an enum or flag family in Haxe is missing a value the header has,
     carries one the header lacks, or gives one a different number,
   - a struct typedef in Haxe is missing a field the header has (extra
-    Haxe fields are fine, they are documented conveniences). A field may
+    Haxe fields are fine, they are documented conveniences). A field can
     be a property (var data1(get, never):Int) on an abstract.
 
-Value names compare after the prefix is removed: the type's own name
-when every value starts with it (FMOD_DSP_CONVOLUTION_REVERB_PARAM_IR
-against PARAM_IR), the common prefix otherwise (FMOD_SPEAKER_FRONT_LEFT
-against FRONT_LEFT). A header name that would start with a digit may
-carry a leading word in Haxe (FMOD_3D against MODE_3D). Struct field
+Value names compare after the prefix is removed. The prefix is the
+type's own name when every value starts with it
+(FMOD_DSP_CONVOLUTION_REVERB_PARAM_IR against PARAM_IR). It is the
+common prefix otherwise (FMOD_SPEAKER_FRONT_LEFT against FRONT_LEFT).
+A header name that would start with a digit carries a leading word in
+Haxe (FMOD_3D against MODE_3D). Struct field
 names compare ignoring case and underscores (DecayTime against
 decayTime). Enum values and struct fields Haxe leaves out on purpose
 are listed in the table line after `skip:`.
@@ -52,7 +54,7 @@ def load_headers():
     spec = importlib.util.spec_from_file_location("fmod_headers", os.path.join(ROOT, "ci", "fmod_headers.py"))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.read_types()
+    return module
 
 
 def read_table():
@@ -160,7 +162,7 @@ def compare_values(fmod_name, header_values, haxe_values, skip):
         key = normalize(short)
         found = haxe_by_norm.get(key)
         if found is None and short[0].isdigit():
-            # a Haxe name may carry a leading word where the header value starts with a digit
+            # a Haxe name carries a leading word where the header value starts with a digit
             for haxe_key_name, entry in haxe_by_norm.items():
                 if haxe_key_name.endswith(key):
                     found = entry
@@ -179,7 +181,8 @@ def compare_values(fmod_name, header_values, haxe_values, skip):
 
 
 def main():
-    headers = load_headers()
+    fmod_headers = load_headers()
+    headers = fmod_headers.read_types()
     table = read_table()
     problems = []
     mapped = 0
@@ -213,8 +216,9 @@ def main():
                     continue
                 if normalize(field) not in haxe_norm:
                     problems.append(f"{fmod_name}: field {field} is missing in {target}")
+    absent = tuple(fmod_headers.missing_prefixes())
     for name in table:
-        if name not in headers:
+        if name not in headers and not name.startswith(absent or ("\0",)):
             problems.append(f"{name} is in native/manifest/types.txt but not in the headers")
     for problem in problems:
         print("FAIL: " + problem)

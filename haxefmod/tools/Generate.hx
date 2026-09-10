@@ -16,25 +16,25 @@ import sys.io.File;
  *   FmodSnapshots.hx   snapshot:/...
  *   FmodParameters.hx  parameter:/...
  *
- * It also emits FmodEventEnum.hx: a plain FmodEventEnum enum covering
- * every event, with values named exactly like the FmodEvents constants,
- * plus FmodEventTools.path() and guid() mappers (usable as static
- * extensions). Projects that never touch the enums can ignore the file -
+ * It also emits FmodEventEnum.hx. That file holds a plain FmodEventEnum
+ * enum covering every event, with values named exactly like the FmodEvents
+ * constants. It adds FmodEventTools.path() and guid() mappers, usable as
+ * static extensions. Projects that never touch the enums can ignore the file -
  * unused mappers are stripped by dead code elimination. Plain enums suit
  * switch statements and external tools that import Haxe enums (LDtk
  * external enums, for example).
  *
- * Each file holds the path constants plus a companion class with the
+ * Each file holds the path constants. A companion class carries the
  * matching GUIDs under the same identifiers, so autocomplete on the main
  * class autocompletes to paths only:
  *
  *   FmodEvents.MusicMainLevel        "event:/Music/MainLevel"
  *   FmodEventsGuids.MusicMainLevel   "{e5187c3f-...}"
  *
- * Identifier mangling: the category prefix is stripped, the remaining path
- * is split into segments on "/", each segment is split on any character
- * that is not a letter or digit, the first letter of every piece is
- * uppercased, and everything is concatenated ("Vehicles/Ride-on Mower" ->
+ * Identifier mangling removes the category prefix. It splits the remaining
+ * path into segments on "/", then splits each segment on any character
+ * that is not a letter or digit. It uppercases the first letter of every
+ * piece and concatenates them ("Vehicles/Ride-on Mower" ->
  * "VehiclesRideOnMower"). An empty result (the bus:/ root) becomes "Root",
  * a leading digit gets an underscore prefix, and duplicate identifiers get
  * numeric suffixes ("Coin", "Coin2", ...).
@@ -87,7 +87,7 @@ class Generate {
 		} else {
 			outDir = absolute(outDir, cwd);
 		}
-		// files go into the package's subdirectory so `-cp <out>` resolves them
+		// files go into the package's subdirectory so -cp <out> resolves them.
 		if (pkg != "") outDir = haxe.io.Path.join([outDir].concat(pkg.split(".")));
 
 		var entries = try {
@@ -130,9 +130,9 @@ class Generate {
 	}
 
 	/** Emits FmodEventEnum.hx: one FmodEventEnum enum covering every event,
-		with values named exactly like the FmodEvents constants, plus a
-		FmodEventTools.path()/guid() mappers. Returns null when there are no
-		events.
+		with values named exactly like the FmodEvents constants. It also emits
+		the FmodEventTools.path() and guid() mappers. Returns null when there
+		are no events.
 		Kept in lockstep with fmod-scripts/ExportHaxeConstants.js
 		(byte-identical output). */
 	public static function emitEventEnums(entries:Array<StringsBankEntry>, pkg:String):Null<String> {
@@ -178,7 +178,7 @@ class Generate {
 	static function emitClass(className:String, prefix:String, entries:Array<StringsBankEntry>, pkg:String):String {
 		var lines = new Array<String>();
 		// Keep in lockstep with fmod-scripts/ExportHaxeConstants.js (the
-		// Studio-side generator must emit byte-identical files)
+		// Studio-side generator must emit byte-identical files).
 		lines.push("// Generated haxefmod constants - do not edit (regenerate from FMOD Studio or via haxelib run haxefmod generate)");
 		lines.push("");
 		if (pkg != "") {
@@ -215,9 +215,10 @@ class Generate {
 
 	/**
 		Mangles one path into a Haxe identifier (see class doc for the
-		rules). Only ASCII letters and digits survive: non-ASCII characters
-		are dropped, so a path named entirely in another script collapses to
-		"Root" and relies on the collision suffixes for uniqueness.
+		rules). Only ASCII letters and digits survive. The mangler drops
+		non-ASCII characters, so a path named entirely in another script
+		collapses to "Root" and relies on the collision suffixes for
+		uniqueness.
 	**/
 	public static function mangle(path:String, prefix:String):String {
 		var rest = StringTools.startsWith(path, prefix) ? path.substr(prefix.length) : path;

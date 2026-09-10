@@ -82,6 +82,9 @@ else
 fi
 
 # 5. Check manifest (lime asset library)
+# Every caller validates a lime build of the example game, and lime writes
+# the asset library manifest next to the executable. The game reads its
+# assets through that manifest, so a build without one is broken.
 echo -n "  [5/5] Lime asset manifest .......... "
 MANIFEST_DIR="$BIN_DIR/manifest"
 # Mac .app bundles: manifest is in Contents/Resources/
@@ -93,7 +96,8 @@ if [ -d "$MANIFEST_DIR" ]; then
 elif [ -f "$MANIFEST_DIR" ]; then
   echo "OK (file)"
 else
-  echo "WARN (no manifest directory - may still work)"
+  echo "FAIL (no manifest at $MANIFEST_DIR)"
+  PASS=false
 fi
 
 echo ""

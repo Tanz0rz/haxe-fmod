@@ -1,9 +1,10 @@
-// Regression harness for object-lifetime behavior on the html5 shim:
-// handle-slot reclaim after bulk instance destruction, release on an
-// already-destroyed instance, callback routing for instances re-acquired
-// through the instance list, channel-callback map cleanup, DSP connection
-// invalidation on graph teardown, MEMFS cleanup for async bank loads, and
-// zero-filled out-buffers on error paths.
+// Regression harness for object-lifetime behavior on the html5 shim.
+// It covers handle-slot reclaim after bulk instance destruction, and
+// release on an already-destroyed instance.
+// It covers callback routing for instances re-acquired through the instance
+// list, plus channel-callback map cleanup.
+// It closes on DSP connection invalidation at graph teardown, MEMFS cleanup
+// for async bank loads, and zero-filled out-buffers on error paths.
 // Path resolution: the FMOD html5 SDK comes from $FMOD_SDK_WEB (the same
 // variable lime builds use). The shim and banks are found relative to this
 // file so the harness runs from any cwd.
@@ -49,6 +50,10 @@ function check(label, cond, detail) {
     console.log(`LIFECYCLE_TEST: ${label} ${cond ? 'pass' : 'FAIL'} ${detail || ''}`);
     if (!cond) fails++;
 }
+// A path the run could not reach. It reads as neither a pass nor a failure.
+function skip(label, detail) {
+    console.log(`LIFECYCLE_TEST: ${label} skip ${detail || ''}`);
+}
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function pump(n) {
     for (let i = 0; i < n; i++) { jaxe.fmod_sys_update(); await sleep(15); }
@@ -60,8 +65,9 @@ function drainEvents() {
     }
     return events;
 }
-// The glue exports no stat call, so existence is probed with a create
-// (which throws on an existing file) followed by cleanup of the probe file
+// The glue exports no stat call.
+// A create call probes for existence, because it throws on an existing file.
+// Cleanup removes the probe file afterwards.
 function memfsExists(name) {
     try {
         jaxe.FMOD.FS_createDataFile('/', name, new Uint8Array(1), true, false, false);
@@ -96,7 +102,7 @@ async function main() {
         `live=${jaxe.liveCount} baseline=${baseline}`);
     check('stale_handle_resolves_null', jaxe.handleResolve(inst1, jaxe.TYPE_EVI) == null, '');
 
-    // --- release on an already-destroyed instance still frees the slot ---
+    // --- release on an already-destroyed instance frees the slot anyway ---
     const inst3 = jaxe.fmod_evd_create_instance(evd);
     const wrapper = jaxe.handleResolve(inst3, jaxe.TYPE_EVI);
     wrapper.release(); // destroy behind the binding's back
@@ -134,9 +140,10 @@ async function main() {
     await pump(5);
 
     // --- canary: destroying a released-then-relisted instance with a
-    // callback installed. The uninstall-before-destroy invariant has no
-    // hook on this path, and the current glue survives it (verified here);
-    // this pins that survival so a glue regression turns the suite red ---
+    // callback installed ---
+    // The uninstall-before-destroy invariant has no hook on this path.
+    // The current glue survives it, as verified here.
+    // The check pins that survival, so a glue regression turns the suite red.
     const inst5 = jaxe.fmod_evd_create_instance(evd);
     jaxe.fmod_evi_start(inst5);
     await pump(3);
@@ -208,15 +215,17 @@ async function main() {
     check('chan_add_dsp', jaxe.fmod_chan_add_dsp(chan3, 0, dsp) === 0, '');
     await pump(2);
     const conn = jaxe.fmod_dsp_get_input_connection(dsp, 0);
+    // NRT mixing links the connection on its own schedule, so each path
+    // below runs only once its handle exists. One of the two must run.
+    let connInvalidationsRun = 0;
     if (conn > 0) {
         check('conn_minted', true, `handle=${conn}`);
         check('chan_remove_dsp', jaxe.fmod_chan_remove_dsp(chan3, dsp) === 0, '');
         check('conn_invalidated_by_remove_dsp',
             jaxe.handleResolve(conn, jaxe.TYPE_DSPCONN) == null, '');
+        connInvalidationsRun++;
     } else {
-        // NRT mixing may not link the connection yet. The invalidation path
-        // is then proven through chan_stop below.
-        check('conn_minted_skipped', true, `conn=${conn}`);
+        skip('conn_invalidated_by_remove_dsp', `conn=${conn}`);
         jaxe.fmod_chan_remove_dsp(chan3, dsp);
     }
     jaxe.fmod_chan_add_dsp(chan3, 0, dsp);
@@ -226,7 +235,11 @@ async function main() {
     if (conn2 > 0) {
         check('conn_invalidated_by_chan_stop',
             jaxe.handleResolve(conn2, jaxe.TYPE_DSPCONN) == null, '');
+        connInvalidationsRun++;
+    } else {
+        skip('conn_invalidated_by_chan_stop', `conn=${conn2}`);
     }
+    check('conn_invalidation_covered', connInvalidationsRun > 0, `paths=${connInvalidationsRun}`);
     jaxe.fmod_core_pcm_release(ps2);
     jaxe.fmod_dsp_release(dsp);
 

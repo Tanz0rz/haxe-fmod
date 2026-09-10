@@ -16,9 +16,10 @@ import haxefmod.studio.Types;
 /**
  * Probe for the core types that mirror FMOD structs and handles on the
  * real backend: FmodGuid round trips, FmodSyncPoint handles, loop points
- * with a unit per end, FmodCreateSoundExInfo on both create forms, the
- * error callback record, the PcmStream read callback, the reverb presets
- * under their FMOD names, and FmodVersion against the running engine.
+ * with a unit per end, and FmodCreateSoundExInfo on both create forms.
+ * The rest are the error callback record, the PcmStream read callback,
+ * the reverb presets under their FMOD names, and FmodVersion against the
+ * running engine.
  * Leaves the reverb and the system callback as it found them.
  */
 class ProbeCoreTypes {
@@ -169,7 +170,7 @@ class ProbeCoreTypes {
         // FmodVersion against the engine that loaded
         var expected = '${FmodVersion.VERSION >> 16}.${StringTools.hex((FmodVersion.VERSION >> 8) & 0xFF, 2)}.${StringTools.hex(FmodVersion.VERSION & 0xFF, 2)}';
         // The constant names the SDK the library links. The HashLink jobs
-        // run the older runtime the templates ship, so there the check is
+        // run the older runtime the templates ship. There the check is
         // that the constant formats like a version and the engine is older
         var engine = StudioSystem.getVersion();
         var older = !ApiProbeScenario.engine203();

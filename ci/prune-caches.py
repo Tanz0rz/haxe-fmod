@@ -97,9 +97,9 @@ def plan(caches, live_branches, keep, only_branch, default_branch="master",
                 condemn(entry, "branch {} closed".format(only_branch))
             continue
 
-        # Tag runs leave caches nothing will ever restore: a tag is built
-        # once, and the doubled refs/heads/refs/tags/ prefix is how they
-        # are recorded
+        # Tag runs leave caches nothing restores. A tag is built once,
+        # and the doubled refs/heads/refs/tags/ prefix is how the runner
+        # records them
         if "refs/tags/" in ref:
             condemn(entry, "tag run")
         elif name not in live_branches:

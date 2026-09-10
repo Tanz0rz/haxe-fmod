@@ -2,10 +2,10 @@
 """Tracks which docs-tab entries have been reviewed against the site.
 
 The mechanical checks in ci/haxe-catalog.py hold literals, calls, and
-shape in line with the catalog, but whether a fence is the right way to
-do the same thing in haxefmod is a judgment. This ledger records that
-judgment per entry: a stamp is a sha1 over the catalog entry, the Haxe
-side, and the checker rules version, stored in
+shape in line with the catalog. Whether a fence is the right way to do
+the same thing in haxefmod is a judgment. This ledger records that
+judgment per entry. A stamp is a sha1 over the catalog entry, the Haxe
+side, and the checker rules version. The stamps live in
 extension/test/vet-ledger.json. When fmod.com changes and the catalog
 is refreshed, the hashes of the touched entries stop matching, so
 exactly those entries come back up for review. The same happens when
@@ -44,8 +44,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 LEDGER = os.path.join(ROOT, "extension", "test", "vet-ledger.json")
 
-# Bump when the parity rules change enough that old reviews should not
-# stand (every entry then reads as stale).
+# Bump when the parity rules change enough to retire earlier reviews
+# (every entry then reads as stale).
 RULES_VERSION = "1"
 
 spec = importlib.util.spec_from_file_location("haxe_catalog", os.path.join(HERE, "haxe-catalog.py"))

@@ -16,7 +16,7 @@ import haxefmod.studio.native.NativeStudio;
  * The helper class for FMOD. It owns six areas. They are lifecycle (init, update, and banks), one background song slot, events, the mixer (buses, VCAs, and snapshots), global parameters, and game policy.
  * Every call takes an FMOD Studio path or name and holds no handle. The song slot is the one piece of state.
  * PlayEvent and CreateEvent return an FmodEvent, the one handle with a lifetime. GetBus, GetVCA, and GetEventDescription return FMOD's own objects, which need no release, for everything beyond the path calls.
- * World space and focus reporting live in haxefmod.runtime.FmodRuntime, and every FMOD object is one lookup away in haxefmod.studio.
+ * World space and focus reporting live in haxefmod.runtime.FmodRuntime. Every FMOD object is one lookup away in haxefmod.studio.
  *
  * Call FmodManager.Update() every frame, or let the engine setup call do it.
  */
@@ -42,7 +42,8 @@ class FmodManager {
             return;
         }
         initialized = true;
-        FmodRuntime.init(settings);
+        var result = FmodRuntime.init(settings);
+        if (!result.isOk()) trace('Warn: FMOD - Initialize failed ($result). Audio calls are no-ops until the cause is fixed');
         #if debug
         EnableDebugMessages();
         #end
@@ -76,7 +77,12 @@ class FmodManager {
      */
     public static function SetAutoUpdate(enabled:Bool):Void {
         ensureInitialized();
-        NativeStudio.sys_set_auto_update(enabled);
+        FmodRuntime.setAutoUpdate(enabled);
+    }
+
+    /** True while the background auto-update is on. */
+    public static function IsAutoUpdate():Bool {
+        return FmodRuntime.isAutoUpdate();
     }
 
     //// Lifecycle: banks
@@ -129,6 +135,11 @@ class FmodManager {
     public static function SetMuteWhenUnfocused(enabled:Bool):Void {
         ensureInitialized();
         FmodRuntime.setMuteWhenUnfocused(enabled);
+    }
+
+    /** True when the master output mutes while the window is unfocused. */
+    public static function IsMuteWhenUnfocused():Bool {
+        return FmodRuntime.isMuteWhenUnfocused();
     }
 
     //// Mixer: the whole mix
@@ -267,7 +278,16 @@ class FmodManager {
             warnMissing("StartSnapshot", snapshotPath);
             return;
         }
-        if (description.getInstanceCount() > 0) return;
+        // A running instance keeps the snapshot applied. One that is
+        // fading out after StopSnapshot restarts in place instead of
+        // ending while a second instance begins.
+        var instances = description.getInstanceList();
+        if (instances.length > 0) {
+            for (existing in instances) {
+                if (existing.getPlaybackState() == FmodPlaybackState.STOPPING) existing.start();
+            }
+            return;
+        }
         var instance = description.createInstance();
         if (instance.isNull()) {
             warnMissing("StartSnapshot", snapshotPath);
@@ -283,7 +303,7 @@ class FmodManager {
         var description = StudioSystem.getEvent(snapshotPath);
         if (description.isNull()) return;
         // The instances were released at start, so FMOD destroys each one
-        // when its fade completes
+        // when its fade completes.
         for (instance in description.getInstanceList()) instance.stop(ALLOWFADEOUT);
     }
 
@@ -293,7 +313,7 @@ class FmodManager {
         var description = StudioSystem.getEvent(snapshotPath);
         if (description.isNull()) return;
         // FMOD's own stop-and-release of every instance. On HTML5 this is
-        // also the sweep that reclaims the dead instances' handle slots
+        // also the sweep that reclaims the dead instances' handle slots.
         description.releaseAllInstances();
     }
 
@@ -339,7 +359,7 @@ class FmodManager {
      */
     public static function PlaySong(songPath:String):Void {
         ensureInitialized();
-        // A direct play supersedes any pending transition
+        // A direct play supersedes any pending transition.
         NextSong = null;
 
         if (songPath == CurrentSong && !songInstance.isNull()) {
@@ -349,11 +369,12 @@ class FmodManager {
             return;
         }
 
-        // Replace the current song: hard stop and release the old instance
+        // Replace the current song: hard stop and release the old instance.
         if (!songInstance.isNull()) {
             songInstance.stop(IMMEDIATE);
             songInstance.release();
             songInstance = EventInstance.NULL;
+            CurrentSong = "";
         }
 
         log('PlaySong $songPath');
@@ -376,7 +397,7 @@ class FmodManager {
         ensureInitialized();
         // Asking for a song supersedes any transition already pending,
         // including asking for the current song again while an earlier
-        // transition's fade is still armed
+        // transition's fade is still armed.
         NextSong = null;
 
         if (songPath == CurrentSong && !songInstance.isNull()) {
@@ -386,7 +407,7 @@ class FmodManager {
             return;
         }
 
-        // Nothing to fade out - just play it
+        // Nothing to fade out - just play it.
         if (songInstance.isNull() || !isInstancePlaying(songInstance)) {
             PlaySong(songPath);
             return;
@@ -394,15 +415,15 @@ class FmodManager {
 
         log('PlaySongTransition $songPath');
         NextSong = songPath;
-        // The handler arms before the stop: a song already fading (the
-        // background update thread processes stops between any two calls
-        // here) could otherwise deliver its Stopped in the gap and never
-        // hand off
+        // The handler arms before the stop. A song already fading could
+        // otherwise deliver its Stopped in the gap and never hand off.
+        // The background update thread processes stops between any two
+        // calls here.
         songInstance.setCallback(data -> {
             switch (data) {
                 case Stopped:
                     // StopSong since the transition was armed clears
-                    // NextSong, and the completed fade must stay silent
+                    // NextSong, and the completed fade must stay silent.
                     if (NextSong != null) {
                         var next = NextSong;
                         NextSong = null;
@@ -412,9 +433,9 @@ class FmodManager {
             }
         }, EventCallbackType.STOPPED);
         songInstance.stop(ALLOWFADEOUT);
-        // The fade can also complete before the handler was installed: no
-        // Stopped will ever arrive for it, so hand off directly. NextSong
-        // is cleared first, which keeps a queued Stopped a no-op.
+        // The fade can also complete before the handler was installed. No
+        // Stopped arrives for it, so hand off directly. NextSong is cleared
+        // first, which keeps a queued Stopped a no-op.
         if (NextSong != null
             && songInstance.getPlaybackState() == FmodPlaybackState.STOPPED) {
             var next = NextSong;
@@ -445,8 +466,7 @@ class FmodManager {
             // Push the pause through FMOD immediately, independent of the
             // game loop. The auto-update thread already ticks within ~16ms,
             // so only manual-update setups need the push.
-            var s = FmodRuntime.settings();
-            if (s == null || !s.autoUpdate) NativeStudio.sys_update();
+            if (!FmodRuntime.isAutoUpdate()) NativeStudio.sys_update();
         }
     }
 
@@ -462,7 +482,7 @@ class FmodManager {
         return !songInstance.isNull() && isInstancePlaying(songInstance);
     }
 
-    /** Returns the event path passed to the last PlaySong. It is empty before the first song. */
+    /** Returns the path of the song PlaySong last started. It is empty before the first song and after a failed PlaySong. */
     public static function GetCurrentSongPath():String {
         return CurrentSong;
     }
@@ -517,7 +537,9 @@ class FmodManager {
                 case Destroyed: mask != null && (mask & EventCallbackType.DESTROYED) == 0;
                 default: false;
             }
-            CallbackDispatcher.remove(instance);
+            // setCallback(null) drops the handler and shrinks the native
+            // mask, so a beat-heavy song stops filling the queue.
+            instance.setCallback(null);
             if (!unwanted) handler(data);
         }, mask);
     }
@@ -593,12 +615,16 @@ class FmodManager {
      * Userdata stays.
      */
     public static function ClearAllCallbacks():Void {
+        // No ensureInitialized: clearing registrations needs no system,
+        // and a teardown path calls this after shutdown.
         CallbackDispatcher.clearAll();
         haxefmod.studio.EventDescription.clearAllCallbacks();
         haxefmod.core.ChannelCallbacks.clearAll();
         haxefmod.studio.SystemCallbacks.clear();
         haxefmod.core.PcmStream.clearAllReadCallbacks();
     }
+
+    //// Game policy: development markers
 
     /**
      * Marks a spot in game code that still needs a sound.
@@ -753,15 +779,15 @@ class FmodManager {
     }
 
     // The same-song fast path restarts a song that stopped or is fading
-    // out, and leaves one that is starting, playing, or sustaining alone
+    // out, and leaves one that is starting, playing, or sustaining alone.
     static inline function needsRestart(instance:EventInstance):Bool {
         var state = instance.getPlaybackState();
         return state == FmodPlaybackState.STOPPED || state == FmodPlaybackState.STOPPING;
     }
 
-    // FMOD addresses a global parameter by its bare name, and the generated
+    // FMOD addresses a global parameter by its bare name. The generated
     // FmodParameters constants carry the "parameter:/" path form, so the
-    // global parameter calls accept both
+    // global parameter calls accept both.
     static inline function globalParameterName(name:String):String {
         return StringTools.startsWith(name, "parameter:/") ? name.substr("parameter:/".length) : name;
     }
@@ -770,7 +796,7 @@ class FmodManager {
         if (debug) trace('FMOD: $message');
     }
 
-    // A bad path is a game bug, so every call reports it in every build
+    // A bad path is a game bug, so every call reports it in every build.
     static function warnMissing(call:String, path:String):Void {
         trace('Warn: FMOD - $call could not create "$path" (${StudioSystem.lastResult().toString()}). '
             + "Check the event path, that its bank is loaded, and that FMOD is initialized.");

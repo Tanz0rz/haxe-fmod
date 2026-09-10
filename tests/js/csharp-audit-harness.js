@@ -1,8 +1,10 @@
 // Runs the bindings added by the audit against FMOD's C# integration in
-// jaxe.js against the real FMOD 2.03.12 wasm under Node: bus port indices
-// (no web call, ERR_UNSUPPORTED), parameter labels by index, parameter
-// batches by ID on the system and on an instance, and the software
-// channel, mixer buffer, and stream buffer readback.
+// jaxe.js, against the real FMOD 2.03.12 wasm under Node.
+// Bus port indices have no web call, so they report ERR_UNSUPPORTED.
+// Parameter labels by index come next, with parameter batches by ID on the
+// system and on an instance.
+// The final group reads back the software channel, the mixer buffer, and
+// the stream buffer.
 // Usage: node csharp-audit-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');
@@ -121,4 +123,4 @@ async function main() {
     process.exit(failures ? 1 : 0);
 }
 
-main();
+main().catch(e => { console.error('FATAL', e); process.exit(1); });

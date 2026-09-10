@@ -14,18 +14,18 @@ import haxefmod.studio.StudioSystem;
     one, the trigger drives a global parameter through
     StudioSystem.setParameter. The parameter must be marked global in
     FMOD Studio.
-**/
+*/
 class ZoneTrigger {
-    /** Left edge of the zone. **/
+    /** Left edge of the zone. */
     public var zoneX:Float;
 
-    /** Top edge of the zone. **/
+    /** Top edge of the zone. */
     public var zoneY:Float;
 
-    /** Width of the zone. **/
+    /** Width of the zone. */
     public var zoneWidth:Float;
 
-    /** Height of the zone. **/
+    /** Height of the zone. */
     public var zoneHeight:Float;
 
     var provider:IFmodPositionProvider;
@@ -35,7 +35,7 @@ class ZoneTrigger {
     var instance:EventInstance;
     var wasInside:Null<Bool> = null;
 
-    /** Creates the trigger. Omit instance to drive a global parameter. **/
+    /** Creates the trigger. Omit instance to drive a global parameter. */
     public function new(provider:IFmodPositionProvider, zoneX:Float, zoneY:Float, zoneWidth:Float, zoneHeight:Float,
             parameterName:String, valueInside:Float, valueOutside:Float, ?instance:EventInstance) {
         this.provider = provider;
@@ -49,8 +49,11 @@ class ZoneTrigger {
         this.instance = instance == null ? EventInstance.NULL : instance;
     }
 
-    /** Tests the position and applies the parameter on an edge crossing. Call it once per frame. **/
+    /** Tests the position and applies the parameter on an edge crossing. Call it once per frame. */
     public function update():Void {
+        // Before init the value is dropped, and the latched state hides the
+        // crossing that reports it. HTML5 initializes asynchronously.
+        if (!FmodRuntime.isInitialized()) return;
         var midX = provider.fmodX();
         var midY = provider.fmodY();
         var inside = midX >= zoneX && midX <= zoneX + zoneWidth

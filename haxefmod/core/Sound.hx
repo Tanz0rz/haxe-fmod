@@ -392,14 +392,14 @@ abstract Sound(Int) from Int to Int {
         return {name: NativeStudio.sound_get_sync_point_name(this, point), offset: offset};
     }
 
-    @:deprecated("Sound.getSyncPointName is replaced by getSyncPointInfo(point).name")
+    @:deprecated("Sound.getSyncPointName is now getSyncPointInfo(point).name")
     public inline function getSyncPointName(index:Int):String {
-        return NativeStudio.sound_get_sync_point_name(this, index);
+        return getSyncPointInfo(index).name;
     }
 
-    @:deprecated("Sound.getSyncPointOffset is replaced by getSyncPointInfo(point, offsetType).offset")
+    @:deprecated("Sound.getSyncPointOffset is now getSyncPointInfo(point, offsetType).offset")
     public inline function getSyncPointOffset(index:Int, unit:FmodTimeUnit = FmodTimeUnit.MS):Int {
-        return NativeStudio.sound_get_sync_point_offset(this, index, unit);
+        return getSyncPointInfo(index, unit).offset;
     }
 
     /** The sound's name (raw memory sounds report an empty name). */

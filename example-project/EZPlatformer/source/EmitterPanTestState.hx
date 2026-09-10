@@ -19,11 +19,13 @@ import haxefmod.studio.Types;
  * CI test state for the flixel attachment components. Logs one "PAN_TEST:"
  * line per check. CI gates on "PAN_TEST: COMPLETE" with no "pass=false".
  *
- * Validates the attachment machinery end to end (FmodFlxEmitter follows a
- * sprite's midpoint, detach/release on destroy, FmodFlxListener driving
- * the listener position) and real spatialization: the 3D Spatial event
- * from the Extras bank, metered on its channel group, must favor the left
- * channel while the emitter sits left of the listener and flip when it
+ * Validates the attachment machinery end to end. FmodFlxEmitter follows a
+ * sprite's midpoint. A destroy call detaches and releases the instance.
+ * FmodFlxListener drives the listener position.
+ *
+ * Spatialization runs for real. The 3D Spatial event from the Extras bank
+ * is metered on its channel group. The meter favors the left channel while
+ * the emitter sits left of the listener. The meter flips when the emitter
  * moves right.
  *
  * Select via HAXEFMOD_TEST_STATE=pan-test (native) or ?test=pan-test (HTML5).
@@ -34,7 +36,8 @@ class EmitterPanTestState extends FlxState {
     var _done:Bool = false;
     var _framesWaited:Int = 0;
 
-    static inline function log(message:String):Void {
+    /** Also used by PanTestDoneState below. */
+    public static inline function log(message:String):Void {
         #if js
         js.Browser.console.log(message);
         #else
@@ -63,10 +66,10 @@ class EmitterPanTestState extends FlxState {
 
         log("PAN_TEST: Starting");
 
-        // Warm the event description cache (the lookup allocates one
-        // persistent deduped handle), then capture the leak baseline: the
-        // emitter's instance is the only allocation after this point and
-        // destroy() must release it.
+        // Warm the event description cache. The lookup allocates one
+        // persistent deduped handle. Then capture the leak baseline. After
+        // this point the emitter's instance is the only allocation, and
+        // destroy() releases it.
         StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         var baseline = StudioSystem.liveHandleCount();
 
@@ -181,9 +184,9 @@ class EmitterPanTestState extends FlxState {
 
     /**
      * Runs the culling flow against a looping event with an explicit cull
-     * distance (the example bank has no authored 3D distances): cull when
-     * far, restart when near, restart when culling is disabled mid-cull,
-     * and leave one-shots alone entirely.
+     * distance. The example bank has no authored 3D distances. The flow
+     * covers four cases: cull when far, restart when near, restart when
+     * culling is disabled mid-cull, and leave one-shots alone entirely.
      */
     var _cullBaseline:Int = 0;
 
@@ -399,11 +402,11 @@ class EmitterPanTestState extends FlxState {
     var _peakR:Float = 0;
 
     /**
-     * Plays the looping 3D Spatial event 10 units left of the listener
-     * (which follows the listener sprite's midpoint at 308, 228) and
-     * meters the instance's channel group. The metering DSP sits at the
-     * head of the group's chain, after the spatializer, so its input peaks
-     * are the panned stereo image.
+     * Plays the looping 3D Spatial event 10 units left of the listener.
+     * The listener follows the listener sprite's midpoint at 308, 228.
+     * The check meters the instance's channel group. The metering DSP sits
+     * at the head of the group's chain, after the spatializer, so its
+     * input peaks are the panned stereo image.
      */
     function startSpatialEmitter():Void {
         _spatialSprite = new FlxSprite(290, 220);
@@ -509,11 +512,11 @@ class EmitterPanTestState extends FlxState {
     }
 
     /**
-     * A real zone crossing driving a real event parameter through the
-     * trigger's instance variant, plus the contract that manual changes
-     * between crossings are not fought over. The global path runs both
-     * ways: the missing-name negative in create(), and a real crossing on
-     * the authored Intensity parameter below.
+     * A real zone crossing drives a real event parameter through the
+     * trigger's instance variant. The contract also holds that manual
+     * changes between crossings are not fought over. The global path runs
+     * both ways: the missing-name negative in create(), and a real
+     * crossing on the authored Intensity parameter below.
      */
     function runParameterTriggerChecks():Void {
         var sprite = _listenerSprite; // sits at (300, 220)
@@ -598,20 +601,12 @@ class PanTestDoneState extends FlxState {
         super.create();
         var passed = EmitterPanTestState.finalPassCount + 1;
         var failed = EmitterPanTestState.finalFailCount;
-        log2('PAN_TEST: transition_switched_state pass=true ');
-        log2('PAN_TEST: COMPLETE passed=$passed failed=$failed');
+        EmitterPanTestState.log('PAN_TEST: transition_switched_state pass=true');
+        EmitterPanTestState.log('PAN_TEST: COMPLETE passed=$passed failed=$failed');
         var label = new FlxText(0, 0, FlxG.width, 'PAN_TEST complete: $passed passed, $failed failed');
         label.setFormat(null, 16, FlxColor.WHITE, FlxTextAlign.CENTER, NONE, FlxColor.BLACK);
         label.y = (FlxG.height / 2) - (label.height / 2);
         add(label);
-    }
-
-    static inline function log2(message:String):Void {
-        #if js
-        js.Browser.console.log(message);
-        #else
-        trace(message);
-        #end
     }
 
     override public function update(elapsed:Float):Void {

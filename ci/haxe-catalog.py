@@ -520,7 +520,7 @@ def snippet_strings(code):
 def snippet_call_sequence(code):
     """Method calls in snippet order, repeats kept. The C flavor
     (FMOD_Object_Method) counts as its method name, so a C-only snippet
-    still yields its calls."""
+    yields its calls."""
     out = []
     for dotted, flat in re.findall(r"(?:(?:::|->|\.)\s*([a-z]\w*)|\bFMOD_(?:[A-Za-z0-9]+_)+([A-Z][a-z]\w*))\s*\(", strip_code_comments(code)):
         out.append(dotted or flat)

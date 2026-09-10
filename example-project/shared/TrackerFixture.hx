@@ -5,11 +5,12 @@ package;
  * sample, one empty pattern, played once. The tracker checks need a real
  * module on disk and no test asset ships one, so the probe writes this.
  *
- * Layout (2110 bytes): 20-byte title, 31 sample headers of 30 bytes
- * (22-byte name, length in words, finetune, volume, repeat start, repeat
- * length, all big-endian words), song length, restart byte, 128 pattern
- * positions, the "M.K." tag, one 1024-byte pattern (64 rows x 4 channels
- * x 4 bytes), then the sample data (one word of silence).
+ * Layout (2110 bytes): 20-byte title, then 31 sample headers of 30
+ * bytes. Each header holds a 22-byte name, length in words, finetune,
+ * volume, repeat start, and repeat length, all big-endian words. After
+ * the headers come song length, restart byte, 128 pattern positions, and
+ * the "M.K." tag. One 1024-byte pattern follows (64 rows x 4 channels x
+ * 4 bytes), then the sample data (one word of silence).
  */
 class TrackerFixture {
     public static inline var TITLE:String = "haxefmod probe";

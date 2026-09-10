@@ -9,15 +9,16 @@ import haxefmod.studio.native.NativeStudio;
 /**
  * CI test scenario for payload-carrying callbacks.
  *
- * Song flow: plays the song, registers a typed OnSongEvent handler, logs
- * every callback with its payload as a "CB_TEST:" line, then soft-stops the
- * song and waits for the Stopped event to prove the queue delivers end to
- * end.
+ * Song flow: plays the song and registers a typed OnSongEvent handler.
+ * It logs every callback with its payload as a "CB_TEST:" line. It then
+ * soft-stops the song and waits for the Stopped event, which proves the
+ * queue delivers end to end.
  *
- * Overflow flow: floods the native callback ring (256 entries) by starting
- * many instances with full callback masks while update is deliberately
- * withheld, verifies the overflow flag trips, then proves delivery recovers
- * after a drain and that no instance handles leaked.
+ * Overflow flow: floods the native callback ring (256 entries) by
+ * starting many instances with full callback masks. Update is
+ * deliberately withheld during the flood. The flow verifies the overflow
+ * flag trips. It then proves delivery recovers after a drain, and that no
+ * instance handles leaked.
  *
  * Nested flow: plays the Nested event, whose event instrument references
  * the music event, and gates on NestedTimelineBeat payloads arriving from
@@ -196,7 +197,7 @@ class CallbackScenario implements TestScenario {
         #end
         if (firefoxGlue) {
             // FMOD's JS runtime never invokes the nested-beat callback on
-            // Firefox. The parent still receives the referenced timeline's
+            // Firefox. The parent receives the referenced timeline's
             // markers, and chromium delivers the beats, so the gating
             // check lives on the other targets.
             log('CB_TEST: nested_beats_delivered info=not delivered by the firefox glue'
@@ -213,7 +214,7 @@ class CallbackScenario implements TestScenario {
             'baseline=$_nestedBaseline now=${StudioSystem.liveHandleCount()}');
         // The payload carries the GUID FMOD reports for the referenced
         // timeline. FMOD 2.03.12 hands over the timeline object's own id,
-        // which no lookup resolves, so a well-formed non-zero GUID that is
+        // which no lookup resolves. A well-formed non-zero GUID that is
         // not the parent's is the proof it arrived intact
         var zeroGuid = "{00000000-0000-0000-0000-000000000000}";
         #if js
@@ -228,9 +229,9 @@ class CallbackScenario implements TestScenario {
     }
 
     function startOverflowPhase():Void {
-        // The song instance stays alive in the FmodManager slot and its
-        // description handle is deduplicated, so this baseline only moves
-        // if the overflow phase leaks instance handles
+        // The song instance stays alive in the FmodManager slot, and its
+        // description handle is deduplicated. This baseline then moves
+        // only if the overflow phase leaks instance handles
         var desc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         _baseline = StudioSystem.liveHandleCount();
 
@@ -254,20 +255,21 @@ class CallbackScenario implements TestScenario {
 
     function updateOverflowWait():Void {
         // Deliberately NOT calling FmodManager.Update() here: the queue must
-        // fill up while nothing drains it. cb_take_overflow consumes the
-        // flag (Update would eat it), so latch it before any drain runs.
+        // fill up while nothing drains it. A call to cb_take_overflow
+        // consumes the flag (Update would eat it), so latch it before any
+        // drain runs.
         _overflowFrames++;
         if (NativeStudio.cb_take_overflow()) _overflowSeen = true;
         if (!_overflowSeen && _overflowFrames <= OVERFLOW_WAIT_FRAMES) return;
 
         check("queue_overflowed", _overflowSeen, 'frames=$_overflowFrames');
 
-        // Recovery: quiet the flood first (the other instances keep firing
-        // beat and marker callbacks, and on a machine with slow frames they
-        // overflow the queue again between drains and drop the very event
-        // this waits for), drain the backlog, then prove delivery still
-        // works by soft-stopping one instance and waiting for its Stopped
-        // event
+        // Recovery: quiet the flood first. The other instances keep firing
+        // beat and marker callbacks. On a machine with slow frames they
+        // overflow the queue again between drains, and they drop the very
+        // event this waits for. Drain the backlog next. Then prove
+        // delivery works by soft-stopping one instance and waiting for its
+        // Stopped event
         for (i in 1..._overflowInstances.length) _overflowInstances[i].stop(IMMEDIATE);
         FmodManager.Update();
         log("CB_TEST: Requesting recovery stop");

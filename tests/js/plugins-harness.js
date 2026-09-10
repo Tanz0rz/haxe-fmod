@@ -1,8 +1,9 @@
 // Runs the plugin bindings of jaxe.js against the real FMOD 2.03.12 wasm
-// under Node. The wasm system object has no loadPlugin at all, so every
-// function here must report 68 (ERR_UNSUPPORTED), hand back the failure
-// value for its shape (0 handle, -1 count, "" name), and leave the handle
-// table untouched.
+// under Node.
+// The wasm system object has no loadPlugin at all.
+// Every function here must report 68 (ERR_UNSUPPORTED).
+// Each one hands back the failure value for its shape (0 handle, -1 count,
+// "" name) and leaves the handle table untouched.
 // Usage: node plugins-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');

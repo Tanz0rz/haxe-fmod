@@ -1,26 +1,34 @@
 package haxefmod.flixel;
 
-import flixel.FlxBasic;
 import flixel.FlxG;
 
 /**
     Per-frame driver for FMOD in a HaxeFlixel game. Call init() once at
-    startup (FmodFlxSetup.init() does this for you).
+    startup. FmodFlxSetup.init() and every haxefmod.flixel component do
+    this for you.
 
-    init() registers a global FlxG plugin that calls FmodManager.Update()
-    every frame across all states.
+    init() hooks FlxG.signals.postUpdate, which fires after the state and
+    its members have updated. The emitter and listener positions of this
+    frame reach FMOD in the same frame. A plugin runs before the state,
+    so it pushes the positions of the frame before.
 **/
-class FmodFlxUpdater extends FlxBasic {
-    /** Registers the plugin once. Safe to call again after a recreated FlxGame. **/
-    public static function init() {
-        // Membership check instead of a static guard, so a destroyed and
-        // recreated FlxGame (fresh plugin list) gets the updater back
-        if (FlxG.plugins.get(FmodFlxUpdater) != null) return;
-        FlxG.plugins.add(new FmodFlxUpdater());
+class FmodFlxUpdater {
+    static var handler:Void->Void = () -> FmodManager.Update();
+
+    /** Hooks the update once. Safe to call again, and after a recreated FlxGame. **/
+    public static function init():Void {
+        // Remove-then-add keeps a single hook across repeated init calls.
+        FlxG.signals.postUpdate.remove(handler);
+        FlxG.signals.postUpdate.add(handler);
     }
 
-    /** Calls FmodManager.Update() once per frame. **/
-    override public function update(elapsed:Float):Void {
-        FmodManager.Update();
+    /** True while the per-frame hook is installed. **/
+    public static function isInstalled():Bool {
+        return FlxG.signals.postUpdate.has(handler);
+    }
+
+    /** Removes the hook. FmodManager.Update() then runs only when the game calls it. **/
+    public static function remove():Void {
+        FlxG.signals.postUpdate.remove(handler);
     }
 }

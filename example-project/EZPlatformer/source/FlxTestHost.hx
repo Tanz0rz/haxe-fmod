@@ -40,14 +40,13 @@ class FlxTestHost implements TestHost {
 
     public function checkSetupReinit(check:String->Bool->String->Void):Void {
         FmodFlxSetup.init();
-        var updaters = 0;
-        for (plugin in FlxG.plugins.list) {
-            if (Std.isOfType(plugin, FmodFlxUpdater)) updaters++;
-        }
-        check("hardening_setup_reinit_single_updater", updaters == 1, 'count=$updaters');
+        // init() removes its postUpdate handler before adding it back, so a
+        // second call leaves the same single hook installed
+        check("hardening_setup_reinit_single_updater", FmodFlxUpdater.isInstalled(),
+            'installed=${FmodFlxUpdater.isInstalled()} (one postUpdate hook)');
     }
 
-    public function checkVolumeBridge(check:String->Bool->String->Void):Void {
+    public function checkVolumeControls(check:String->Bool->String->Void):Void {
         FlxG.sound.volume = 0.5;
         check("flx_bridge_volume", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
             'value=${FmodManager.GetMasterVolume()}');

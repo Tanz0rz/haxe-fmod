@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Builds the FMOD-function-to-haxefmod-method table from the sources.
 
-The table drives two artifacts:
+The table drives three artifacts:
 
   extension/bindings-data.js   the data the fmod.com docs extension injects
                                as a "Haxe" language tab on every API page
@@ -18,20 +18,20 @@ The chain is FMOD function <- native shim function <- Haxe wrapper method:
   3. native/jaxe/jaxe.js: a fmod_<native> body that can report
      ERR_UNSUPPORTED marks the entry as limited on HTML5.
 
-Functions the shim never calls still get an entry when
+Functions the shim never calls get an entry when
 extension/functions.md has a section for them (same format as the
-example files, keyed by the fmod.com heading id): lifecycle calls the
-library makes on the game's behalf, settings that FmodSettings covers,
-and features that are deliberately left out, each with a note and an
-optional Haxe fence.
+example files, keyed by the fmod.com heading id). Those sections cover
+lifecycle calls the library makes on the game's behalf, settings that
+FmodSettings covers, and features that are deliberately left out. Each
+one carries a note and an optional Haxe fence.
 
 Keys are the ids fmod.com gives function headings: the C name without
 its FMOD_ prefix, lowercased (FMOD_Studio_EventInstance_Start becomes
 studio_eventinstance_start). Channel and ChannelGroup functions are also
 filed under the shared channelcontrol_* page.
 
-Run: python3 ci/haxe-bindings.py          rewrite both artifacts
-     python3 ci/haxe-bindings.py --check  fail if either is out of date
+Run: python3 ci/haxe-bindings.py          rewrite all three artifacts
+     python3 ci/haxe-bindings.py --check  fail if any one is out of date
 """
 
 import json
@@ -337,8 +337,8 @@ def haxe_methods():
                     continue
                 if match.group("static"):
                     static_natives[(type_name, match.group("name"))] = natives
-                # Internal types still resolve the hop for the public
-                # methods that call them, but never appear themselves
+                # Internal types resolve the hop for the public methods
+                # that call them, and never appear themselves
                 if type_name in INTERNAL_TYPES:
                     continue
                 entry = {
@@ -398,7 +398,7 @@ def build_table():
                 entry["html5"] = True
             # A wrapper is listed under the function its shim is named
             # after. The other functions the shim reaches on the way are
-            # remembered so one nobody binds directly still gets a method.
+            # remembered, so one nobody binds directly gets a method too.
             if fmod_name not in primary:
                 entry.setdefault("also", []).extend(methods)
                 continue

@@ -12,7 +12,7 @@ RELEASES_DIR=/var/www/releases
 
 fail() { echo "release-swap: FAIL: $*" >&2; exit 1; }
 
-# Sanity checks while the release is still unreachable. A bad build reads as
+# Sanity checks while the release is unreachable. A bad build reads as
 # a failed deploy and never as a broken site.
 [ -d "$RELEASE_DIR" ] || fail "release dir missing: $RELEASE_DIR"
 for page in index.html 404.html getting-started/index.html api/index.html; do
@@ -29,11 +29,18 @@ echo "release-swap: live -> $RELEASE_DIR"
 
 # Keep the last three releases and never the live one.
 live_target=$(readlink -f "$LIVE_LINK")
-ls -1dt "$RELEASES_DIR"/*/ 2>/dev/null | tail -n +4 | while read -r old; do
-  old_real=$(readlink -f "$old")
-  if [ "$old_real" != "$live_target" ]; then
-    rm -rf "$old_real"
-    echo "release-swap: pruned $old_real"
-  fi
-done
+# An empty releases directory must not abort the script under pipefail, so
+# the list comes from a nullglob array instead of a bare ls.
+shopt -s nullglob
+releases=("$RELEASES_DIR"/*/)
+shopt -u nullglob
+if [ "${#releases[@]}" -gt 3 ]; then
+  while IFS= read -r old; do
+    old_real=$(readlink -f "$old")
+    if [ "$old_real" != "$live_target" ]; then
+      rm -rf "$old_real"
+      echo "release-swap: pruned $old_real"
+    fi
+  done < <(ls -1dt -- "${releases[@]}" | tail -n +4)
+fi
 echo "release-swap: OK"

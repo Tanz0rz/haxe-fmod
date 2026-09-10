@@ -1,9 +1,12 @@
 // Proves the callback records carry FMOD's structs against the real FMOD
-// 2.03.12 wasm under Node: a timeline beat from real playback arrives with
-// bar, position, tempo, and time signature filled, and a programmer sound
-// record (invoked directly, the example bank has no programmer instrument)
-// hands the created sound over as a live sound handle with its subsound
-// index, then frees that handle when the destroy record drains.
+// 2.03.12 wasm under Node.
+// A timeline beat from real playback arrives with bar, position, tempo, and
+// time signature filled.
+// A programmer sound record hands the created sound over as a live sound
+// handle with its subsound index.
+// That record runs on a direct call, because the example bank has no
+// programmer instrument.
+// The harness frees the sound handle when the destroy record drains.
 // Usage: node callback-structs-harness.js  (needs FMOD_SDK_WEB)
 const path = require('path');
 const fs = require('fs');
@@ -93,9 +96,10 @@ async function main() {
     drain();
 
     // --- FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES through the queue ---
-    // ps_assign is refused on html5 (FMOD glue defect, see ps-test.js), so
-    // the resolution runs on a white-box key and the handler is invoked the
-    // way FMOD would invoke it. The record must carry the sound as a handle.
+    // html5 refuses ps_assign (FMOD glue defect, see ps-test.js).
+    // The resolution runs on a white-box key, and the call reaches the
+    // handler the way FMOD reaches it.
+    // The record must carry the sound as a handle.
     const speak = jaxe.fmod_evd_create_instance(jaxe.fmod_sys_get_event('event:/Dialogue/Speak'));
     check('speak_instance', speak > 0, `handle=${speak}`);
     const inst = jaxe.handleResolve(speak, jaxe.TYPE_EVI);
@@ -113,9 +117,10 @@ async function main() {
         check('create_record_subsound', c.i2 >= 0 && c.i2 === (props.subsoundIndex | 0), `subsound=${c.i2}`);
         check('create_record_library_owned', c.i3 === 1, `i3=${c.i3}`);
         check('create_record_handle_counted', jaxe.liveCount === baseline + 1, `live=${jaxe.liveCount} baseline=${baseline}`);
-        // The sound handle is usable from the game thread while it lives
-        // (the table's FSB container reports 0 ms, the subsound holds the
-        // audio, -1 would mean the handle does not resolve)
+        // The sound handle is usable from the game thread while it lives.
+        // The table's FSB container reports 0 ms, and the subsound holds the
+        // audio.
+        // A result of -1 would mean the handle does not resolve.
         const lenBefore = jaxe.fmod_core_get_sound_length(c.i1, jaxe.FMOD.TIMEUNIT_MS);
         check('create_record_sound_usable', lenBefore >= 0, `length=${lenBefore}`);
         check('destroy_returns_ok', jaxe.callbackHandler(0x100, inst, props) === 0, '');
@@ -142,4 +147,4 @@ async function main() {
     console.log(`CBSTRUCT_TEST: done fails=${fails}`);
     process.exit(fails ? 1 : 0);
 }
-main();
+main().catch(e => { console.error('FATAL', e); process.exit(1); });

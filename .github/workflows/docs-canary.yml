@@ -1,6 +1,6 @@
 name: Docs canary
 
-# Weekly check that fmod.com's API reference still matches the snapshot
+# Weekly check that fmod.com's API reference matches the snapshot
 # the browser extension was built against. The Haxe tab is keyed by
 # function heading ids and by the position of code examples on each
 # page, so a page edit on their side can leave a tab on the wrong

@@ -9,10 +9,11 @@ import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
 
 /**
- * Probe for the init settings and system info: what the LoadFmodState
- * settings did to the running system (output, resampler, memory
- * tracking, thread attributes), driver info, the console port calls,
- * and the limits. Nothing here changes state that outlives the probe.
+ * Probe for the init settings and system info. It reads what the
+ * LoadFmodState settings did to the running system: output, resampler,
+ * memory tracking, and thread attributes. Driver info, the console port
+ * calls, and the limits follow. Nothing here changes state that outlives
+ * the probe.
  */
 class ProbeInitSettings {
     public static function run(state:ApiProbeScenario):Void {

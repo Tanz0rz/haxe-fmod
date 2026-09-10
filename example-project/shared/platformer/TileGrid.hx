@@ -1,8 +1,8 @@
 package platformer;
 
 /**
- * The EZPlatformer tilemap (level.csv, 8px tiles, 1 = solid) plus the
- * small amount of platformer physics the two levels need: gravity, capped
+ * The EZPlatformer tilemap (level.csv, 8px tiles, 1 = solid). The two
+ * levels need a small amount of platformer physics: gravity, capped
  * velocity, axis-separated AABB collision against solid tiles, and
  * touching flags. Engine-free, so every example game shares one set of
  * rules and only draws differently.

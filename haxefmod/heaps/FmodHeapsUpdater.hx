@@ -28,7 +28,7 @@ class FmodHeapsUpdater {
         #if js
         js.Browser.window.requestAnimationFrame(browserFrame);
         #elseif (target.threaded && haxe_ver >= 4.2)
-        // Interval 0 runs the event exactly once per progress() call
+        // Interval 0 runs the event exactly once per progress() call.
         sys.thread.Thread.current().events.repeat(frame, 0);
         #else
         haxe.MainLoop.add(frame);
@@ -62,7 +62,7 @@ class FmodHeapsUpdater {
         var now = haxe.Timer.stamp();
         var dt = lastStamp < 0 ? 0.0 : now - lastStamp;
         lastStamp = now;
-        // Copy first: a ticker can remove itself (a loader that just fired)
+        // Copy first: a ticker can remove itself (a loader that just fired).
         for (ticker in tickers.copy()) {
             ticker.tick(dt);
         }

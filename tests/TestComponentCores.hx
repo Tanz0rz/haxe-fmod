@@ -81,9 +81,18 @@ class TestComponentCores {
 	}
 
 	static function testZoneTrigger():Void {
+		var stub = NativeStudioStub;
+		var savedInit = stub.testInitialized;
 		var provider = new MovableProvider(50, 50);
 		var trigger = new SpyTrigger(provider, 0, 0, 100, 100, "Nope", 1, 0);
 
+		// An update before FMOD is ready drops the value and latches
+		// nothing. The first update after init reports the crossing.
+		stub.testInitialized = false;
+		trigger.update();
+		assert(trigger.applied.length == 0, "an update before init applies nothing");
+
+		stub.testInitialized = true;
 		trigger.update();
 		assert(trigger.applied.length == 1 && trigger.applied[0] == 1, "first update applies the inside value");
 
@@ -108,6 +117,8 @@ class TestComponentCores {
 		var global = new ZoneTrigger(provider, 0, 0, 10, 10, "Nope", 1, 0);
 		global.update();
 		assert(!haxefmod.studio.StudioSystem.lastResult().isOk(), "global path reaches StudioSystem.setParameter");
+
+		stub.testInitialized = savedInit;
 	}
 
 	static function testBankLoadTracker():Void {

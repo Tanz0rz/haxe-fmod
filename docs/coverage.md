@@ -61,7 +61,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Channel_Set3DMinMaxDistance` | `Channel.set3DMinMaxDistance` |  |
 | `FMOD_Channel_Set3DOcclusion` | `Channel.set3DOcclusion` |  |
 | `FMOD_Channel_Set3DSpread` | `Channel.set3DSpread` |  |
-| `FMOD_Channel_SetCallback` | `Channel.setCallback`<br>`Channel.clearCallback` |  |
+| `FMOD_Channel_SetCallback` | `Channel.setCallback`<br>`Channel.clearCallback`<br>`FmodManager.ClearAllCallbacks` |  |
 | `FMOD_Channel_SetChannelGroup` | `Channel.setChannelGroup` |  |
 | `FMOD_Channel_SetDSPIndex` | `Channel.setDspIndex` |  |
 | `FMOD_Channel_SetDelay` | `Channel.setDelay` |  |
@@ -140,7 +140,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_ChannelGroup_Set3DMinMaxDistance` | `ChannelGroup.set3DMinMaxDistance` |  |
 | `FMOD_ChannelGroup_Set3DOcclusion` | `ChannelGroup.set3DOcclusion` |  |
 | `FMOD_ChannelGroup_Set3DSpread` | `ChannelGroup.set3DSpread` |  |
-| `FMOD_ChannelGroup_SetCallback` | `ChannelGroup.setCallback`<br>`ChannelGroup.clearCallback` |  |
+| `FMOD_ChannelGroup_SetCallback` | `ChannelGroup.setCallback`<br>`ChannelGroup.clearCallback`<br>`FmodManager.ClearAllCallbacks` |  |
 | `FMOD_ChannelGroup_SetDSPIndex` | `ChannelGroup.setDspIndex` |  |
 | `FMOD_ChannelGroup_SetDelay` | `ChannelGroup.setDelay` |  |
 | `FMOD_ChannelGroup_SetFadePointRamp` | `ChannelGroup.setFadePointRamp` |  |
@@ -471,7 +471,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_EventInstance_KeyOff` | `EventInstance.keyOff` |  |
 | `FMOD_Studio_EventInstance_Release` | `EventInstance.release` |  |
 | `FMOD_Studio_EventInstance_Set3DAttributes` | `EventInstance.set3DAttributes`<br>`EventInstance.setPosition2D` |  |
-| `FMOD_Studio_EventInstance_SetCallback` | `EventInstance.setCallback`<br>`EventInstance.assignProgrammerSound`<br>`EventInstance.assignProgrammerSoundForName`<br>`EventInstance.assignProgrammerSoundFrom`<br>`EventInstance.clearProgrammerSound` | compile error |
+| `FMOD_Studio_EventInstance_SetCallback` | `EventInstance.setCallback`<br>`EventInstance.assignProgrammerSound`<br>`EventInstance.assignProgrammerSoundForName`<br>`EventInstance.assignProgrammerSoundFrom`<br>`EventInstance.clearProgrammerSound`<br>`FmodManager.ClearAllCallbacks` | compile error |
 | `FMOD_Studio_EventInstance_SetListenerMask` | `EventInstance.setListenerMask` |  |
 | `FMOD_Studio_EventInstance_SetParameterByID` | `EventInstance.setParameterByID` |  |
 | `FMOD_Studio_EventInstance_SetParameterByIDWithLabel` | `EventInstance.setParameterByIDWithLabel` |  |

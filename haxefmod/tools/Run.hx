@@ -10,14 +10,14 @@ class Run {
 	static var skipCount = 0;
 
 	public static function main() {
-		// haxelib passes the original cwd as the last arg
+		// haxelib passes the original cwd as the last arg.
 		var args = Sys.args();
 		var cwd = args.length > 0 ? args[args.length - 1] : Sys.getCwd();
 		var userArgs = args.length > 1 ? args.slice(0, args.length - 1) : [];
 
 		var command = userArgs.length > 0 ? userArgs[0] : "help";
 
-		// Resolve the haxelib root (parent of the directory haxelib passes as last arg)
+		// Resolve the haxelib root (parent of the directory haxelib passes as last arg).
 		var libRoot = resolveLibRoot();
 
 		switch (command) {
@@ -31,16 +31,16 @@ class Run {
 					Sys.exit(1);
 				}
 				// cwd from haxelib is the caller's working directory (project
-				// dir). The libroot argument from include.xml is IGNORED:
+				// dir). The libroot argument from include.xml is IGNORED.
 				// lime splits postbuild commands on spaces with no quote
 				// handling, so a haxelib path containing a space arrives
-				// shattered. The root is resolved from this process instead.
+				// shattered. This process resolves the root instead.
 				PostBuild.run(userArgs[1], userArgs[2], libRoot, cwd);
 			case "stage":
 				if (userArgs.length < 4) {
 					Sys.println("Usage: haxelib run haxefmod stage <platform> <target> <outdir>");
 					Sys.println("  platform: linux, mac, windows, html5");
-					Sys.println("  target:   hl (program loads hlaxe_fmod.hdll) or cpp (binding compiled in)");
+					Sys.println("  target:   hl (program loads hlaxe_fmod.hdll), cpp (binding compiled in), or html5");
 					Sys.println("  outdir:   the build output directory, relative to the project");
 					Sys.exit(1);
 				}
@@ -64,18 +64,19 @@ class Run {
 	}
 
 	static function resolveLibRoot():String {
-		// When run via haxelib, we can find our own root by checking where Run.hx lives
-		// The haxelib root is the directory containing haxefmod/, templates/, and the version marker
-		// Use Sys.programPath() to find ourselves, then navigate up
+		// The library root holds haxefmod/, templates/, and the version
+		// marker. The haxelib path command names the classpath inside it.
+		// haxelib runs this tool from the library directory, so the working
+		// directory is the fallback.
 		try {
 			var result = runQuiet("haxelib", ["path", "haxefmod"]);
 			if (result.exitCode == 0) {
-				// haxelib path outputs one path per line. The first is the source dir
+				// haxelib path outputs one path per line. The first is the source dir.
 				for (line in result.stdout.split("\n")) {
 					var trimmed = StringTools.trim(line);
 					if (trimmed != "" && !StringTools.startsWith(trimmed, "-")) {
 						// The classpath line points inside the lib. The
-						// version marker identifies its parent as the root
+						// version marker identifies its parent as the root.
 						if (FileSystem.exists(haxe.io.Path.join([haxe.io.Path.directory(trimmed), "fmod_expected_version"]))) {
 							return haxe.io.Path.directory(trimmed);
 						}
@@ -83,7 +84,7 @@ class Run {
 				}
 			}
 		} catch (e:Dynamic) {}
-		// Fallback: use CWD (won't work in all cases but is better than nothing)
+		// haxelib changes into the library directory before running the tool.
 		return Sys.getCwd();
 	}
 
@@ -98,19 +99,34 @@ class Run {
 		Sys.println("  stage          Copy the FMOD runtime files into a build output directory (Heaps, Kha, plain haxe builds)");
 		Sys.println("  verify-native  Verify the native shims are in lockstep with the FFI manifest");
 		Sys.println("  generate       Generate Haxe constant classes (FmodEvents, FmodBuses, ...) from Master.strings.bank");
-		Sys.println("  todos          List every FmodManager.Todo sound marker in the project");
+		Sys.println("  todos          List every FmodManager.Todo sound marker in the project (--json for machine output)");
+		Sys.println("  postbuild      Copy the FMOD runtime files after a lime build (include.xml runs this)");
 		Sys.println("  help           Show this message");
+	}
+
+	/** The FMOD version the pre-built binaries expect, read from the library's marker file. */
+	static function expectedFmodVersion(libRoot:String):String {
+		var versionFile = haxe.io.Path.join([libRoot, "fmod_expected_version"]);
+		if (!FileSystem.exists(versionFile)) return "the expected FMOD version";
+		return PostBuild.hexToVersion(StringTools.trim(File.getContent(versionFile)));
+	}
+
+	/** The version as it appears in FMOD's package names, 2.03.12 as 20312. */
+	static function packageDigits(version:String):String {
+		return version.split(".").join("");
 	}
 
 	static function runCheck(cwd:String, libRoot:String) {
 		Sys.println("haxefmod check - checking your environment...");
 		Sys.println("");
+		var expectedVersion = expectedFmodVersion(libRoot);
+		var digits = packageDigits(expectedVersion);
 
 		// 1. Haxe installed
 		checkCommand("Haxe installed", "haxe", ["--version"]);
 
 		// 2. Key haxelib deps
-		checkHaxelibs();
+		checkHaxelibs(cwd);
 
 		// 3. Windows: Check for Visual Studio C++ tools
 		if (detectPlatform() == "windows") {
@@ -124,10 +140,10 @@ class Run {
 			Sys.println("");
 			Sys.println("  To fix this:");
 			Sys.println("  1. Download FMOD Engine from https://www.fmod.com/download");
-			Sys.println('     - All platforms require version 2.03.12');
+			Sys.println('     - All platforms require version $expectedVersion');
 			Sys.println("  2. Install/extract it and set FMOD_SDK to point to the SDK directory.");
 			Sys.println("");
-			Sys.println("     export FMOD_SDK=/path/to/fmodstudioapi20312");
+			Sys.println('     export FMOD_SDK=/path/to/fmodstudioapi$digits');
 			Sys.println("");
 			Sys.println("  Note: Set FMOD_SDK to the installed/extracted SDK directory.");
 			Sys.println("        Switch FMOD_SDK when building for different platforms.");
@@ -148,8 +164,7 @@ class Run {
 
 		// 6. Current platform SDK present
 		var platform = detectPlatform();
-		var headerPath = '$fmodSdk/api/core/inc/fmod.h';
-		var expectedVersion = "2.03.12";
+		var headerPath = haxe.io.Path.join([fmodSdk, "api", "core", "inc", "fmod.h"]);
 		if (!FileSystem.exists(headerPath)) {
 			fail('$platform SDK headers present', 'Not found: $headerPath');
 			Sys.println('         Download FMOD Engine $expectedVersion for $platform from https://www.fmod.com/download');
@@ -159,11 +174,11 @@ class Run {
 		}
 
 		// 7. Platform runtime libs present
-		checkRuntimeLibs(fmodSdk, platform);
+		checkRuntimeLibs(fmodSdk, platform, expectedVersion);
 
 		// 8. FMOD version check
 		if (FileSystem.exists(headerPath)) {
-			checkFmodVersion('$fmodSdk/api/core/inc/fmod_common.h', platform);
+			checkFmodVersion(haxe.io.Path.join([fmodSdk, "api", "core", "inc", "fmod_common.h"]), platform, expectedVersion);
 		}
 
 		// 8b. Pre-built hdll compatibility check
@@ -172,7 +187,7 @@ class Run {
 		}
 
 		// 9. HTML5 SDK check
-		checkHtml5Sdk(fmodSdk);
+		checkHtml5Sdk(expectedVersion, digits);
 
 		// 10. Project.xml check (if in a project directory)
 		checkProjectXml(cwd);
@@ -201,6 +216,9 @@ class Run {
 		try {
 			var proc = new sys.io.Process(cmd, args);
 			var stdout = proc.stdout.readAll().toString();
+			// Drain stderr too, or a chatty child blocks on a full pipe
+			// while this process waits for its exit code.
+			proc.stderr.readAll();
 			var exitCode = proc.exitCode();
 			proc.close();
 			return {exitCode: exitCode, stdout: StringTools.trim(stdout)};
@@ -218,8 +236,32 @@ class Run {
 		}
 	}
 
-	static function checkHaxelibs() {
-		var libs = ["lime", "openfl", "flixel", "hxcpp"];
+	/**
+	 * A lime project needs lime, hxcpp, and every haxelib its project file
+	 * names. A Heaps or Kha project declares its libraries in an hxml or
+	 * khafile instead, so those are reported without a verdict.
+	 */
+	static function checkHaxelibs(cwd:String) {
+		var projectXml = findProjectXml(cwd);
+		if (projectXml == null) {
+			var found:Array<String> = [];
+			for (lib in ["heaps", "hxcpp"]) {
+				if (runQuiet("haxelib", ["path", lib]).exitCode == 0) found.push(lib);
+			}
+			skip("haxelib dependencies", "No lime project file here. Heaps and Kha projects declare their libraries in hxml or khafile.js."
+				+ (found.length > 0 ? ' Installed: ${found.join(", ")}.' : ""));
+			return;
+		}
+		var libs = ["lime", "hxcpp"];
+		// Commented-out entries are scaffold leftovers, so strip them first.
+		var content = ~/<!--[\s\S]*?-->/g.replace(File.getContent(projectXml), "");
+		var named = ~/<haxelib\s+name="([^"]+)"/g;
+		var pos = 0;
+		while (named.matchSub(content, pos)) {
+			var lib = named.matched(1);
+			if (lib != "haxefmod" && libs.indexOf(lib) == -1) libs.push(lib);
+			pos = named.matchedPos().pos + named.matchedPos().len;
+		}
 		var missing:Array<String> = [];
 		for (lib in libs) {
 			var result = runQuiet("haxelib", ["path", lib]);
@@ -228,7 +270,7 @@ class Run {
 		if (missing.length > 0) {
 			fail("haxelib dependencies", 'Missing: ${missing.join(", ")}. Install with: haxelib install <name>');
 		} else {
-			pass("haxelib dependencies (lime, openfl, flixel, hxcpp)", "");
+			pass('haxelib dependencies (${libs.join(", ")})', "");
 		}
 	}
 
@@ -275,20 +317,14 @@ class Run {
 		}
 	}
 
-	static function checkRuntimeLibs(fmodSdk:String, platform:String) {
-		var libs:Array<String> = switch (platform) {
-			case "mac": ['$fmodSdk/api/core/lib/libfmod.dylib', '$fmodSdk/api/studio/lib/libfmodstudio.dylib'];
-			case "linux": [
-				'$fmodSdk/api/core/lib/x86_64/libfmod.so',
-				'$fmodSdk/api/studio/lib/x86_64/libfmodstudio.so'
-			];
-			case "windows": [
-				'$fmodSdk/api/core/lib/x64/fmod.dll',
-				'$fmodSdk/api/studio/lib/x64/fmodstudio.dll'
-			];
+	static function checkRuntimeLibs(fmodSdk:String, platform:String, expectedVersion:String) {
+		var relative:Array<Array<String>> = switch (platform) {
+			case "mac": [["api", "core", "lib", "libfmod.dylib"], ["api", "studio", "lib", "libfmodstudio.dylib"]];
+			case "linux": [["api", "core", "lib", "x86_64", "libfmod.so"], ["api", "studio", "lib", "x86_64", "libfmodstudio.so"]];
+			case "windows": [["api", "core", "lib", "x64", "fmod.dll"], ["api", "studio", "lib", "x64", "fmodstudio.dll"]];
 			default: [];
 		};
-		var expectedVersion = "2.03.12";
+		var libs = [for (parts in relative) haxe.io.Path.join([fmodSdk].concat(parts))];
 		var missing:Array<String> = [];
 		for (lib in libs) {
 			if (!FileSystem.exists(lib)) missing.push(lib);
@@ -301,38 +337,18 @@ class Run {
 		}
 	}
 
-	static function checkFmodVersion(commonHeaderPath:String, platform:String) {
+	static function checkFmodVersion(commonHeaderPath:String, platform:String, expected:String) {
 		if (!FileSystem.exists(commonHeaderPath)) {
 			fail("FMOD version", 'Header not found: $commonHeaderPath');
 			return;
 		}
-		var content = File.getContent(commonHeaderPath);
-		// Look for: #define FMOD_VERSION    0x00020312
-		var versionHex:Null<Int> = null;
-		for (line in content.split("\n")) {
-			if (line.indexOf("FMOD_VERSION") != -1 && line.indexOf("#define") != -1) {
-				// Extract hex value
-				var idx = line.indexOf("0x");
-				if (idx != -1) {
-					var hexStr = line.substr(idx, 10);
-					versionHex = Std.parseInt(hexStr);
-				}
-				break;
-			}
-		}
-		if (versionHex == null) {
+		// The same parser the build uses, so the doctor and the build agree.
+		var sdkHex = PostBuild.parseFmodVersion(commonHeaderPath);
+		if (sdkHex == null || Std.parseInt(sdkHex) == null) {
 			fail("FMOD version", "Could not parse FMOD_VERSION from header");
 			return;
 		}
-		// FMOD version is BCD-like: 0x00020312 = "2.03.12" (hex digits ARE the version digits)
-		var hexStr = StringTools.hex(versionHex, 8);
-		var product = Std.parseInt("0x" + hexStr.substr(0, 4));
-		var major = hexStr.substr(4, 2);
-		var minor = hexStr.substr(6, 2);
-		var versionStr = '$product.$major.$minor';
-
-		// All platforms now use 2.03.12
-		var expected = "2.03.12";
+		var versionStr = PostBuild.hexToVersion(sdkHex);
 		if (versionStr == expected) {
 			pass("FMOD version", versionStr);
 		} else {
@@ -342,49 +358,84 @@ class Run {
 	}
 
 	static function checkHdllCompatibility(fmodSdk:String, platform:String, libRoot:String, projectDir:String) {
-		var commonHeader = '$fmodSdk/api/core/inc/fmod_common.h';
+		var commonHeader = haxe.io.Path.join([fmodSdk, "api", "core", "inc", "fmod_common.h"]);
 		// A truncated SDK extract can pass the fmod.h gate while this header
-		// is missing. The doctor reports it and keeps going.
+		// is missing. The build fails on it, so the doctor does too.
 		if (!FileSystem.exists(commonHeader)) {
-			warn("Pre-built hdll compatible with SDK", 'Cannot verify: missing $commonHeader');
+			fail("Pre-built hdll compatible with SDK", 'Cannot verify: missing $commonHeader. Re-download the FMOD Engine.');
 			return;
 		}
 		var sdkHex = PostBuild.parseFmodVersion(commonHeader);
-		if (sdkHex == null) return;
-
-		var versionFile = haxe.io.Path.join([libRoot, "fmod_expected_version"]);
-		if (!FileSystem.exists(versionFile)) return;
-		var expectedHex = StringTools.trim(File.getContent(versionFile));
-
-		if (sdkHex == expectedHex) {
-			pass("Pre-built hdll compatible with SDK", "");
+		if (sdkHex == null) {
+			warn("Pre-built hdll compatible with SDK", 'Cannot verify: no FMOD_VERSION in $commonHeader');
 			return;
 		}
 
-		// SDK doesn't match pre-built version - check for project-local custom-compiled hdll
+		var versionFile = haxe.io.Path.join([libRoot, "fmod_expected_version"]);
+		if (!FileSystem.exists(versionFile)) {
+			warn("Pre-built hdll compatible with SDK", 'Cannot verify: missing $versionFile. Reinstall haxefmod.');
+			return;
+		}
+		var expectedHex = StringTools.trim(File.getContent(versionFile));
+
+		// The hdll the build copies: the custom one when it exists and its
+		// marker matches the SDK, the pre-built one otherwise. The same
+		// choice PostBuild.copyHdll makes.
+		var customHdll = haxe.io.Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
 		var markerFile = haxe.io.Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
-		if (FileSystem.exists(markerFile)) {
-			var markerHex = StringTools.trim(File.getContent(markerFile));
-			if (markerHex == sdkHex) {
-				var ver = PostBuild.hexToVersion(sdkHex);
-				pass("Custom-compiled hdll matches SDK", '$ver (from .haxefmod/)');
-				return;
+		var hdll:String = null;
+		if (FileSystem.exists(customHdll) && PostBuild.customHdllMatchesSdk(projectDir)) {
+			hdll = customHdll;
+			if (FileSystem.exists(markerFile)) {
+				pass("Custom-compiled hdll matches SDK", '${PostBuild.hexToVersion(sdkHex)} (from .haxefmod/)');
+			} else {
+				pass("Custom-compiled hdll present", ".haxefmod/ (no version marker, trusted as-is)");
 			}
+		} else if (PostBuild.sameVersion(sdkHex, expectedHex)) {
+			pass("Pre-built hdll compatible with SDK", "");
+			hdll = haxe.io.Path.join([libRoot, "templates", "bin", "hl", prebuiltPlatformDir(platform), "hlaxe_fmod.hdll"]);
+		} else {
+			var sdkVer = PostBuild.hexToVersion(sdkHex);
+			var expectedVer = PostBuild.hexToVersion(expectedHex);
+			fail("Pre-built hdll compatible with SDK", 'SDK is $sdkVer, pre-built hdll is for $expectedVer');
+			if (FileSystem.exists(markerFile) && !FileSystem.exists(customHdll)) {
+				Sys.println('         .haxefmod/ has a version marker but no hlaxe_fmod.hdll next to it.');
+			}
+			Sys.println('         Run: haxelib run haxefmod build-hdll');
+			Sys.println('         That compiles hlaxe_fmod.hdll against your SDK.');
+			return;
 		}
 
-		var sdkVer = PostBuild.hexToVersion(sdkHex);
-		var expectedVer = PostBuild.hexToVersion(expectedHex);
-		fail("Pre-built hdll compatible with SDK", 'SDK is $sdkVer, pre-built hdll is for $expectedVer');
-		Sys.println('         Run: haxelib run haxefmod build-hdll');
-		Sys.println('         This will compile hlaxe_fmod.hdll against your SDK.');
+		// The binding ABI half of the build gate.
+		var expectedAbi = PostBuild.expectedAbiVersion(libRoot);
+		if (expectedAbi <= 0) return;
+		if (!FileSystem.exists(hdll)) {
+			fail("hlaxe_fmod.hdll binding ABI", 'Missing: $hdll. Reinstall haxefmod, or run: haxelib run haxefmod build-hdll');
+			return;
+		}
+		var found = PostBuild.scanHdllAbi(hdll);
+		if (found == expectedAbi) {
+			pass("hlaxe_fmod.hdll binding ABI", '$found');
+		} else {
+			fail("hlaxe_fmod.hdll binding ABI", 'hdll has ' + (found == 0 ? "no marker" : Std.string(found)) + ', the library needs $expectedAbi');
+			Sys.println('         Run: haxelib run haxefmod build-hdll');
+		}
 	}
 
-	static function checkHtml5Sdk(fmodSdk:String) {
+	static function prebuiltPlatformDir(platform:String):String {
+		return switch (platform) {
+			case "windows": "Windows64";
+			case "mac": "Mac64";
+			default: "Linux64";
+		}
+	}
+
+	static function checkHtml5Sdk(expectedVersion:String, digits:String) {
 		var fmodSdkWeb = Sys.getEnv("FMOD_SDK_WEB");
 		if (fmodSdkWeb == null || fmodSdkWeb == "") {
-			skip("FMOD_SDK_WEB environment variable set", "Not set. Only needed for lime build html5.");
-			Sys.println('         To build for HTML5 later: download FMOD Engine 2.03.12 for HTML5 from https://www.fmod.com/download and');
-			Sys.println('         export FMOD_SDK_WEB=/path/to/fmodstudioapi20312html5');
+			skip("FMOD_SDK_WEB environment variable set", "Not set. Only needed for HTML5 builds.");
+			Sys.println('         To build for HTML5 later: download FMOD Engine $expectedVersion for HTML5 from https://www.fmod.com/download and');
+			Sys.println('         export FMOD_SDK_WEB=/path/to/fmodstudioapi${digits}html5');
 			return;
 		}
 
@@ -393,8 +444,8 @@ class Run {
 			return;
 		}
 
-		var jsPath = '$fmodSdkWeb/api/studio/lib/wasm/fmodstudio.js';
-		var wasmPath = '$fmodSdkWeb/api/studio/lib/wasm/fmodstudio.wasm';
+		var jsPath = haxe.io.Path.join([fmodSdkWeb, "api", "studio", "lib", "wasm", "fmodstudio.js"]);
+		var wasmPath = haxe.io.Path.join([fmodSdkWeb, "api", "studio", "lib", "wasm", "fmodstudio.wasm"]);
 		var jsExists = FileSystem.exists(jsPath);
 		var wasmExists = FileSystem.exists(wasmPath);
 		if (jsExists && wasmExists) {
@@ -404,15 +455,15 @@ class Run {
 			if (!jsExists) missing.push("fmodstudio.js");
 			if (!wasmExists) missing.push("fmodstudio.wasm");
 			fail("HTML5 SDK files present", 'Missing: ${missing.join(", ")} in $fmodSdkWeb/api/studio/lib/wasm/');
-			Sys.println('         Download FMOD Engine 2.03.12 for HTML5 from https://www.fmod.com/download');
+			Sys.println('         Download FMOD Engine $expectedVersion for HTML5 from https://www.fmod.com/download');
 		}
 	}
 
 	// Lime accepts project.xml, Project.xml, and application.xml, so the
-	// diagnostics must find any of them on a case-sensitive filesystem
+	// diagnostics must find any of them on a case-sensitive filesystem.
 	static function findProjectXml(cwd:String):Null<String> {
 		for (name in ["Project.xml", "project.xml", "application.xml"]) {
-			var path = '$cwd/$name';
+			var path = haxe.io.Path.join([cwd, name]);
 			if (FileSystem.exists(path)) return path;
 		}
 		return null;
@@ -421,7 +472,7 @@ class Run {
 	static function checkProjectXml(cwd:String) {
 		var projectXml = findProjectXml(cwd);
 		if (projectXml == null) {
-			// Not in a project directory, skip silently
+			// Not in a project directory, skip silently.
 			return;
 		}
 		var content = File.getContent(projectXml);
@@ -433,7 +484,7 @@ class Run {
 	}
 
 	static function checkBankFiles(cwd:String) {
-		var bankPath = '$cwd/assets/fmod/Desktop/Master.bank';
+		var bankPath = haxe.io.Path.join([cwd, "assets", "fmod", "Desktop", "Master.bank"]);
 		if (findProjectXml(cwd) == null) {
 			return; // Not in a project directory
 		}
@@ -473,6 +524,10 @@ class Run {
 
 	static function printSummary() {
 		var total = passCount + failCount;
+		if (total == 0) {
+			Sys.println("No checks ran.");
+			return;
+		}
 		if (failCount == 0) {
 			var notes = new Array<String>();
 			if (warnCount > 0) notes.push('$warnCount warning' + (warnCount == 1 ? "" : "s"));
@@ -481,7 +536,7 @@ class Run {
 			Sys.println('All $total checks passed!$suffix');
 		} else {
 			Sys.println('$passCount/$total checks passed, $failCount failed.');
-			// Scripts and CI rely on the exit code reflecting the result
+			// Scripts and CI rely on the exit code reflecting the result.
 			Sys.exit(1);
 		}
 	}

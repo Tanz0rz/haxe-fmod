@@ -4,7 +4,7 @@
  * headers. The Haxe values arrive through faxe_haxe_enums.h, written by
  * ci/haxe-enum-values.py, and every one of them is compared here against
  * the FMOD constant it mirrors. Enums FMOD added in 2.03 are only checked
- * against 2.03 headers.
+ * against 2.03 headers. CI runs:
  *
  *   python3 ci/haxe-enum-values.py --check
  *   gcc -std=c99 -Wall -Wextra -Werror -I<sdk>/api/core/inc -I<sdk>/api/studio/inc \
@@ -573,8 +573,8 @@ int main(void) {
     PIN(FAXE_HX_FmodLimits_STUDIO_LOAD_MEMORY_ALIGNMENT, FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT);
 
     /* FMOD_VERSION, FmodVersion: the constant names the SDK the library
-     * links, so it is pinned against the 2.03 headers and skipped when this
-     * test compiles against the 2.02 compat headers */
+     * links. The pin runs against the 2.03 headers. It is skipped when
+     * this test compiles against the 2.02 compat headers */
     assert(FAXE_HX_FmodVersion_COUNT == 1);
 #if FMOD_VERSION >= 0x00020300
     PIN(FAXE_HX_FmodVersion_VERSION, FMOD_VERSION);

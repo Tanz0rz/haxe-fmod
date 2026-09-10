@@ -12,9 +12,9 @@ import haxefmod.studio.Types;
     work here is the culling check in update(). Engine adapters wrap this
     in whatever their scene graph calls a component. They forward update()
     and dispose().
-**/
+*/
 class EmitterTracker {
-    /** The attached event instance (EventInstance.NULL after dispose). **/
+    /** The attached event instance (EventInstance.NULL after dispose). */
     public var instance(default, null):EventInstance;
 
     /**
@@ -25,16 +25,16 @@ class EmitterTracker {
         itself stopped is restarted. An instance the game stops stays
         stopped. A restart begins from the event's start with the
         instance's parameter values still applied.
-    **/
+    */
     public var stopEventsOutsideMaxDistance:Bool = false;
 
-    /** The listener the culling distance is measured against. **/
+    /** The listener the culling distance is measured against. */
     public var listenerIndex:Int = 0;
 
     /**
         Frames between culling distance checks. The default keeps the
         per-frame cost near zero. Set 1 to check every frame.
-    **/
+    */
     public var cullCheckInterval:Int = 6;
 
     /**
@@ -42,7 +42,7 @@ class EmitterTracker {
         event's authored max distance and applies only to 3D events. A 2D
         event is never culled by default. Give it an explicit value here
         to cull it.
-    **/
+    */
     public var cullMaxDistance:Float = -1;
 
     var provider:IFmodPositionProvider;
@@ -50,15 +50,16 @@ class EmitterTracker {
     var cullFrameCounter:Int = 0;
     var cullOneshot:Null<Bool> = null;
     var cull3d:Null<Bool> = null;
+    var authoredMaxDistance:Float = -1;
 
-    /** Attaches the instance to the provider. The caller starts the instance. **/
+    /** Attaches the instance to the provider. The caller starts the instance. */
     public function new(instance:EventInstance, provider:IFmodPositionProvider) {
         this.instance = instance;
         this.provider = provider;
         FmodRuntime.attach(instance, provider);
     }
 
-    /** Creates an instance of the event, starts it, and attaches it. **/
+    /** Creates an instance of the event, starts it, and attaches it. */
     public static function play(eventPath:String, provider:IFmodPositionProvider):EmitterTracker {
         var instance = FmodRuntime.createInstance(eventPath);
         if (!instance.isNull()) {
@@ -67,12 +68,12 @@ class EmitterTracker {
         return new EmitterTracker(instance, provider);
     }
 
-    /** Runs the culling distance check. Call it once per frame. **/
+    /** Runs the culling distance check. Call it once per frame. */
     public function update():Void {
         if (instance.isNull()) return;
         if (!stopEventsOutsideMaxDistance) {
             // Turning culling off while culled leaves the event stopped
-            // with nothing left to restart it, so restart it here
+            // with nothing left to restart it, so restart it here.
             if (culled) {
                 culled = false;
                 instance.start();
@@ -81,7 +82,7 @@ class EmitterTracker {
         }
 
         // The check costs a native listener fetch, so it runs on an
-        // interval instead of every frame
+        // interval instead of every frame.
         cullFrameCounter++;
         if (cullFrameCounter < cullCheckInterval) return;
         cullFrameCounter = 0;
@@ -92,23 +93,27 @@ class EmitterTracker {
         if (cullOneshot == null) cullOneshot = instance.getDescription().isOneshot();
         if (cullOneshot) return;
 
-        if (cullMaxDistance < 0) {
-            // Authored distances only gate 3D events. A 2D event still
+        var maxDistance = cullMaxDistance;
+        if (maxDistance < 0) {
+            // Authored distances only gate 3D events. A 2D event also
             // reports the default macro range from later bank formats. A
             // nonzero max therefore cannot be the test here.
             if (cull3d == null) cull3d = instance.getDescription().is3D();
             if (!cull3d) return;
-            var minMax = instance.getMinMaxDistance();
-            if (minMax == null) return;
-            cullMaxDistance = minMax.max;
+            if (authoredMaxDistance < 0) {
+                var minMax = instance.getMinMaxDistance();
+                if (minMax == null) return;
+                authoredMaxDistance = minMax.max;
+            }
+            maxDistance = authoredMaxDistance;
         }
-        if (cullMaxDistance <= 0) return;
+        if (maxDistance <= 0) return;
 
         var listener = StudioSystem.getListenerAttributes(listenerIndex);
         if (listener == null) return;
         var dx = provider.fmodX() - listener.position.x;
         var dy = provider.fmodY() - listener.position.y;
-        var outside = dx * dx + dy * dy > cullMaxDistance * cullMaxDistance;
+        var outside = dx * dx + dy * dy > maxDistance * maxDistance;
 
         if (outside && !culled) {
             // Only an instance that is actually playing gets culled.
@@ -127,7 +132,7 @@ class EmitterTracker {
         }
     }
 
-    /** Detaches and releases the instance (it plays out unless stopped). **/
+    /** Detaches and releases the instance (it plays out unless stopped). */
     public function dispose():Void {
         if (!instance.isNull()) {
             FmodRuntime.detach(instance);

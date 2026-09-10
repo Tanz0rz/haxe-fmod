@@ -2,7 +2,8 @@
  * Unit tests for native/shared/faxe_handles.h (the generational handle table
  * shared by the C++ and HashLink shims. jaxe.js mirrors the same logic).
  *
- * Compiled and run in CI in both C99 and C++ modes:
+ * CI compiles and runs the file in both C99 and C++ modes. Both
+ * invocations:
  *   gcc -std=c99 -Wall -Wextra -Werror -o test_c   tests/native/test_faxe_handles.c && ./test_c
  *   g++ -x c++   -Wall -Wextra -Werror -o test_cpp tests/native/test_faxe_handles.c && ./test_cpp
  */
@@ -23,11 +24,12 @@ static int sweep_all_dead(void* ptr, unsigned char type) {
 
 
 /* Seeded pseudo-random fuzz with a shadow model. Arbitrary integers into
- * resolve and free must behave exactly like the model predicts: a random
+ * resolve and free must behave exactly like the model predicts. A random
  * int resolves to a live slot's pointer only when it IS that slot's
- * current handle with the right type, frees only that exact handle, and
- * never corrupts unrelated live entries. Deterministic (fixed seed), and
- * run under ASan/UBSan in CI so a wild read or overflow fails loudly. */
+ * current handle with the right type. It frees only that exact handle,
+ * and it never corrupts unrelated live entries. Deterministic (fixed
+ * seed), and run under ASan/UBSan in CI so a wild read or overflow fails
+ * loudly. */
 #define FUZZ_OPS 200000
 #define FUZZ_LIVE_MAX 512
 #define FUZZ_TYPES 4
@@ -262,8 +264,9 @@ int main(void) {
         assert(faxe_handle_resolve(hi, FAXE_TYPE_EVI) == &eviObj);
         assert(faxe_handle_resolve(hk, FAXE_TYPE_BANK) == &bankObj);
 
-        /* the freed slot recycles under a new generation, so a fresh lookup
-         * for a reused address gets a NEW handle and the stale one stays dead */
+        /* the freed slot recycles under a new generation. A fresh lookup
+         * for a reused address gets a NEW handle, and the stale one stays
+         * dead */
         int hb2 = faxe_handle_find_or_alloc(&busObj, FAXE_TYPE_BUS);
         assert(hb2 > 0 && hb2 != hb);
         assert(faxe_handle_resolve(hb, FAXE_TYPE_BUS) == NULL);

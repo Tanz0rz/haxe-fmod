@@ -18,7 +18,7 @@ import haxefmod.studio.StudioSystem;
  *              660Hz here means the pitch never reached FMOD.
  *   Segment 4: 300Hz and 5kHz mixed, played raw. Both tones must measure.
  *   Segment 5: the same mix with a LOWPASS_SIMPLE at 800Hz on the channel.
- *              300Hz must still measure while 5kHz must be gone, proving a
+ *              300Hz must measure while 5kHz must be gone, proving a
  *              DSP effect audibly transforms the audio.
  *   Segment 6: 500Hz with fade points scheduled on the mixer clock from
  *              full volume down to near silence across the segment. The
@@ -39,8 +39,8 @@ import haxefmod.studio.StudioSystem;
  *
  * Each segment is its own stream with a ring sized to hold the whole
  * segment, prefilled before playback starts. That keeps the recorded
- * segments aligned with the data at any mixing speed (WAVWRITER mixes
- * faster than real time) with no underruns until the data runs out.
+ * segments aligned with the data at any mixing speed. WAVWRITER mixes
+ * faster than real time. No underruns happen until the data runs out.
  *
  * Audio is recorded externally and validated by ci/validate-synth.sh.
  */
@@ -57,10 +57,10 @@ class SynthScenario implements TestScenario {
     static inline var NEAR_DISTANCE:Float = 1.0;
     static inline var FAR_DISTANCE:Float = 8.0;
 
-    // {data frequencies (freq2 = 0 for a pure tone), channel pitch,
-    //  lowpass = attach LOWPASS_SIMPLE at 800Hz before playing,
-    //  distance = play through create3d this far from the listener,
-    //  0 for the non-positional path} per segment
+    // Per segment: data frequencies (freq2 = 0 for a pure tone) and
+    // channel pitch. The lowpass flag attaches LOWPASS_SIMPLE at 800Hz
+    // before playing. The distance field plays through create3d that far
+    // from the listener, and 0 selects the non-positional path.
     static var SEGMENTS:Array<{freq:Float, freq2:Float, pitch:Float, lowpass:Bool, fade:Bool, distance:Float}> = [
         {freq: 440.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: false, distance: 0.0},
         {freq: 880.0, freq2: 0.0, pitch: 1.0, lowpass: false, fade: false, distance: 0.0},
@@ -171,8 +171,8 @@ class SynthScenario implements TestScenario {
             check('segment${index + 1}_listener', listener.isOk(), 'result=${listener.toString()}');
             var minMax = _channel.set3DMinMaxDistance(NEAR_DISTANCE, 10000);
             check('segment${index + 1}_3d_minmax', minMax.isOk(), 'result=${minMax.toString()}');
-            // Set while still paused so the first mixed block is already
-            // at the right distance
+            // Set while the channel is paused, so the first mixed block
+            // is already at the right distance
             var placed = _channel.set3DAttributes(0, 0, seg.distance);
             check('segment${index + 1}_3d_attributes', placed.isOk(), 'result=${placed.toString()}');
         }

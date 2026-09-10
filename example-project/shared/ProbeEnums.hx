@@ -12,9 +12,9 @@ import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
 
 /**
- * Probe for the FMOD value enums: the retyped system calls hand back
+ * Probe for the FMOD value enums. The retyped system calls hand back
  * FmodSpeakerMode and FmodOutputType values the real backend agrees
- * with, and setSpeakerPosition takes an FmodSpeaker. The speaker
+ * with. setSpeakerPosition takes an FmodSpeaker. The speaker
  * position it moves is put back before it returns. The second half
  * covers the enums that replaced Int on Sound.getOpenState,
  * Dsp.addInput, DspConnection.getType, and the sound group behavior.
@@ -55,8 +55,8 @@ class ProbeEnums {
         @:privateAccess state.check("enums_speaker_none_handled", stillThere != null,
             'result=${noneResult.toString()}');
 
-        // A memory sound is ready as soon as fromPcm returns, so its open
-        // state is READY and its format is the mono 16-bit PCM handed in
+        // A memory sound is ready as soon as fromPcm returns. Its open
+        // state is READY, and its format is the mono 16-bit PCM handed in
         var samples = 4800;
         var pcm = haxe.io.Bytes.alloc(samples * 2);
         for (i in 0...samples) {

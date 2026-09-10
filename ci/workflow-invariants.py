@@ -7,7 +7,7 @@ compat run goes wrong. This asserts the properties everything else
 leans on:
 
   1. Every [skip-build]-gated job condition carries the tag override, so
-     a release tag on an hdll auto-commit still runs the full suite.
+     a release tag on an hdll auto-commit runs the full suite.
   2. update-hdlls runs only on branch refs (a tag checkout is a detached
      HEAD with no branch to push to, and Windows hdll builds are not
      byte-reproducible, so the push would always be attempted and fail).
@@ -18,7 +18,7 @@ leans on:
   5. linux-html5-chromium asserts a build against a doctored (wrong-version) web
      SDK FAILS with the mismatch banner, with pipefail, since html5 pins
      the web SDK version instead of translating DSP types.
-  6. Every job still contains its required test steps by name. Renaming
+  6. Every job contains its required test steps by name. Renaming
      or deleting a probe step means updating the list here in the same
      commit.
   7. Every Node harness in tests/js/ is invoked somewhere in the
@@ -27,10 +27,13 @@ leans on:
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
 
+import os
 import re
 import sys
 
-PATH = sys.argv[1] if len(sys.argv) > 1 else ".github/workflows/audio-test.yml"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_WORKFLOW = os.path.join(ROOT, ".github", "workflows", "audio-test.yml")
+PATH = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_WORKFLOW
 TAG_OVERRIDE = "startsWith(github.ref, 'refs/tags/')"
 failures = []
 
@@ -116,9 +119,9 @@ if len(mismatch_blocks) != 3:
 else:
     ok("all 3 compat jobs require the mismatched build to fail, with pipefail")
 if text.count('grep -q "FMOD SDK version mismatch"') < 3:
-    fail("compat jobs no longer grep for the mismatch banner")
+    fail("compat jobs do not grep for the mismatch banner")
 else:
-    ok("compat jobs still verify the mismatch banner text")
+    ok("compat jobs verify the mismatch banner text")
 
 # 5. linux-html5-chromium requires a FAILING build against a doctored web SDK,
 # with pipefail, and verifies the version-mismatch banner (paired to the
@@ -133,17 +136,13 @@ if not web_gate:
 else:
     ok("linux-html5-chromium-build requires the doctored web-SDK build to fail, with pipefail")
 if 'grep -q "FMOD web SDK version mismatch"' not in html5_job:
-    fail("linux-html5-chromium-build no longer greps for the web mismatch banner")
+    fail("linux-html5-chromium-build does not grep for the web mismatch banner")
 else:
     ok("linux-html5-chromium-build verifies the web mismatch banner text")
 
 # 6. Required test steps per job. Names must match the workflow's
 # `- name:` lines exactly. When a step is renamed on purpose, rename it
 # here in the same commit.
-NATIVE_SUITE = ["Run api-probe state", "Run synth-test state", "Run cb-test state",
-                "Run ps-test state", "Run bank-test state", "Run pan-test state",
-                "Validate audio", "Validate volume/mute", "Validate synth audio",
-                "Validate build output"]
 REQUIRED_STEPS = {
     "unit-tests": [
         "Run unit tests",
@@ -168,7 +167,7 @@ REQUIRED_STEPS = {
     "linux-cpp-build": ["Build C++ target", "Verify FMOD libraries have no executable stack", "Validate build output", "Build the test DSP plugin next to the game"],
     "linux-cpp-build-manual": ["Build manual-update variant", "Validate build output", "Build the test DSP plugin next to the game"],
     "linux-cpp": ["Record audio", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)", "Run api-probe state (manual update variant)"],
-    "linux-hl-build": ["Build HashLink target (pre-built hdll)", "Build custom hdll via build-hdll", "Rebuild HashLink target (custom hdll)", "Upload compiled hdll", "Verify FMOD libraries have no executable stack", "Debug bin directory contents", "Validate build output", "Stage FMOD runtime into a plain directory", "Build the test DSP plugin next to the game", "lime test end to end"],
+    "linux-hl-build": ["Build HashLink target (pre-built hdll)", "Build custom hdll via build-hdll", "Rebuild HashLink target (custom hdll)", "Upload compiled hdll", "Verify FMOD libraries have no executable stack", "Validate build output", "Stage FMOD runtime into a plain directory", "Build the test DSP plugin next to the game", "lime test end to end"],
     "linux-hl": ["Record audio", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
     "mac-cpp-build": ["Build C++ target", "Validate build output", "Test native headers with Apple clang (sanitizers)"],
     "mac-cpp": ["Record audio", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
@@ -259,6 +258,18 @@ REQUIRED_STEPS = {
         "Install libraries with haxefmod from the package",
         "Build C++ target from the installed package",
     ],
+    "api-docs": [
+        "Install dox",
+        "Generate type XML",
+        "Render API docs",
+        "Upload API docs",
+    ],
+    "update-hdlls": [
+        "Ensure the run is on a branch",
+        "Download compiled hdlls",
+        "Update templates directory",
+        "Commit updated hdlls",
+    ],
 }
 missing_steps = []
 for job_name, required in REQUIRED_STEPS.items():
@@ -278,9 +289,7 @@ else:
     ok(f"all {total} required test steps present across {len(REQUIRED_STEPS)} jobs")
 
 # 7. Every Node harness in tests/js/ is wired into the workflow
-import os
-script_dir = os.path.dirname(os.path.abspath(__file__))
-js_dir = os.path.join(script_dir, "..", "tests", "js")
+js_dir = os.path.join(ROOT, "tests", "js")
 unwired = []
 harnesses = sorted(f for f in os.listdir(js_dir) if f.endswith(".js"))
 for harness in harnesses:

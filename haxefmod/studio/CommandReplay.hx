@@ -11,8 +11,10 @@ import haxefmod.studio.Types;
  * load the file here (or hand it to FMOD's tools for analysis).
  */
 abstract CommandReplay(Int) from Int to Int {
+    /** The invalid handle, what loadCommandReplay returns on failure. */
     public static inline var NULL:CommandReplay = cast 0;
 
+    /** True for the invalid handle. */
     public inline function isNull():Bool {
         return this == 0;
     }
@@ -22,18 +24,22 @@ abstract CommandReplay(Int) from Int to Int {
         return this != 0 && NativeStudio.replay_is_valid(this);
     }
 
+    /** Begins playing the captured commands into the Studio system. */
     public inline function start():FmodResult {
         return NativeStudio.replay_start(this);
     }
 
+    /** Stops the replay. */
     public inline function stop():FmodResult {
         return NativeStudio.replay_stop(this);
     }
 
+    /** Pauses or resumes the replay. */
     public inline function setPaused(paused:Bool):FmodResult {
         return NativeStudio.replay_set_paused(this, paused);
     }
 
+    /** True while the replay is paused, false on failure. */
     public inline function getPaused():Bool {
         return NativeStudio.replay_get_paused(this);
     }
@@ -43,9 +49,9 @@ abstract CommandReplay(Int) from Int to Int {
         return NativeStudio.replay_seek_to_time(this, seconds);
     }
 
-    @:deprecated("CommandReplay.seekToTimeMs is replaced by seekToTime, which takes seconds")
+    @:deprecated("CommandReplay.seekToTimeMs is now seekToTime, which takes seconds")
     public inline function seekToTimeMs(timeMs:Int):FmodResult {
-        return NativeStudio.replay_seek_to_time(this, timeMs / 1000.0);
+        return seekToTime(timeMs / 1000.0);
     }
 
     /** Total capture length in seconds. */
@@ -105,7 +111,7 @@ abstract CommandReplay(Int) from Int to Int {
         return NativeStudio.replay_get_command_at_time(this, seconds);
     }
 
-
+    /** Moves the replay to the command at the index. */
     public inline function seekToCommand(index:Int):FmodResult {
         return NativeStudio.replay_seek_to_command(this, index);
     }
@@ -119,6 +125,7 @@ abstract CommandReplay(Int) from Int to Int {
     public inline function setBankPath(path:String):FmodResult {
         return NativeStudio.replay_set_bank_path(this, path);
     }
+
     /**
      * The index of the command the replay is on and the playback time in
      * seconds, or null on failure.

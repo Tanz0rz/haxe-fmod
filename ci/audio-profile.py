@@ -12,7 +12,13 @@
 #
 # Usage:
 #   audio-profile.py <wav> [--min-active S] [--max-gap S] [--max-lead S]
-#                    [--min-channels N] [--no-gate]
+#                    [--min-channels N] [--no-gate] [--synth]
+#
+# --synth adds the synth-test tone sequence gate (see SynthScenario.hx).
+# It then applies four of the five gates above. The dropout gate is left
+# out. That state stops one tone before it starts the next, so the segment
+# seams read as internal silence. Each segment has to meet its own
+# minimum length inside the sequence gate.
 #
 # Handles FMOD WAVWRITER quirks: an unfinalized data chunk (size 0) is read
 # to end of file, and a malformed fmt chunk (0 channels, from Sys.exit on
@@ -370,7 +376,6 @@ def main():
 
     if options["synth"]:
         synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs)
-        return
 
     if not options["gate"]:
         print("  (profile only - no gating)")
@@ -380,7 +385,9 @@ def main():
     if active_duration < options["min_active"]:
         failures.append("active audio {:.2f}s < required {:.2f}s".format(
             active_duration, options["min_active"]))
-    if longest_gap > options["max_gap"]:
+    # Segment seams in the synth recording are real silence, so the
+    # dropout gate does not apply there
+    if not options["synth"] and longest_gap > options["max_gap"]:
         failures.append("internal silent gap {:.2f}s > allowed {:.2f}s (dropout)".format(
             longest_gap, options["max_gap"]))
     if lead > options["max_lead"]:

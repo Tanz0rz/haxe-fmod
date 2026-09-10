@@ -33,6 +33,7 @@ class FmodFlxBankLoader extends FlxBasic {
     public function new(bankFiles:Array<String>, ?onLoaded:Void->Void, ?onError:Void->Void, async:Bool = true) {
         super();
         tracker = new BankLoadTracker(bankFiles, onLoaded, onError, async);
+        FmodFlxUpdater.init();
     }
 
     /** Polls the loading state and fires the callbacks once the banks settle. **/

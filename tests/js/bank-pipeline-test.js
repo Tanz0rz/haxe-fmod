@@ -1,9 +1,10 @@
 // Drives jaxe.js's REAL preRun/onRuntimeInitialized (the other harnesses
 // replace them) against the real wasm, with fetch redirected to local
-// files. The shim must not own bank loading: settings-driven banks load
-// through the runtime's registry via the async pipeline, so right after
-// init the system holds zero banks, and the same fetch path then loads
-// the master banks on request.
+// files.
+// The shim must not own bank loading.
+// Settings-driven banks load through the runtime's registry via the async
+// pipeline, so right after init the system holds zero banks.
+// The same fetch path then loads the master banks on request.
 // Usage: FMOD_SDK_WEB=<sdk root> node bank-pipeline-test.js
 const path = require('path');
 const fs = require('fs');

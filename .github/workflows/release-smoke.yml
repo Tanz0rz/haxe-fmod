@@ -59,6 +59,26 @@ jobs:
           fi
           haxelib path haxefmod
 
+      - name: Verify the installed version
+        run: |
+          # An empty dispatch input installs the latest release, and that
+          # must be the version this checkout declares.
+          EXPECTED="${{ github.event.inputs.version }}"
+          if [ -z "$EXPECTED" ]; then
+            EXPECTED=$(grep '"version"' haxelib.json | sed 's/.*: *"\([^"]*\)".*/\1/')
+          fi
+          INSTALLED=$(haxelib list haxefmod | sed -n 's/^haxefmod: .*\[\([^]]*\)\].*/\1/p')
+          if [ -z "$INSTALLED" ]; then
+            echo "FAIL: haxelib reports no installed haxefmod"
+            haxelib list haxefmod
+            exit 1
+          fi
+          if [ "$INSTALLED" != "$EXPECTED" ]; then
+            echo "FAIL: lib.haxe.org served haxefmod $INSTALLED, expected $EXPECTED"
+            exit 1
+          fi
+          echo "OK: installed haxefmod $INSTALLED"
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -68,6 +88,8 @@ jobs:
 
       - name: Build and install HashLink
         run: |
+          # tee returns its own status, so a failed make needs pipefail
+          set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src

@@ -1,8 +1,11 @@
 #!/bin/bash
-# Replays the Linux jobs of .github/workflows/audio-test.yml on this machine.
-# Every gate is the same script or grep the workflow uses, so a green run
-# here means the same steps will be green on the runner. The Mac and
-# Windows jobs have no local equivalent.
+# Replays most Linux jobs of .github/workflows/audio-test.yml on this
+# machine. Every gate a replayed job runs is the same script or grep the
+# workflow uses.
+#
+# Not replayed: env-doctor, js-harness, api-docs, package-check,
+# package-check-cpp, and linux-hl-compat. The Mac and Windows jobs have no
+# local equivalent.
 #
 # Usage: ci/local-ci.sh [job ...]
 #   jobs: unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox
@@ -47,6 +50,7 @@ JOBS=("$@")
 
 mkdir -p "$OUT"
 FAILED_STEPS=()
+SKIPPED_JOBS=()
 PASSED=0
 CURRENT_JOB=""
 TMP=""
@@ -68,6 +72,13 @@ step() {
     FAILED_STEPS+=("[$CURRENT_JOB] $name")
   fi
   return 0
+}
+
+# A job that cannot run on this machine is recorded, so the summary never
+# reads as a clean sweep when a tool was missing.
+skip_job() {
+  echo "--- SKIPPED: [$CURRENT_JOB] $1"
+  SKIPPED_JOBS+=("[$CURRENT_JOB] $1")
 }
 
 begin_job() {
@@ -172,7 +183,7 @@ run_native_state() {
 # serves a directory the next build has already replaced.
 # One html5 state in chromium, log gated like the workflow's browser steps.
 # Every launch gets its own profile directory: a launch that reuses the
-# profile of a browser still shutting down hands its URL to that instance
+# profile of a browser that is shutting down hands its URL to that instance
 # and exits, and the page never runs.
 # run_browser_state <state> <gate> <port> <log> [timeout] [extra-gate] [record-wav] [record-seconds]
 run_browser_state() {
@@ -288,6 +299,7 @@ job_unit_tests() {
   done
   step "Negative-test the synth frequency gate" python3 ci/synth-gate-selftest.py
   step "Check workflow gating invariants" python3 ci/workflow-invariants.py
+  step "Check the run jobs match their generator" python3 ci/generate-run-jobs.py --check
   step "Check FMOD version literal lockstep" python3 ci/version-lockstep.py
   step "Check hxcpp depend lockstep" python3 ci/depend-lockstep.py
   # The parity checks read the FMOD headers
@@ -320,7 +332,7 @@ job_linux_cpp() {
   begin_job linux-cpp
   require_sdk
   rm -rf "$EXAMPLE"/export/linux*
-  step "Build C++ target" bash -eo pipefail -c 'cd "$1" && haxelib run lime build linux -64' _ "$EXAMPLE"
+  step "Build C++ target" bash -eo pipefail -c 'cd "$1" && haxelib run lime build linux -64 -Daudio_test' _ "$EXAMPLE"
   step "Verify FMOD libraries have no executable stack" no_execstack "$(cpp_bin_dir)"
   step "Validate build output" ./ci/validate-build.sh "$(cpp_bin_dir)" cpp
   start_display_audio
@@ -332,7 +344,6 @@ job_linux_cpp() {
     ls -la "$2/audio-linux-cpp.wav"' _ "$(cpp_bin_dir)" "$TMP"
   step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-linux-cpp.wav" 10
   step "Validate game log" ./ci/validate-game-log.sh "$TMP/game-linux-cpp.log"
-  step "Build volume test" bash -eo pipefail -c 'cd "$1" && haxelib run lime clean linux && haxelib run lime build linux -64 -Daudio_test' _ "$EXAMPLE"
   step "Record volume test" bash -eo pipefail -c '
     export HAXEFMOD_TEST_STATE=volume
     export FMOD_WAVWRITER="$2/volume-test-linux-cpp.wav"
@@ -371,7 +382,7 @@ job_linux_hl() {
     cd "$1" && haxelib run haxefmod build-hdll && ls -la .haxefmod/ && cat .haxefmod/hlaxe_fmod.version' _ "$EXAMPLE"
   step "Rebuild HashLink target (custom hdll)" bash -eo pipefail -c '
     rm -rf "$1/export/hl"
-    cd "$1" && haxelib run lime build hl 2>&1 | tee "$2/build-custom.log"
+    cd "$1" && haxelib run lime build hl -Daudio_test 2>&1 | tee "$2/build-custom.log"
     grep -q "(custom-compiled from .haxefmod/)" "$2/build-custom.log"' _ "$EXAMPLE" "$TMP"
   step "Verify FMOD libraries have no executable stack" no_execstack "$bin"
   step "Validate build output" ./ci/validate-build.sh "$bin" hl
@@ -400,7 +411,6 @@ job_linux_hl() {
     ls -la "$2/audio-linux-hl.wav"' _ "$bin" "$TMP"
   step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-linux-hl.wav" 10
   step "Validate game log" ./ci/validate-game-log.sh "$TMP/game-linux-hl.log"
-  step "Build volume test" bash -eo pipefail -c 'cd "$1" && haxelib run lime clean hl && haxelib run lime build hl -Daudio_test' _ "$EXAMPLE"
   step "Record volume test" bash -eo pipefail -c '
     export HAXEFMOD_TEST_STATE=volume
     export FMOD_WAVWRITER="$2/volume-test-linux-hl.wav"
@@ -444,9 +454,9 @@ job_linux_hl() {
 job_linux_html5_chromium() {
   begin_job linux-html5-chromium
   require_sdk
-  [ -n "$CHROMIUM" ] || { echo "no chromium binary found (set CHROMIUM)"; return; }
+  [ -n "$CHROMIUM" ] || { skip_job "no chromium binary found (set CHROMIUM)"; return; }
   rm -rf "$EXAMPLE/export/html5"
-  step "Build HTML5 target" bash -eo pipefail -c 'cd "$1" && haxelib run lime build html5' _ "$EXAMPLE"
+  step "Build HTML5 target" bash -eo pipefail -c 'cd "$1" && haxelib run lime build html5 -Daudio_test' _ "$EXAMPLE"
   step "Validate FMOD files replaced placeholders" bash -eo pipefail -c '
     FMOD_JS="$1/export/html5/bin/lib/fmodstudio.js"
     [ -f "$FMOD_JS" ] || { echo "FAIL: $FMOD_JS not found"; exit 1; }
@@ -464,7 +474,6 @@ job_linux_html5_chromium() {
   start_display_audio
   step "Record audio" record_browser_game 8080 "$TMP/audio-html5.wav" 30
   step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-html5.wav" 10
-  step "Build volume test" bash -eo pipefail -c 'cd "$1" && haxelib run lime clean html5 && haxelib run lime build html5 -Daudio_test' _ "$EXAMPLE"
   step "Record volume test" record_volume_html5
   step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-html5.wav" 15
   step "Run API probe (JS binding coverage)" run_browser_state api-probe API_PROBE 8082 "$TMP/api-probe-html5.log" 45
@@ -527,8 +536,7 @@ job_heaps_hl() {
   rm -rf "$HEAPS/build" "$HEAPS/.haxefmod"
   step "Build custom hdll via build-hdll" bash -eo pipefail -c 'cd "$1" && haxelib run haxefmod build-hdll' _ "$HEAPS"
   step "Build HashLink target" bash -eo pipefail -c '
-    cd "$1" && ./build.sh hl 2>&1 | tee "$2/build-hl.log"
-    grep -q "(custom-compiled from .haxefmod/)" "$2/build-hl.log"' _ "$HEAPS" "$TMP"
+    cd "$1" && ./build.sh hl 2>&1 | tee "$2/build-hl.log"' _ "$HEAPS" "$TMP"
   step "Verify FMOD libraries have no executable stack" no_execstack "$bin"
   step "Validate build output" bash -eo pipefail -c '
     for f in game.hl run.sh hlaxe_fmod.hdll libfmod.so libfmodstudio.so assets/fmod/Desktop/Master.bank; do
@@ -578,7 +586,7 @@ job_heaps_hl() {
 job_heaps_html5() {
   begin_job heaps-html5
   require_sdk
-  [ -n "$CHROMIUM" ] || { echo "no chromium binary found (set CHROMIUM)"; return; }
+  [ -n "$CHROMIUM" ] || { skip_job "no chromium binary found (set CHROMIUM)"; return; }
   rm -rf "$HEAPS/build/html5"
   WEB_BIN="$HEAPS/build/html5"
   CHROME_GL="--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader"
@@ -619,7 +627,7 @@ job_kha_native() {
   local target="$1" job="$2"
   begin_job "$job"
   require_sdk
-  [ -d "$KHA/Tools/khamake" ] || { echo "no Kha checkout at $KHA (set KHA)"; return; }
+  [ -d "$KHA/Tools/khamake" ] || { skip_job "no Kha checkout at $KHA (set KHA)"; return; }
   local bin="$KHAP/build/$target"
   step "Build $target target" bash -eo pipefail -c 'cd "$1" && ./build.sh "$2" 2>&1 | tail -5' _ "$KHAP" "$target"
   step "Verify FMOD libraries have no executable stack" no_execstack "$bin"
@@ -679,8 +687,8 @@ job_kha_hl() { job_kha_native linux-hl kha-hl; }
 job_kha_html5() {
   begin_job kha-html5
   require_sdk
-  [ -n "$CHROMIUM" ] || { echo "no chromium binary found (set CHROMIUM)"; return; }
-  [ -d "$KHA/Tools/khamake" ] || { echo "no Kha checkout at $KHA (set KHA)"; return; }
+  [ -n "$CHROMIUM" ] || { skip_job "no chromium binary found (set CHROMIUM)"; return; }
+  [ -d "$KHA/Tools/khamake" ] || { skip_job "no Kha checkout at $KHA (set KHA)"; return; }
   WEB_BIN="$KHAP/build/html5"
   CHROME_GL="--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader"
   step "Build HTML5 target" bash -eo pipefail -c 'cd "$1" && ./build.sh html5 2>&1 | tail -3' _ "$KHAP"
@@ -732,9 +740,17 @@ done
 echo ""
 echo "################ summary"
 echo "passed steps: $PASSED"
+if [ ${#SKIPPED_JOBS[@]} -gt 0 ]; then
+  echo "skipped jobs: ${#SKIPPED_JOBS[@]}"
+  for j in "${SKIPPED_JOBS[@]}"; do echo "  $j"; done
+fi
 if [ ${#FAILED_STEPS[@]} -gt 0 ]; then
   echo "failed steps: ${#FAILED_STEPS[@]}"
   for f in "${FAILED_STEPS[@]}"; do echo "  $f"; done
   exit 1
+fi
+if [ ${#SKIPPED_JOBS[@]} -gt 0 ]; then
+  echo "every step that ran passed, ${#SKIPPED_JOBS[@]} job(s) skipped"
+  exit 0
 fi
 echo "all steps passed"

@@ -48,7 +48,7 @@ class FmodKhaUpdater {
         var now = Scheduler.realTime();
         var dt = lastStamp < 0 ? 0.0 : now - lastStamp;
         lastStamp = now;
-        // Copy first: a ticker can remove itself (a loader that just fired)
+        // Copy first: a ticker can remove itself (a loader that just fired).
         for (ticker in tickers.copy()) {
             ticker.tick(dt);
         }

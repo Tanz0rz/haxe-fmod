@@ -1,6 +1,8 @@
-// Loads the real jaxe.js shim under Node with browser stubs and runs the
-// ApiProbeState sequence against the real FMOD 2.03.12 wasm, extended to
-// cover the full domain-prefixed binding surface (sys_/bank_/evd_/evi_/vca_).
+// Loads the real jaxe.js shim under Node with browser stubs.
+// It then runs the ApiProbeState sequence against the real FMOD 2.03.12
+// wasm.
+// The sequence reaches the full domain-prefixed binding surface
+// (sys_/bank_/evd_/evi_/vca_).
 // Usage: node jaxe-harness-full.js
 
 
@@ -180,7 +182,7 @@ async function main() {
     expect('sys_get_bank_count', () => jaxe.fmod_sys_get_bank_count(), r => r === 2);
     expect('sys_get_bank_list', () => jaxe.fmod_sys_get_bank_list(ibuf), r => r === 2 && ibuf.slice(0, 2).includes(bank));
 
-    // --- global parameters (Intensity and Weather are authored. missing names must still fail clean) ---
+    // --- global parameters (Intensity and Weather are authored. missing names must fail clean) ---
     expect('sys_get_parameter_description_count', () => jaxe.fmod_sys_get_parameter_description_count(), r => r === 2);
     expect('sys_get_param_by_name missing', () => jaxe.fmod_sys_get_param_by_name('nope'), r => r === 0);
     expect('  lastResult nonzero', () => jaxe.fmod_sys_last_result(), r => r !== 0);
@@ -393,7 +395,7 @@ async function main() {
     expect('evd_get_user_property_string invalid', () => jaxe.fmod_evd_get_user_property_string(BAD, 0), r => r === '');
 
     // --- EventInstance surface ---
-    // the first instance `evi` (never released) must still be tracked
+    // the first instance evi (never released) must remain tracked
     const inst = expect('evd_create_instance', () => jaxe.fmod_evd_create_instance(evd), r => r > 0);
     expect('evd_get_instance_count', () => jaxe.fmod_evd_get_instance_count(evd), r => r === 2);
     const nInst = expect('evd_get_instance_list', () => jaxe.fmod_evd_get_instance_list(evd, ibuf), r => r === 2);
@@ -506,7 +508,7 @@ async function main() {
     // --- releaseAllInstances (the first `evi` is the only one left) ---
     expect('evd_release_all_instances', () => jaxe.fmod_evd_release_all_instances(evd), r => r === 0);
     await pump(5);
-    // released-but-tracked handles must still return safely, not throw
+    // released-but-tracked handles must return safely instead of throwing
     check('evi_get_playback_state on released-out instance', () => jaxe.fmod_evi_get_playback_state(evi));
     check('evi_release to drop stale handle', () => { jaxe.fmod_evi_release(evi); return 'ok'; });
 
@@ -586,9 +588,11 @@ async function main() {
     expect('handleResolve null after pending unload', () => jaxe.handleResolve(pbank, jaxe.TYPE_BANK), r => r === null);
     expect('live handle count restored', () => jaxe.fmod_debug_live_handle_count(), r => r === liveBeforePending);
 
-    // late completion after unload: this fake ignores the abort signal (a
-    // response already in flight when abort lands), so the fetch resolves
-    // 200ms after the unload - the cancelled flag must drop the bank
+    // late completion after unload.
+    // This fake ignores the abort signal, which models a response already in
+    // flight when abort lands.
+    // The fetch resolves 200ms after the unload, and the cancelled flag must
+    // drop the bank.
     let lateResolve = null;
     global.fetch = () => new Promise(resolve => { lateResolve = resolve; });
     const lbank = expect('sys_load_bank_async late completion', () => jaxe.fmod_sys_load_bank_async('Late.bank'), r => r > 0);

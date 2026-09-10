@@ -27,7 +27,7 @@ class BankRegistry {
     public function load(path:String):Bank {
         #if js
         // Files exist in the browser's virtual filesystem only after a
-        // fetch wrote them, so HTML5 loads are always asynchronous
+        // fetch wrote them, so HTML5 loads are always asynchronous.
         return doLoad(normalizePath(path), true);
         #else
         return doLoad(normalizePath(path), false);
@@ -57,7 +57,7 @@ class BankRegistry {
         }
         var joined = out.join("/");
         var forward = StringTools.replace(path, "\\", "/");
-        // A UNC or protocol-like root keeps its double separator
+        // A UNC or protocol-like root keeps its double separator.
         if (StringTools.startsWith(forward, "//")) return '//$joined';
         return StringTools.startsWith(forward, "/") ? '/$joined' : joined;
     }
@@ -99,6 +99,9 @@ class BankRegistry {
                     return existing;
                 }
             }
+            // The earlier bank is unloaded above, so an entry left here
+            // reports holders of a bank that is gone.
+            banks.remove(path);
             return Bank.NULL;
         }
         banks.set(path, {bank: bank, refs: carriedRefs});

@@ -10,16 +10,17 @@ import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
 
 /**
- * The api-probe section for DSP data parameters and unit info: getInfo,
- * both sides of the meter, the per channel FFT spectrum, the raw and
- * typed data parameter readbacks, the packed 3D attribute setters, the
- * full parameter descriptor, and the typed sidechain, finite length,
- * attenuation range, dynamic response, and loudness weighting structs. An oscillator through the master group
+ * The api-probe section for DSP data parameters and unit info. It covers
+ * getInfo, both sides of the meter, the per channel FFT spectrum, and
+ * the raw and typed data parameter readbacks. It also covers the packed
+ * 3D attribute setters and the full parameter descriptor. The typed
+ * structs come last: sidechain, finite length, attenuation range,
+ * dynamic response, and loudness weighting. An oscillator through the master group
  * gives the analyzers a signal, and the section waits on the mixer
- * thread for the meters to fill. Native targets wait inside run. On
- * html5 the mixer runs on the audio thread and only advances between
- * frames, so run starts the signal and the state's update loop calls
- * tick until the meter reads, then the checks finish from there. The
+ * thread for the meters to fill. Native targets wait inside run. The
+ * html5 mixer runs on the audio thread and advances only between frames.
+ * There run starts the signal, and the state's update loop calls tick
+ * until the meter reads. The checks finish from there. The
  * parameter descriptor, the loudness readbacks, and the loudness
  * weighting readback are unsupported on html5 and assert that.
  */
@@ -153,8 +154,8 @@ class ProbeDspData {
             && spectrum.spectrum.length > 0), legacy == null ? "null" : 'bins=${legacy.length}');
 
         // --- raw data readback: the FFT block carries its header ---
-        // The generated parameter indices follow the 2.03 header, and the
-        // 2.02 runtime of the HashLink jobs lays the FFT unit out differently
+        // The generated parameter indices follow the 2.03 header. The 2.02
+        // runtime of the HashLink jobs lays the FFT unit out differently.
         var engine203 = ApiProbeScenario.engine203();
         var fftBlock = fft.getParameterData(DspFft.SPECTRUMDATA);
         @:privateAccess state.check("dsp_get_parameter_data_fft", idleWeb || (!engine203 && fftBlock == null)

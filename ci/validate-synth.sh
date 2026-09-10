@@ -1,7 +1,7 @@
 #!/bin/bash
-# Validates the synth-test recording (see SynthTestState.hx): the frequency
-# gate in audio-profile.py must see the 440/880/1320 tone sequence, proving
-# Haxe-generated PCM and channel pitch control reach the audio output.
+# Validates the synth-test recording (see SynthTestState.hx). The frequency
+# gate in audio-profile.py must see the 440/880/1320 tone sequence. That
+# proves Haxe-generated PCM and channel pitch control reach the output.
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WAV_FILE="$1"

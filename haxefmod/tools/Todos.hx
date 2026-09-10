@@ -15,10 +15,10 @@ typedef TodoEntry = {
  *
  *   haxelib run haxefmod todos [--json]
  *
- * The scanner is comment-aware and string-aware: commented-out calls and
- * mentions inside string literals are not reported. Only calls with a
- * literal first argument get their description shown. A computed
- * description is still found but reported as dynamic.
+ * The scanner is comment-aware and string-aware. It skips commented-out
+ * calls and mentions inside string literals. Only calls with a literal
+ * first argument show their description. The scanner still finds a
+ * computed description and reports it as dynamic.
  */
 class Todos {
 	public static function main() {
@@ -46,9 +46,9 @@ class Todos {
 
 	/**
 	 * Resolves the scan root from the arguments. A relative directory is
-	 * the caller's: under haxelib run the process cwd is the library root,
-	 * so resolving against it would scan the wrong tree (or silently fall
-	 * back when the name does not exist there). Exposed for tests.
+	 * the caller's. Under haxelib run the process cwd is the library root,
+	 * so resolving against it would scan the wrong tree. It could also fall
+	 * back silently when the name does not exist there. Exposed for tests.
 	 */
 	public static function resolveRoot(args:Array<String>, cwd:String):String {
 		for (arg in args) {
@@ -113,7 +113,7 @@ class Todos {
 				i += 2;
 				continue;
 			}
-			// String literal: skip it so quoted mentions of the call are not counted
+			// String literal: skip it so quoted mentions of the call do not count.
 			if (c == '"'.code || c == "'".code) {
 				var skipped = skipString(content, i, line);
 				i = skipped.pos;
@@ -121,7 +121,7 @@ class Todos {
 				continue;
 			}
 			// Regex literal: a quote inside it would desync the string
-			// skipper and swallow real calls up to the next quote
+			// skipper and swallow real calls up to the next quote.
 			if (c == "~".code && i + 1 < len && content.charCodeAt(i + 1) == "/".code) {
 				var skipped = skipRegex(content, i, line);
 				i = skipped.pos;
@@ -202,8 +202,8 @@ class Todos {
 			if (c == "\n".code) line++;
 			if (c == "/".code) {
 				i++;
-				// trailing flags (g, i, m, s, u)
-				while (i < len && isIdentChar(content.charCodeAt(i))) i++;
+				// trailing flags (g, i, m, s, u), never the method chained after them
+				while (i < len && isRegexFlag(content.charCodeAt(i))) i++;
 				break;
 			}
 			i++;
@@ -234,6 +234,10 @@ class Todos {
 
 	static inline function isSpace(c:Int):Bool {
 		return c == " ".code || c == "\t".code || c == "\n".code || c == "\r".code;
+	}
+
+	static inline function isRegexFlag(c:Int):Bool {
+		return c >= "a".code && c <= "z".code;
 	}
 
 	static inline function isIdentChar(c:Int):Bool {

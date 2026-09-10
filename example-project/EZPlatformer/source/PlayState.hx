@@ -32,8 +32,8 @@ class PlayState extends FlxState {
     }
 
     override public function create():Void {
-        // One-call flixel setup: FmodFlxUpdater plugin (drives
-        // FmodManager.Update) plus FlxG.sound volume routing to FMOD
+        // One-call flixel setup. It installs the FmodFlxUpdater hook that
+        // drives FmodManager.Update, and routes FlxG.sound volume to FMOD
         haxefmod.flixel.FmodFlxSetup.init();
         FmodManager.EnableDebugMessages();
         FmodManager.PlaySong(FmodEvents.MusicMainLevel);
@@ -76,7 +76,7 @@ class PlayState extends FlxState {
     }
 
     override public function update(elapsed:Float):Void {
-        // FmodManager.Update() runs via the FmodFlxUpdater plugin
+        // FmodManager.Update() runs via the FmodFlxUpdater hook
 
         if (!_started) {
             _startDelay += elapsed;

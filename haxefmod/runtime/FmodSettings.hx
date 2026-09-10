@@ -352,7 +352,7 @@ class FmodSettingsResolver {
             streamingScheduleDelay: settings != null && settings.streamingScheduleDelay != null
                 ? settings.streamingScheduleDelay
                 : 0,
-            // The shims take a plain string, so no key travels as ""
+            // The shims take a plain string, so no key travels as "".
             encryptionKey: settings != null && settings.encryptionKey != null ? settings.encryptionKey : "",
         };
     }

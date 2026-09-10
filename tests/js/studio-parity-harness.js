@@ -1,9 +1,13 @@
 // Runs the Studio API parity bindings of jaxe.js against the real FMOD
-// 2.03.12 wasm under Node: capture and replay flags, the replay cursor in
-// seconds, bank loading from memory with flags, the listener attenuation
-// position, the parameter description GUID on every reader, the sound
-// info fields for an audio table key, and the callback drain turning a
-// plugin DSP into a handle and carrying the nested beat's event GUID.
+// 2.03.12 wasm under Node.
+// The first group holds the capture and replay flags, the replay cursor in
+// seconds, and bank loading from memory with flags.
+// The second group holds the listener attenuation position and the
+// parameter description GUID on every reader.
+// The third group holds the sound info fields for an audio table key.
+// The last check drains the callback queue.
+// That drain turns a plugin DSP into a handle and carries the nested beat's
+// event GUID.
 // Usage: node studio-parity-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');

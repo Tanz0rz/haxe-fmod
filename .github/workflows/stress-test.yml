@@ -58,6 +58,8 @@ jobs:
 
       - name: Build and install HashLink
         run: |
+          # tee returns its own status, so a failed make needs pipefail
+          set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
@@ -217,12 +219,23 @@ jobs:
             --track-origins=yes --log-file=/tmp/valgrind.log \
             ./run.sh > /tmp/api-probe-valgrind.log 2>&1 &
           PROBE_PID=$!
+          COMPLETE=0
           for i in $(seq 2400); do
+            if grep -q "API_PROBE: COMPLETE" /tmp/api-probe-valgrind.log 2>/dev/null; then
+              COMPLETE=1
+              break
+            fi
             kill -0 $PROBE_PID 2>/dev/null || break
-            grep -q "API_PROBE: COMPLETE" /tmp/api-probe-valgrind.log 2>/dev/null && break
             sleep 1
           done
-          kill $PROBE_PID 2>/dev/null || true
+          # After COMPLETE the probe shuts FMOD down and exits by itself.
+          # Valgrind prints its summary and its exit code at that point,
+          # so let it finish. The timeout above caps the wait.
+          # A probe that never prints COMPLETE is hung, so stop it.
+          if [ "$COMPLETE" = "0" ] && kill -0 $PROBE_PID 2>/dev/null; then
+            echo "Probe never printed COMPLETE, stopping it"
+            kill $PROBE_PID 2>/dev/null || true
+          fi
           STATUS=0
           wait $PROBE_PID || STATUS=$?
           grep -oE "API_PROBE: .*" /tmp/api-probe-valgrind.log | tail -5 || true

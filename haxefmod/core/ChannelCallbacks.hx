@@ -74,7 +74,12 @@ class ChannelCallbacks {
         NativeStudio.cg_set_callback(handle, false);
     }
 
+    /** Removes every handler and turns off each native subscription, like remove and removeGroup do. */
     public static function clearAll():Void {
+        for (handle in handlers.keys()) {
+            if (groups.exists(handle)) NativeStudio.cg_set_callback(handle, false);
+            else NativeStudio.chan_set_callback(handle, false);
+        }
         handlers = new Map();
         groups = new Map();
     }

@@ -6,15 +6,18 @@ import haxefmod.studio.Types;
 
 /**
  * The html5 initialization contract, driven through the shipped Haxe
- * runtime layer compiled to js against the real wasm (the tests/js
- * harnesses talk to jaxe.js directly and cannot see this layer).
+ * runtime layer. That layer compiles to js and runs against the real
+ * wasm. The tests/js harnesses talk to jaxe.js directly, so they cannot
+ * see this layer.
  *
- * Two modes, selected by RUNTIME_TEST_MODE before the script loads:
- *   ok      - autoLoadBanks resolve: isInitialized() flips true only
- *             once the banks are usable, and onceReady fires.
- *   missing - the banks 404: isInitialized() stays false (the game's
- *             banks are unusable), the bank settles in ERROR, and the
- *             failure warning traces exactly once.
+ * RUNTIME_TEST_MODE selects one of two modes before the script loads.
+ *
+ * Mode ok: autoLoadBanks resolve. isInitialized() flips true only once
+ * the banks are usable, and onceReady fires.
+ *
+ * Mode missing: the banks 404. isInitialized() stays false, because the
+ * game's banks are unusable. The bank settles in ERROR, and the failure
+ * warning traces exactly once.
  *
  * Compiled and run by tests/js/runtime-init-test.js.
  */

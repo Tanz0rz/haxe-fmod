@@ -1,9 +1,8 @@
 """Reads the FMOD SDK headers into a table of declared types.
 
-Used by ci/check-type-parity.py (every Haxe declaration mapped to an FMOD
-type must carry the same names and values) and by ci/haxe-catalog.py
-(type definitions on fmod.com resolve through the mapping to the Haxe
-declaration). Four kinds of declaration are read:
+Used by ci/check-type-parity.py, where every Haxe declaration mapped to
+an FMOD type must carry the same names and values. Four kinds of
+declaration are read:
 
   enum      typedef enum FMOD_X { A, B = 3, ... } FMOD_X;
   flags     typedef unsigned int FMOD_X; (or int, long long) followed by its #define block
@@ -28,6 +27,20 @@ HEADERS = [
     "api/studio/inc/fmod_studio_common.h",
     "api/fsbank/inc/fsbank.h",
 ]
+
+
+# Headers a smaller SDK package leaves out, with the prefix of their types.
+# The Linux package on the runner has no fsbank/ directory.
+OPTIONAL_HEADERS = {
+    "api/fsbank/inc/fsbank.h": "FSBANK_",
+}
+
+
+def missing_prefixes():
+    """Type prefixes of the optional headers absent from this SDK."""
+    root = sdk_root()
+    return [prefix for relative, prefix in OPTIONAL_HEADERS.items()
+            if not os.path.exists(os.path.join(root, relative))]
 
 
 def sdk_root():

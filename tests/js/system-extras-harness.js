@@ -124,14 +124,16 @@ async function main() {
     check('cg_distance_filter_stale', jaxe.fmod_cg_get_3d_distance_filter(999999, gbuf) === 30, '');
     jaxe.fmod_cg_release(group);
 
-    // --- sound data: openOnly is accepted, readData and seekData report 68 ---
-    // The wav format limit of the web build makes Jump.wav fail to open,
-    // so a raw PCM sound stands in for the handle-level checks
+    // --- sound data ---
+    // The glue accepts openOnly. readData and seekData report 68.
+    // The wav format limit of the web build makes Jump.wav fail to open.
+    // A raw PCM sound stands in for the handle-level checks.
     const pcm = new Uint8Array(4096).buffer;
     const sound = jaxe.fmod_core_create_sound_pcm(pcm, 4096, 8000, 1);
     check('core_create_sound_pcm', sound > 0, `handle=${sound}`);
-    const openOnly = jaxe.fmod_core_create_sound('Jump.wav', 0, true);
-    check('core_create_sound_open_only_no_throw', openOnly === 0 || openOnly > 0,
+    // 0x2000 is FMOD_OPENONLY, and -1 leaves initialsubsound at the default
+    const openOnly = jaxe.fmod_core_create_sound('Jump.wav', 0x2000, -1);
+    check('core_create_sound_open_only_wav_rejected', openOnly === 0 && jaxe.fmod_sys_last_result() !== 0,
         `handle=${openOnly} result=${jaxe.fmod_sys_last_result()}`);
     if (openOnly > 0) jaxe.fmod_core_release_sound(openOnly);
     const readBuf = new Uint8Array(256).buffer;

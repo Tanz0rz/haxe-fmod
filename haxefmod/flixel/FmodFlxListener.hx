@@ -44,6 +44,7 @@ class FmodFlxListener extends FlxBasic {
         tracker = new ListenerTracker(null, listenerIndex);
         cameraProvider = new DerivedVelocityProvider(cameraX, cameraY, 0);
         setTarget(target);
+        FmodFlxUpdater.init();
     }
 
     /** Retargets the listener. Pass nothing to fall back to the camera. **/

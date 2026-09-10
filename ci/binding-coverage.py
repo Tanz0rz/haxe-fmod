@@ -10,8 +10,8 @@ ci/binding-coverage-excused.txt with a reason, so coverage can only be
 dropped by writing the removal down.
 
 Evidence sources, in order:
-  1. Direct call in a test: `<name>(` in tests/*.hx or the example test
-     states, or `fmod_<name>(` in tests/js/*.js. arity-audit.js is
+  1. Direct call in a test: `<name>(` in tests/*.hx or the shared test
+     scenarios, or `fmod_<name>(` in tests/js/*.js. arity-audit.js is
      EXCLUDED - it invokes every jaxe export mechanically to check
      arity, which would make this check vacuous.
   2. Wrapper hop: a haxefmod/ method whose body calls
@@ -30,16 +30,24 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MANIFEST = os.path.join(ROOT, "native", "manifest", "studio_api.txt")
 EXCUSED = os.path.join(ROOT, "ci", "binding-coverage-excused.txt")
 
+# The CI test states live in example-project/shared, nested a few levels
+# deep, so that tree is walked. Each example game only shells over them.
 TEST_SOURCES = []
-for base, exts in [
-    (os.path.join(ROOT, "tests"), (".hx",)),
-    (os.path.join(ROOT, "tests", "js"), (".js",)),
-    (os.path.join(ROOT, "example-project", "EZPlatformer", "source"), (".hx",)),
+for base, exts, walk in [
+    (os.path.join(ROOT, "tests"), (".hx",), False),
+    (os.path.join(ROOT, "tests", "js"), (".js",), False),
+    (os.path.join(ROOT, "example-project", "shared"), (".hx",), True),
 ]:
     if not os.path.isdir(base):
         continue
-    for entry in sorted(os.listdir(base)):
-        path = os.path.join(base, entry)
+    paths = []
+    if walk:
+        for dirpath, _dirnames, filenames in os.walk(base):
+            paths += [os.path.join(dirpath, name) for name in sorted(filenames)]
+    else:
+        paths = [os.path.join(base, name) for name in sorted(os.listdir(base))]
+    for path in paths:
+        entry = os.path.basename(path)
         if os.path.isfile(path) and entry.endswith(exts):
             if entry == "arity-audit.js":
                 continue

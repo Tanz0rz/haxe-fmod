@@ -1,7 +1,10 @@
 // Runs the last seven bindings of jaxe.js against the real FMOD 2.03.12
-// wasm under Node: the preallocated DSP input, the mix level setters on
-// channels and groups, the DSP description by type, the output plugin
-// handle, and the replay cursor. The wasm DSP object has no
+// wasm under Node.
+// The bindings are the preallocated DSP input and the mix level setters on
+// channels and groups.
+// The remainder are the DSP description by type, the output plugin handle,
+// and the replay cursor.
+// The wasm DSP object has no
 // addInputPreallocated and embind cannot marshal the description pointer,
 // so those two must report 68 (ERR_UNSUPPORTED). The rest work.
 // Usage: node lastseven-harness.js  (needs FMOD_SDK_WEB)

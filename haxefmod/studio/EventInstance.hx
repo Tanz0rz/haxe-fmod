@@ -264,9 +264,9 @@ abstract EventInstance(Int) from Int to Int {
     }
 
     /**
-     * Registers a typed payload callback for this instance (replaces any
-     * existing handler. removed automatically when the instance is
-     * destroyed). Delivered from FmodManager.Update / FmodRuntime.update.
+     * Registers a typed payload callback for this instance. It replaces
+     * any existing handler, and it is removed when the instance is
+     * destroyed. Delivered from FmodManager.Update / FmodRuntime.update.
      */
     public inline function setCallback(handler:EventCallback, ?mask:Int):Void {
         CallbackDispatcher.setCallback(this, handler, mask);
@@ -389,7 +389,7 @@ abstract EventInstance(Int) from Int to Int {
     #end
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
-    /** Removes the programmer-sound assignment (unsupported in HTML5, where nothing can be assigned). */
+    /** Removes every programmer-sound assignment, key, game sound, and names (unsupported in HTML5, where nothing can be assigned). */
     public macro function clearProgrammerSound(self:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("EventInstance.clearProgrammerSound", "programmer sounds fail inside FMOD's JavaScript runtime, so there is no assignment to clear");
     }

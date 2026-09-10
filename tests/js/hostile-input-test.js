@@ -1,10 +1,12 @@
-// Hostile-input contract for the JS shim: every manifest function that
-// takes a string must handle a null (or non-string) argument the way the
-// C shims do - set lastResult to an error code and return - instead of
-// letting emscripten's embind throw a BindingError out of the shim.
-// Also pins the programmer-sound key length contract (>= 512 UTF-8 bytes
-// rejected, matching FAXE_PS_KEY_MAX on native) and the pcm length
-// contract (a count beyond the buffer's real size never over-reads).
+// Hostile-input contract for the JS shim.
+// Every manifest function that takes a string must handle a null (or
+// non-string) argument the way the C shims do.
+// The shim sets lastResult to an error code and returns.
+// Emscripten's embind must not throw a BindingError out of the shim.
+// The file also pins the programmer-sound key length contract: 512 UTF-8
+// bytes or more get rejected, which matches FAXE_PS_KEY_MAX on native.
+// The pcm length contract comes with it, where a count beyond the buffer's
+// real size never over-reads.
 // Usage: FMOD_SDK_WEB=<sdk root> node hostile-input-test.js
 const path = require('path');
 const fs = require('fs');
@@ -71,7 +73,8 @@ async function main() {
     // Every str-taking export survives a null in each str position:
     // no throw, and lastResult reports an error (never left at OK)
     const fns = strFunctions();
-    check('manifest_str_functions_found', fns.length >= 30, `count=${fns.length}`);
+    check('manifest_str_functions_found', fns.length === 45, `count=${fns.length}`);
+    const expectedClean = fns.reduce((n, f) => n + f.positions.length, 0);
     let clean = 0;
     for (const fn of fns) {
         const impl = jaxe['fmod_' + fn.name];
@@ -91,9 +94,10 @@ async function main() {
             }
         }
     }
-    check('null_strings_handled_everywhere', true, `clean=${clean}`);
+    check('null_strings_handled_everywhere', clean === expectedClean,
+        `clean=${clean} expected=${expectedClean}`);
 
-    // The system still works after the hostile sweep
+    // The system works after the hostile sweep
     const evd = jaxe.fmod_sys_get_event('event:/Music/MainLevel');
     check('system_survives_hostile_sweep', evd > 0, `handle=${evd}`);
 
@@ -104,9 +108,9 @@ async function main() {
     const longKey = 'k'.repeat(600);
     const r = jaxe.fmod_ps_assign(evi, longKey);
     check('ps_key_overlong_rejected', r !== 0 && jaxe.lastResult !== 0, `r=${r}`);
-    // A well-formed key passes validation and reaches the platform gate:
-    // programmer sounds are unsupported on html5 (FMOD glue defect, see
-    // fmod_ps_glue_repro.html), so the report is 68 rather than 0
+    // A well-formed key passes validation and reaches the platform gate.
+    // The html5 target does not support programmer sounds (FMOD glue defect,
+    // see fmod_ps_glue_repro.html), so the report is 68 rather than 0.
     const okKey = jaxe.fmod_ps_assign(evi, 'sfx-table-key');
     check('ps_key_valid_reaches_platform_gate', okKey === 68, `r=${okKey}`);
     jaxe.fmod_ps_clear(evi);

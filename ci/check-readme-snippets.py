@@ -172,7 +172,7 @@ FLIXEL_STUB_MODULES = {
 
 # The pieces of Kha the adapter package and the doc examples touch. Kept
 # to the exact members haxefmod.kha calls, so a Kha API change the
-# adapters depend on still surfaces through the real engine builds in CI.
+# adapters depend on surfaces through the real engine builds in CI.
 KHA_STUB_MODULES = {
     os.path.join("kha", "System.hx"): """package kha;
 
@@ -237,7 +237,7 @@ def split_snippet(code):
             rest.append(line)
     body = "\n".join(rest).strip("\n")
     types = "\n".join(types)
-    # Bare field declarations ahead of the first function still make a
+    # Bare field declarations ahead of the first function make a
     # member body. A declaration followed by statements stays a statement body.
     after_fields = re.sub(r"^(\s*(public\s+|static\s+)*var\s+\w+\s*:[^=;\n]+;\s*\n)+", "", body)
     if re.match(r"\s*(public\s+|override\s+|static\s+)*function\s", after_fields):

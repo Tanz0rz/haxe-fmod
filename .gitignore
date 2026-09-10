@@ -8,7 +8,7 @@
 # Example project
 /example-project/EZPlatformer/export
 /example-project/HeapsPlatformer/build
-/example-project/HeapsPlatformer/build-test
+/example-project/HeapsPlatformer/build-manual
 /example-project/HeapsPlatformer/.haxefmod
 /example-project/EZPlatformer/.haxefmod
 /example-project/EZPlatformer/fmod/.cache
@@ -24,8 +24,9 @@ haxe-fmod.zip
 # Generated code
 *raw.js
 
-# Python bytecode
+# Python bytecode and local virtualenvs
 __pycache__/
+.venv/
 
 # FMOD SDK (users supply their own via $FMOD_SDK)
 /lib/
@@ -48,4 +49,4 @@ __pycache__/
 # Local CI runner output
 /ci/local/
 /example-project/KhaPlatformer/build
-/example-project/KhaPlatformer/build-test
+/example-project/KhaPlatformer/build-manual

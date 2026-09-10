@@ -37,9 +37,27 @@ if [ -z "$version" ]; then
   echo "ERROR: could not read the version from haxelib.json"
   exit 1
 fi
-if ! grep -q "^## $version" CHANGELOG.md; then
+heading=$(grep -m1 "^## $version" CHANGELOG.md || true)
+if [ -z "$heading" ]; then
   echo "ERROR: CHANGELOG.md has no '## $version' section for haxelib.json version $version"
   exit 1
+fi
+
+# A tag run packages a release, so its changelog section must be final.
+# Set RELEASE=1 to get the same gate outside CI.
+case "${GITHUB_REF:-}" in
+  refs/tags/*) release=1 ;;
+  *) release="${RELEASE:-}" ;;
+esac
+if [ -n "$release" ]; then
+  case "$heading" in
+    *"(unreleased)"*)
+      echo "ERROR: CHANGELOG.md still marks $version as unreleased:"
+      echo "  $heading"
+      echo "Drop the (unreleased) marker before you tag."
+      exit 1
+      ;;
+  esac
 fi
 
 rm -f haxefmod.zip

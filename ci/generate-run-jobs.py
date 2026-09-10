@@ -183,17 +183,28 @@ def tag_condition(text, name):
 def setup_steps(j):
     if j.linux:
         pkgs = "pulseaudio libasound2-plugins xvfb ffmpeg" + (" chromium-browser xdotool" if j.browser else " libgl1-mesa-dri libegl1 libgles2")
+        if j.browser:
+            # The chromium-browser package installs the snap, and the snap
+            # store sometimes times out. Retry before the run fails on it.
+            install = f"""          for attempt in 1 2 3; do
+            sudo apt-get install -y {pkgs} && break
+            [ "$attempt" = 3 ] && exit 1
+            sleep 30
+          done"""
+        else:
+            install = f"          sudo apt-get install -y {pkgs}"
         return f"""      - name: Install runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y {pkgs}
+{install}
 {LINUX_HASHLINK if j.hashlink else ""}
 {AUDIO_SETUP}"""
     if j.mac:
+        brew = ("brew install ffmpeg " + j.brew).rstrip()
         return f"""      - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg {j.brew}
+          {brew}
 """
     return """      - name: Install ffmpeg
         shell: powershell
@@ -260,7 +271,7 @@ def native_steps(j):
           timeout: "60"
           bin-dir: {j.manual}
           log-file: {X(f"api-probe-{j.name}-manual.log")}
-          use-wavwriter: {wavwriter}
+          use-wavwriter: "false"
 """ if j.manual else ""
     return f"""      - name: Record audio
         if: matrix.state == 'game-audio'
@@ -426,7 +437,8 @@ def browser_steps(j):
             # Delivery end to end. Chromium delivers no nested timeline
             # beats, so that check is informational in the browser.
             grep -q "CB_TEST: Stopped" "$LOG"
-          elif grep -q "pass=false" "$LOG"; then
+          fi
+          if grep -q "pass=false" "$LOG"; then
             echo "FAIL: $GATE reported failing checks"
             exit 1
           fi
@@ -456,7 +468,9 @@ def run_job(j, text):
 """ if j.manual else ""
     chmod = ""
     if not j.windows:
-        dirs = [j.bindir] + ([j.manual] if j.manual else [])
+        dirs = [j.bindir]
+        if j.manual and j.manual != j.bindir:
+            dirs.append(j.manual)
         lines = "\n".join(f"          find {d} -maxdepth 1 -type f -exec chmod +x {{}} + 2>/dev/null || true" for d in dirs)
         chmod = f"""
       - name: Restore executable bits

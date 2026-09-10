@@ -19,8 +19,8 @@ PROFILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audio-profil
 
 
 def tone(freq, seconds, freq2=0, fade_to=None, gain=1.0):
-    """gain is a flat level scale (used to stand in for 3D distance
-    attenuation); fade_to ramps within the segment."""
+    """gain is a flat level scale that stands in for 3D distance
+    attenuation. fade_to ramps within the segment."""
     frames = int(RATE * seconds)
     if freq <= 0:
         return [0] * frames

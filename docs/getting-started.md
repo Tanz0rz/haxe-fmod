@@ -136,7 +136,7 @@ Both variables can be set at the same time, so one machine holds the desktop SDK
 haxelib run haxefmod check
 ```
 
-Every line it prints must end in a check mark. It reports what is missing and how to fix it. Run it again whenever a build fails in a way you do not understand.
+Each check line begins with `[OK]`, `[FAIL]`, `[WARN]`, or `[SKIP]`. A `[FAIL]` line names what is missing and how to fix it. `[WARN]` marks a step that is normal to have open during setup. `[SKIP]` marks a check that does not apply to your machine. Run it again whenever a build fails in a way you do not understand.
 
 ## 5. Play something
 
@@ -235,11 +235,27 @@ HTML5 initializes asynchronously. An HTML5 game waits for `FmodManager.IsInitial
     haxelib run haxefmod stage linux hl build/hl
     ```
 
-    Pass `mac` or `windows` instead of `linux` on those platforms. The [stage command](guides/tools-cli.md#stage) copies the FMOD libraries and `hlaxe_fmod.hdll` into the directory. It also writes a launcher that starts the game with the right library path. The launcher is `run.sh`, or `run.cmd` on Windows.
+    Pass `windows` instead of `linux` on Windows, and swap `-lib hlsdl` for `-lib hldx` in the hxml. Heaps runs on DirectX there. A machine with no OpenGL driver, such as a CI runner, cannot create the context `hlsdl` needs.
+
+    The [stage command](guides/tools-cli.md#stage) copies the FMOD libraries and `hlaxe_fmod.hdll` into the directory. It also writes a launcher that starts the game with the right library path. The launcher is `run.sh`, or `run.cmd` on Windows.
 
     ```bash
     cd build/hl && ./run.sh
     ```
+
+    **On macOS**: the game compiles through HL/C into a native executable, so the steps differ. Run `haxelib run haxefmod build-hdll` first, so `.haxefmod/hlaxe_fmod.hdll` exists. Then send the compile to C and link it against your HashLink installation.
+
+    ```bash
+    HL_PREFIX=$(brew --prefix)
+    haxe $(grep -v '^#' build-hl.hxml | grep -v '^-hl ') -hl build/hlc/main.c
+    clang -O2 -std=gnu11 -w -o build/hl/game build/hlc/main.c -I build/hlc \
+      -I "$HL_PREFIX/include" -L "$HL_PREFIX/lib" -lhl -luv $LIBS \
+      -Wl,-rpath,@executable_path -Wl,-rpath,"$HL_PREFIX/lib"
+    haxelib run haxefmod stage mac hl build/hl
+    cd build/hl && ./game
+    ```
+
+    `$LIBS` holds one `.hdll` path for each library that `build/hlc/hlc.json` names, apart from `std`. Take `hlaxe_fmod.hdll` from `.haxefmod/` and the rest from `$HL_PREFIX/lib`. `libuv` links directly, because the generated C calls its functions by name.
 
     You hear your event right away. Silence with a successful build usually means the banks are missing from `assets/fmod/Desktop`. The game's console output says so when `FmodManager.EnableDebugMessages()` is on.
 
@@ -260,28 +276,33 @@ HTML5 initializes asynchronously. An HTML5 game waits for `FmodManager.IsInitial
 
 === "Kha"
 
-    Build through khamake. Then stage the FMOD runtime files next to the executable:
+    Build through khamake, then stage the FMOD runtime files next to the executable. On Linux and macOS, export the SDK's library directories before khamake runs. The binding links `-lfmod -lfmodstudio`, so the linker needs them.
 
     ```bash
-    node /path/to/Kha/make.js linux --compile
+    # Linux
+    export LIBRARY_PATH="$FMOD_SDK/api/core/lib/x86_64:$FMOD_SDK/api/studio/lib/x86_64${LIBRARY_PATH:+:$LIBRARY_PATH}"
+    # macOS
+    export LIBRARY_PATH="$FMOD_SDK/api/core/lib:$FMOD_SDK/api/studio/lib${LIBRARY_PATH:+:$LIBRARY_PATH}"
+    ```
+
+    ```bash
+    node /path/to/Kha/make.js linux --compile --graphics opengl
     haxelib run haxefmod stage linux cpp path/to/output
     ```
+
+    Linux and macOS ask for OpenGL instead of Kinc's default of Vulkan or Metal. OpenGL runs on any display, a virtual or GPU-less one included. Windows keeps Direct3D and takes no `--graphics` flag.
 
     `linux` is the Kore C++ target. `linux-hl` builds the same game as HashLink instead, and Kore compiles it to a native executable. For the HashLink targets, set `HAXEFMOD_KHA_HL=1` in the environment before khamake. The library then compiles its HashLink binding into the executable instead of the C++ one. On the other platforms the khamake targets are `osx`/`osx-hl` and `windows`/`windows-hl`. Pass the platform name to the [stage command](guides/tools-cli.md#stage).
 
     The stage target is `cpp` for every native Kha build, the HashLink ones included. The binding is inside the executable either way, so no hdll or VM is involved. Only the FMOD libraries need staging. Copy your banks to `assets/fmod/Desktop` next to the executable and run it from that directory.
 
-    On Linux the linker also needs the SDK's library directories, since the binding links `-lfmod -lfmodstudio`:
-
-    ```bash
-    export LIBRARY_PATH="$FMOD_SDK/api/core/lib/x86_64:$FMOD_SDK/api/studio/lib/x86_64${LIBRARY_PATH:+:$LIBRARY_PATH}"
-    ```
-
     You hear your event as soon as the window opens. A silent run with a clean build points at missing banks. The console output names the failing path when `FmodManager.EnableDebugMessages()` is on.
 
-    **In the browser**: khamake writes an `index.html` only when none exists. Provide your own that loads the FMOD engine ahead of the game. Then host the directory as a static site with the banks under `assets/fmod/Desktop`.
+    **In the browser**: khamake writes an `index.html` only when none exists. Copy your own into the output directory before the build, so the page loads the FMOD engine first. Host the directory as a static site with the banks under `assets/fmod/Desktop`.
 
     ```bash
+    mkdir -p build/html5
+    cp index.html build/html5/index.html
     node /path/to/Kha/make.js html5
     haxelib run haxefmod stage html5 html5 build/html5/lib
     ```

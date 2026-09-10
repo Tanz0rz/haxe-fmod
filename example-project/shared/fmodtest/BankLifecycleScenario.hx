@@ -75,8 +75,8 @@ class BankLifecycleScenario implements TestScenario {
             'refs=${FmodRuntime.banks.refCount(_masterPath)}');
 
         // A second load of a registry-owned bank shares the entry instead
-        // of racing a duplicate load (or erroring, as an HTML5 shim that owns the load
-        // ownership forced)
+        // of racing a duplicate load. It does not error either, which an
+        // HTML5 shim that owns the load ownership forced
         var dup = FmodRuntime.banks.loadAsync(_masterPath);
         check("duplicate_load_shares_entry",
             (dup : Int) == (FmodRuntime.banks.get(_masterPath) : Int)
@@ -109,9 +109,9 @@ class BankLifecycleScenario implements TestScenario {
         // Bank unloads process asynchronously. Block until FMOD applies them
         StudioSystem.flushCommands();
 
-        // Events must stop resolving after their bank is unloaded, and the
-        // unload sweep must have reclaimed the warmed description handle
-        // along with the two bank handles
+        // Events must stop resolving after their bank is unloaded. The
+        // unload sweep must reclaim the warmed description handle along
+        // with the two bank handles
         var missing = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         check("event_not_found_after_unload", missing.isNull(),
             'lastResult=${StudioSystem.lastResult().toString()}');
@@ -134,9 +134,9 @@ class BankLifecycleScenario implements TestScenario {
 
     function finishReload():Void {
         // The fresh lookup must return a live, working handle even when
-        // FMOD reuses the old object's address (the stale-slot aliasing
-        // regression), and it must be a new handle because the sweep
-        // bumped the old slot's generation
+        // FMOD reuses the address of the released object (the stale-slot
+        // aliasing regression). It must also be a new handle, because the
+        // sweep bumped the generation of the earlier slot
         var reloaded = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         check("event_resolves_after_reload", !reloaded.isNull() && reloaded.isValid(), "");
         check("reloaded_handle_is_fresh", (reloaded : Int) != _warmed,
@@ -154,7 +154,7 @@ class BankLifecycleScenario implements TestScenario {
         var concurrentB = FmodRuntime.banks.loadAsync(ALSO_MISSING_PATH);
         _asyncConcurrent = concurrentA;
         if (_asyncMissing.isNull()) {
-            // A backend may reject the missing file synchronously: that is
+            // Some backends reject the missing file synchronously: that is
             // an acceptable error surface too, with nothing left behind
             check("missing_bank_fails_fast", !StudioSystem.lastResult().isOk(),
                 'result=${StudioSystem.lastResult().toString()}');
@@ -164,17 +164,17 @@ class BankLifecycleScenario implements TestScenario {
             'a=${(concurrentA : Int)} b=${(concurrentB : Int)}');
 
         host.addBankLoader(["Master.bank"], () -> _loaderLoaded = true, null, true);
-        // The synchronous mode routes through banks.load (still async
-        // under the hood on html5) - the callback contract is identical
+        // The synchronous mode routes through banks.load, which runs async
+        // under the hood on html5 - the callback contract is identical
         host.addBankLoader(["Master.bank"], () -> _syncLoaderLoaded = true, null, false);
         host.addBankLoader(["DoesNotExist.bank"], null, () -> _loaderErrored = true, true);
         enterPhase("errors");
     }
 
     function finishErrors():Void {
-        // The registry's CURRENT entry is the authority: a settled-ERROR
-        // placeholder can legitimately be replaced (and its old handle
-        // unloaded) by the loader's retry of the same path
+        // The registry's CURRENT entry is the authority. The loader's
+        // retry of the same path can legitimately replace a settled-ERROR
+        // placeholder, and it unloads the replaced handle
         if (!_asyncMissing.isNull()) {
             check("async_missing_errors",
                 FmodRuntime.banks.loadingState(MISSING_PATH) == FmodLoadingState.ERROR,
@@ -190,7 +190,7 @@ class BankLifecycleScenario implements TestScenario {
             // Errored entries persist by design (they keep reporting ERROR
             // instead of being freed). One entry per missing path: the
             // loader's retry either deduped onto the in-flight placeholder
-            // or replaced a settled one, releasing the old handle either way
+            // or replaced a settled one, releasing that handle either way
             check("no_error_leg_leaks", StudioSystem.liveHandleCount() == _errBaseline + 2,
                 'baseline=$_errBaseline now=${StudioSystem.liveHandleCount()}');
         }

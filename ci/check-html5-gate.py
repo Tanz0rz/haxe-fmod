@@ -15,7 +15,7 @@ row this script compiles a one-call fixture four ways and expects:
 
 A gate that is removed, renamed, or loses its message fails the check.
 The script also checks that the doc comment above each gated method
-still carries the phrase "unsupported in HTML5".
+carries the phrase "unsupported in HTML5".
 
 Run: python3 ci/check-html5-gate.py
 """

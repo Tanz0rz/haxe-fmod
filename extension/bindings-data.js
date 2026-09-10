@@ -855,6 +855,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "clearCallback():Void",
      "static": false,
      "type": "haxefmod.core.Channel"
+    },
+    {
+     "direct": false,
+     "doc": "Removes every registered callback.",
+     "name": "ClearAllCallbacks",
+     "signature": "ClearAllCallbacks():Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": false
@@ -2651,6 +2659,14 @@ const HAXEFMOD_BINDINGS = {
      "type": "haxefmod.core.ChannelGroup"
     },
     {
+     "direct": false,
+     "doc": "Removes every registered callback.",
+     "name": "ClearAllCallbacks",
+     "signature": "ClearAllCallbacks():Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
      "direct": true,
      "doc": "Delivers ChannelEvent values for this channel (drained once per frame with the other callbacks): End, SyncPoint, VirtualVoice, and Occlusion.",
      "name": "setCallback",
@@ -4072,6 +4088,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "clearCallback():Void",
      "static": false,
      "type": "haxefmod.core.ChannelGroup"
+    },
+    {
+     "direct": false,
+     "doc": "Removes every registered callback.",
+     "name": "ClearAllCallbacks",
+     "signature": "ClearAllCallbacks():Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": false
@@ -7824,7 +7848,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "True while the replay is paused, false on failure.",
      "gated": false,
      "name": "getPaused",
      "signature": "getPaused():Bool",
@@ -7913,7 +7937,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Moves the replay to the command at the index.",
      "gated": false,
      "name": "seekToCommand",
      "signature": "seekToCommand(index:Int):FmodResult",
@@ -7988,7 +8012,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Pauses or resumes the replay.",
      "gated": false,
      "name": "setPaused",
      "signature": "setPaused(paused:Bool):FmodResult",
@@ -8020,7 +8044,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Begins playing the captured commands into the Studio system.",
      "gated": false,
      "name": "start",
      "signature": "start():FmodResult",
@@ -8036,7 +8060,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "",
+     "doc": "Stops the replay.",
      "gated": false,
      "name": "stop",
      "signature": "stop():FmodResult",
@@ -8969,7 +8993,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Registers a typed payload callback for this instance (replaces any existing handler.",
+     "doc": "Registers a typed payload callback for this instance.",
      "name": "setCallback",
      "signature": "setCallback(handler:EventCallback, ?mask:Int):Void",
      "static": false,
@@ -9010,6 +9034,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "clearProgrammerSound():FmodResult",
      "static": false,
      "type": "haxefmod.studio.EventInstance"
+    },
+    {
+     "direct": false,
+     "doc": "Removes every registered callback.",
+     "name": "ClearAllCallbacks",
+     "signature": "ClearAllCallbacks():Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": true

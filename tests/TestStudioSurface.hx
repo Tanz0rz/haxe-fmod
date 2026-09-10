@@ -179,7 +179,7 @@ class TestStudioSurface {
 		};
 		assert(!StudioSystem.setListenerAttributes(0, attrs).isOk(), "sys setListenerAttributes result");
 		assert(!StudioSystem.setListenerAttributes(0, attrs, {x: 4, y: 5, z: 6}).isOk(), "sys setListenerAttributes attenuation result");
-		// The listener getter's shape extends Fmod3DAttributes, so it still
+		// The listener getter's shape extends Fmod3DAttributes, so it
 		// lands in a variable of that type
 		var plain:Null<Fmod3DAttributes> = StudioSystem.getListenerAttributes(0);
 		assert(plain == null, "sys listener attrs assignable");
@@ -300,8 +300,8 @@ class TestStudioSurface {
 
 	// The distance filter, version, sound data, and recording surface
 	// routes through the stub like everything else. The readData clamp is
-	// the one piece of real logic here (the HashLink shim cannot see the
-	// buffer size), so it gets the same treatment as fromPcm.
+	// the one piece of real logic here. The HashLink shim cannot see the
+	// buffer size, so the clamp gets the same treatment as fromPcm.
 	static function testVersionDataAndRecording():Void {
 		var stub = haxefmod.studio.native.NativeStudioStub;
 		var channel:Channel = cast 0;
@@ -344,9 +344,9 @@ class TestStudioSurface {
 	}
 
 	// Sound lock and unlock and the disk busy flag route through the stub.
-	// The Haxe side owns the buffer sizing (lock allocates the copy and
-	// trims it to what the shim locked, unlock passes the exact length), so
-	// the stub records the arguments it saw.
+	// The Haxe side owns the buffer sizing. Lock allocates the copy and
+	// trims it to what the shim locked. Unlock passes the exact length.
+	// The stub records the arguments it saw.
 	static function testSoundLockAndDiskBusy():Void {
 		var stub = haxefmod.studio.native.NativeStudioStub;
 		var sound:Sound = cast 0;
@@ -562,9 +562,9 @@ class TestStudioSurface {
 		var pcmSound = Sound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1);
 		assert(pcmSound.isNull(), "coresound fromPcm null");
 
-		// The wrapper must never let a lied length reach a backend: the
-		// HashLink shim cannot see the buffer's real size, and an
-		// oversized count over-read the heap inside FMOD's memcpy
+		// The wrapper must never let a lied length reach a backend. The
+		// HashLink shim cannot see the buffer's real size. An oversized
+		// count over-read the heap inside FMOD's memcpy.
 		var stub = haxefmod.studio.native.NativeStudioStub;
 		stub.testPcmCreateLen = -999;
 		Sound.fromPcm(haxe.io.Bytes.alloc(64), 48000, 1, 1024);
@@ -763,7 +763,7 @@ class TestStudioSurface {
 		assert(received.length == 2, "chan events delivered");
 		assert(received[0].match(SyncPoint(3)), "chan syncpoint payload");
 		assert(received[1].match(End), "chan end payload");
-		// Event-instance records still dispatch normally with the router in
+		// Event-instance records dispatch normally with the router in
 		// place (the router must decline non-channel types)
 		var eviEvents = 0;
 		haxefmod.studio.CallbackDispatcher.setCallback(1235, function(_) eviEvents++, 0x20);
@@ -773,10 +773,11 @@ class TestStudioSurface {
 		ChannelCallbacks.clearAll();
 	}
 
-	// The ChannelGroup half of the ChannelControl surface on the stub, the
-	// setDelay default, the mix matrix hop bounds (pure Haxe checks that
-	// never reach the backend), the connection from addGroup, and the
-	// connection-narrowed disconnect.
+	// The ChannelGroup half of the ChannelControl surface on the stub.
+	// The checks cover the setDelay default, the connection from addGroup,
+	// and the connection-narrowed disconnect. They also cover the mix
+	// matrix hop bounds, which are pure Haxe checks that never reach the
+	// backend.
 	static function testChannelControlParity() {
 		var group = ChannelGroup.create("parity");
 		var stale:ChannelGroup = cast 0x7fff0001;
@@ -942,7 +943,7 @@ class TestStudioSurface {
 
 	// Replay inspection, the DSP lock, sound info, memory and file stats,
 	// the network settings, and speaker positions all route through the
-	// stub like everything else, so the checks are the failure defaults.
+	// stub like everything else. The checks are the failure defaults.
 	static function testSysExtras():Void {
 		var replay:CommandReplay = cast 0;
 		assert(replay.getCommandCount() == -1, "replay getCommandCount default");
@@ -1001,9 +1002,9 @@ class TestStudioSurface {
 	}
 
 	static function testLastSevenStub():Void {
-		// The stub reports failure from each of the last seven bindings and
-		// the wrappers route to it, so the abstracts surface NULL, null,
-		// UNSUPPORTED, or 0
+		// The stub reports failure from each of the last seven bindings, and
+		// the wrappers route to it. The abstracts surface NULL, null,
+		// UNSUPPORTED, or 0.
 		var dsp:Dsp = cast 1;
 		var conn:DspConnection = cast 1;
 		assert(dsp.addInputPreallocated(dsp, conn).isNull(), "addInputPreallocated stub NULL");
@@ -1068,7 +1069,7 @@ class TestStudioSurface {
 		assert((DspPan3DExtentModeType.OFF : Int) == 2, "FMOD_DSP_PAN_3D_EXTENT_MODE_OFF");
 		assert((DspThreeEqCrossoverSlope._48DB : Int) == 2, "FMOD_DSP_THREE_EQ_CROSSOVERSLOPE_48DB");
 		assert((DspTransceiverSpeakerMode.AUTO : Int) == -1, "FMOD_DSP_TRANSCEIVER_SPEAKERMODE_AUTO");
-		// setParameterInt still takes a plain Int, the value enums convert to it
+		// setParameterInt takes a plain Int, and the value enums convert to it
 		assert(dsp.setParameterInt(1, DspFftWindow.HANNING) == FmodResult.FMOD_ERR_UNSUPPORTED, "setParameterInt takes a value enum through Int");
 	}
 
@@ -1109,8 +1110,8 @@ class TestStudioSurface {
 
 	/**
 	 * The signatures retyped from Int to the header enums route through
-	 * the stub with the enum values, the Int constants stay usable as
-	 * aliases, and the typedef fields carry the typed values.
+	 * the stub with the enum values. The Int constants stay usable as
+	 * aliases. The typedef fields carry the typed values.
 	 */
 	static function testTypedSignatures():Void {
 		var sound = Sound.fromPcm(haxe.io.Bytes.alloc(4), 48000, 1);

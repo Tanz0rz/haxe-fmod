@@ -1,9 +1,11 @@
 // Runs the sound extras of jaxe.js against the real FMOD 2.03.12 wasm under
 // Node: tracker music, subsounds, tags, and the advanced settings passed
-// through fmod_sys_init_ex. The web build cannot load a tracker module,
-// cannot hand a tag payload to JavaScript, and rejects every call to its
-// advanced settings getters, so those report 68 (ERR_UNSUPPORTED) on a
-// live handle and keep reporting 30 (ERR_INVALID_HANDLE) on a dead one.
+// through fmod_sys_init_ex.
+// The web build cannot load a tracker module and cannot hand a tag payload
+// to JavaScript.
+// It also rejects every call to its advanced settings getters.
+// Those three report 68 (ERR_UNSUPPORTED) on a live handle.
+// On a dead handle they keep reporting 30 (ERR_INVALID_HANDLE).
 // The subsound calls and the tag count work and are checked for real.
 // Usage: node soundextras-harness.js  (needs FMOD_SDK_WEB)
 
@@ -127,8 +129,9 @@ async function main() {
     check('core_sound_get_tag_string_unsupported', jaxe.fmod_core_sound_get_tag_string(sound, "", 0) === ""
         && jaxe.fmod_sys_last_result() === 68, `result=${jaxe.fmod_sys_last_result()}`);
 
-    // Sound lock and unlock and the disk busy flag: the glue has none of
-    // them, so 68 on a live handle and the copy buffer stays untouched
+    // Sound lock, sound unlock, and the disk busy flag.
+    // The glue has none of them, so a live handle reports 68 and the copy
+    // buffer stays untouched.
     const lockBuf = new Uint8Array(64);
     lockBuf[0] = 7;
     check('core_sound_lock_unsupported', jaxe.fmod_core_sound_lock(sound, 0, 64, lockBuf) === -68

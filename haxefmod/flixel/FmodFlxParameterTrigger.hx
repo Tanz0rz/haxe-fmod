@@ -39,6 +39,7 @@ class FmodFlxParameterTrigger extends FlxBasic {
         super();
         trigger = new ZoneTrigger(new FlxObjectPositionProvider(target), zone.x, zone.y, zone.width, zone.height,
             parameterName, valueInside, valueOutside, instance);
+        FmodFlxUpdater.init();
     }
 
     /** Tests the target against the zone and applies the parameter on an edge crossing. **/

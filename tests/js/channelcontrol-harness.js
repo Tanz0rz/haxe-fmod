@@ -1,9 +1,11 @@
 // Runs the ChannelControl parity bindings of jaxe.js against the real
-// FMOD 2.03.12 wasm under Node: the group readers (delay, isPlaying), the
-// group callback registration, the connection addGroup hands back, the
-// connection-narrowed disconnectFrom, and the mix matrix hop on channels,
-// groups, and connections. The glue binds the matrix readers as a single
-// float, so those report 68 (ERR_UNSUPPORTED). The rest work.
+// FMOD 2.03.12 wasm under Node.
+// The coverage holds the group readers (delay, isPlaying), the group
+// callback registration, and the connection addGroup hands back.
+// It takes in the connection-narrowed disconnectFrom and the mix matrix hop
+// on channels, groups, and connections.
+// The glue binds the matrix readers as a single float, so those report 68
+// (ERR_UNSUPPORTED). The rest work.
 // Usage: node channelcontrol-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');

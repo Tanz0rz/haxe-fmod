@@ -6,10 +6,11 @@ import haxefmod.studio.Callbacks;
 import haxefmod.studio.native.NativeStudioStub;
 
 /**
- * The helper class's song state machine against the stub's synthetic handles:
- * same-song restart semantics, the transition handoff (both the callback
- * path and the direct path for a fade that finished before the handler
- * armed), and once-registration consumption. The playback-state queue
+ * The helper class's song state machine runs against the stub's synthetic
+ * handles. The suite covers same-song restart semantics and
+ * once-registration consumption. It also covers the transition handoff on
+ * two paths. The callback path is one. The other is the direct path for a
+ * fade that finished before the handler armed. The playback-state queue
  * scripts what each getPlaybackState call observes, so the async gaps the
  * real backends produce become deterministic here.
  */
@@ -25,7 +26,7 @@ class TestSongMachine {
 		// The hooks must be restored even when a test body throws, or one
 		// broken test cascades into every suite after this one. The helper class
 		// statics this suite dirties (song slot, current path) are also
-		// stale after it: keep suites that read FmodManager song state
+		// stale after it. Keep suites that read FmodManager song state
 		// ahead of this one in RunTests.
 		try {
 			testSameSongRestartSemantics();
@@ -112,7 +113,7 @@ class TestSongMachine {
 		FmodManager.PlaySong("event:/Nope");
 		NativeStudioStub.testSyntheticHandles = true;
 		assert("failed PlaySong starts nothing", NativeStudioStub.testStartCalls == startsBefore);
-		// The machine still works afterwards
+		// The machine works afterwards
 		var handle = playSong("event:/Recovery");
 		assert("machine recovers after a failed play", handle != 0
 			&& NativeStudioStub.testStartCalls == startsBefore + 1);
@@ -121,9 +122,9 @@ class TestSongMachine {
 	static function testOnceDestroyedUnwanted() {
 		var handle = playSong("event:/OnceDestroyed");
 		var fired = 0;
-		// An explicit mask that excludes DESTROYED: the dispatcher still
-		// force-subscribes DESTROYED for cleanup, so the event arrives -
-		// the handler must not fire, but the registration must still end
+		// An explicit mask that excludes DESTROYED. The dispatcher
+		// force-subscribes DESTROYED for cleanup, so the event arrives.
+		// The handler must not fire, and the registration must end.
 		FmodManager.OnceSongEvent(function(event) fired++, 0x20 /* STOPPED only */);
 		CallbackDispatcher.deliver(handle, 0x2 /* DESTROYED */, 0, 0, 0, 0, 0, 0.0, "");
 		assert("mask-excluded Destroyed does not fire the once handler", fired == 0);
@@ -140,8 +141,8 @@ class TestSongMachine {
 
 	static function testTransitionCallbackHandoff() {
 		var handleA = playSong("event:/A");
-		// Entry check sees a playing song, the post-stop check still sees
-		// the fade in progress: the handoff waits for the callback
+		// The entry check sees a playing song. The post-stop check sees
+		// the fade in progress, so the handoff waits for the callback.
 		NativeStudioStub.testPlaybackStateQueue = [0, 4];
 		FmodManager.PlaySongTransition("event:/B");
 		assert("transition armed on the current song", CallbackDispatcher.hasHandler(handleA));
@@ -157,15 +158,15 @@ class TestSongMachine {
 
 	static function testTransitionDirectHandoff() {
 		var handleA = playSong("event:/A");
-		// Entry check sees the song mid-fade, the post-stop check sees the
-		// fade already complete: no Stopped will ever arrive for the armed
-		// handler, so the transition must hand off directly
+		// The entry check sees the song mid-fade. The post-stop check sees
+		// the fade already complete. No Stopped event arrives for the armed
+		// handler, so the transition hands off directly.
 		NativeStudioStub.testPlaybackStateQueue = [4, 2];
 		FmodManager.PlaySongTransition("event:/B");
 		assert("direct handoff played the next song",
 			FmodManager.GetCurrentSongPath() == "event:/B");
 
-		// A late queued Stopped for the old song is a harmless no-op
+		// A late queued Stopped for event:/A is a harmless no-op
 		var pathBefore = FmodManager.GetCurrentSongPath();
 		CallbackDispatcher.deliver(handleA, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("late Stopped after the direct handoff changes nothing",

@@ -30,7 +30,7 @@ class FmodKhaSetup {
     public static function init(?settings:FmodSettings):Void {
         FmodManager.Initialize(settings);
         FmodKhaUpdater.init();
-        // Kha keeps its listeners forever, so wire once
+        // Kha keeps its listeners forever, so wire once.
         if (!wired) {
             wired = true;
             System.notifyOnApplicationState(onForeground, onForeground, onBackground, onBackground, null);

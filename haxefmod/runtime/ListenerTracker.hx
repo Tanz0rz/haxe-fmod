@@ -10,21 +10,21 @@ import haxefmod.studio.StudioSystem;
     character or a camera. A camera has no velocity of its own, so
     adapters wrap it in DerivedVelocityProvider. That derives one from
     the movement between frames.
-**/
+*/
 class ListenerTracker {
-    /** The position the listener follows. A null provider pushes nothing. **/
+    /** The position the listener follows. A null provider pushes nothing. */
     public var provider:IFmodPositionProvider;
 
-    /** The index of the FMOD listener to drive. **/
+    /** The index of the FMOD listener to drive. */
     public var listenerIndex:Int;
 
-    /** Creates a tracker. Pass null as the provider to set one later. **/
+    /** Creates a tracker. Pass null as the provider to set one later. */
     public function new(provider:IFmodPositionProvider, listenerIndex:Int = 0) {
         this.provider = provider;
         this.listenerIndex = listenerIndex;
     }
 
-    /** Pushes the provider's position and clamped velocity to the listener. **/
+    /** Pushes the provider's position and clamped velocity to the listener. */
     public function update():Void {
         if (provider == null) return;
         var velX = provider.fmodVelocityX();
@@ -45,9 +45,9 @@ class ListenerTracker {
     and re-seeds the tracking.
 
     Call sample(elapsed) once per frame before the position is read.
-**/
+*/
 class DerivedVelocityProvider implements IFmodPositionProvider {
-    /** Jumps larger than this in one frame count as a cut. Must be > 0. **/
+    /** Jumps larger than this in one frame count as a cut. Must be > 0. */
     public var teleportDistance:Float;
 
     var sampleX:Void->Float;
@@ -60,14 +60,14 @@ class DerivedVelocityProvider implements IFmodPositionProvider {
     var lastY:Float = 0;
     var hasLast:Bool = false;
 
-    /** Wraps two sampler functions that return the current X and Y position. **/
+    /** Wraps two sampler functions that return the current X and Y position. */
     public function new(sampleX:Void->Float, sampleY:Void->Float, teleportDistance:Float) {
         this.sampleX = sampleX;
         this.sampleY = sampleY;
         this.teleportDistance = teleportDistance;
     }
 
-    /** Reads the current position and derives the velocity from the previous one. **/
+    /** Reads the current position and derives the velocity from the previous one. */
     public function sample(elapsed:Float):Void {
         x = sampleX();
         y = sampleY();
@@ -85,20 +85,20 @@ class DerivedVelocityProvider implements IFmodPositionProvider {
         hasLast = true;
     }
 
-    /** Forgets the previous position, so the next sample reads as a cut. **/
+    /** Forgets the previous position, so the next sample reads as a cut. */
     public function reset():Void {
         hasLast = false;
     }
 
-    /** The X position from the last sample. **/
+    /** The X position from the last sample. */
     public function fmodX():Float return x;
 
-    /** The Y position from the last sample. **/
+    /** The Y position from the last sample. */
     public function fmodY():Float return y;
 
-    /** The X velocity derived from the last two samples. **/
+    /** The X velocity derived from the last two samples. */
     public function fmodVelocityX():Float return velX;
 
-    /** The Y velocity derived from the last two samples. **/
+    /** The Y velocity derived from the last two samples. */
     public function fmodVelocityY():Float return velY;
 }

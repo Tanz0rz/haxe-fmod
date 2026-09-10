@@ -30,11 +30,11 @@ import haxefmod.studio.Types;
  * CI probe for the haxefmod.studio binding surface.
  *
  * Exercises every Bus binding and logs one "API_PROBE:" line per check so
- * CI can assert coverage from the game log. On HTML5 this is the source of
- * truth for which functions FMOD's Emscripten API actually supports:
- * gating checks log pass=true/false, informational checks log info=... and
- * never fail the probe (e.g. CPU/memory profiling, which can legitimately
- * report FMOD_ERR_UNSUPPORTED).
+ * CI can assert coverage from the game log. On HTML5 this is the source
+ * of truth for which functions FMOD's Emscripten API actually supports.
+ * Gating checks log pass=true/false. Informational checks log info=...
+ * and never fail the probe (e.g. CPU/memory profiling, which can
+ * legitimately report FMOD_ERR_UNSUPPORTED).
  *
  * Select via HAXEFMOD_TEST_STATE=api-probe (native) or ?test=api-probe (HTML5).
  */
@@ -57,8 +57,8 @@ class ApiProbeScenario implements TestScenario {
     }
 
     // The compat jobs run this probe against banks frozen before the
-    // authored-content round (newer banks do not load on FMOD 2.02.33),
-    // so they opt out of the sections that need that content.
+    // authored-content round. Newer banks do not load on FMOD 2.02.33, so
+    // those jobs opt out of the sections that need that content.
     /** True when the FMOD engine that loaded is 2.03 or newer. The HashLink
         jobs run the 2.02.33 runtime the templates ship, where a few 2.03
         calls and parameter layouts do not exist. */
@@ -144,8 +144,8 @@ class ApiProbeScenario implements TestScenario {
         var stopResult = master.stopAllEvents(FmodStopMode.IMMEDIATE);
         check("bus_stop_all_events", stopResult.isOk(), 'result=${stopResult.toString()}');
 
-        // Profiling - informational only (needs profiling enabled. May be
-        // unsupported on some targets, especially HTML5)
+        // Profiling - informational only (needs profiling enabled. Some
+        // targets do not support it, especially HTML5)
         var cpu = master.getCpuUsage();
         info("bus_get_cpu_usage", cpu == null
             ? 'unavailable result=${StudioSystem.lastResult().toString()}'
@@ -172,7 +172,7 @@ class ApiProbeScenario implements TestScenario {
         probeSoundGroupsAndSystem();
         probeAuditClosure();
         probeInstanceLifecycle();
-        probeEngineBridge();
+        probeEngineVolume();
         probeFocusMute();
         probeHardeningTail();
         probeVersionDataAndRecording();
@@ -199,9 +199,9 @@ class ApiProbeScenario implements TestScenario {
             probeHelperClass();
             ProbeStudioParity.runAuthored(this);
         }
-        // Last of the synchronous sections: on html5 its meters fill
+        // Last of the synchronous sections. On html5 its meters fill
         // between frames, so it finishes from update() before the async
-        // chain below starts and nothing else holds handles meanwhile
+        // chain below starts. Nothing else holds handles meanwhile.
         ProbeDspData.run(this);
 
         // Channel event delivery is asynchronous: the probe finishes from
@@ -427,8 +427,8 @@ class ApiProbeScenario implements TestScenario {
     /**
      * Hostile inputs the shims reject identically on every target, the
      * helper class's failure branch and thin delegations, and the by-ID
-     * parameter plumbing (a swapped id.data1/data2 in any wrapper would
-     * break exactly one of these round trips).
+     * parameter plumbing. A swapped id.data1/data2 in any wrapper would
+     * break exactly one of these round trips.
      */
     // Custom rolloff round trips on a channel, a group, and a sound, then
     // a geometry quad occluding a listener from a source. Every created
@@ -509,11 +509,11 @@ class ApiProbeScenario implements TestScenario {
         }
 
         #if js
-        // html5: FMOD's web glue takes no rolloff point array (the curve
-        // never reaches FMOD, see tests/js/geometry-rolloff-harness.js)
-        // and the web build has no geometry at all, so every entry point
-        // reports UNSUPPORTED on a live handle and a dead handle still
-        // reports INVALID_HANDLE
+        // html5: FMOD's web glue takes no rolloff point array, so the
+        // curve never reaches FMOD (see
+        // tests/js/geometry-rolloff-harness.js). The web build has no
+        // geometry at all. Every entry point reports UNSUPPORTED on a live
+        // handle, and a dead handle reports INVALID_HANDLE
         function unsupportedRolloff(prefix:String, set:Array<FmodVector>->FmodResult, get:Void->Array<FmodVector>):Void {
             check(prefix + "_set_3d_custom_rolloff_unsupported", set(points) == FmodResult.FMOD_ERR_UNSUPPORTED,
                 'result=${StudioSystem.lastResult().toString()}');
@@ -745,7 +745,7 @@ class ApiProbeScenario implements TestScenario {
             'result=${StudioSystem.lastResult().toString()}');
 
         // By-ID parameter plumbing on the music event's local parameter:
-        // set by name, read by ID - the round trip only matches when each
+        // set by name, read by ID. The round trip only matches when each
         // wrapper carries id.data1/data2 in the right order. The
         // StudioSystem-level by-ID family runs against the global
         // parameters in probeAuthoredSurface.
@@ -804,12 +804,16 @@ class ApiProbeScenario implements TestScenario {
         FmodManager.StopAllEvents();
         check("hardening_listener_position",
             FmodRuntime.setListenerPosition(0, 0.0, 0.0).isOk(), "");
+        // The manual-update build variant runs with auto-update off, so put
+        // the setting back where it was
+        var autoUpdateBefore = FmodRuntime.settings() != null && FmodRuntime.settings().autoUpdate;
         FmodManager.SetAutoUpdate(true);
+        FmodManager.SetAutoUpdate(autoUpdateBefore);
 
         #if audio_test_manual_update
         // The manual-update build variant: the resolved settings must
         // carry both the init argument and the -D haxefmod_num_channels
-        // override, and this whole suite having run proves the manual
+        // override. This whole suite having run proves the manual
         // sys_update path drives the system
         check("hardening_manual_update_setting",
             FmodRuntime.settings() != null && !FmodRuntime.settings().autoUpdate, "");
@@ -828,17 +832,19 @@ class ApiProbeScenario implements TestScenario {
     }
 
     /**
-     * The authored-content positive paths: the Main VCA, the global
-     * parameter family at StudioSystem level, labeled sets against real
-     * labels, and the user property on the music event. Each of these had
-     * only negative coverage before the project authored the content.
+     * The authored-content positive paths: the Main VCA and the global
+     * parameter family at StudioSystem level. Labeled sets against real
+     * labels and the user property on the music event follow. Each of
+     * these had only negative coverage before the project authored the
+     * content.
      */
     /**
      * The helper class against the authored content: global parameters by
-     * bare name and by generated path, labeled parameters on the song and
-     * on a held sound, VCA volume shaped like the bus calls, a snapshot
-     * through the ordinary play calls and through the snapshot calls, and
-     * per-bus pause. Every value is restored afterwards.
+     * bare name and by generated path. Labeled parameters follow on the
+     * song and on a held sound, then VCA volume shaped like the bus calls.
+     * A snapshot runs through the ordinary play calls and through the
+     * snapshot calls, and per-bus pause closes the section. Every value is
+     * restored afterwards.
      * The song part runs before the baseline because the song slot keeps
      * its stopped instance by design.
      */
@@ -851,9 +857,9 @@ class ApiProbeScenario implements TestScenario {
         StudioSystem.flushCommands();
 
         // Banks by file name, against the registry's reference count. The
-        // Extras bank may already be held by another section, so the
-        // checks read the delta. html5 loads asynchronously, so the loaded
-        // flag is only asserted on native. Before the baseline: a bank
+        // Extras bank can already be held by another section, so the
+        // checks read the delta. On html5 the load is asynchronous, so the
+        // loaded flag is only asserted on native. Before the baseline: a bank
         // handle created and freed here settles with the studio thread.
         var extrasPath = FmodRuntime.bankPath("Extras.bank");
         var extrasRefs = FmodRuntime.banks.refCount(extrasPath);
@@ -981,8 +987,8 @@ class ApiProbeScenario implements TestScenario {
         FmodManager.StopSnapshot("snapshot:/Nope");
         check("helper_snapshot_missing_is_noop", !FmodManager.IsSnapshotActive("snapshot:/Nope"), "");
 
-        // The fading stop leaves the instance alive through its fade, so the
-        // snapshot reads as active right after the call and the immediate
+        // The fading stop leaves the instance alive through its fade. The
+        // snapshot reads as active right after the call, and the immediate
         // stop then clears it
         FmodManager.StartSnapshot(FmodSnapshots.Underwater);
         StudioSystem.flushCommands();
@@ -1100,9 +1106,9 @@ class ApiProbeScenario implements TestScenario {
         jumpInst.release();
 
         // The authored user properties on the music event. FMOD Studio
-        // stores property values untyped and the bank builder infers the
-        // type: numbers build as FLOAT and everything else as STRING, so
-        // both payload channels and the type tag are covered here.
+        // stores property values untyped, and the bank builder infers the
+        // type. Numbers build as FLOAT and everything else as STRING. Both
+        // payload channels and the type tag are covered here.
         var musicDesc = StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         check("evd_user_property_count_authored", musicDesc.getUserPropertyCount() == 3,
             'count=${musicDesc.getUserPropertyCount()}');
@@ -1110,10 +1116,10 @@ class ApiProbeScenario implements TestScenario {
         var floatProp = musicDesc.getUserPropertyByName("probe_float");
         var boolProp = musicDesc.getUserPropertyByName("probe_bool");
         #if js
-        // Numeric user properties crash FMOD's JS glue (its string
+        // Numeric user properties crash FMOD's JS glue, where its string
         // conversion of the value union dereferences the number bits as a
-        // pointer), so jaxe reports them unsupported and only string
-        // properties are readable on html5
+        // pointer. On html5, jaxe reports them unsupported and only string
+        // properties are readable.
         check("evd_user_property_numeric_unsupported", intProp == null && floatProp == null, "");
         #else
         check("evd_user_property_numeric", intProp != null
@@ -1152,7 +1158,7 @@ class ApiProbeScenario implements TestScenario {
     function probeAuditClosure():Void {
         // Per-instance channel group: effects on one event. The group
         // handle is reclaimed with the instance (the DESTROYED drain on
-        // native, the release-all sweep on html5), and the timing of that
+        // native, the release-all sweep on html5). The timing of that
         // reclaim depends on the studio thread, so it happens
         // deterministically here before the baseline snapshot. SFXJump,
         // not the music event: releaseAllInstances on the music event
@@ -1350,16 +1356,17 @@ class ApiProbeScenario implements TestScenario {
 
     /**
      * The wrapper tail no other section reaches: by-ID lookups, user
-     * properties, listener configuration, bank enumeration and sample
-     * data, instance properties, and the DSP calls with no other caller.
+     * properties, and listener configuration. The rest is bank enumeration
+     * and sample data, instance properties, and the DSP calls with no
+     * other caller.
      * Exercising the marshaling against the real FFI is the point, so
      * data-dependent values log as info while structure and error
      * contracts are gating checks.
      */
     function probeParityTail2():Void {
-        // Warm the persistent lookups first: the bank handle and the bus
-        // handles its enumeration mints (a bus nobody looked up yet gets a
-        // session-lived dedup handle) must all sit inside the baseline
+        // Warm the persistent lookups first. The bank handle and the bus
+        // handles its enumeration mints must all sit inside the baseline.
+        // A bus nobody looked up yet gets a session-lived dedup handle.
         var bank = StudioSystem.getBank("bank:/Master");
         if (bank.isNull()) bank = StudioSystem.getBank("Master.bank");
         if (!bank.isNull()) {
@@ -1514,10 +1521,11 @@ class ApiProbeScenario implements TestScenario {
     }
 
     /**
-     * helper class predicates against real asynchronous playback states: a song
-     * or sound started this frame is still in the STARTING state, and must
-     * already report playing. The song slot keeps its stopped instance by
-     * design, so this runs before any section snapshots a leak baseline.
+     * helper class predicates against real asynchronous playback states. A
+     * song or sound started this frame sits in the STARTING state, and it
+     * must already report playing. The song slot keeps its stopped
+     * instance by design, so this runs before any section snapshots a leak
+     * baseline.
      */
     function probeHelperSong():Void {
         FmodManager.PlaySong(FmodEvents.MusicMainLevel);
@@ -1564,8 +1572,8 @@ class ApiProbeScenario implements TestScenario {
             'result=${staleRelease.toString()}');
         b.release();
 
-        // Release on a destroyed-but-not-yet-drained instance still
-        // reclaims the slot (FMOD reports INVALID_HANDLE for it)
+        // Release on a destroyed-but-not-yet-drained instance reclaims
+        // the slot (FMOD reports INVALID_HANDLE for it)
         var c = desc.createInstance();
         desc.releaseAllInstances();
         StudioSystem.flushCommands();
@@ -1748,10 +1756,10 @@ class ApiProbeScenario implements TestScenario {
             _remintInstance.stop(FmodStopMode.IMMEDIATE);
             _remintInstance.release();
         }
-        // The instance's last callback records (a plugin or programmer
-        // sound Destroyed frees the handle its Created minted) arrive from
-        // FMOD's Studio thread a few frames after the release, later on
-        // mac than on linux, so the leak check waits for the count to
+        // The instance's last callback records arrive from FMOD's Studio
+        // thread a few frames after the release, later on mac than on
+        // linux. A plugin or programmer sound Destroyed frees the handle
+        // its Created minted. The leak check waits for the count to
         // settle. Async: finishes from update().
         _remintDrainFrames = 0;
         _waitingForRemintDrain = true;
@@ -1767,9 +1775,9 @@ class ApiProbeScenario implements TestScenario {
     }
 
     /**
-     * The helper class's transition machinery end to end: the old song fades,
-     * its Stopped event arrives through the queue, and the once-only
-     * handler starts the next song. Async: finishes from update() when the
+     * The helper class's transition machinery end to end: the first song
+     * fades. Its Stopped event arrives through the queue, and the
+     * once-only handler starts the next song. Async: finishes from update() when the
      * next song owns the slot (or the wait times out).
      */
     function probeSongTransition():Void {
@@ -1802,8 +1810,8 @@ class ApiProbeScenario implements TestScenario {
 
     /**
      * The Underwater snapshot as a live event instance. It scopes the
-     * master bus volume to -10 dB, so the bus final volume must drop to
-     * about 0.32 while the snapshot plays and recover after it stops.
+     * master bus volume to -10 dB. The bus final volume must drop to about
+     * 0.32 while the snapshot plays, and recover after it stops.
      * Async: the intensity ramp and the recovery both take real frames.
      */
     function probeSnapshot():Void {
@@ -1859,8 +1867,8 @@ class ApiProbeScenario implements TestScenario {
     var _waitingForSustainStop:Bool = false;
 
     /**
-     * The Hold event carries a sustain point near its start: the instance
-     * must reach the SUSTAINING state, keyOff must advance it, and the
+     * The Hold event carries a sustain point near its start. The instance
+     * must reach the SUSTAINING state, and keyOff must advance it. The
      * event then plays out and stops. Async: both transitions take real
      * frames.
      */
@@ -1918,8 +1926,8 @@ class ApiProbeScenario implements TestScenario {
         check("oneshot_attached_tracked", FmodRuntime.attachedCount() == _oneShotAttachedBaseline + 1,
             'count=${FmodRuntime.attachedCount()}');
         // The one-shot must clean itself up even when every callback
-        // registration is wiped while it plays (release rides the attach
-        // loop's STOPPED check, not a callback)
+        // registration is wiped while it plays. Release rides the attach
+        // loop's STOPPED check, not a callback.
         FmodManager.ClearAllCallbacks();
         _waitingForOneShot = true;
     }
@@ -2032,11 +2040,11 @@ class ApiProbeScenario implements TestScenario {
 
         // GUID round trip: path -> GUID -> event -> same handle
         var lookedUp = StudioSystem.lookupID(FmodEvents.MusicMainLevel);
-        check("sys_lookup_id", lookedUp == descGuid, 'value=$lookedUp');
+        check("m3_sys_lookup_id", lookedUp == descGuid, 'value=$lookedUp');
         var byId = StudioSystem.getEventByID(descGuid);
-        check("sys_get_event_by_id", (byId : Int) == (desc : Int), 'handle=${(byId : Int)}');
+        check("m3_sys_get_event_by_id", (byId : Int) == (desc : Int), 'handle=${(byId : Int)}');
         var pathBack = StudioSystem.lookupPath(descGuid);
-        check("sys_lookup_path", pathBack == FmodEvents.MusicMainLevel, 'value=$pathBack');
+        check("m3_sys_lookup_path", pathBack == FmodEvents.MusicMainLevel, 'value=$pathBack');
 
         // Parameters on the event
         var paramCount = desc.getParameterDescriptionCount();
@@ -2096,7 +2104,7 @@ class ApiProbeScenario implements TestScenario {
         check("evi_release", releaseResult.isOk(), 'result=${releaseResult.toString()}');
         check("evi_released_handle_invalid", !instance.isValid(), "");
 
-        // Instance property and 3D surface (event may be 2D - informational)
+        // Instance property and 3D surface (the event can be 2D - informational)
         var instance2 = desc.createInstance();
         if (!instance2.isNull()) {
             info("evi_get_property_channelpriority", Std.string(instance2.getProperty(CHANNELPRIORITY)));
@@ -2137,7 +2145,7 @@ class ApiProbeScenario implements TestScenario {
         // A missing VCA lookup returns null (vca:/Main positives run in
         // probeAuthoredSurface)
         var vca = StudioSystem.getVCA("vca:/DoesNotExist");
-        check("sys_get_vca_missing", vca.isNull(), 'lastResult=${StudioSystem.lastResult().toString()}');
+        check("m3_sys_get_vca_missing", vca.isNull(), 'lastResult=${StudioSystem.lastResult().toString()}');
 
         // Global parameter positives run in probeAuthoredSurface
         info("sys_parameter_description_count", Std.string(StudioSystem.getParameterDescriptionCount()));
@@ -2171,8 +2179,8 @@ class ApiProbeScenario implements TestScenario {
     /**
      * Runtime-verifies the generational handle table's safety promises
      * through the real FFI: stale handles, cross-type misuse, double
-     * release, and slot reuse must all return
-     * FMOD_ERR_INVALID_HANDLE (or default getter values) instead of
+     * release, and slot reuse. All of them must return
+     * FMOD_ERR_INVALID_HANDLE, or default getter values, instead of
      * crashing or touching another object.
      */
     function probeHandleSafety():Void {
@@ -2214,7 +2222,7 @@ class ApiProbeScenario implements TestScenario {
         check("double_release_invalid_handle", doubleRelease == FmodResult.FMOD_ERR_INVALID_HANDLE,
             'result=${doubleRelease.toString()}');
 
-        // Slot reuse: a new instance may reuse the freed slot, but the old
+        // Slot reuse: a new instance can take the freed slot. The earlier
         // handle's generation is stale and must never resolve to it
         var reused:EventInstance = desc.createInstance();
         check("reuse_new_instance_valid", reused.isValid(), 'handle=${(reused : Int)}');
@@ -2228,8 +2236,8 @@ class ApiProbeScenario implements TestScenario {
 
     /**
      * Exercises the Core PCM stream and channel surface through the real
-     * FFI: ring write accounting, channel control round-trips, and the
-     * handle-safety promises extended to the new type tags. The channel
+     * FFI: ring write accounting and channel control round-trips. The
+     * handle-safety promises extend to the new type tags. The channel
      * starts paused so the probe stays deterministic (drain timing is
      * covered by the js harness and the synth test, which pump the mixer).
      */
@@ -2256,8 +2264,8 @@ class ApiProbeScenario implements TestScenario {
         info("core_pcm_underruns", Std.string(stream.takeUnderruns()));
 
         // Write validation: an oversized count clamps to the real buffer
-        // size (an unclamped count would read past the buffer), and a zero
-        // count is rejected with INVALID_PARAM on every backend
+        // size, because an unclamped count would read past the buffer. A
+        // zero count is rejected with INVALID_PARAM on every backend
         var spaceLeft = stream.space();
         var oversized = stream.write(data, data.length * 4);
         var clampExpected = data.length < spaceLeft ? data.length : spaceLeft;
@@ -2271,7 +2279,7 @@ class ApiProbeScenario implements TestScenario {
         var channel = stream.play(true);
         check("core_pcm_play", !channel.isNull(), 'handle=${(channel : Int)}');
         check("chan_starts_paused", channel.getPaused(), "");
-        // A paused channel is still live as far as FMOD is concerned
+        // A paused channel counts as live to FMOD
         check("chan_is_playing", channel.isPlaying(), "");
 
         var volResult:FmodResult = channel.setVolume(0.5);
@@ -2310,9 +2318,9 @@ class ApiProbeScenario implements TestScenario {
 
     /**
      * Sound creation with FMOD_MODE flags and from a file image in memory,
-     * play calls routed into a channel group at start, the Channel chain
-     * position constants, and the game-sound and instrument-name
-     * programmer sound forms. The audible proof of the programmer sound
+     * then play calls routed into a channel group at start. The Channel
+     * chain position constants come next, with the game-sound and
+     * instrument-name programmer sound forms. The audible proof of the programmer sound
      * forms lives in ProgrammerSoundTestState, this covers the contracts.
      */
     function probeSoundRouting():Void {
@@ -2574,7 +2582,7 @@ class ApiProbeScenario implements TestScenario {
         check("crosstype_cg_as_dsp", crossResult == FmodResult.FMOD_ERR_INVALID_HANDLE,
             'result=${crossResult.toString()}');
 
-        // Two lookup handles may legitimately persist: the cached master
+        // Two lookup handles legitimately persist: the cached master
         // group, and the bus group if FMOD kept it alive after the unlock.
         // Everything owned (DSPs, streams, the custom group) must be gone.
         var persistent = 1; // the master group handle cached above
@@ -2588,9 +2596,9 @@ class ApiProbeScenario implements TestScenario {
 
     /**
      * Exercises the parity tail through the real FFI: the connection
-     * graph, group nesting, scheduling, spatial extras, reverb zones,
-     * memory sounds, and system queries, with handle safety over the
-     * new type tags.
+     * graph, group nesting, scheduling, and spatial extras. Reverb zones,
+     * memory sounds, and system queries follow, with handle safety over
+     * the new type tags.
      */
     function probeParityTail():Void {
         var baseline = StudioSystem.liveHandleCount();
@@ -2829,8 +2837,8 @@ class ApiProbeScenario implements TestScenario {
         channel.addFadePoint(base + 9600, 0.75);
         #if js
         // html5: the glue binds getFadePoints with single value slots and
-        // every getMixMatrix pointer as one float, so neither readback
-        // exists on the web (the setters work)
+        // every getMixMatrix pointer as one float. Neither readback exists
+        // on the web, but the setters work
         check("chan_fade_points_readback_unsupported", channel.getFadePoints() == null
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, 'result=${StudioSystem.lastResult().toString()}');
         channel.removeFadePoints(0, base + 96000);
@@ -2985,13 +2993,14 @@ class ApiProbeScenario implements TestScenario {
     }
 
     /**
-     * Verifies the engine volume bridge installed by host.setupInit():
-     * the engine's own volume and mute controls must land on the FMOD
-     * master bus. The host owns the checks since the controls differ per
-     * engine.
+     * Verifies the volume and mute controls the engine setup exposes. On
+     * flixel the engine's own controls must land on the FMOD master bus.
+     * Heaps and Kha have no global volume of their own, so there the FMOD
+     * master bus is the control. The host owns the checks because the
+     * controls differ per engine.
      */
-    function probeEngineBridge():Void {
-        host.checkVolumeBridge(check);
+    function probeEngineVolume():Void {
+        host.checkVolumeControls(check);
     }
 
     /**
@@ -3046,11 +3055,11 @@ class ApiProbeScenario implements TestScenario {
             probeChannelEvents();
         }
         // The occlusion probe holds four handles of its own and counts
-        // them against a baseline, so it is a phase of its own: nothing
-        // else is in flight while it runs (the transition, snapshot,
-        // sustain and one-shot phases create and release instances, and
-        // on a slow frame one of those landed between its baseline and
-        // its count while it ticked alongside them)
+        // them against a baseline. It runs as a phase of its own, with
+        // nothing else in flight. The transition, snapshot, sustain and
+        // one-shot phases create and release instances. On a slow frame
+        // one of those landed between its baseline and its count while it
+        // ticked alongside them.
         if (_waitingForOcclusion) {
             ProbeChannelControl.tick(this);
             if (!ProbeChannelControl.pending()) {

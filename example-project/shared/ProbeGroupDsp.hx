@@ -8,9 +8,10 @@ import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
 
 /**
- * Probe for walking a channel group's DSP chain. Adds a unit to the master
- * group, counts it, reads it back by index and by the named positions,
- * compares handles, removes it again and checks nothing leaked.
+ * Probe for walking a channel group's DSP chain. It adds a unit to the
+ * master group and counts it. It reads the unit back by index and by the
+ * named positions, then compares handles. It removes the unit again and
+ * checks nothing leaked.
  */
 class ProbeGroupDsp {
     public static function run(state:ApiProbeScenario):Void {

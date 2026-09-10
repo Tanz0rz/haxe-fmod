@@ -1,11 +1,12 @@
 /*
  * Unit tests for native/shared/faxe_instctx.h, the per-instance context
  * the C++ and HashLink shims keep in FMOD userdata. The programmer sound
- * fields are the logic worth pinning: the name-to-key table, the armed
- * check the callback mask is built from, and the clear that drops every
- * assignment at once.
+ * fields are the logic worth pinning. They are the name-to-key table, the
+ * armed check the callback mask is built from, and the clear that drops
+ * every assignment at once.
  *
- * Compiled and run in CI in both C99 and C++ modes:
+ * CI compiles and runs the file in both C99 and C++ modes. The build
+ * lines:
  *   gcc -std=c99 -Wall -Wextra -Werror -o test_c   tests/native/test_faxe_instctx.c && ./test_c
  *   g++ -x c++   -Wall -Wextra -Werror -o test_cpp tests/native/test_faxe_instctx.c && ./test_cpp
  */

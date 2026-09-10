@@ -1,10 +1,11 @@
 // Kha project for the haxefmod example. Same two levels and the same
 // shared test scenarios as the flixel and Heaps examples.
 //
-// haxefmod comes in through haxelib (haxelib dev haxefmod <checkout> or a
-// normal install), which also pulls its kfile.js in so the native binding
-// is compiled into the executable. FMOD_SDK must be set for native targets
-// and FMOD_SDK_WEB for html5 (the stage command reads them). See build.sh.
+// The haxefmod library comes in through haxelib. Use "haxelib dev haxefmod
+// <checkout>" or a normal install. Haxelib also pulls its kfile.js in, so
+// the native binding is compiled into the executable. FMOD_SDK must be set
+// for native targets and FMOD_SDK_WEB for html5 (the stage command reads
+// them). See build.sh.
 let project = new Project('KhaPlatformer');
 
 project.addSources('src');

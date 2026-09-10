@@ -17,10 +17,10 @@ typedef StringsBankEntry = {
  * Layout (determined empirically from FMOD Studio 2.03.x banks and verified
  * byte-for-byte against the FMOD runtime's own string table output):
  *
- * The file is a RIFF container ("RIFF" <u32 size> "FEV ") of nested chunks;
+ * The file is a RIFF container ("RIFF" <u32 size> "FEV ") of nested chunks.
  * "LIST" chunks hold a 4-byte list type followed by child chunks. The string
- * table lives in the "STDT" chunk (nested inside LIST/PROJ). Paths are NOT
- * stored as flat strings - they are fragments in a compressed radix trie.
+ * table lives in the "STDT" chunk (nested inside LIST/PROJ). Paths are stored
+ * as fragments in a compressed radix trie.
  *
  * STDT payload (all integers little-endian):
  *
@@ -51,8 +51,8 @@ typedef StringsBankEntry = {
  *
  * Path i is reconstructed by walking parent links from leaf[i] up to the
  * root and concatenating the fragments root-first (e.g. "b" + "ank:/Master"
- * + ".strings"). GUIDs are stored sorted by their formatted string form;
- * guid[i] pairs with path i. The parse is validated by requiring the STDT
+ * + ".strings"). GUIDs are stored sorted by their formatted string form.
+ * Each guid[i] pairs with path i. The parse is validated by requiring the STDT
  * payload to be consumed exactly, so layout drift errors out instead of
  * producing garbage.
  */
@@ -111,15 +111,15 @@ class StringsBankParser {
 			var payloadStart = p + 8;
 			var payloadEnd = payloadStart + size;
 			// A negative size (a crafted 32-bit value read as signed) would
-			// stall or rewind the scan pointer forever
-			if (size < 0 || payloadEnd > end) return null; // corrupt chunk, stop scanning
+			// stall or rewind the scan pointer forever.
+			if (size < 0 || payloadEnd > end) return null; // corrupt chunk, stop scanning.
 			if (chunkTag == tag) return {start: payloadStart, end: payloadEnd};
 			if (chunkTag == "LIST" && size >= 4) {
-				// LIST payload: 4-byte list type, then child chunks
+				// LIST payload: 4-byte list type, then child chunks.
 				var inner = findChunk(bytes, payloadStart + 4, payloadEnd, tag);
 				if (inner != null) return inner;
 			}
-			// RIFF chunks are word-aligned. Sizes are padded to even
+			// RIFF chunks are word-aligned. Sizes are padded to even.
 			p = payloadEnd + (size & 1);
 		}
 		return null;
@@ -201,7 +201,7 @@ class StringsBankParser {
 			p += 3;
 		}
 
-		// the layout is only trusted if it accounts for every byte
+		// the layout is only trusted if it accounts for every byte.
 		if (p != end)
 			throw new haxe.Exception('string table has ${end - p} unexpected trailing byte(s)');
 

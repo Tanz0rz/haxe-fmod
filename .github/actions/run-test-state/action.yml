@@ -40,7 +40,7 @@ runs:
     - name: Run ${{ inputs.state }}
       shell: bash
       run: |
-        # bin-dir may be a glob (linux exports land in linux64/ or linux/).
+        # bin-dir can be a glob (linux exports land in linux64/ or linux/).
         # The || true keeps set -e from killing the step when a glob misses.
         BIN_DIR=$(ls -d ${{ inputs.bin-dir }} 2>/dev/null | head -1 || true)
         if [ -z "$BIN_DIR" ]; then

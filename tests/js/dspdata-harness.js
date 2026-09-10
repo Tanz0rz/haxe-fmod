@@ -1,11 +1,14 @@
 // Runs the DSP data parameter bindings of jaxe.js against the real FMOD
-// 2.03.12 wasm under Node: the unit description, the metering readback
-// for both sides, the per channel FFT spectrum, the data parameter byte
-// images the glue can type (overall gain, FFT) and the ones it cannot
-// (loudness meter info), the packed 3D attribute setters, and the
-// parameter descriptor texts, which embind cannot marshal and so report
-// 68 (ERR_UNSUPPORTED), and the typed data parameter structs (sidechain,
-// finite length, attenuation range, dynamic response, loudness weighting).
+// 2.03.12 wasm under Node.
+// The coverage starts with the unit description, the metering readback for
+// both sides, and the per channel FFT spectrum.
+// It continues with the data parameter byte images the glue can type
+// (overall gain, FFT) and the ones it cannot (loudness meter info).
+// It takes in the packed 3D attribute setters as well.
+// The parameter descriptor texts come next. Embind cannot marshal them, so
+// they report 68 (ERR_UNSUPPORTED).
+// The typed data parameter structs close the list: sidechain, finite
+// length, attenuation range, dynamic response, and loudness weighting.
 // Usage: node dspdata-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');
@@ -85,9 +88,10 @@ async function main() {
     const fft = jaxe.fmod_dsp_create_by_type(26 /* FFT */);
     check('cg_add_dsp_fft', jaxe.fmod_cg_add_dsp(master, 0, fft) === 0, '');
     check('dsp_set_metering_enabled', jaxe.fmod_dsp_set_metering_enabled(fft, true, true) === 0, '');
-    // Before the mixer has run through the unit the glue reports zero
-    // channels (its level arrays are always 32 long, so the count must
-    // not fall back to their length)
+    // Before the mixer runs through the unit, the glue reports zero
+    // channels.
+    // Its level arrays are always 32 long, so the count must not fall back
+    // to their length.
     ibuf.fill(7);
     const unmixed = jaxe.fmod_dsp_get_metering_info(fft, false, fbuf, ibuf);
     check('dsp_get_metering_info_before_mix', unmixed === 0 && jaxe.fmod_sys_last_result() === 0 && ibuf[1] === 0,
@@ -195,14 +199,15 @@ async function main() {
         `index=${rangeIndex} result=${jaxe.fmod_sys_last_result()}`);
     const rangeBack = jaxe.fmod_dsp_get_param_typed(pan, rangeIndex, 3, fbuf, ibuf);
     check('dsp_get_param_typed_attenuation_range_refused', rangeBack !== 0 && fbuf[0] === 0, `result=${rangeBack}`);
-    // the glue does not type the loudness weighting, the setter still writes it
+    // the glue does not type the loudness weighting, and the setter writes it anyway
     fbuf.fill(0);
     fbuf[0] = 0.5;
     check('dsp_set_param_typed_loudness_weighting', jaxe.fmod_dsp_set_param_typed(loud, 1, 5, fbuf, ibuf) === 0,
         `result=${jaxe.fmod_sys_last_result()}`);
     check('dsp_get_param_typed_loudness_weighting_unsupported', jaxe.fmod_dsp_get_param_typed(loud, 1, 5, fbuf, ibuf) === 68, '');
-    // a finite length struct is the same four byte FMOD_BOOL block, it lands on the sidechain
-    // switch and reads back through either kind (the glue types the object as a sidechain)
+    // a finite length struct is the same four byte FMOD_BOOL block.
+    // It lands on the sidechain switch and reads back through either kind,
+    // because the glue types the object as a sidechain.
     fbuf[0] = 1;
     check('dsp_set_param_typed_finite_length', jaxe.fmod_dsp_set_param_typed(compressor, sidechainIndex, 2, fbuf, ibuf) === 0
         && jaxe.fmod_dsp_get_param_typed(compressor, sidechainIndex, 1, fbuf, ibuf) === 0 && fbuf[0] === 1, `enable=${fbuf[0]}`);

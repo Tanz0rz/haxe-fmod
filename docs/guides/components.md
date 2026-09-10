@@ -25,7 +25,7 @@
 
 === "HaxeFlixel"
 
-    Call `FmodFlxSetup.init(?settings)` once, in your first state. It initializes FMOD with the given [settings](settings.md#settings). It registers `FmodFlxUpdater` as a global plugin, so `FmodManager.Update()` runs every frame in every state. It forwards `FlxG.signals.focusGained` and `focusLost` to `FmodRuntime.setWindowFocused` (see [Window focus](fmod-manager.md#window-focus)).
+    Call `FmodFlxSetup.init(?settings)` once, in your first state. It initializes FMOD with the given [settings](settings.md#settings). It hooks `FlxG.signals.postUpdate` through `FmodFlxUpdater`, so `FmodManager.Update()` runs after every frame in every state. It forwards `FlxG.signals.focusGained` and `focusLost` to `FmodRuntime.setWindowFocused` (see [Window focus](fmod-manager.md#window-focus)).
 
     It also wires flixel's own audio controls to FMOD. The volume keys and the sound tray drive the FMOD master bus. `FlxG.sound.volume` and `FlxG.sound.muted` map to bus volume and mute. The tray's beep is silenced because FMOD owns the audio.
 
@@ -63,7 +63,7 @@
     FmodKhaSetup.init({liveUpdate: true});
     ```
 
-    Kha has no global volume control of its own, so the FMOD master bus is the volume. Route your settings menu through `FmodManager.SetMasterVolume` and `SetMasterMute`.
+    Kha ships no global volume control. The FMOD master bus therefore carries the game's volume. Point your settings menu at `FmodManager.SetMasterVolume` and `SetMasterMute`.
 
     A game that prefers its own wiring calls `FmodManager.Initialize()` and `FmodKhaUpdater.init()` separately. It can also leave the updater out and call `FmodManager.Update()` from its own frame code.
 
@@ -136,7 +136,7 @@ The emitter keeps an event instance positioned at a moving game object for as lo
 
 === "Kha"
 
-    The instance follows a body's midpoint. The emitter derives the velocity from the movement between frames. A one-frame jump larger than `teleportDistance` (default 500 units) counts as a cut. The emitter then pushes zero velocity for that frame and prevents a doppler spike.
+    The instance follows a body's midpoint. Frame-to-frame movement gives the emitter its velocity. `teleportDistance` (default 500 units) sets the cut threshold, and a bigger one-frame jump counts as a cut. The emitter reports zero velocity for that frame, so no doppler spike reaches the sound.
 
     ```haxe
     import haxefmod.kha.FmodKhaEmitter;
@@ -147,7 +147,7 @@ The emitter keeps an event instance positioned at a moving game object for as lo
     emitter.dispose();
     ```
 
-    `FmodKhaEmitter.play(path, target)` creates and starts an instance. `new FmodKhaEmitter(instance, target)` wraps an instance you created and started yourself. `dispose()` detaches and releases the instance. The instance plays out unless you stopped it first.
+    `FmodKhaEmitter.play(path, target)` starts a new instance on the target. Pass an instance you created and started yourself to `new FmodKhaEmitter(instance, target)`. `dispose()` detaches the emitter and releases the instance. An instance you did not stop first plays out to its end.
 
 ### Distance culling
 

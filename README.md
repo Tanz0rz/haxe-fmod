@@ -52,7 +52,7 @@ public function JumpPressed():Void {
 }
 
 public function StartEngine():Void {
-    // Handle-based playback for sounds you control over time
+    // Handle-based playback for events you control over time
     engine = FmodManager.PlayEvent(FmodEvents.SFXEngine);
     engine.setParameter("RPM", 0.2);
 }
@@ -102,23 +102,23 @@ Live Update **only works on C++ and HashLink builds**. HTML5 builds do not suppo
 
 ## Tracking Sound Work With TODOs
 
-Sound effects usually land after the gameplay they belong to, so leave a marker where one is missing and keep building:
+Sound effects usually land after the gameplay they belong to. Leave a marker where one is missing and keep building:
 
 ```haxe
 FmodManager.Todo("door creak when the vault opens");
 ```
 
-`haxelib run haxefmod todos` lists every remaining marker with its file and line. The call compiles away in release builds. Debug builds can play a placeholder blip at each marker, so you hear the gaps while playtesting. Details are in [the docs](https://tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers).
+`haxelib run haxefmod todos` lists every remaining marker with its file and line. The call compiles away in release builds. A build with `-D haxefmod_todo_beep` also plays a short placeholder blip, so you hear the gaps while playtesting. Details are in [the docs](https://tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers).
 
 ## fmod.com Extension
 
-The [fmod.com extension](https://tanz0rz.com/haxe-fmod/guides/extension/) adds a Haxe tab beside C, C++, C#, and JS on every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/core-api.html). The tab shows the haxefmod method that wraps the function. Functions haxefmod does not expose say so and give the reason. The [install steps](https://tanz0rz.com/haxe-fmod/guides/extension/#install) cover Chrome, Firefox, and the userscript.
+The [fmod.com extension](https://tanz0rz.com/haxe-fmod/guides/extension/) adds a Haxe tab to every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/core-api.html). The tab sits beside C, C++, C#, and JS. The tab shows the haxefmod method that wraps the function. Functions haxefmod does not expose say so and give the reason. The [install steps](https://tanz0rz.com/haxe-fmod/guides/extension/#install) cover Chrome, Firefox, and the userscript.
 
 ![The Haxe tab on fmod.com](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_extension.png)
 
 ## Migrating From Previous haxe-fmod Versions?
 
-See [MIGRATION.md](https://github.com/Tanz0rz/haxe-fmod/blob/master/MIGRATION.md) for the complete mapping.
+See [Migrating](https://tanz0rz.com/haxe-fmod/migration/) for the complete mapping.
 
 ## License
 
@@ -130,7 +130,7 @@ This entire project was started as an expansion of Aaron Shea's [faxe](https://g
 
 ## Feature Requests and Contact
 
-If you have any feature requests or are having issues using the library, please do one (or both) of the following:
+For feature requests or problems with the library, do one or both of the following:
 
 - [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then ask any questions you have in the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446). Responses are quick.
 

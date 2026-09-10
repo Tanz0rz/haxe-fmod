@@ -7,16 +7,15 @@ import flixel.FlxState;
 import haxefmod.studio.Types;
 
 /**
- * @author Tanner Moore
  * For games that are deployed to html5, the FMOD audio engine must be loaded before starting the game.
  */
 class LoadFmodState extends FlxState {
     override public function create():Void {
         #if audio_test_manual_update
-        // The manual-update CI variant: every probe state then runs on
-        // FmodManager.Update's manual sys_update pushes instead of the
-        // native auto-update thread
-        // This variant also runs FMOD from a fixed memory pool
+        // The manual-update CI variant. Every probe state then runs on the
+        // manual sys_update pushes of FmodManager.Update, with the native
+        // auto-update thread off. This variant also runs FMOD from a fixed
+        // memory pool.
         FmodManager.Initialize({autoUpdate: false, profiling: true, distanceFilter: true,
             dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536,
             vol0VirtualVol: 0.01, randomSeed: 12345, commandQueueSize: 65536,
@@ -25,13 +24,13 @@ class LoadFmodState extends FlxState {
                 stackSize: FmodThreadStackSize.STUDIO_UPDATE, affinity: FmodThreadAffinity.CORE_ALL}]});
         #elseif audio_test
         // The test builds turn on profiling and the distance filter so the
-        // api-probe can see both work, and pin the buffer settings so the
-        // init path with every argument set runs on every CI target
+        // api-probe can see both work. They pin the buffer settings too, so
+        // the init path with every argument set runs on every CI target.
         // The advanced settings are nondefault so the api-probe can read
-        // them back through getAdvancedSettings
+        // them back through getAdvancedSettings.
         // Memory tracking, the resampler, and one thread attribute entry
-        // (FMOD's own defaults for the studio update thread) run on every
-        // target so the api-probe can see them land
+        // run on every target so the api-probe can see them land. That
+        // entry holds FMOD's own defaults for the studio update thread.
         FmodManager.Initialize({profiling: true, distanceFilter: true,
             dspBufferSize: 1024, dspNumBuffers: 4, softwareChannels: 64, streamBufferSize: 65536,
             vol0VirtualVol: 0.01, randomSeed: 12345, commandQueueSize: 65536,

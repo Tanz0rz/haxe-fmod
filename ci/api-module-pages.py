@@ -4,10 +4,11 @@
 dox renders one page per type and links each type to the module it was
 declared in. A module that holds several types (haxefmod.studio.Types,
 haxefmod.core.DspParameters, ...) has no page of its own, so those links
-were dead. This reads the type XML dox consumed, finds every module of
-the documented package whose name differs from its types, and writes a
-page per module listing the types it declares, in the shell of the
-package index so it looks like the rest of the reference.
+land nowhere. This reads the type XML dox consumed. It finds every
+module of the documented package whose name differs from its types. It
+then writes one page per module, listing the types that module
+declares. Each page uses the shell of the package index, so it looks
+like the rest of the reference.
 
 Usage: python3 ci/api-module-pages.py <types.xml> <site-api dir> [package]
 """

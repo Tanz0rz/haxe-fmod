@@ -134,9 +134,9 @@ class NativeManifestCheck {
     }
 
     /**
-     * The binding ABI version is declared in four places that must agree:
-     * the manifest header, the hl marker string (scanned from hdll binaries
-     * by PostBuild), and the constants in the cpp/js shims and FmodRuntime.
+     * Four places declare the binding ABI version and must agree. They are
+     * the manifest header, the hl marker string (PostBuild scans it from
+     * hdll binaries), and the constants in the cpp/js shims and FmodRuntime.
      */
     static function checkAbiLockstep(libRoot:String, manifestPath:String, errors:Array<String>) {
         var expected:Null<Int> = null;

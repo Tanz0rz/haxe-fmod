@@ -15,13 +15,14 @@ import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types.FmodVector;
 
 /**
- * Probe for the ChannelGroup half of the ChannelControl surface: the
- * group readers Channel already had (occlusion, delay, lowpass gain,
- * isPlaying), group callbacks, the stopChannels default of setDelay,
- * the mix matrix hop on channels, groups, and connections, the
- * connection addGroup hands back, and the connection-narrowed
- * disconnectFrom. The occlusion callback needs FMOD to update a few
- * times, so that part waits in tick().
+ * Probe for the ChannelGroup half of the ChannelControl surface. It
+ * covers the group readers Channel already had: occlusion, delay,
+ * lowpass gain, and isPlaying. It also covers group callbacks, the
+ * stopChannels default of setDelay, and the mix matrix hop on channels,
+ * groups, and connections. The last two are the connection addGroup
+ * hands back and the connection-narrowed disconnectFrom. The occlusion
+ * callback needs FMOD to update a few times, so that part waits in
+ * tick().
  */
 class ProbeChannelControl {
     static var _started:Bool = false;
@@ -217,7 +218,7 @@ class ProbeChannelControl {
     /**
      * A quad between the listener and a 3D group with a playing channel.
      * FMOD computes occlusion from System::update, and both callbacks
-     * should see an Occlusion event within a few frames.
+     * get an Occlusion event within a few frames.
      */
     static function startOcclusionWait(state:ApiProbeScenario):Void {
         _baseline = StudioSystem.liveHandleCount();
@@ -261,8 +262,8 @@ class ProbeChannelControl {
         if (!_waiting) return;
         _frames++;
         // FMOD recomputes geometry occlusion when the listener or the
-        // source moves, and re-setting the same position does not count
-        // as a move (seen on macOS, where the second event sometimes never
+        // source moves. Re-setting the same position does not count as a
+        // move (seen on macOS, where the second event sometimes never
         // came). Wobble the listener by a hair every frame so the polygon
         // added after the channel started gets evaluated.
         StudioSystem.setListenerPosition2D(0, -5 + (_frames % 2 == 0 ? 0.01 : -0.01), 0);
@@ -275,9 +276,9 @@ class ProbeChannelControl {
             default:
         }
         for (e in _groupEvents) if (e.match(Occlusion(_, _))) sawGroup = true;
-        // Bounded in frames and in seconds: a slow loop (Kha on the macOS
-        // runner draws about eleven frames a second) would otherwise spend
-        // most of the state's minute here when the recompute never comes
+        // Bounded in frames and in seconds. A slow loop otherwise spends
+        // most of the state's minute here when the recompute never comes.
+        // Kha on the macOS runner draws about eleven frames a second.
         if ((sawChannel && sawGroup) || _frames > 300 || haxe.Timer.stamp() - _waitStamp > 5) {
             _waiting = false;
             finishOcclusionWait(state, sawChannel, sawGroup);
@@ -296,8 +297,9 @@ class ProbeChannelControl {
         var query = Geometry.getOcclusion({x: -5, y: 0, z: 0}, {x: 5, y: 0, z: 0});
         // A timed-out wait with an event delivered and FMOD's own query
         // reporting the occlusion proves the callback path and the
-        // geometry, only FMOD's recompute never pushed the new value. That
-        // is FMOD's cadence, and the info line below says it happened.
+        // geometry. In that case FMOD's recompute never pushed the new
+        // value. That is FMOD's cadence, and the info line below says it
+        // happened.
         var recomputeMissed = !(sawChannel && direct > 0) && _events.length > 0 && query != null && query.direct > 0;
         if (recomputeMissed) @:privateAccess state.info("chan_occlusion_recompute", 'missed after $_frames frames');
         @:privateAccess state.check("chan_occlusion_event_delivered", (sawChannel && direct > 0) || recomputeMissed,
@@ -309,9 +311,9 @@ class ProbeChannelControl {
             'events=${_groupEvents.length} frames=$_frames');
         var rStop = _channel.stop();
         // Core commands cross to the mixer asynchronously. A lock and
-        // unlock pair waits out the mix block in flight, so the stream,
-        // group, and geometry are not torn down under a mix that still
-        // reads them.
+        // unlock pair waits out the mix block in flight. The stream,
+        // group, and geometry are then safe from a teardown under a live
+        // mix that reads them.
         StudioSystem.lockDsp();
         StudioSystem.unlockDsp();
         var rStream = _stream.release();

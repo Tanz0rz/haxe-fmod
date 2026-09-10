@@ -2,7 +2,7 @@
  * Unit tests for native/shared/faxe_cbqueue.h (the thread-safe callback
  * event ring shared by the C++ and HashLink shims).
  *
- * Compiled and run in CI in both C99 and C++ modes:
+ * CI compiles and runs the file in C99 and in C++. Both modes:
  *   gcc -std=c99 -pthread -Wall -Wextra -Werror -o t_c   tests/native/test_faxe_cbqueue.c && ./t_c
  *   g++ -x c++   -pthread -Wall -Wextra -Werror -o t_cpp tests/native/test_faxe_cbqueue.c && ./t_cpp
  */
@@ -27,9 +27,9 @@ typedef struct {
 /* Concurrent producer/consumer stress modeling the real deployment: the
  * FMOD studio thread pushes events (some carrying opaque DESTROYED-ctx
  * payloads) while the game thread drains. The invariant is the lifetime
- * contract the shims depend on: every payload is delivered EXACTLY once,
- * through the queue or the orphan list, never lost and never twice. Run
- * under TSan in CI to also prove the locking. */
+ * contract the shims depend on. Every payload is delivered EXACTLY once,
+ * through the queue or the orphan list. No payload is lost, and none
+ * arrives twice. Run under TSan in CI to also prove the locking. */
 #define STRESS_TOTAL 20000
 
 typedef struct {
@@ -89,10 +89,10 @@ static void test_concurrent_payload_delivery(void) {
 #endif
 
     /* Drain concurrently with the producer. Every payload must arrive
-     * exactly once - through a popped event or the orphan list - so the
-     * running count reaching the total IS the termination condition (a
-     * lost payload would hang here, which the CI job timeout turns into
-     * a failure). */
+     * exactly once - through a popped event or the orphan list. The
+     * running count reaching the total IS the termination condition. A
+     * lost payload would hang here, and the CI job timeout turns that
+     * into a failure. */
     while (seen < STRESS_TOTAL) {
         if (faxe_cbq_pop(&out)) {
             assert(out.handle > lastHandle); /* FIFO order survives drops */

@@ -49,7 +49,7 @@ class TestPostBuild {
 
 	static function writeTemp(name:String, bytes:haxe.io.Bytes):String {
 		// Gitignored scratch space: the runner's cwd is the repo root and
-		// nothing here may ever end up tracked
+		// nothing here must ever end up tracked
 		var dir = "tests/.tmp";
 		if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
 		var path = dir + "/" + name;
@@ -209,9 +209,9 @@ class TestPostBuild {
 
 	/**
 	 * Telling the two FMOD packages apart. The HTML5 package ships the same
-	 * api/core/inc headers as the desktop one, so a header check passes on
-	 * both and a native build got as far as copying a library that was
-	 * never there. The core library is what actually separates them.
+	 * api/core/inc headers as the desktop one. A header check therefore
+	 * passes on both. A native build got as far as copying a library that
+	 * was never there. The core library is what actually separates them.
 	 */
 	static function testSdkPackageDetection():Void {
 		var root = "tests/.tmp/sdk";
@@ -247,8 +247,8 @@ class TestPostBuild {
 	/**
 	 * stage() copies into the directory it is given with no lime layout
 	 * involved. A HashLink VM output (bytecode, no executable) gets a
-	 * launcher that runs the bytecode through hl, and the web trio
-	 * includes jaxe.js, which lime bundles on its own.
+	 * launcher that runs the bytecode through hl. The web trio includes
+	 * jaxe.js, which lime bundles on its own.
 	 */
 	static function testStage():Void {
 		// cp -P and test -L run here, and the symlink layout is the Linux

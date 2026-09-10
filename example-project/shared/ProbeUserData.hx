@@ -67,8 +67,8 @@ class ProbeUserData {
             doomed.getUserData() == null, 'handle=${(doomed : Int)}');
 
         // Description callback: an instance created before the call is
-        // not registered, one created after fires Started and can read
-        // its own userdata from inside the handler
+        // not registered. An instance created after it fires Started and
+        // reads its own userdata from inside the handler
         var old = desc.createInstance();
         var startedNew = 0;
         var startedOld = 0;

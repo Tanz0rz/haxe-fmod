@@ -29,12 +29,12 @@ class StudioSystem {
     /**
      * Looks up a bus by path (e.g. "bus:/" for the master bus).
      * Returns Bus.NULL if the system is not initialized or the path is
-     * unknown. check lastResult() for the reason.
+     * unknown. Check lastResult() for the reason.
      */
     public static function getBus(path:String):Bus {
         if (busCache.exists(path)) {
             // A cached handle can go stale when its bank is unloaded, so
-            // re-validate before serving it and refresh on a miss
+            // re-validate before serving it and refresh on a miss.
             var cached = busCache.get(path);
             if (cached.isValid()) {
                 return cached;

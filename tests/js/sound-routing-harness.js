@@ -1,10 +1,14 @@
 // Runs the sound creation and playback routing surface of jaxe.js against
-// the real FMOD 2.03.12 wasm under Node: fmod_core_create_sound with a full
-// FMOD_MODE and an initial subsound, fmod_core_create_sound_memory with an
-// encoded image (an FSB slice cut out of the Master bank, the one encoded
-// format the web build decodes), the channel group argument of every play
-// call, and the refusal of the game-sound and instrument-name programmer
-// sound forms (the glue defect pinned by ps-test.js applies to them too).
+// the real FMOD 2.03.12 wasm under Node.
+// One check calls fmod_core_create_sound with a full FMOD_MODE and an
+// initial subsound.
+// Another calls fmod_core_create_sound_memory with an encoded image, an FSB
+// slice cut out of the Master bank.
+// That FSB slice is the one encoded format the web build decodes.
+// A third pins the channel group argument of every play call.
+// The last one covers the refusal of the game-sound and instrument-name
+// programmer sound forms.
+// The glue defect pinned by ps-test.js applies to those forms too.
 // Usage: node sound-routing-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');
@@ -64,11 +68,12 @@ async function main() {
     jaxe.fmod_sys_get_event('event:/Dialogue/Speak');
     const baseline = jaxe.fmod_debug_live_handle_count();
 
-    // --- create_sound with a full mode: the flags reach the glue (a stream
-    // request on a wav still fails on the codec, not on the mode), a
-    // missing file with an initial subsound is a clean not-found, and
-    // NONBLOCKING is dropped rather than rejected (the glue reports it
-    // unsupported, see the shim comment)
+    // --- create_sound with a full mode ---
+    // The flags reach the glue. A stream request on a wav fails on the codec
+    // rather than on the mode.
+    // A missing file with an initial subsound gives a clean not-found.
+    // The glue drops NONBLOCKING rather than rejecting it, and reports it
+    // unsupported (see the shim comment).
     check('create_sound_stream_flag_reaches_glue',
         jaxe.fmod_core_create_sound('Jump.wav', CREATESTREAM | MODE_3D, -1) === 0 && jaxe.fmod_sys_last_result() === ERR_FORMAT,
         `last=${jaxe.fmod_sys_last_result()}`);
@@ -80,9 +85,11 @@ async function main() {
         `last=${jaxe.fmod_sys_last_result()}`);
     check('create_sound_bad_path', jaxe.fmod_core_create_sound(42, 0, -1) === 0 && jaxe.fmod_sys_last_result() === ERR_INVALID_PARAM, '');
 
-    // --- create_sound_memory: a wav image hits the codec limit, an FSB
-    // image cut out of the bank (the slice getSoundInfo describes for the
-    // audio table key) loads for real with two subsounds
+    // --- create_sound_memory ---
+    // A wav image hits the codec limit.
+    // An FSB image cut out of the bank loads for real with two subsounds.
+    // That FSB image is the slice getSoundInfo describes for the audio
+    // table key.
     const wav = fs.readFileSync(WAV);
     const wavBuffer = wav.buffer.slice(wav.byteOffset, wav.byteOffset + wav.byteLength);
     check('memory_wav_format_limit',

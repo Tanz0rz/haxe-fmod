@@ -157,9 +157,9 @@ class TestCallbackDispatcher {
 	}
 
 	static function testReentrancy() {
-		// Handlers may mutate registrations during delivery: remove
+		// Handlers can mutate registrations during delivery: remove
 		// themselves, register other handles, or re-register the same
-		// handle. None of it may crash or corrupt the registration map.
+		// handle. None of it crashes or corrupts the registration map.
 		CallbackDispatcher.clearAll();
 
 		// A handler that removes itself mid-delivery
@@ -215,9 +215,9 @@ class TestCallbackDispatcher {
 	}
 
 	static function testFaultIsolation() {
-		// A throwing handler must be contained: nothing may propagate out
-		// of delivery, and DESTROYED cleanup must still run (no second
-		// DESTROYED will ever come for that instance)
+		// A throwing handler must be contained. Nothing propagates out of
+		// delivery, and DESTROYED cleanup runs. FMOD sends no second
+		// DESTROYED for that instance.
 		CallbackDispatcher.clearAll();
 		CallbackDispatcher.setCallback(90, _ -> throw new haxe.Exception("handler boom"), 0x20);
 		var threw = false;
@@ -322,7 +322,7 @@ class TestCallbackDispatcher {
 		CallbackDispatcher.clearAll();
 
 		// A stale handle reports INVALID_HANDLE from the native mask call.
-		// No DESTROYED will ever arrive for it, so registering the handler
+		// No DESTROYED ever arrives for it, so registering the handler
 		// anyway would leak the closure for the rest of the session.
 		NativeStudioStub.testCallbackMaskResult = 30;
 		CallbackDispatcher.setCallback(91, _ -> {}, 0x20);

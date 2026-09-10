@@ -1,6 +1,6 @@
 # Limitations
 
-Native builds bind every FMOD function that Haxe can host. The functions left out are the callbacks FMOD runs on its own threads, plus a few raw-pointer and platform-specific entry points. The web build has significantly fewer features than the native builds. FMOD's Emscripten runtime lacks them, and a call to one of them is a compile error in a js build.
+Native builds bind every FMOD function that Haxe can host. The functions left out are the callbacks FMOD runs on its own threads. A few raw-pointer and platform-specific entry points are left out too. The web build has significantly fewer features than the native builds. FMOD's Emscripten runtime lacks them, and a call to one of them is a compile error in a js build.
 
 ## Platform support
 
@@ -30,7 +30,7 @@ The web build runs on FMOD's Emscripten runtime, which differs from the native e
 - **Tracker music channel control is native only.** `Sound.getMusicNumChannels`, `setMusicChannelVolume`, `getMusicChannelVolume`, `setMusicSpeed`, and `getMusicSpeed` drive MOD, S3M, XM, and IT playback (unsupported in HTML5). They return `FMOD_ERR_UNSUPPORTED`, `-1`, or `0` there. The web build cannot load loose tracker files at all.
 - **Tag payloads are native only.** `Sound.getTag` reads a metadata tag (unsupported in HTML5). It returns `null` there because FMOD's web glue cannot hand the payload to JavaScript. `getNumTags`, `getNumSubSounds`, `getSubSound`, and `getSubSoundParent` work everywhere.
 - **Console ports are native only.** `CoreSystem.attachChannelGroupToPort` and `detachChannelGroupFromPort` return `FMOD_ERR_UNSUPPORTED` (unsupported in HTML5). Desktop outputs have no ports either, and FMOD reports that in the result. The calls exist for builds that target a console SDK.
-- **Six init settings are native only.** `memoryPoolSize`, `threadAttributes`, `logFile`, and `logFlags` are skipped with one warning on HTML5. `streamingScheduleDelay` and `encryptionKey` are accepted and have no effect there. The web build allocates from the wasm heap, runs on the browser's audio thread, and logs to the console. `output` accepts only `WEBAUDIO`, `AUDIOWORKLET`, `NOSOUND`, and `NOSOUND_NRT` there. Any other value fails init with `FMOD_ERR_UNSUPPORTED`.
+- **Six init settings are native only.** `memoryPoolSize`, `threadAttributes`, and `logFile` are skipped with one warning on HTML5. `logFlags` reaches FMOD's console logger, which the web build usually omits. `streamingScheduleDelay` and `encryptionKey` are accepted and have no effect there. The web build allocates from the wasm heap, runs on the browser's audio thread, and logs to the console. `output` accepts only `WEBAUDIO`, `AUDIOWORKLET`, `NOSOUND`, and `NOSOUND_NRT` there. Any other value fails init with `FMOD_ERR_UNSUPPORTED`.
 - **Readback and profiling queries are native only.** The web glue cannot hand these payloads to JavaScript. Each is a compile error in a js build and returns its empty value with the opt-out:
   - `getFadePoints` and `getMixMatrix` on `Channel` and `ChannelGroup`, `DspConnection.getMixMatrix`, and `CoreSystem.getDefaultMixMatrix`
   - `CoreSystem.getDspInfoByType`, `Dsp.getParameterInfo`, `Dsp.getLoudnessMeterInfo`, `Dsp.getLoudnessMeterWeighting`, `Dsp.getPluginInfo`, and `Dsp.addInputPreallocated`
@@ -39,7 +39,7 @@ The web build runs on FMOD's Emscripten runtime, which differs from the native e
   - `getCpuUsage` and `getMemoryUsage` on `Bus`, `EventInstance`, and `StudioSystem`
 - **Advanced settings readback is native only.** `StudioSystem.getAdvancedSettings` and `getStudioAdvancedSettings` return `null` (unsupported in HTML5). The web build rejects the getter. The settings themselves apply there through `FmodSettings`.
 - **Plugin loading is native only.** `StudioSystem.loadPlugin` loads a plugin shared library and returns FMOD's plugin handle (unsupported in HTML5). It returns `0` there with `FMOD_ERR_UNSUPPORTED` in `lastResult()`. `setPluginPath` and `unloadPlugin` return `FMOD_ERR_UNSUPPORTED`. The count and handle queries return `-1` and `0`, the info queries return `null`, and `Dsp.createByPlugin` returns `Dsp.NULL`. The web build has no plugin host. Every built-in DSP type works everywhere.
-- **Sample readback is native only.** `Sound.readData` decodes PCM out of a sound opened with the `openOnly` flag (unsupported in HTML5). With the opt-out it returns `-68` there, the negated `FMOD_ERR_UNSUPPORTED` code, and `seekData` returns `FMOD_ERR_UNSUPPORTED`. Games that need waveform data in the browser keep their own copy of the PCM they feed through `PcmStream` or `Sound.fromPcm`.
+- **Sample readback is native only.** `Sound.readData` decodes PCM out of a sound opened with the `openOnly` flag (unsupported in HTML5). With the opt-out it returns `-68` there, the negated `FMOD_ERR_UNSUPPORTED` code. `seekData` returns `FMOD_ERR_UNSUPPORTED`. Games that need waveform data in the browser keep their own copy of the PCM they feed through `PcmStream` or `Sound.fromPcm`.
 
 ## FMOD features not exposed on any target
 
@@ -63,7 +63,7 @@ These FMOD features cannot be bound from Haxe. Each one hands FMOD a function po
 - **Numeric arguments pass through to FMOD for validation.** An out-of-range index or count comes back as an FMOD error code from the engine. It is the same code native FMOD reports.
 - **The library owns the system lifecycle.** It initializes FMOD once per process and runs the per-frame update. There is no shutdown or re-init. Init-time engine settings are exposed through `FmodSettings` and compile-time defines.
 - **Generated constants drop non-ASCII characters.** An event name with no ASCII characters at all mangles to `Root`, `Root2`, and so on.
-- **Bank files require an FMOD runtime at least as new as the FMOD Studio version that built them.** This is FMOD's own format rule. A project that rebuilds its banks with a newer Studio raises the minimum FMOD engine version its players' builds must bundle.
+- **Bank files require an FMOD runtime at least as new as the FMOD Studio version that built them.** This is FMOD's own format rule. A project that rebuilds its banks with a newer Studio raises the minimum FMOD engine version. The players' builds must bundle that version.
 
 ## Known FMOD engine defects
 

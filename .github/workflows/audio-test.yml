@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 
 # Solo-build: include [job-name] in commit message to run only that job
-# e.g. "[linux-html5]" runs only the linux-html5 job
+# e.g. "[linux-html5-chromium]" runs only the linux-html5-chromium job
 # [skip-build] skips all jobs
 # Tag pushes always run the full suite and never run update-hdlls
 
@@ -65,9 +65,9 @@ jobs:
 
       - name: Todo scanner end to end
         run: |
-          # The example project carries one real marker. The scanner must
-          # find exactly it and nothing else (doc comments and usage
-          # strings mentioning the call must not count).
+          # The three example projects carry one real marker each. The
+          # scanner must find exactly those three and nothing else. Doc
+          # comments and usage strings that name the call do not count.
           haxe -cp . --run haxefmod.tools.Todos example-project > /tmp/todos.out
           cat /tmp/todos.out
           grep -q "PlayState.hx:.*ambient wind loop behind the music" /tmp/todos.out
@@ -171,7 +171,7 @@ jobs:
       # a real producer thread.
       - name: Run native tests under AddressSanitizer and UBSan
         run: |
-          for t in handles cbqueue guid pcmring; do
+          for t in handles cbqueue guid instctx pcmring; do
             gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
               -Wall -Wextra -Werror -o /tmp/asan_$t tests/native/test_faxe_$t.c
             /tmp/asan_$t
@@ -488,6 +488,17 @@ jobs:
             echo "FAIL: tag $TAG does not match haxelib.json version $VERSION"
             exit 1
           fi
+          HEADING=$(grep -m1 "^## $VERSION" CHANGELOG.md || true)
+          if [ -z "$HEADING" ]; then
+            echo "FAIL: CHANGELOG.md has no '## $VERSION' section"
+            exit 1
+          fi
+          case "$HEADING" in
+            *"(unreleased)"*)
+              echo "FAIL: CHANGELOG.md still marks $VERSION as unreleased: $HEADING"
+              exit 1
+              ;;
+          esac
           echo "OK: tag $TAG matches haxelib.json version $VERSION"
 
       - name: Download FMOD SDK
@@ -552,19 +563,24 @@ jobs:
           echo "=== Package contents (top level) ==="
           unzip -l haxefmod.zip | head -30
 
-          # Files the package must contain: the manifest drives PostBuild's
-          # ABI check, the shared headers drive build-hdll, MIGRATION.md is
-          # linked from the README, linc_faxe.* is the whole C++ target,
-          # the html5 placeholders satisfy lime's parse-time checks, and
-          # fmod_expected_version drives the version gate. This job only
-          # builds hl and html5, so the C++ files are assert-only here.
+          # Files the package must contain. The manifest drives PostBuild's
+          # ABI check and the shared headers drive build-hdll. MIGRATION.md
+          # is linked from the README. linc_faxe.* is the whole C++ target.
+          # The html5 placeholders satisfy lime's parse-time checks.
+          # kfile.js carries the Kinc sub-project for Kha builds.
+          # fmod_expected_version drives the version gate. This job builds
+          # hl and html5 only, so the C++ files are assert-only here.
           for required in \
             "haxelib.json" \
             "MIGRATION.md" \
+            "LIMITATIONS.md" \
             "fmod_expected_version" \
+            "kfile.js" \
             "native/manifest/studio_api.txt" \
             "native/shared/faxe_handles.h" \
             "native/shared/faxe_cbqueue.h" \
+            "native/shared/faxe_dspdata.h" \
+            "native/shared/faxe_dsptype.h" \
             "native/shared/faxe_guid.h" \
             "native/shared/faxe_instctx.h" \
             "native/shared/faxe_pcmring.h" \
@@ -643,6 +659,8 @@ jobs:
           haxelib install lime 8.3.0 --always --quiet
           haxelib install openfl 9.5.0 --always --quiet
           haxelib install flixel 6.1.2 --always --quiet
+          # The doctor counts hxcpp among a lime project's dependencies
+          haxelib install hxcpp 4.3.2 --always --quiet
           # Install from the zip only, so no checkout copy can leak in
           haxelib remove haxefmod || true
           haxelib install haxefmod.zip --always --quiet
@@ -658,6 +676,8 @@ jobs:
 
       - name: Build and install HashLink
         run: |
+          # tee returns its own status, so a failed make needs pipefail
+          set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
@@ -704,18 +724,16 @@ jobs:
           fi
           echo "OK: fmodstudio.wasm is $SIZE bytes (real SDK file)"
 
-      # The C++ target is built and run from the package too (the
-      # required-files comment above admitted it) - build it from the
-      # installed zip too
-      # The check and generate subcommands resolve their files from
-      # the installed package layout - exercise them from there, not from
-      # the checkout the other jobs use via haxelib dev
+      # check and generate read their files from the installed package
+      # layout. The example project supplies the game-side inputs both
+      # subcommands need.
       - name: Run CLI commands from the installed package
+        env:
+          FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
         run: |
           set -o pipefail
-          haxelib run haxefmod check 2>&1 | tee /tmp/pkg-check.log || true
-          grep -qiE "haxefmod|fmod" /tmp/pkg-check.log || {
-            echo "FAIL: check produced no recognizable output"; exit 1; }
+          (cd example-project/EZPlatformer && haxelib run haxefmod check 2>&1) | tee /tmp/pkg-check.log
+          grep -q "All .* checks passed!" /tmp/pkg-check.log
           haxelib run haxefmod generate --strings tests/fixtures/Master.strings.bank \
             --out /tmp/pkg-gen 2>&1 | tee /tmp/pkg-generate.log
           test -f /tmp/pkg-gen/FmodEvents.hx || {
@@ -723,10 +741,6 @@ jobs:
           echo "CLI commands work from the installed package"
 
 
-  # ===========================================================================
-  # Package Check: C++ target
-  # The hxcpp compile dominates package validation, so it runs as its own
-  # job on full builds and tag runs only. Solo-tag debug runs skip it.
   # ===========================================================================
   # Package Check: C++ target
   # The hxcpp compile dominates package validation, so it runs as its own
@@ -1056,6 +1070,8 @@ jobs:
 
       - name: Build and install HashLink
         run: |
+          # tee returns its own status, so a failed make needs pipefail
+          set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
@@ -1139,18 +1155,6 @@ jobs:
           done
           [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
           echo "All FMOD libraries are loadable on modern kernels"
-
-      - name: Debug bin directory contents
-        run: |
-          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-          echo "=== Files in $BIN_DIR ==="
-          ls -la "$BIN_DIR" | grep -E "\.so|\.hdll|EZPlatformer"
-          echo ""
-          echo "=== hdll dependencies ==="
-          ldd "$BIN_DIR"/hlaxe_fmod.hdll || true
-          echo ""
-          echo "=== FMOD library symlinks ==="
-          ls -la "$BIN_DIR"/libfmod* || true
 
       - name: Validate build output
         run: |
@@ -1273,7 +1277,13 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
+          # The chromium-browser package installs the snap, and the snap store
+          # sometimes times out. Retry before the run fails on it.
+          for attempt in 1 2 3; do
+            sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            [ "$attempt" = 3 ] && exit 1
+            sleep 30
+          done
 
       - name: Build HTML5 target
         env:
@@ -1518,9 +1528,6 @@ jobs:
 
 
   # ===========================================================================
-  # Kha in the browser: khamake build, stage command, WebGL through SwiftShader
-
-  # ===========================================================================
   # macOS C++: build once, the states run in parallel in mac-cpp
   # ===========================================================================
   mac-cpp-build:
@@ -1605,7 +1612,7 @@ jobs:
       - name: Test native headers with Apple clang (sanitizers)
         if: ${{ !cancelled() }}
         run: |
-          for t in handles cbqueue guid pcmring; do
+          for t in handles cbqueue guid instctx pcmring; do
             clang -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
               -Wall -Wextra -Werror -o /tmp/asan_$t tests/native/test_faxe_$t.c
             /tmp/asan_$t
@@ -1845,6 +1852,8 @@ jobs:
           %TEMP%\msvc_dsptype.exe || exit /b 1
           cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dspdata.exe tests\native\test_faxe_dspdata.c || exit /b 1
           %TEMP%\msvc_dspdata.exe || exit /b 1
+          cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dspparams.exe tests\native\test_faxe_dspparams.c || exit /b 1
+          %TEMP%\msvc_dspparams.exe || exit /b 1
           python ci\haxe-enum-values.py --check || exit /b 1
           cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /I "%FMOD_SDK%\api\studio\inc" /Fe:%TEMP%\msvc_enums.exe tests\native\test_faxe_enums.c || exit /b 1
           %TEMP%\msvc_enums.exe || exit /b 1
@@ -2035,6 +2044,8 @@ jobs:
 
       - name: Build and install HashLink
         run: |
+          # tee returns its own status, so a failed make needs pipefail
+          set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
@@ -2235,7 +2246,7 @@ jobs:
           overwrite: true
 
   # ===========================================================================
-  # macOS HashLink against FMOD 2.02: the older SDK line must still build and run
+  # macOS HashLink against FMOD 2.02: the older SDK line must build and run
   # ===========================================================================
   mac-hl-compat:
     name: Flixel / macOS HashLink / FMOD 2.02 compat
@@ -2390,7 +2401,7 @@ jobs:
           overwrite: true
 
   # ===========================================================================
-  # Windows HashLink against FMOD 2.02: the older SDK line must still build and run
+  # Windows HashLink against FMOD 2.02: the older SDK line must build and run
   # ===========================================================================
   windows-hl-compat:
     name: Flixel / Windows HashLink / FMOD 2.02 compat
@@ -2611,11 +2622,6 @@ jobs:
           overwrite: true
 
   # ===========================================================================
-  # jaxe.js wasm harnesses (fast full-surface regression of the JS shim)
-  # ===========================================================================
-  # Kha in the browser: khamake build, stage command, WebGL through SwiftShader
-
-  # ===========================================================================
   # Heaps on the HashLink VM, Linux: build once, the states run in parallel in heaps-hl
   # ===========================================================================
   heaps-hl-build:
@@ -2687,9 +2693,8 @@ jobs:
           cd example-project/HeapsPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          ./build.sh hl -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          ./build.sh hl -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -2778,9 +2783,8 @@ jobs:
           cd example-project/HeapsPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          BUILD_ROOT=build-manual ./build.sh hl -D audio_test -D audio_test_manual_update -D haxefmod_num_channels=100 > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          BUILD_ROOT=build-manual ./build.sh hl -D audio_test -D audio_test_manual_update -D haxefmod_num_channels=100 > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -2837,9 +2841,8 @@ jobs:
           cd example-project/HeapsPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          ./build.sh js -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          ./build.sh js -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -2902,9 +2905,8 @@ jobs:
           cd example-project/HeapsPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          ./build.sh hlc -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          ./build.sh hlc -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -2983,9 +2985,8 @@ jobs:
           cd example-project/HeapsPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          ./build.sh hl -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          ./build.sh hl -D audio_test > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -3044,9 +3045,12 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
-          git checkout "$KHA_COMMIT" 2>/dev/null || true
+          # A shallow clone holds the tip only, so ask for the pinned commit
+          git fetch --depth 1 origin "$KHA_COMMIT"
+          git checkout --detach FETCH_HEAD
+          git submodule update --init --recursive --depth 1
 
       - name: Install system dependencies
         run: |
@@ -3059,9 +3063,8 @@ jobs:
           cd example-project/KhaPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          KHA_AUDIO_TEST=1 ./build.sh linux > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          KHA_AUDIO_TEST=1 ./build.sh linux > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -3123,9 +3126,12 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
-          git checkout "$KHA_COMMIT" 2>/dev/null || true
+          # A shallow clone holds the tip only, so ask for the pinned commit
+          git fetch --depth 1 origin "$KHA_COMMIT"
+          git checkout --detach FETCH_HEAD
+          git submodule update --init --recursive --depth 1
 
       - name: Install system dependencies
         run: |
@@ -3138,9 +3144,8 @@ jobs:
           cd example-project/KhaPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          KHA_AUDIO_TEST=1 KHA_MANUAL_UPDATE=1 BUILD_ROOT=build-manual ./build.sh linux > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          KHA_AUDIO_TEST=1 KHA_MANUAL_UPDATE=1 BUILD_ROOT=build-manual ./build.sh linux > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -3199,9 +3204,12 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
-          git checkout "$KHA_COMMIT" 2>/dev/null || true
+          # A shallow clone holds the tip only, so ask for the pinned commit
+          git fetch --depth 1 origin "$KHA_COMMIT"
+          git checkout --detach FETCH_HEAD
+          git submodule update --init --recursive --depth 1
 
       - name: Install system dependencies
         run: |
@@ -3214,9 +3222,8 @@ jobs:
           cd example-project/KhaPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          KHA_AUDIO_TEST=1 ./build.sh linux-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          KHA_AUDIO_TEST=1 ./build.sh linux-hl > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -3275,9 +3282,12 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
-          git checkout "$KHA_COMMIT" 2>/dev/null || true
+          # A shallow clone holds the tip only, so ask for the pinned commit
+          git fetch --depth 1 origin "$KHA_COMMIT"
+          git checkout --detach FETCH_HEAD
+          git submodule update --init --recursive --depth 1
 
       - name: Build test variant
         env:
@@ -3286,9 +3296,8 @@ jobs:
           cd example-project/KhaPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          KHA_AUDIO_TEST=1 ./build.sh html5 > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          KHA_AUDIO_TEST=1 ./build.sh html5 > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -3327,7 +3336,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko 
+          brew install haxe neko
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Install Haxe libraries
@@ -3349,18 +3358,20 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
-          git checkout "$KHA_COMMIT" 2>/dev/null || true
+          # A shallow clone holds the tip only, so ask for the pinned commit
+          git fetch --depth 1 origin "$KHA_COMMIT"
+          git checkout --detach FETCH_HEAD
+          git submodule update --init --recursive --depth 1
 
       - name: Build test variant
         run: |
           cd example-project/KhaPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          KHA_AUDIO_TEST=1 ./build.sh osx > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          KHA_AUDIO_TEST=1 ./build.sh osx > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -3399,7 +3410,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko 
+          brew install haxe neko
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
 
       - name: Install Haxe libraries
@@ -3421,18 +3432,20 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
-          git checkout "$KHA_COMMIT" 2>/dev/null || true
+          # A shallow clone holds the tip only, so ask for the pinned commit
+          git fetch --depth 1 origin "$KHA_COMMIT"
+          git checkout --detach FETCH_HEAD
+          git submodule update --init --recursive --depth 1
 
       - name: Build test variant
         run: |
           cd example-project/KhaPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          KHA_AUDIO_TEST=1 ./build.sh osx-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          KHA_AUDIO_TEST=1 ./build.sh osx-hl > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -3494,18 +3507,20 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
-          git checkout "$KHA_COMMIT" 2>/dev/null || true
+          # A shallow clone holds the tip only, so ask for the pinned commit
+          git fetch --depth 1 origin "$KHA_COMMIT"
+          git checkout --detach FETCH_HEAD
+          git submodule update --init --recursive --depth 1
 
       - name: Build test variant
         run: |
           cd example-project/KhaPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          KHA_AUDIO_TEST=1 ./build.sh windows > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          KHA_AUDIO_TEST=1 ./build.sh windows > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -3567,18 +3582,20 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --recursive --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
-          git checkout "$KHA_COMMIT" 2>/dev/null || true
+          # A shallow clone holds the tip only, so ask for the pinned commit
+          git fetch --depth 1 origin "$KHA_COMMIT"
+          git checkout --detach FETCH_HEAD
+          git submodule update --init --recursive --depth 1
 
       - name: Build test variant
         run: |
           cd example-project/KhaPlatformer
           # The test variant is the game when no state is requested, so one
           # build serves every leg
-          KHA_AUDIO_TEST=1 ./build.sh windows-hl > "$RUNNER_TEMP/build-test.log" 2>&1 &
-          P2=$!
-          wait $P2 || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
+          KHA_AUDIO_TEST=1 ./build.sh windows-hl > "$RUNNER_TEMP/build-test.log" 2>&1 \
+            || { echo "=== test build failed ==="; cat "$RUNNER_TEMP/build-test.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build-test.log"
 
       - name: Validate build output
@@ -3644,7 +3661,6 @@ jobs:
       - name: Restore executable bits
         run: |
           # Artifacts do not keep file modes
-          find example-project/EZPlatformer/export/linux/bin -maxdepth 1 -type f -exec chmod +x {} + 2>/dev/null || true
           find example-project/EZPlatformer/export/linux/bin -maxdepth 1 -type f -exec chmod +x {} + 2>/dev/null || true
 
       - name: Install runtime dependencies
@@ -3740,7 +3756,7 @@ jobs:
           timeout: "60"
           bin-dir: example-project/EZPlatformer/export/linux/bin
           log-file: /tmp/api-probe-linux-cpp-manual.log
-          use-wavwriter: "${{ matrix.state == 'synth-test' && 'true' || 'false' }}"
+          use-wavwriter: "false"
 
       - name: Run stress-test state (smoke)
         if: matrix.state == 'stress-test'
@@ -3973,7 +3989,11 @@ jobs:
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
+          for attempt in 1 2 3; do
+            sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            [ "$attempt" = 3 ] && exit 1
+            sleep 30
+          done
 
       - name: Start display and audio
         run: |
@@ -4110,7 +4130,8 @@ jobs:
             # Delivery end to end. Chromium delivers no nested timeline
             # beats, so that check is informational in the browser.
             grep -q "CB_TEST: Stopped" "$LOG"
-          elif grep -q "pass=false" "$LOG"; then
+          fi
+          if grep -q "pass=false" "$LOG"; then
             echo "FAIL: $GATE reported failing checks"
             exit 1
           fi
@@ -4172,7 +4193,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg 
+          brew install ffmpeg
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -4322,7 +4343,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg 
+          brew install ffmpeg
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -4890,7 +4911,7 @@ jobs:
           timeout: "60"
           bin-dir: example-project/HeapsPlatformer/build-manual/hl
           log-file: /tmp/api-probe-heaps-hl-manual.log
-          use-wavwriter: "${{ matrix.state == 'synth-test' && 'true' || 'false' }}"
+          use-wavwriter: "false"
 
       - name: Run stress-test state (smoke)
         if: matrix.state == 'stress-test'
@@ -4967,7 +4988,11 @@ jobs:
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
+          for attempt in 1 2 3; do
+            sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            [ "$attempt" = 3 ] && exit 1
+            sleep 30
+          done
 
       - name: Start display and audio
         run: |
@@ -5104,7 +5129,8 @@ jobs:
             # Delivery end to end. Chromium delivers no nested timeline
             # beats, so that check is informational in the browser.
             grep -q "CB_TEST: Stopped" "$LOG"
-          elif grep -q "pass=false" "$LOG"; then
+          fi
+          if grep -q "pass=false" "$LOG"; then
             echo "FAIL: $GATE reported failing checks"
             exit 1
           fi
@@ -5560,7 +5586,7 @@ jobs:
           timeout: "60"
           bin-dir: example-project/KhaPlatformer/build-manual/linux
           log-file: /tmp/api-probe-kha-linux-manual.log
-          use-wavwriter: "${{ matrix.state == 'synth-test' && 'true' || 'false' }}"
+          use-wavwriter: "false"
 
       - name: Run stress-test state (smoke)
         if: matrix.state == 'stress-test'
@@ -5793,7 +5819,11 @@ jobs:
       - name: Install runtime dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool
+          for attempt in 1 2 3; do
+            sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            [ "$attempt" = 3 ] && exit 1
+            sleep 30
+          done
 
       - name: Start display and audio
         run: |
@@ -5930,7 +5960,8 @@ jobs:
             # Delivery end to end. Chromium delivers no nested timeline
             # beats, so that check is informational in the browser.
             grep -q "CB_TEST: Stopped" "$LOG"
-          elif grep -q "pass=false" "$LOG"; then
+          fi
+          if grep -q "pass=false" "$LOG"; then
             echo "FAIL: $GATE reported failing checks"
             exit 1
           fi
@@ -5992,7 +6023,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg 
+          brew install ffmpeg
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -6142,7 +6173,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg 
+          brew install ffmpeg
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -6569,7 +6600,7 @@ jobs:
           git branch --show-current
 
       - name: Download compiled hdlls
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v6
         with:
           pattern: hlaxe_fmod-*.hdll
           path: /tmp/hdlls
@@ -6588,9 +6619,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           git add templates/bin/hl/
-          
+
           if git diff --staged --quiet; then
             echo "No changes to hdlls"
           else

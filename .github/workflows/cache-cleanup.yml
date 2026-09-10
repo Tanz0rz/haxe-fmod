@@ -2,9 +2,9 @@ name: Cache Cleanup
 
 # The Actions cache store is capped at 10GB and evicts least-recently-used
 # entries once it is full, so a repo that never prunes quietly starts
-# losing the caches it depends on. This keeps it well under the cap: stale
-# branch caches go on a schedule, and a merged branch's caches go as soon
-# as its PR closes.
+# losing the caches it depends on. This keeps it well under the cap. Stale
+# branch caches go on a schedule. A merged branch's caches go as soon as
+# its pull request merges.
 #
 # Nothing here can break a build. Every cache it removes is rebuilt by the
 # next run that asks for it, at the cost of one slow job.
@@ -36,10 +36,13 @@ permissions:
 
 jobs:
   # Caches belong to the branch that made them, and deleting the branch
-  # does not delete them. A merged PR is the moment they stop being useful.
+  # does not delete them. A merged pull request is the moment they stop
+  # being useful. A closed-without-merge branch keeps its caches until the
+  # scheduled prune, since work on it can resume.
   merged-branch:
     if: >-
       github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10

@@ -7,9 +7,9 @@ import haxefmod.studio.Types;
 import haxefmod.studio.native.NativeStudio;
 
 /**
- * The plugin surface against the stub backend: every wrapper routes to its
- * binding, the stub reports UNSUPPORTED or the failure value of the
- * binding's shape, and null paths never reach the shim.
+ * The plugin surface against the stub backend. Every wrapper routes to
+ * its binding. The stub reports UNSUPPORTED or the failure value of the
+ * binding's shape. Null paths never reach the shim.
  */
 class TestPlugins {
 	static var passed = 0;

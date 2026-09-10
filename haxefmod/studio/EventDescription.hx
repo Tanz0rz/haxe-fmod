@@ -104,7 +104,7 @@ abstract EventDescription(Int) from Int to Int {
      * instance made from this description, the way
      * Studio::EventDescription::setCallback does. Instances created before
      * this call keep whatever handler they already had. The mask defaults
-     * to the playback types, as on EventInstance.setCallback. Calling again
+     * to every type, as on EventInstance.setCallback. Calling again
      * replaces the remembered handler for future instances only.
      */
     public function setCallback(handler:EventCallback, ?mask:Int):Void {

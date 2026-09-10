@@ -7,25 +7,14 @@ name: Docs
 # to the docs host and swapped in atomically. GitHub Pages keeps serving a
 # redirect to tanz0rz.com for links made before the move.
 
+# A paths filter under push covers the tag entry too, and a release tag
+# whose commit touched nothing under docs/ would then skip the build. The
+# trigger carries no paths filter for that reason. Nearly every tracked
+# path feeds this site anyway, so the filter saved little.
 on:
   push:
     branches: [master, 3.0.0]
     tags: ["*"]
-    paths:
-      - "docs/**"
-      - "mkdocs.yml"
-      - "haxefmod/**"
-      - "ci/check-readme-snippets.py"
-      - "ci/docs-root-pages.py"
-      - "ci/haxe-bindings.py"
-      - "ci/docs-analytics.py"
-      - "ci/docs-release-swap.sh"
-      - "ci/pages-redirect/**"
-      - "overrides/**"
-      - "extension/**"
-      - "native/**"
-      - "LIMITATIONS.md"
-      - ".github/workflows/docs.yml"
   workflow_dispatch:
 
 env:

@@ -1,7 +1,8 @@
 // Prototype rig for the Core dynamic-audio surface, run against the real
-// FMOD 2.03.12 wasm build under Node. It proves the embind surface behaves
-// (created sounds play, the pcmread callback fires with sane sizes, channels
-// respond, DSP types exist), so the Haxe Core API can rely on it.
+// FMOD 2.03.12 wasm build under Node. It proves the embind surface behaves.
+// Created sounds play, the pcmread callback fires with sane sizes, channels
+// respond, and DSP types exist.
+// The Haxe Core API can then rely on that surface.
 // Usage: node core-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');
@@ -75,7 +76,7 @@ function main() {
         testGroupDspChain(studio);
 
         console.log(`CORE_TEST: failures = ${failures}`);
-        console.log('CORE_TEST: COMPLETE');
+        console.log('CORE_TEST: COMPLETE' + (failures ? ' (WITH FAILURES)' : ''));
         process.exit(failures ? 1 : 0);
     } catch (e) {
         console.log(`CORE_TEST: FATAL ${e.message}`);
@@ -256,7 +257,7 @@ function testDspEnumeration() {
 
     // Frozen from the verified 2.03.12 run: every type in the enum is
     // supported by the wasm build. A diff here means the FMOD web build
-    // changed what it ships, which changes what the Core bindings may
+    // changed what it ships, which changes what the Core bindings can
     // expose on html5.
     const GOLDEN = 'MIXER,OSCILLATOR,LOWPASS,ITLOWPASS,HIGHPASS,ECHO,FADER,FLANGE,'
         + 'DISTORTION,NORMALIZE,LIMITER,PARAMEQ,PITCHSHIFT,CHORUS,ITECHO,'
@@ -266,8 +267,9 @@ function testDspEnumeration() {
     check('dsp_golden_list', supported.join(',') === GOLDEN, supported.join(','));
 
     // Round-trip a lowpass cutoff to prove DSP parameters work.
-    // getParameterInfo is not usable on html5 (embind has no binding for
-    // FMOD_DSP_PARAMETER_DESC), so parameter metadata is native-only.
+    // The html5 target cannot use getParameterInfo, because embind has no
+    // binding for FMOD_DSP_PARAMETER_DESC.
+    // Parameter metadata stays native-only.
     const out = {};
     if (gCore.createDSPByType(DSP_TYPES.LOWPASS_SIMPLE, out) === FMOD.OK) {
         const dsp = out.val;
@@ -811,8 +813,10 @@ function testSystemSettingsAndGetters(studio) {
     pump(studio, 5);
 }
 
-// Walking a channel group's DSP chain: the fader sits at the tail, an added
-// unit comes back by index as the same object, and removal restores the count.
+// Walking a channel group's DSP chain.
+// The fader sits at the tail, and an added unit comes back by index as the
+// same object.
+// Removal restores the count.
 // Every getDSP call hands out a fresh wrapper, so identity is the FMOD pointer
 // stored in the wrapper's first word, which is what jaxe.rawPtr compares.
 function fmodPtr(obj) {

@@ -18,10 +18,10 @@ import haxefmod.studio.Types;
  *
  * The core subset is validated end to end against a real audio file (the CI
  * step copies fmod/Assets/Jump.wav into the game's assets before running).
- * The Dialogue/Speak event carries a real async programmer instrument, so
- * the audio-table phase proves the full CREATE/DESTROY resolution from the
- * "hello" key, with channel-group metering as the evidence the key resolved
- * to audio. The music-event block below keeps the armed-but-never-fired
+ * The Dialogue/Speak event carries a real async programmer instrument.
+ * The audio-table phase proves the full CREATE/DESTROY resolution from
+ * the "hello" key. Channel-group metering is the evidence the key
+ * resolved to audio. The music-event block below keeps the armed-but-never-fired
  * plumbing covered too. On html5 assignment reports UNSUPPORTED (an FMOD
  * glue defect, pinned by tests/js/fmod_ps_glue_repro.html) and the
  * playback phase is skipped.
@@ -165,12 +165,12 @@ class ProgrammerSoundScenario implements TestScenario {
         // before the baseline
         var desc = StudioSystem.getEvent(FmodEvents.DialogueSpeak);
         // The meter sits on the master bus for the whole audio table
-        // phase: nothing else plays during it, and the instance's own
-        // group is not a reliable place for it on the first instance of
-        // a fresh process (the first key metered silent there on macOS
-        // while the sound was ready and the event ran its full length).
-        // Its handles live until the last leak check, so they go inside
-        // the baseline.
+        // phase, because nothing else plays during it. The instance's own
+        // group is not a reliable place for it on the first instance of a
+        // fresh process. The first key metered silent there on macOS while
+        // the sound was ready and the event ran its full length. Its
+        // handles live until the last leak check, so they go inside the
+        // baseline.
         _atMasterBus = StudioSystem.getBus("bus:/");
         _atMasterBus.lockChannelGroup();
         StudioSystem.flushCommands();
@@ -192,9 +192,9 @@ class ProgrammerSoundScenario implements TestScenario {
             return;
         }
         // Studio skips an instrument whose sample data is not loaded when
-        // it triggers, and a cold first launch can lose the race (the
+        // it triggers, and a cold first launch can lose the race. The
         // first key played silent on a fresh macOS runner while the
-        // programmer sound itself was ready). Preload, as FMOD advises,
+        // programmer sound itself was ready. Preload, as FMOD advises,
         // and wait for it.
         check("at_load_sample_data", desc.loadSampleData().isOk(),
             'result=${StudioSystem.lastResult().toString()}');
@@ -287,11 +287,11 @@ class ProgrammerSoundScenario implements TestScenario {
         var tag = 'key=$key mode=$_atMode';
         if (_atWarmup) {
             // The first audio table instance of a fresh macOS process has
-            // metered silent on the CI runners with its sound ready, the
-            // sample data preloaded and the event running its full length
-            // (an open question, the plan doc has the details). This first
-            // pass is logged, not checked, and the same key runs again
-            // checked right after.
+            // metered silent on the CI runners. Its sound was ready, the
+            // sample data was preloaded, and the event ran its full length.
+            // The question is open, and the plan doc has the details. This
+            // first pass is logged, not checked, and the same key runs
+            // again checked right after.
             _atWarmup = false;
             info("at_warmup", '$tag stopped=$_atStopped creates=$_atCreates destroys=$_atDestroys peak=$_atMaxPeak create_frame=$_atCreateFrame ready_frame=$_atReadyFrame first_audible_frame=$_atFirstAudibleFrame stopped_frame=$_atFrames');
             _atInstance.release();
@@ -305,9 +305,9 @@ class ProgrammerSoundScenario implements TestScenario {
         check("at_create_callback_delivered", _atCreates > 0, '$tag count=$_atCreates');
         check("at_destroy_callback_delivered", _atDestroys > 0, '$tag count=$_atDestroys');
         // The meter reports the last mix block, read once per frame. A
-        // loop slower than 20 frames a second misses most blocks of a short
-        // word, so the peak says nothing there and the check is recorded
-        // as unsampled rather than guessed.
+        // loop slower than 20 frames a second misses most blocks of a
+        // short word. The peak says nothing there, so the check is
+        // recorded as unsampled rather than guessed.
         info("at_timeline", '$tag create_frame=$_atCreateFrame ready_frame=$_atReadyFrame first_audible_frame=$_atFirstAudibleFrame stopped_frame=$_atFrames');
         var elapsed = haxe.Timer.stamp() - _atPlayStamp;
         var pollsPerSecond = elapsed > 0 ? _atFrames / elapsed : 0;
@@ -330,13 +330,13 @@ class ProgrammerSoundScenario implements TestScenario {
         } else {
             // An audio table key resolves to a subsound of the table's FSB.
             // The library released its sound after the destroy callback,
-            // so the handle no longer resolves (no_at_leaks below counts it)
+            // so the handle fails to resolve (no_at_leaks below counts it)
             check("at_create_subsound_from_table", _atCreateSubsound >= 0, '$tag subsound=$_atCreateSubsound');
             check("at_library_sound_released", _atCreateSound.getLength() < 0,
                 '$tag result=${StudioSystem.lastResult().toString()}');
         }
         if (_atMode == "game") {
-            // Still a live sound after the instrument destroyed its copy
+            // A live sound after the instrument destroyed its copy
             check("at_game_sound_not_released", _atGameSound.getLength() > 0,
                 'length=${_atGameSound.getLength()} result=${StudioSystem.lastResult().toString()}');
             _atGameSound.release();
@@ -369,7 +369,7 @@ class ProgrammerSoundScenario implements TestScenario {
         }
 
         // A well-formed key that matches nothing: the instrument stays
-        // silent and the event still plays its region out without wedging
+        // silent, and the event plays its region out without wedging
         _bogusInstance = desc.createInstance();
         check("at_bogus_assign", _bogusInstance.assignProgrammerSound("no_such_key").isOk(), "");
         check("at_bogus_start", _bogusInstance.start().isOk(), "");

@@ -1,9 +1,12 @@
-// Runs the completeness-tail bindings of jaxe.js (sound cone and distances,
-// DSP chain positions, fade point and mix matrix readback, group getters,
-// sound group enumeration, system queries, DSP descriptors and channel
-// formats, connection matrices) against the real FMOD 2.03.12 wasm under
-// Node. The functions the web glue cannot serve must report 68
-// (ERR_UNSUPPORTED) and return their empty value.
+// Runs the completeness-tail bindings of jaxe.js against the real FMOD
+// 2.03.12 wasm under Node.
+// The bindings are the sound cone and distances, the DSP chain positions,
+// and the fade point and mix matrix readback.
+// The list runs on through group getters, sound group enumeration, and
+// system queries.
+// It ends with DSP descriptors, channel formats, and connection matrices.
+// The functions the web glue cannot serve must report 68 (ERR_UNSUPPORTED)
+// and return their empty value.
 // Usage: node completeness-tail-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');
@@ -132,9 +135,10 @@ async function main() {
     check('cg_get_mix_matrix (expect 68 unsupported)', jaxe.fmod_cg_get_mix_matrix(group, fbuf, ibuf, 0) === 0
         && jaxe.fmod_sys_last_result() === UNSUPPORTED, `result=${jaxe.fmod_sys_last_result()}`);
 
-    // Pool channel by index
-    // FMOD hands back a pool slot reference of its own, so the handle is
-    // separate from the playing channel's and shared by repeated calls
+    // Pool channel by index.
+    // FMOD hands back a pool slot reference of its own.
+    // The handle is separate from the playing channel's, and repeated calls
+    // share it.
     const index = jaxe.fmod_chan_get_index(channel);
     const pooled = jaxe.fmod_sys_get_channel(index);
     check('sys_get_channel', index >= 0 && pooled > 0 && jaxe.fmod_chan_get_index(pooled) === index

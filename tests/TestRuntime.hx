@@ -231,9 +231,9 @@ class TestRuntime {
 		stub.testBankLoadingState = 3;
 		assert(!registry.anyError(), "loaded banks report no error");
 
-		// Native semantics: an errored NONBLOCKING bank still reports
-		// valid until unloaded. The dedup check has to look at the
-		// loading state or this retry would just bump the dead refcount
+		// Native semantics: an errored NONBLOCKING bank reports valid
+		// until unloaded. The dedup check has to look at the loading
+		// state or this retry would just bump the dead refcount
 		stub.testBankLoadingState = 4;
 		stub.testBankValid = true;
 		stub.testBankUnloadCalls = 0;
@@ -296,10 +296,10 @@ class TestRuntime {
 			&& init.streamingScheduleDelay == 4096, "init forwards the studio advanced settings");
 		assert(init != null && init.encryptionKey == "secret", "init forwards encryptionKey");
 		assert(init != null && init.studioFlags == 2, "init packs memoryTracking into studioFlags bit1");
-		// The pre-create calls run in order before sys_init_ex: the log file
-		// first, then the pool (rounded by the shim, so the raw size crosses),
-		// then one thread call per entry with FMOD's defaults filled in,
-		// then the output format for sys_init_ex to pick up
+		// The pre-create calls run in order before sys_init_ex. The log file
+		// goes first. The pool follows, rounded by the shim, so the raw size
+		// crosses. Then comes one thread call per entry with FMOD's defaults
+		// filled in. The output format goes last for sys_init_ex to pick up.
 		var pre = stub.testPreInitCalls;
 		assert(pre.length == 5, 'pre-init call count ${pre.length}');
 		assert(pre.length == 5 && pre[0] == "debug:260,1,fmod-test.log", 'log file call ${pre[0]}');

@@ -7,10 +7,11 @@ import haxefmod.studio.StudioSystem;
 import haxefmod.studio.Types;
 
 /**
- * Probe for the Studio API parity round: capture and replay flags, the
- * replay time cursor in seconds, bank loading from memory with flags,
- * the listener attenuation position, the parameter description GUID on
- * every reader, and the sound info fields for an audio table key.
+ * Probe for the Studio API parity round. It covers capture and replay
+ * flags, the replay time cursor in seconds, and bank loading from memory
+ * with flags. It also covers the listener attenuation position and the
+ * parameter description GUID on every reader. The sound info fields for
+ * an audio table key close the round.
  */
 class ProbeStudioParity {
     public static function run(state:ApiProbeScenario):Void {
@@ -29,7 +30,7 @@ class ProbeStudioParity {
             var length = replay.getLength();
             @:privateAccess state.check("parity_replay_seek_seconds", replay.seekToTime(0.0).isOk(),
                 'result=${StudioSystem.lastResult().toString()} length=$length');
-            // Half a second past the end is still a valid seek target
+            // Half a second past the end is a valid seek target
             @:privateAccess state.check("parity_replay_seek_past_end", replay.seekToTime(length + 0.5).isOk(),
                 'result=${StudioSystem.lastResult().toString()}');
             @:privateAccess state.check("parity_replay_command_at_time", replay.getCommandAtTime(0.0) == 0,

@@ -1,7 +1,9 @@
 // Runs the time unit and sound info bindings of jaxe.js against the real
-// FMOD 2.03.12 wasm under Node: the unit parameter on sound length, loop
-// points, sync point offsets, and channel position, plus the four-slot
-// format and open state readers. A 4800 frame mono sound at 48 kHz is
+// FMOD 2.03.12 wasm under Node.
+// The harness checks the unit parameter on sound length, loop points, sync
+// point offsets, and channel position.
+// The four-slot format and open state readers follow.
+// A 4800 frame mono sound at 48 kHz is
 // 100 ms, 4800 PCM samples, and 9600 PCM bytes, which pins each unit.
 // Usage: node timeunits-harness.js  (needs FMOD_SDK_WEB)
 

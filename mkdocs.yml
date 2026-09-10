@@ -74,4 +74,5 @@ nav:
       - Platforms: platforms.md
   - Coverage: coverage.md
   - Limitations: limitations.md
+  - Migrating: migration.md
   - API reference: /haxe-fmod/api/

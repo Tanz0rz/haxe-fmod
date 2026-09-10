@@ -1,9 +1,10 @@
 // Runs the custom 3D rolloff and geometry bindings of jaxe.js against the
-// real FMOD 2.03.12 wasm under Node. The web build rejects the rolloff
-// point array and has no geometry at all, so every function here must
-// report 68 (ERR_UNSUPPORTED) on a live handle, keep reporting 30
-// (ERR_INVALID_HANDLE) on a dead one where a handle is involved, and
-// leave the handle table untouched.
+// real FMOD 2.03.12 wasm under Node.
+// The web build rejects the rolloff point array and has no geometry at all.
+// Every function here must report 68 (ERR_UNSUPPORTED) on a live handle.
+// Where a handle is involved, a dead handle keeps reporting 30
+// (ERR_INVALID_HANDLE).
+// Every call leaves the handle table untouched.
 // Usage: node geometry-rolloff-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');
@@ -96,7 +97,7 @@ async function main() {
     check('core_sound_get_3d_custom_rolloff_unsupported', jaxe.fmod_core_sound_get_3d_custom_rolloff(sound, fbuf) === -1
         && jaxe.fmod_sys_last_result() === 68, `result=${jaxe.fmod_sys_last_result()}`);
 
-    // Dead handles still resolve to INVALID_HANDLE ahead of the unsupported report
+    // Dead handles resolve to INVALID_HANDLE ahead of the unsupported report
     check('chan_set_3d_custom_rolloff_invalid', jaxe.fmod_chan_set_3d_custom_rolloff(0, points, 3) === 30, '');
     check('chan_get_3d_custom_rolloff_invalid', jaxe.fmod_chan_get_3d_custom_rolloff(0, fbuf) === -1
         && jaxe.fmod_sys_last_result() === 30, '');

@@ -36,6 +36,16 @@ SCANNED = [
     ".github/workflows/canary.yml",
     ".github/workflows/stress-test.yml",
     ".github/workflows/release-smoke.yml",
+    ".github/actions/fmod-sdk/action.yml",
+    "docs/platforms.md",
+    "docs/getting-started.md",
+    "docs/guides/tools-cli.md",
+    "LIMITATIONS.md",
+    "haxefmod/studio/Types.hx",
+    "haxefmod/core/ChannelGroup.hx",
+    "native/jaxe/jaxe.js",
+    "native/hlaxe/hlaxe_fmod.c",
+    "native/faxe/linc_faxe.cpp",
 ]
 
 # FMOD versions are always major.minor(2).patch(2), e.g. 2.03.12. Other

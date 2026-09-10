@@ -9,9 +9,9 @@ import haxefmod.studio.Types;
 
 /**
  * Plugin loading. The Linux CI jobs compile tests/native/test_plugin_gain.c
- * next to the game binary, so the full load, create, unload path runs when
- * that file is present and only the failure paths and the built-in plugin
- * listing run otherwise. HTML5 has no plugin host and every call reports
+ * next to the game binary. The full load, create, unload path runs when
+ * that file is present. Without it, only the failure paths and the
+ * built-in plugin listing run. HTML5 has no plugin host and every call reports
  * FMOD_ERR_UNSUPPORTED there.
  */
 class ProbePlugins {

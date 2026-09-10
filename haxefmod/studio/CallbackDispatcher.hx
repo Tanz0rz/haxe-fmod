@@ -86,8 +86,9 @@ class CallbackDispatcher {
         handlers.remove(handle);
     }
 
-    /** Removes all handlers. */
+    /** Removes all handlers and shrinks every native mask, like setCallback(null) does for one. */
     public static function clearAll():Void {
+        for (handle in handlers.keys()) NativeStudio.evi_set_callback_mask(handle, 0);
         handlers = new Map();
     }
 

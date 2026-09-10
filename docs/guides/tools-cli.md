@@ -4,12 +4,12 @@
 
 | Command | Purpose |
 |---|---|
-| `check` | Verifies the FMOD SDK path and version, the compiler, and the HashLink headers. |
+| `check` | Verifies the FMOD SDK path and version, the haxelib libraries, and on Windows the MSVC toolchain. |
 | `generate` | Writes the `FmodEvents`, `FmodBuses`, `FmodVCAs`, `FmodSnapshots`, and `FmodParameters` constants classes from `Master.strings.bank`. |
 | `todos` | Lists every `FmodManager.Todo` marker in the project. |
 | `stage` | Copies the FMOD runtime files into a build output directory, for builds lime does not manage. |
 | `build-hdll` | Compiles the HashLink native library against your installed FMOD SDK. |
-| `verify-native` | Confirms the native shims match the binding manifest. The library's own CI uses it. |
+| `verify-native` | Confirms the native shims match the binding manifest. The library's own CI runs the `haxefmod.tools.NativeManifestCheck` class directly for the same result. |
 | `help` | Prints the command list. |
 
 `postbuild` also exists. Lime calls it after each build to copy the FMOD runtime files next to the output. There is no reason to run it by hand.

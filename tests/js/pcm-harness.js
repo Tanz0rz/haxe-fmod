@@ -1,6 +1,8 @@
 // Exercises the Core PCM stream and channel surface of jaxe.js against the
-// real FMOD 2.03.12 wasm: ring write/drain through a live OPENUSER sound,
-// channel control round-trips, underrun accounting, and handle lifetime.
+// real FMOD 2.03.12 wasm.
+// The surface covers ring write/drain through a live OPENUSER sound and
+// channel control round-trips.
+// Underrun accounting and handle lifetime come after those.
 // Uses NOSOUND_NRT output so update() pumps the mixer deterministically and
 // pcmread demand is driven from this script.
 // Usage: node pcm-harness.js  (needs FMOD_SDK_WEB)
@@ -155,7 +157,7 @@ async function main() {
     testAuditClosure();
 
     console.log(`PCM_TEST: failures = ${failures}`);
-    console.log('PCM_TEST: COMPLETE');
+    console.log('PCM_TEST: COMPLETE' + (failures ? ' (WITH FAILURES)' : ''));
     process.exit(failures ? 1 : 0);
 }
 
@@ -648,8 +650,8 @@ function testAuditClosure() {
     const echo = jaxe.fmod_dsp_create_by_type(6);
     jaxe.fmod_chan_add_dsp(ch, 0, echo);
     check('s5_chan_num_dsps', jaxe.fmod_chan_get_num_dsps(ch) >= 1, '');
-    check('s5_chan_get_dsp_dedup', jaxe.fmod_chan_get_dsp(ch, 0) === echo
-        || jaxe.fmod_chan_get_dsp(ch, 0) !== 0, `dsp=${jaxe.fmod_chan_get_dsp(ch, 0)} echo=${echo}`);
+    const chanDsp = jaxe.fmod_chan_get_dsp(ch, 0);
+    check('s5_chan_get_dsp_dedup', chanDsp === echo, `dsp=${chanDsp} echo=${echo}`);
     jaxe.fmod_chan_remove_dsp(ch, echo);
     jaxe.fmod_dsp_release(echo);
 

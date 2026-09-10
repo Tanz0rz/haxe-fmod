@@ -12,17 +12,17 @@ import haxefmod.studio.native.NativeStudio;
 
 /**
  * The engine-agnostic FMOD runtime: settings-driven init, bank management,
- * 3D attachment, and per-frame servicing. FmodManager builds its
- * helper class on top of this. Games that want more control use it directly:
+ * 3D attachment, and per-frame servicing. FmodManager is the helper
+ * class built on top of this. Games that want more control use it directly:
  *
  *   FmodRuntime.init({liveUpdate: true});
  *   var jump = FmodRuntime.createInstance("event:/SFX/Jump");
  *
  * Everything here is static - there is exactly one FMOD system per
  * process, created on the first init and alive until the process exits.
- * There is deliberately no shutdown or re-init call: a teardown path
+ * There is deliberately no shutdown or re-init call. A teardown path
  * would trade a capability games do not use for a whole class of
- * use-after-shutdown bugs, and FMOD releases everything at exit.
+ * use-after-shutdown bugs. FMOD releases everything at exit.
  */
 class FmodRuntime {
     /** Refcounted bank loading (paths resolved against settings.bankFolder). */
@@ -36,9 +36,9 @@ class FmodRuntime {
     // focus (or run before init) are never muted.
     static var focused:Bool = true;
     static var muteWhenUnfocused:Bool = true;
-    // The focus mute we last pushed to the master group, so applyFocusMute
-    // only touches (and lazily allocates) the master channel group when the
-    // state actually changes - not on every focused startup.
+    // The focus mute last pushed to the master group. applyFocusMute only
+    // touches (and lazily allocates) the master channel group when the
+    // state actually changes, so a focused startup does not allocate it.
     static var focusMuteApplied:Bool = false;
     static var focusMuteSynced:Bool = false;
     static var readyHandlers:Array<Void->Void> = [];
@@ -61,9 +61,9 @@ class FmodRuntime {
         attached.maxVelocity = resolved.maxAttachedVelocity;
 
         #if hl
-        // A stale hdll usually dies at load with a missing-prim fatal (and
-        // PostBuild refuses it even earlier), but lazy prim resolution can
-        // let a mismatched hdll limp along - fail here instead.
+        // A stale hdll usually dies at load with a missing-prim fatal, and
+        // PostBuild refuses it even earlier. Lazy prim resolution can let a
+        // mismatched hdll limp along, so check here instead.
         if (NativeStudio.binding_abi_version() != BINDING_ABI) {
             trace("Error: FMOD - hlaxe_fmod.hdll binding version "
                 + NativeStudio.binding_abi_version() + " does not match this haxefmod ("
@@ -144,7 +144,7 @@ class FmodRuntime {
         #end
         #if !js
         // Native init loaded the default banks synchronously above (the
-        // stub backend has none to load)
+        // stub backend has none to load).
         defaultBanksLoaded = true;
         #end
         // HTML5: init completes asynchronously. The default banks load
@@ -178,7 +178,7 @@ class FmodRuntime {
         #if js
         // First moment the system is ready: start the async loads through
         // the registry, so the banks are refcounted and observable exactly
-        // like every other bank
+        // like every other bank.
         if (defaultBankPaths == null) {
             defaultBankPaths = [for (fileName in resolved.autoLoadBanks) bankPath(fileName)];
             for (path in defaultBankPaths) banks.loadAsync(path);
@@ -202,7 +202,7 @@ class FmodRuntime {
      * Runs the handler once FMOD is ready: immediately when initialization
      * already completed, otherwise on the first serviced frame after the
      * asynchronous HTML5 init finishes. Values pushed to FMOD before that
-     * point land on objects that do not exist yet, so wiring that applies
+     * point land on objects that do not exist yet. Wiring that applies
      * state at setup time replays it through this hook.
      */
     public static function onceReady(handler:Void->Void):Void {
@@ -219,20 +219,35 @@ class FmodRuntime {
     }
 
     /**
+     * Turns the background auto-update thread on or off after init. The
+     * resolved setting follows, so update() ticks FMOD itself while the
+     * thread is off.
+     */
+    public static function setAutoUpdate(enabled:Bool):Void {
+        if (resolved != null) resolved.autoUpdate = enabled;
+        if (isInitialized()) NativeStudio.sys_set_auto_update(enabled);
+    }
+
+    /** True while the background auto-update thread is on. */
+    public static function isAutoUpdate():Bool {
+        return resolved == null || resolved.autoUpdate;
+    }
+
+    /**
      * Services FMOD: drains the callback queue and pushes attached-instance
      * positions. Call once per frame (FmodManager.Update does).
      */
     public static function update():Void {
         if (!isInitialized()) return;
         if (!focusMuteSynced) {
-            // HTML5 initialization completes asynchronously, so state
-            // reported during init is applied on the first serviced frame
-            // (native init applies it directly, so this is a no-op there)
+            // HTML5 initialization completes asynchronously, so the first
+            // serviced frame applies state reported during init. Native
+            // init applies it directly, so this is a no-op there.
             focusMuteSynced = true;
             applyFocusMute();
             #if js
             // The shim enables auto-update unconditionally when the module
-            // becomes ready, so an autoUpdate:false setting is applied here
+            // becomes ready, so an autoUpdate:false setting is applied here.
             if (resolved != null) NativeStudio.sys_set_auto_update(resolved.autoUpdate);
             #end
             var pending = readyHandlers;
@@ -254,7 +269,7 @@ class FmodRuntime {
      * When it loses focus, the master output is muted (see
      * setMuteWhenUnfocused) so audio does not play to a window nobody is
      * looking at. FMOD keeps mixing, so sounds still play out in real time
-     * and end on schedule instead of piling up and blasting out the moment
+     * and end on schedule. They do not pile up and blast out the moment
      * focus returns.
      *
      * Call this from wherever the game observes window focus changes.
@@ -286,11 +301,16 @@ class FmodRuntime {
         return muteWhenUnfocused && !focused;
     }
 
+    /** True when a focus loss mutes the master output. */
+    public static function isMuteWhenUnfocused():Bool {
+        return muteWhenUnfocused;
+    }
+
     // Applies the focus-driven mute to the core master channel group. That is
     // a separate node from the Studio master bus, so it never clobbers a
-    // game's own bus:/ mute (or the Flixel volume wiring) - the two mutes
+    // game's own bus:/ mute or the Flixel volume wiring. The two mutes
     // compose. A no-op until FMOD is initialized, and until the mute state
-    // actually changes - so a game that never loses focus never allocates the
+    // actually changes. A game that never loses focus never allocates the
     // master group handle at all.
     static function applyFocusMute():Void {
         if (!isInitialized()) return;
@@ -327,8 +347,8 @@ class FmodRuntime {
     /**
      * Fire-and-forget playback that follows a moving object until the event
      * ends, then releases itself. Intended for one-shot (self-ending)
-     * events: a looping event played this way never stops on its own, so it
-     * never releases - use attach/detach with an instance you own instead.
+     * events. A looping event played this way never stops on its own, so it
+     * never releases. Use attach/detach with an instance you own instead.
      * Returns false when FMOD cannot create the event.
      */
     public static function playOneShotAttached(eventPath:String, provider:IFmodPositionProvider):Bool {

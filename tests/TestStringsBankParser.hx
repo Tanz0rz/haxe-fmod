@@ -11,7 +11,7 @@ import sys.FileSystem;
  * mangling used by the generate command.
  *
  * The expected path/GUID pairs are the exact set the FMOD 2.03.12 runtime
- * reports for this bank via Bank::getStringInfo, so the parser is held to
+ * reports for this bank via Bank::getStringInfo. The parser is held to
  * byte-for-byte parity with FMOD's own string table decoding.
  */
 class TestStringsBankParser {
@@ -111,8 +111,8 @@ class TestStringsBankParser {
 
 	static function testHostileChunkSize() {
 		// A chunk whose size field reads as a negative signed int must stop
-		// the scan (a scan that never advances the pointer loops forever, because the pointer never
-		// advanced past such a chunk)
+		// the scan. A scan that never advances the pointer loops forever.
+		// The pointer never advanced past such a chunk.
 		var bytes = haxe.io.Bytes.alloc(28);
 		bytes.blit(0, haxe.io.Bytes.ofString("RIFF"), 0, 4);
 		bytes.setInt32(4, 20); // riff size
@@ -128,13 +128,11 @@ class TestStringsBankParser {
 		}
 	}
 
-	//// identifier mangling
-
 	// Seeded pseudo-random corpus: mutated copies of the real fixture
 	// (bit flips, scrambled size fields, truncations) and pure noise.
 	// The parser's contract under hostile bytes is return-or-throw -
-	// never an uncaught error, never a hang (a non-advancing scan hangs,
-	// and in CI the job timeout turns a regression into a failure).
+	// never an uncaught error, never a hang. A non-advancing scan hangs,
+	// and in CI the job timeout turns a regression into a failure.
 	static function testHostileCorpus() {
 		var fixtureBytes = File.getBytes(fixture);
 		var seed = 0x9E3779B9;
@@ -181,6 +179,8 @@ class TestStringsBankParser {
 		}
 		assert("hostile corpus: every input returned or threw", completed == 400);
 	}
+
+	//// identifier mangling
 
 	static function testMangling() {
 		assert("basic path", Generate.mangle("event:/Music/MainLevel", "event:/") == "MusicMainLevel");

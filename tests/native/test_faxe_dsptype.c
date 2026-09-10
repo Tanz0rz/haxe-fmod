@@ -1,9 +1,9 @@
 /*
  * Unit tests for native/shared/faxe_dsptype.h against a real FMOD SDK's
- * headers. Compiled twice in CI: against the 2.03.12 headers in
- * package-check and against the 2.02.33 headers in linux-hl-compat,
- * because FMOD renumbers FMOD_DSP_TYPE between releases and the whole
- * point of the translation is surviving that.
+ * headers. CI compiles it twice. One build uses the 2.03.12 headers in
+ * package-check. The other uses the 2.02.33 headers in linux-hl-compat.
+ * FMOD renumbers FMOD_DSP_TYPE between releases, and the whole point of
+ * the translation is surviving that. The invocation:
  *
  *   gcc -std=c99 -Wall -Wextra -Werror -I<sdk>/api/core/inc \
  *       -o t tests/native/test_faxe_dsptype.c && ./t
@@ -42,8 +42,8 @@ int main(void) {
     }
 #else
     /* 2.02: the raw cast the shims used before this header is provably
-     * wrong (16 lands on WINAMPPLUGIN, not COMPRESSOR), the translation
-     * is not the identity, and 2.03-only types are refused */
+     * wrong. 16 lands on WINAMPPLUGIN rather than COMPRESSOR. The
+     * translation is not the identity, and 2.03-only types are refused */
     assert((int)FMOD_DSP_TYPE_COMPRESSOR != 16);
     assert((int)FMOD_DSP_TYPE_COMPRESSOR == 18);
     assert((int)FMOD_DSP_TYPE_FFT == 29);
