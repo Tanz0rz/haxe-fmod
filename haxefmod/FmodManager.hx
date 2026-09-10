@@ -259,17 +259,6 @@ class FmodManager {
         return StudioSystem.getEvent(snapshotPath).getInstanceCount() > 0;
     }
 
-    /**
-     * Sets how strongly an applied snapshot pulls the mixer toward its authored state.
-     * Intensity runs from 0.0, no effect, to 1.0, the authored state. It does nothing when the snapshot is not applied.
-     */
-    public static function SetSnapshotIntensity(snapshotPath:String, intensity:Float):Void {
-        ensureInitialized();
-        for (instance in StudioSystem.getEvent(snapshotPath).getInstanceList()) {
-            instance.setParameter("Intensity", intensity * 100.0);
-        }
-    }
-
     //// Global parameters
 
     /**

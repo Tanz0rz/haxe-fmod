@@ -9785,14 +9785,6 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Sets how strongly an applied snapshot pulls the mixer toward its authored state.",
-     "name": "SetSnapshotIntensity",
-     "signature": "SetSnapshotIntensity(snapshotPath:String, intensity:Float):Void",
-     "static": true,
-     "type": "haxefmod.FmodManager"
-    },
-    {
-     "direct": false,
      "doc": "Applies a snapshot until StopSnapshot.",
      "name": "StartSnapshot",
      "signature": "StartSnapshot(snapshotPath:String):Void",
