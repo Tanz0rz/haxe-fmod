@@ -9633,25 +9633,25 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
+     "doc": "Returns the volume of a bus, from 0.0 to 1.0.",
+     "name": "GetBusVolume",
+     "signature": "GetBusVolume(busPath:String):Float",
+     "static": true,
+     "type": "haxefmod.FmodManager"
+    },
+    {
+     "direct": false,
      "doc": "Returns true when the bus is muted.",
-     "name": "GetBusIsMuted",
-     "signature": "GetBusIsMuted(busPath:String):Bool",
+     "name": "IsBusMuted",
+     "signature": "IsBusMuted(busPath:String):Bool",
      "static": true,
      "type": "haxefmod.FmodManager"
     },
     {
      "direct": false,
      "doc": "Returns true when the bus is paused.",
-     "name": "GetBusIsPaused",
-     "signature": "GetBusIsPaused(busPath:String):Bool",
-     "static": true,
-     "type": "haxefmod.FmodManager"
-    },
-    {
-     "direct": false,
-     "doc": "Returns the volume of a bus, from 0.0 to 1.0.",
-     "name": "GetBusVolume",
-     "signature": "GetBusVolume(busPath:String):Float",
+     "name": "IsBusPaused",
+     "signature": "IsBusPaused(busPath:String):Bool",
      "static": true,
      "type": "haxefmod.FmodManager"
     },

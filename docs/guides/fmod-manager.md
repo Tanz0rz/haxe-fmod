@@ -106,9 +106,9 @@ Snapshots are events to FMOD, so these calls accept them too. The [Snapshots](#s
 | `StopAllSounds()` | Stops every event routed through the master bus immediately. |
 | `PauseAllSounds()` / `UnpauseAllSounds()` | Pauses the master bus and freezes every sound at its position. Events started while paused queue up and play on unpause. |
 | `SetBusVolume(path, volume)` / `GetBusVolume(path)` | Linear bus volume, 0.0 silent to 1.0 full. |
-| `SetBusMute(path, mute)` / `GetBusIsMuted(path)` | Bus mute flag. Volume survives a mute and unmute round trip. |
-| `SetBusPaused(path, paused)` / `GetBusIsPaused(path)` | Pauses one bus. Every event through it freezes at its position and resumes from there. A pause menu pauses `bus:/SFX` and keeps the music bus running. |
-| `SetBusVolumeMaster`, `GetBusVolumeMaster`, `SetBusMuteMaster`, `GetBusIsMutedMaster` | The same for `bus:/`. |
+| `SetBusMute(path, mute)` / `IsBusMuted(path)` | Bus mute flag. Volume survives a mute and unmute round trip. |
+| `SetBusPaused(path, paused)` / `IsBusPaused(path)` | Pauses one bus. Every event through it freezes at its position and resumes from there. A pause menu pauses `bus:/SFX` and keeps the music bus running. |
+| `SetMasterVolume(volume)`, `GetMasterVolume()`, `SetMasterMute(mute)`, `IsMasterMuted()` | The same for the master bus, `bus:/`. |
 | `SetVCAVolume(path, volume)` / `GetVCAVolume(path)` | Linear VCA volume, 0.0 to 1.0. A VCA scales every bus assigned to it. |
 | `ClearAllCallbacks()` | Removes every registered callback: song and sound handlers, event description handlers, core channel and group handlers, the system callback, and PCM stream read callbacks. Userdata stays. |
 

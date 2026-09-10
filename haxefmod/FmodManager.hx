@@ -137,7 +137,7 @@ class FmodManager {
     }
 
     /** Returns true when the bus is muted. */
-    public static function GetBusIsMuted(busPath:String):Bool {
+    public static function IsBusMuted(busPath:String):Bool {
         ensureInitialized();
         return StudioSystem.getBus(busPath).getMute();
     }
@@ -152,29 +152,54 @@ class FmodManager {
     }
 
     /** Returns true when the bus is paused. */
-    public static function GetBusIsPaused(busPath:String):Bool {
+    public static function IsBusPaused(busPath:String):Bool {
         ensureInitialized();
         return StudioSystem.getBus(busPath).getPaused();
     }
 
     /** Sets the volume of the master bus, "bus:/", from 0.0 to 1.0. */
-    public static function SetBusVolumeMaster(volume:Float):Void {
+    public static function SetMasterVolume(volume:Float):Void {
         SetBusVolume("bus:/", volume);
     }
 
     /** Returns the volume of the master bus, from 0.0 to 1.0. */
-    public static function GetBusVolumeMaster():Float {
+    public static function GetMasterVolume():Float {
         return GetBusVolume("bus:/");
     }
 
     /** Mutes or unmutes the master bus. */
-    public static function SetBusMuteMaster(mute:Bool):Void {
+    public static function SetMasterMute(mute:Bool):Void {
         SetBusMute("bus:/", mute);
     }
 
     /** Returns true when the master bus is muted. */
-    public static function GetBusIsMutedMaster():Bool {
-        return GetBusIsMuted("bus:/");
+    public static function IsMasterMuted():Bool {
+        return IsBusMuted("bus:/");
+    }
+
+    @:deprecated("FmodManager.GetBusMute is replaced by IsBusMuted")
+    public static function GetBusMute(busPath:String):Bool {
+        return IsBusMuted(busPath);
+    }
+
+    @:deprecated("FmodManager.SetBusVolumeMaster is replaced by SetMasterVolume")
+    public static function SetBusVolumeMaster(volume:Float):Void {
+        SetMasterVolume(volume);
+    }
+
+    @:deprecated("FmodManager.GetBusVolumeMaster is replaced by GetMasterVolume")
+    public static function GetBusVolumeMaster():Float {
+        return GetMasterVolume();
+    }
+
+    @:deprecated("FmodManager.SetBusMuteMaster is replaced by SetMasterMute")
+    public static function SetBusMuteMaster(mute:Bool):Void {
+        SetMasterMute(mute);
+    }
+
+    @:deprecated("FmodManager.GetBusMuteMaster is replaced by IsMasterMuted")
+    public static function GetBusMuteMaster():Bool {
+        return IsMasterMuted();
     }
 
     //// VCAs

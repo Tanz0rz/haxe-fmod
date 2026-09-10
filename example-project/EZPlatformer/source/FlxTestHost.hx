@@ -49,18 +49,18 @@ class FlxTestHost implements TestHost {
 
     public function checkVolumeBridge(check:String->Bool->String->Void):Void {
         FlxG.sound.volume = 0.5;
-        check("flx_bridge_volume", Math.abs(FmodManager.GetBusVolumeMaster() - 0.5) < 0.001,
-            'value=${FmodManager.GetBusVolumeMaster()}');
+        check("flx_bridge_volume", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
+            'value=${FmodManager.GetMasterVolume()}');
         FlxG.sound.toggleMuted();
-        check("flx_bridge_mute", FmodManager.GetBusIsMutedMaster(), "");
+        check("flx_bridge_mute", FmodManager.IsMasterMuted(), "");
         // Volume is carried by the mute flag, so it must survive the mute
-        check("flx_bridge_volume_kept", Math.abs(FmodManager.GetBusVolumeMaster() - 0.5) < 0.001,
-            'value=${FmodManager.GetBusVolumeMaster()}');
+        check("flx_bridge_volume_kept", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
+            'value=${FmodManager.GetMasterVolume()}');
         FlxG.sound.toggleMuted();
-        check("flx_bridge_mute_cleared", !FmodManager.GetBusIsMutedMaster(), "");
+        check("flx_bridge_mute_cleared", !FmodManager.IsMasterMuted(), "");
         FlxG.sound.volume = 1.0;
-        check("flx_bridge_volume_restored", Math.abs(FmodManager.GetBusVolumeMaster() - 1.0) < 0.001,
-            'value=${FmodManager.GetBusVolumeMaster()}');
+        check("flx_bridge_volume_restored", Math.abs(FmodManager.GetMasterVolume() - 1.0) < 0.001,
+            'value=${FmodManager.GetMasterVolume()}');
     }
 
     public function setFocusThroughEngine(focused:Bool):Void {

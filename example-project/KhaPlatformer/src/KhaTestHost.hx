@@ -41,18 +41,18 @@ class KhaTestHost implements TestHost {
     // Kha has no engine-level volume control to bridge, so the checks
     // drive the master bus through FmodManager and read it back
     public function checkVolumeBridge(check:String->Bool->String->Void):Void {
-        FmodManager.SetBusVolumeMaster(0.5);
-        check("kha_bridge_volume", Math.abs(FmodManager.GetBusVolumeMaster() - 0.5) < 0.001,
-            'value=${FmodManager.GetBusVolumeMaster()}');
-        FmodManager.SetBusMuteMaster(true);
-        check("kha_bridge_mute", FmodManager.GetBusIsMutedMaster(), "");
-        check("kha_bridge_volume_kept", Math.abs(FmodManager.GetBusVolumeMaster() - 0.5) < 0.001,
-            'value=${FmodManager.GetBusVolumeMaster()}');
-        FmodManager.SetBusMuteMaster(false);
-        check("kha_bridge_mute_cleared", !FmodManager.GetBusIsMutedMaster(), "");
-        FmodManager.SetBusVolumeMaster(1.0);
-        check("kha_bridge_volume_restored", Math.abs(FmodManager.GetBusVolumeMaster() - 1.0) < 0.001,
-            'value=${FmodManager.GetBusVolumeMaster()}');
+        FmodManager.SetMasterVolume(0.5);
+        check("kha_bridge_volume", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
+            'value=${FmodManager.GetMasterVolume()}');
+        FmodManager.SetMasterMute(true);
+        check("kha_bridge_mute", FmodManager.IsMasterMuted(), "");
+        check("kha_bridge_volume_kept", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
+            'value=${FmodManager.GetMasterVolume()}');
+        FmodManager.SetMasterMute(false);
+        check("kha_bridge_mute_cleared", !FmodManager.IsMasterMuted(), "");
+        FmodManager.SetMasterVolume(1.0);
+        check("kha_bridge_volume_restored", Math.abs(FmodManager.GetMasterVolume() - 1.0) < 0.001,
+            'value=${FmodManager.GetMasterVolume()}');
     }
 
     // The application-state entry points the backends call are private,

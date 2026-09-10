@@ -49,7 +49,7 @@
     FmodHeapsSetup.init({liveUpdate: true});
     ```
 
-    Heaps has no global volume control of its own, so the FMOD master bus is the volume. Wire your settings menu to `FmodManager.SetBusVolumeMaster` and `SetBusMuteMaster`.
+    Heaps has no global volume control of its own, so the FMOD master bus is the volume. Wire your settings menu to `FmodManager.SetMasterVolume` and `SetMasterMute`.
 
     On HashLink the updater rides the main thread's event loop. In the browser it is a `requestAnimationFrame` loop. A game that drives FMOD itself calls `FmodManager.Initialize()` and `FmodHeapsUpdater.init()` separately. It can also skip the updater and call `FmodManager.Update()` from its own loop.
 
@@ -63,7 +63,7 @@
     FmodKhaSetup.init({liveUpdate: true});
     ```
 
-    Kha has no global volume control of its own, so the FMOD master bus is the volume. Route your settings menu through `FmodManager.SetBusVolumeMaster` and `SetBusMuteMaster`.
+    Kha has no global volume control of its own, so the FMOD master bus is the volume. Route your settings menu through `FmodManager.SetMasterVolume` and `SetMasterMute`.
 
     A game that prefers its own wiring calls `FmodManager.Initialize()` and `FmodKhaUpdater.init()` separately. It can also leave the updater out and call `FmodManager.Update()` from its own frame code.
 

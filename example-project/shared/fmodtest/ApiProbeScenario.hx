@@ -920,9 +920,9 @@ class ApiProbeScenario implements TestScenario {
         // Per-bus pause, shaped like the mute pair
         var reverbBus = StudioSystem.getBus(FmodBuses.Reverb);
         FmodManager.SetBusPaused(FmodBuses.Reverb, true);
-        check("helper_bus_paused", FmodManager.GetBusIsPaused(FmodBuses.Reverb) && reverbBus.getPaused(), "");
+        check("helper_bus_paused", FmodManager.IsBusPaused(FmodBuses.Reverb) && reverbBus.getPaused(), "");
         FmodManager.SetBusPaused(FmodBuses.Reverb, false);
-        check("helper_bus_unpaused", !FmodManager.GetBusIsPaused(FmodBuses.Reverb) && !reverbBus.getPaused(), "");
+        check("helper_bus_unpaused", !FmodManager.IsBusPaused(FmodBuses.Reverb) && !reverbBus.getPaused(), "");
 
         check("no_handle_leaks_helper", StudioSystem.liveHandleCount() == baseline,
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');

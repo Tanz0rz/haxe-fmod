@@ -69,8 +69,8 @@ class FmodFlxSetup {
     // dispatched value, so mute maps to the bus mute flag and the volume
     // survives a mute/unmute round trip
     static function applyVolume():Void {
-        FmodManager.SetBusVolumeMaster(FlxG.sound.volume);
-        FmodManager.SetBusMuteMaster(FlxG.sound.muted);
+        FmodManager.SetMasterVolume(FlxG.sound.volume);
+        FmodManager.SetMasterMute(FlxG.sound.muted);
     }
     #end
 }

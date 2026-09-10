@@ -17,7 +17,7 @@ import kha.System;
       the background, through System.notifyOnApplicationState
 
     Kha has no global volume control of its own, so the FMOD master bus
-    is the volume: FmodManager.SetBusVolumeMaster and SetBusMuteMaster.
+    is the volume: FmodManager.SetMasterVolume and SetMasterMute.
 
     Calling init() again is safe and keeps a single focus wiring.
 **/

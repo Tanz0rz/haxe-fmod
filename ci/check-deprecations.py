@@ -42,6 +42,21 @@ DEPRECATED = [
     ("haxefmod.FmodManager.SetEventParameterOnSongWithLabel",
      "haxefmod.FmodManager.SetEventParameterOnSongWithLabel(\"x\", \"y\");",
      "FmodManager.SetEventParameterOnSongWithLabel is replaced by SetSongParameterWithLabel"),
+    ("haxefmod.FmodManager.GetBusMute",
+     "trace(haxefmod.FmodManager.GetBusMute(\"bus:/\"));",
+     "FmodManager.GetBusMute is replaced by IsBusMuted"),
+    ("haxefmod.FmodManager.SetBusVolumeMaster",
+     "haxefmod.FmodManager.SetBusVolumeMaster(1);",
+     "FmodManager.SetBusVolumeMaster is replaced by SetMasterVolume"),
+    ("haxefmod.FmodManager.GetBusVolumeMaster",
+     "trace(haxefmod.FmodManager.GetBusVolumeMaster());",
+     "FmodManager.GetBusVolumeMaster is replaced by GetMasterVolume"),
+    ("haxefmod.FmodManager.SetBusMuteMaster",
+     "haxefmod.FmodManager.SetBusMuteMaster(false);",
+     "FmodManager.SetBusMuteMaster is replaced by SetMasterMute"),
+    ("haxefmod.FmodManager.GetBusMuteMaster",
+     "trace(haxefmod.FmodManager.GetBusMuteMaster());",
+     "FmodManager.GetBusMuteMaster is replaced by IsMasterMuted"),
 ]
 
 

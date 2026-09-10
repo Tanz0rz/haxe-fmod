@@ -47,7 +47,7 @@ instance.setCallback(handler, EventCallbackType.STARTED | EventCallbackType.TIME
 - `Sound.getFormat` returns `type` and `format` next to `channels` and `bits`.
 - GUIDs are `FmodGuid`, an abstract over the braced text form. It converts to and from `String`, so string call sites keep compiling.
 - `haxefmod.studio.CoreSound` is deprecated. Use `haxefmod.core.Sound`.
-- `FmodManager.GetBusMute(path)` is now `GetBusIsMuted(path)`, and `GetBusMuteMaster()` is `GetBusIsMutedMaster()`. The setters keep their names.
+- The `FmodManager` mixer calls read as questions and name the master bus: `GetBusMute(path)` is now `IsBusMuted(path)`, and `SetBusVolumeMaster`, `GetBusVolumeMaster`, `SetBusMuteMaster`, and `GetBusMuteMaster` are now `SetMasterVolume`, `GetMasterVolume`, `SetMasterMute`, and `IsMasterMuted`. `SetBusVolume` and `SetBusMute` keep their names. The old names remain as deprecated aliases for this release and the compiler warns at every use.
 - `FmodManager.SetEventParameterOnSong`, `GetEventParameterOnSong`, and `SetEventParameterOnSongWithLabel` are now `SetSongParameter`, `GetSongParameter`, and `SetSongParameterWithLabel`. The old names remain as deprecated aliases for this release and the compiler warns at every use.
 - `FmodManager.SetWindowFocused(focused)` and `IsWindowFocused()` moved to `FmodRuntime.setWindowFocused(focused)` and `FmodRuntime.isWindowFocused()`. The engine setup calls already report focus there. A game that reported focus itself changes the two call sites. `FmodManager.SetMuteWhenUnfocused` stays.
 
