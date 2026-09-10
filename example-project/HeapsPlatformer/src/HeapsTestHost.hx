@@ -3,6 +3,7 @@ package;
 import h2d.Object;
 import h2d.Text;
 import fmodtest.TestHost;
+import haxefmod.studio.StudioSystem;
 import haxefmod.heaps.FmodHeapsBankLoader;
 import haxefmod.heaps.FmodHeapsSetup;
 import haxefmod.heaps.FmodHeapsUpdater;
@@ -52,11 +53,14 @@ class HeapsTestHost implements TestHost {
         FmodManager.SetMasterVolume(0.5);
         check("heaps_master_volume", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
             'value=${FmodManager.GetMasterVolume()}');
+        // A bus mute is a Studio command, so flush before reading it back
         FmodManager.SetMasterMute(true);
+        StudioSystem.flushCommands();
         check("heaps_master_mute", FmodManager.IsMasterMuted(), "");
         check("heaps_master_volume_kept", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
             'value=${FmodManager.GetMasterVolume()}');
         FmodManager.SetMasterMute(false);
+        StudioSystem.flushCommands();
         check("heaps_master_mute_cleared", !FmodManager.IsMasterMuted(), "");
         FmodManager.SetMasterVolume(1.0);
         check("heaps_master_volume_restored", Math.abs(FmodManager.GetMasterVolume() - 1.0) < 0.001,

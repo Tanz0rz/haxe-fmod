@@ -310,10 +310,18 @@ class ProbeChannelControl {
         @:privateAccess state.check("cg_occlusion_event_delivered", sawGroup,
             'events=${_groupEvents.length} frames=$_frames');
         var rStop = _channel.stop();
-        // Core commands cross to the mixer asynchronously. A lock and
-        // unlock pair waits out the mix block in flight. The stream,
-        // group, and geometry are then safe from a teardown under a live
-        // mix that reads them.
+        // Core commands cross to the mixer asynchronously. The stop is
+        // applied at the start of a mix block, so wait until the channel
+        // reports stopped (bounded), then a lock and unlock pair waits out
+        // the block in flight. The stream, group, and geometry are then
+        // safe from a teardown under a live mix that reads them.
+        for (i in 0...100) {
+            if (!_channel.isPlaying()) break;
+            StudioSystem.flushCommands();
+            #if sys
+            Sys.sleep(0.01);
+            #end
+        }
         StudioSystem.lockDsp();
         StudioSystem.unlockDsp();
         var rStream = _stream.release();

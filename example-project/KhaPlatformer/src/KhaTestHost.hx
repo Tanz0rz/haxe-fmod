@@ -2,6 +2,7 @@ package;
 
 import kha.graphics2.Graphics;
 import fmodtest.TestHost;
+import haxefmod.studio.StudioSystem;
 import haxefmod.kha.FmodKhaBankLoader;
 import haxefmod.kha.FmodKhaSetup;
 import haxefmod.kha.FmodKhaUpdater;
@@ -46,11 +47,14 @@ class KhaTestHost implements TestHost {
         FmodManager.SetMasterVolume(0.5);
         check("kha_master_volume", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
             'value=${FmodManager.GetMasterVolume()}');
+        // A bus mute is a Studio command, so flush before reading it back
         FmodManager.SetMasterMute(true);
+        StudioSystem.flushCommands();
         check("kha_master_mute", FmodManager.IsMasterMuted(), "");
         check("kha_master_volume_kept", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
             'value=${FmodManager.GetMasterVolume()}');
         FmodManager.SetMasterMute(false);
+        StudioSystem.flushCommands();
         check("kha_master_mute_cleared", !FmodManager.IsMasterMuted(), "");
         FmodManager.SetMasterVolume(1.0);
         check("kha_master_volume_restored", Math.abs(FmodManager.GetMasterVolume() - 1.0) < 0.001,
