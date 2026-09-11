@@ -1493,7 +1493,11 @@ typedef FmodErrorCallbackInfo = {
     var result:FmodResult;
     /** The kind of object the call was made on. */
     var instanceType:FmodErrorCallbackInstanceType;
-    /** The handle of that object, castable to its abstract type, 0 when unknown. */
+    /**
+     * The handle of that object, castable to its abstract type, 0 when unknown.
+     * The lookup is by address a frame later. An object released and replaced
+     * in between makes it name the new object.
+     */
     var instance:Int;
     /** The FMOD function that failed, for example "System::createSound". */
     var functionName:String;

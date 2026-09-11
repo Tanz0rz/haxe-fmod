@@ -78,6 +78,11 @@ async function main() {
     check('get_event', evd > 0, `handle=${evd}`);
     const music = jaxe.fmod_evd_create_instance(evd);
     check('create_instance', music > 0, `handle=${music}`);
+    // A plugin created mask installs the destroyed bit with it, since
+    // the created callback mints a handle the destroyed one frees
+    jaxe.fmod_evi_set_callback_mask(music, 0x200 /* PLUGIN_CREATED */);
+    check('plugin_created_mask_installs_destroyed', (jaxe.effectiveCallbackMask(music) & 0x400) !== 0,
+        `mask=${jaxe.effectiveCallbackMask(music)}`);
     jaxe.fmod_evi_set_callback_mask(music, 0x1000 /* TIMELINE_BEAT */);
     check('start', jaxe.fmod_evi_start(music) === 0, '');
     await pump(100);
@@ -114,6 +119,10 @@ async function main() {
         const c = created[0];
         check('create_record_name', c.str === 'Line', `name=${c.str}`);
         check('create_record_sound_handle', c.i1 > 0 && jaxe.handleResolve(c.i1, jaxe.TYPE_SOUND) != null, `sound=${c.i1}`);
+        // The shim releases its own sound, so a game release is refused
+        // and the handle stays live
+        check('create_record_release_refused', jaxe.fmod_core_release_sound(c.i1) === jaxe.ERR_INVALID_PARAM
+            && jaxe.handleResolve(c.i1, jaxe.TYPE_SOUND) != null, `result=${jaxe.fmod_sys_last_result()}`);
         check('create_record_subsound', c.i2 >= 0 && c.i2 === (props.subsoundIndex | 0), `subsound=${c.i2}`);
         check('create_record_library_owned', c.i3 === 1, `i3=${c.i3}`);
         check('create_record_handle_counted', jaxe.liveCount === baseline + 1, `live=${jaxe.liveCount} baseline=${baseline}`);

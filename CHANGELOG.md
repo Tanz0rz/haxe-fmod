@@ -163,6 +163,11 @@
 - The Linux `stage` launcher runs the bytecode even when the destination holds a stale build.
 - A programmer sound or plugin instrument's handle rides with its instance from creation to destruction. The destroy record frees that handle rather than one found by an address a new object can hold.
 - A refused `PcmStream.release` keeps the read callback and the user data, like the stream itself.
+- A plugin instrument's handle is freed when FMOD destroys the effect, whatever mask the game set. A destroy record the queue dropped on overflow still frees its handle. An instance past sixteen live plugin instruments hands out a handle found by address, rather than `Dsp.NULL`.
+- `Sound.release` on a sound the library created for a programmer instrument, and `Dsp.release` on a plugin instrument's effect, are refused with `FMOD_ERR_INVALID_PARAM`. Both released an object FMOD still owned before.
+- `extension/package.py --unpacked` copies every file the manifest names, and CI builds that tree.
+- The package check waits for the update-hdlls auto-commit on a branch whose pre-built hdll trails the manifest ABI, in the zip marker check as well. The FMOD SDK cache keeps one entry per runner OS, since a Windows checkout turns the library symlinks into files.
+- `ci/version-lockstep.py` compares the userscript version on every push, and the workflow invariants check the HashLink commit and the haxelib pins across every workflow.
 - `ChannelGroup.getParentGroup` on the master group and `Channel.getCurrentSound` on a channel from `playDSP` report no object on HTML5. They minted a handle around a null pointer before.
 - The HTML5 shim drops the wrappers it reads for their pointers only. That covers a bank unload, the callback uninstall, the sub sound parent lookups, and a released `PcmStream`.
 - A null string argument on HashLink reaches the shim as an empty one, which FMOD refuses with an error. It faulted in the string conversion before.

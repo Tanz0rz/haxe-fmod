@@ -187,6 +187,7 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 ev.i1 = soundHandle;
                 ev.i2 = props->subsoundIndex;
                 ev.i3 = owned;
+                ev.freesI1 = soundHandle != 0;
             }
             if (owned) ((FMOD::Sound*)props->sound)->release();
             break;
@@ -238,16 +239,19 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                     faxe_str_copy(ev.str, props->name, FAXE_CBQ_STR_MAX);
                 }
                 ev.ptr = props->dsp;
-                // The DSP is recorded on the instance at creation, so the
-                // destroyed record carries the handle the drain minted in
-                // i1 instead of an address FMOD frees right after this
+                // The DSP is recorded on the instance at creation. The
+                // destroyed record then carries the handle the drain
+                // minted in i1, since FMOD frees the address right after this.
+                // i3 = 0 on a full table: the drain mints a handle its
+                // destroyed record finds by address instead.
                 faxe_cbq_lock();
                 if (type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) {
-                    faxe_instctx_plugin_add(ctx, props->dsp);
+                    ev.i3 = faxe_instctx_plugin_add(ctx, props->dsp);
                 } else {
                     int dspHandle = 0;
-                    faxe_instctx_plugin_take(ctx, props->dsp, &dspHandle);
+                    ev.i3 = faxe_instctx_plugin_take(ctx, props->dsp, &dspHandle);
                     ev.i1 = dspHandle;
+                    ev.freesI1 = dspHandle != 0;
                 }
                 faxe_cbq_unlock();
             }
@@ -355,6 +359,11 @@ static FMOD_STUDIO_EVENT_CALLBACK_TYPE effectiveCallbackMask(FaxeInstCtx* ctx) {
         mask |= FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND;
     }
     faxe_cbq_unlock();
+    // A created plugin record mints a handle its destroyed record frees,
+    // so the pair is installed together
+    if (mask & FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) {
+        mask |= FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED;
+    }
     return (FMOD_STUDIO_EVENT_CALLBACK_TYPE)mask;
 }
 
@@ -626,6 +635,8 @@ static void releaseSubsoundHandles(FMOD::Sound* parent) {
 int fmod_core_release_sound(int h) {
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    // A sound this shim created for an instrument is released by the shim
+    if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     soundLockClose(h, sound);
     releaseSubsoundHandles(sound);
     // The sound's custom rolloff points are freed with the slot below,
@@ -935,6 +946,8 @@ int fmod_dsp_create_by_type(int type) {
 int fmod_dsp_release(int h) {
     FMOD::DSP* dsp = resolveDsp(h);
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    // A plugin instrument's DSP belongs to its event
+    if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     gLastResult = dsp->release();
     if (gLastResult == FMOD_OK) {
         faxe_handle_free(h);
@@ -3294,6 +3307,16 @@ static int lincMintRecorded(int instanceHandle, void* ptr, unsigned char type, i
         faxe_handle_free(handle);
         return 0;
     }
+    // FMOD releases the object, so a game release is refused
+    faxe_handle_set_owned(handle, 1);
+    return handle;
+}
+
+// A DSP the full plugin table left unrecorded still gets an owned
+// handle, which its destroyed record finds by address
+static int lincMintUnrecorded(void* ptr, unsigned char type) {
+    int handle = faxe_handle_find_or_alloc(ptr, type);
+    if (handle) faxe_handle_set_owned(handle, 1);
     return handle;
 }
 
@@ -3307,6 +3330,10 @@ bool fmod_cb_next() {
             freeDestroyedCtx(orphan);
             orphan = next;
         }
+        // The handles of destroy records the overflow dropped go too
+        int dropped[FAXE_CBQ_DROPPED_MAX];
+        int n = faxe_cbq_take_dropped_handles(dropped, FAXE_CBQ_DROPPED_MAX);
+        for (int i = 0; i < n; i++) faxe_handle_free(dropped[i]);
         return false;
     }
     if (gCbCurrent.opaque) {
@@ -3318,9 +3345,19 @@ bool fmod_cb_next() {
     // handle back, since its address died with the object. The freed
     // handle value still reaches the handler for identity.
     if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) {
-        gCbCurrent.i1 = lincMintRecorded(gCbCurrent.handle, gCbCurrent.ptr, FAXE_TYPE_DSP, 1);
+        gCbCurrent.i1 = gCbCurrent.i3
+            ? lincMintRecorded(gCbCurrent.handle, gCbCurrent.ptr, FAXE_TYPE_DSP, 1)
+            : lincMintUnrecorded(gCbCurrent.ptr, FAXE_TYPE_DSP);
     } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED) {
+        // An unrecorded DSP (i3 = 0) is found by its address, and only an
+        // owned slot goes: a game DSP at a reused address keeps its handle
         if (gCbCurrent.i1) faxe_handle_free(gCbCurrent.i1);
+        else if (!gCbCurrent.i3) {
+            int found = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_DSP);
+            int owned = found && faxe_handle_is_owned(found);
+            if (owned) faxe_handle_free(found);
+            gCbCurrent.i1 = owned ? found : 0;
+        }
     } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND) {
         // A sound the game handed over finds its existing handle, one this
         // shim created gets a fresh one that its destroy record carries

@@ -54,12 +54,19 @@ static inline void faxe_str_copy(char* dst, const char* src, size_t cap) {
  *                    i4 = time signature upper, i5 = time signature lower
  *   NESTED_TIMELINE_BEAT: the beat fields above, str = GUID of the nested
  *                    event in FMOD's text form
- *   PLUGIN_CREATED / PLUGIN_DESTROYED: str = plugin name, ptr = the FMOD_DSP
- *                    (the drain turns it into a handle, see below)
- *   CREATE_PROGRAMMER_SOUND / DESTROY_PROGRAMMER_SOUND: str = instrument
- *                    name, ptr = the FMOD_SOUND the instrument plays,
- *                    i2 = subsound index, i3 = 1 when the shim created the
- *                    sound (the drain frees its handle on destroy)
+ *   PLUGIN_CREATED:  str = plugin name, ptr = the FMOD_DSP, i3 = 1 when
+ *                    the callback recorded it on the instance. The drain
+ *                    mints the handle into i1 and records it too.
+ *   PLUGIN_DESTROYED: str = plugin name, ptr = the dead FMOD_DSP, i1 = the
+ *                    recorded handle the callback took (0 when none), i3 =
+ *                    1 when the callback found the record. The drain frees i1.
+ *   CREATE_PROGRAMMER_SOUND: str = instrument name, ptr = the FMOD_SOUND
+ *                    the instrument plays, i2 = subsound index, i3 = 1 when
+ *                    the shim created the sound. The drain mints i1 for a
+ *                    shim sound and finds it for a game sound.
+ *   DESTROY_PROGRAMMER_SOUND: the same fields, i1 = the recorded handle
+ *                    the callback took for a shim sound, which the drain
+ *                    frees. A game sound stays live and is found by address.
  *   core ERROR (system namespace): i1 = FMOD_RESULT, i2 = instance type,
  *                    ptr = the failing object, str = function name,
  *                    str2 = function parameters
@@ -74,6 +81,11 @@ static inline void faxe_str_copy(char* dst, const char* src, size_t cap) {
  * ptr is a borrowed FMOD object address with no ownership. The queue never
  * reads it, and a dropped event just loses it. The drain resolves it on the
  * Haxe thread, where the handle table is safe to touch.
+ *
+ * freesI1 marks a record whose i1 handle the drain frees. A dropped record
+ * of that kind parks the handle in a small list the drain frees later
+ * (see faxe_cbq_take_dropped_handles), so an overflow leaks no slot.
+ * jaxe.js frees such handles in the callback itself and needs no mark.
  */
 typedef struct {
     int32_t handle;             /* event instance handle (from FMOD userdata) */
@@ -84,6 +96,7 @@ typedef struct {
     int32_t i4;
     int32_t i5;
     float f1;
+    int32_t freesI1;            /* 1 when the drain frees the handle in i1, see above */
     void* opaque;               /* payload owned by the drain, or NULL */
     void* ptr;                  /* borrowed FMOD object for the drain, or NULL */
     char str[FAXE_CBQ_STR_MAX]; /* UTF-8, truncated, always NUL-terminated */
@@ -96,6 +109,9 @@ static int gCbqCount = 0;        /* number of queued events */
 static int gCbqOverflow = 0;     /* set when an event was dropped */
 static int gCbqInitialized = 0;
 static void* gCbqOrphans = NULL; /* payloads of dropped events, linked by qnext */
+#define FAXE_CBQ_DROPPED_MAX 64
+static int gCbqDroppedHandles[FAXE_CBQ_DROPPED_MAX]; /* handles of dropped freesI1 records */
+static int gCbqDroppedCount = 0;
 
 #ifdef _WIN32
 static CRITICAL_SECTION gCbqLock;
@@ -114,6 +130,7 @@ static void faxe_cbq_init(void) {
     gCbqCount = 0;
     gCbqOverflow = 0;
     gCbqOrphans = NULL;
+    gCbqDroppedCount = 0;
     gCbqInitialized = 1;
 }
 
@@ -144,6 +161,13 @@ static void faxe_cbq_push(const FaxeCbEvent* event) {
         void* dropped = gCbqRing[gCbqHead].opaque;
         *(void**)dropped = gCbqOrphans;
         gCbqOrphans = dropped;
+    }
+    /* The handle of a dropped destroy record waits for the drain. The
+     * list holds far more than one frame drops, and a full list leaks
+     * the slot rather than blocking the FMOD thread. */
+    if (gCbqCount == FAXE_CBQ_CAPACITY && gCbqRing[gCbqHead].freesI1 && gCbqRing[gCbqHead].i1
+            && gCbqDroppedCount < FAXE_CBQ_DROPPED_MAX) {
+        gCbqDroppedHandles[gCbqDroppedCount++] = gCbqRing[gCbqHead].i1;
     }
     gCbqRing[gCbqHead] = *event;
     gCbqRing[gCbqHead].str[FAXE_CBQ_STR_MAX - 1] = '\0';
@@ -185,6 +209,18 @@ static void* faxe_cbq_take_orphans(void) {
     gCbqOrphans = NULL;
     faxe_cbq_unlock();
     return head;
+}
+
+/* Copies the handles of dropped freesI1 records into out (at most cap)
+ * and clears the list. The caller frees each one. Haxe thread only. */
+static int faxe_cbq_take_dropped_handles(int* out, int cap) {
+    int n = 0;
+    if (!gCbqInitialized) return 0;
+    faxe_cbq_lock();
+    while (n < gCbqDroppedCount && n < cap) { out[n] = gCbqDroppedHandles[n]; n++; }
+    gCbqDroppedCount = 0;
+    faxe_cbq_unlock();
+    return n;
 }
 
 /* Returns and clears the overflow flag. Haxe thread only. */

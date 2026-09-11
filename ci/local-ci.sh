@@ -321,6 +321,7 @@ job_unit_tests() {
   step "Check every docs-tab entry is reviewed" python3 ci/example-ledger.py --status --require-all
   step "Check the example line counts" python3 ci/example-line-counts.py
   step "Check the extension package manifest" python3 extension/package.py --check
+  step "Build the extension packages and the unpacked tree" python3 extension/package.py --unpacked
   step "Check the HTML5 compile gate" python3 ci/check-html5-gate.py
   step "Check the HTML5 phrase matches the gate" python3 ci/check-html5-phrase.py
   step "Check the deprecated aliases still compile and warn" python3 ci/check-deprecations.py

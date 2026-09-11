@@ -537,7 +537,11 @@ abstract Sound(Int) from Int to Int {
     }
     #end
 
-    /** Releases the sound and invalidates this handle and its subsound handles. */
+    /**
+     * Releases the sound and invalidates this handle and its subsound handles.
+     * A sound the library created for a programmer instrument is refused with
+     * `FMOD_ERR_INVALID_PARAM`. The library releases it when the instrument is done.
+     */
     public function release():FmodResult {
         // The subsounds die with the parent, and their entries go too
         var subsounds = getNumSubSounds();

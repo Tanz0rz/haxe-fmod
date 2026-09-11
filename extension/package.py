@@ -149,8 +149,12 @@ def main():
         os.makedirs(unpacked)
         for name in names:
             target = os.path.join(unpacked, name)
-        os.makedirs(os.path.dirname(target), exist_ok=True)
-        shutil.copy(os.path.join(HERE, name), target)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            shutil.copy(os.path.join(HERE, name), target)
+        absent = [name for name in names if not os.path.isfile(os.path.join(unpacked, name))]
+        if absent:
+            print("package.py: the unpacked tree lacks " + ", ".join(absent))
+            return 1
         with open(os.path.join(unpacked, "manifest.json"), "w", encoding="utf-8") as fh:
             json.dump(firefox_manifest(manifest), fh, indent=2)
             fh.write("\n")

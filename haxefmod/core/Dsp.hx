@@ -439,7 +439,11 @@ abstract Dsp(Int) from Int to Int {
         return {channelMask: Scratch.readI(0), channels: Scratch.readI(1), speakerMode: Scratch.readI(2)};
     }
 
-    /** Releases the effect and invalidates this handle. Detach it first. */
+    /**
+     * Releases the effect and invalidates this handle. Detach it first.
+     * A plugin instrument's effect is refused with `FMOD_ERR_INVALID_PARAM`,
+     * since its event owns it.
+     */
     public inline function release():FmodResult {
         UserData.clear(UserDataKind.Dsp, this);
         return NativeStudio.dsp_release(this);

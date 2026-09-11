@@ -76,8 +76,8 @@ int main(void) {
     assert(!faxe_instctx_ps_sound_pending(ctx));
 
     /* the create drain records a handle on the sound's slot, and the take
-     * hands it back once, so the destroy record carries a handle rather
-     * than an address a later sound can reuse */
+     * hands it back once. The destroy record then carries a handle rather
+     * than an address a later sound can reuse. A NULL object records nothing */
     {
         static int sound;
         int handle = -1;
@@ -85,6 +85,7 @@ int main(void) {
         assert(faxe_instctx_ps_sound_take_handle(ctx, (void*)&ctx, &handle) == 0 && handle == 0);
         assert(faxe_instctx_ps_sound_set_handle(ctx, (void*)&sound, 0x10007) == 1);
         assert(faxe_instctx_ps_sound_set_handle(ctx, (void*)&ctx, 5) == 0);
+        assert(faxe_instctx_ps_sound_set_handle(ctx, NULL, 5) == 0);
         assert(faxe_instctx_ps_sound_take_handle(ctx, (void*)&sound, &handle) == 1 && handle == 0x10007);
         assert(faxe_instctx_ps_sound_take_handle(ctx, (void*)&sound, &handle) == 0 && handle == 0);
         assert(!faxe_instctx_ps_sound_pending(ctx));
@@ -98,6 +99,7 @@ int main(void) {
         assert(!faxe_instctx_plugin_add(ctx, (void*)&dsps[FAXE_PLUGIN_MAX]));
         assert(faxe_instctx_plugin_set_handle(ctx, (void*)&dsps[3], 0x20003) == 1);
         assert(faxe_instctx_plugin_set_handle(ctx, (void*)&dsps[FAXE_PLUGIN_MAX], 9) == 0);
+        assert(faxe_instctx_plugin_set_handle(ctx, NULL, 9) == 0);
         assert(faxe_instctx_plugin_take(ctx, (void*)&dsps[3], &handle) == 1 && handle == 0x20003);
         assert(faxe_instctx_plugin_take(ctx, (void*)&dsps[3], &handle) == 0 && handle == 0);
         for (i = 0; i < FAXE_PLUGIN_MAX; i++) if (i != 3) assert(faxe_instctx_plugin_take(ctx, (void*)&dsps[i], NULL) == 1);

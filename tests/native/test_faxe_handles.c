@@ -190,6 +190,26 @@ int main(void) {
         assert(faxe_live_handle_count() == 0);
     }
 
+    /* the owned mark lives with the slot: clear on alloc, gone on free */
+    {
+        int ho = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);
+        int again;
+        assert(!faxe_handle_is_owned(ho));
+        faxe_handle_set_owned(ho, 1);
+        assert(faxe_handle_is_owned(ho));
+        assert(!faxe_handle_is_owned(0) && !faxe_handle_is_owned(-1));
+        assert(!faxe_handle_is_owned(ho + 0x10000)); /* another generation */
+        faxe_handle_free(ho);
+        assert(!faxe_handle_is_owned(ho)); /* a stale handle is never owned */
+        again = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);
+        assert((again & 0xFFFF) == (ho & 0xFFFF) && !faxe_handle_is_owned(again));
+        faxe_handle_set_owned(again, 1);
+        faxe_handle_set_owned(again, 0);
+        assert(!faxe_handle_is_owned(again));
+        faxe_handle_free(again);
+        assert(faxe_live_handle_count() == 0);
+    }
+
     /* the lock record is a second owned block with the same lifetime */
     {
         int hl = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);
@@ -332,11 +352,17 @@ int main(void) {
         gRejected = &objC;
         gHookPtr = NULL;
         gHookHandle = 0;
-        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one, NULL);
+        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one, sweep_note_free);
+        /* a sweep of another type touches nothing */
         assert(faxe_handle_resolve(other, FAXE_TYPE_SOUND) == &objC);
-        /* a sweep of another type touches nothing, and a NULL hook runs nothing */
+        assert(faxe_handle_resolve(c2, FAXE_TYPE_CHAN) == &objB);
         assert(gHookPtr == NULL && gHookHandle == 0);
-        faxe_handle_free(c2);
+        /* a NULL hook frees the slot without a call */
+        gRejected = &objB;
+        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one, NULL);
+        assert(faxe_handle_resolve(c2, FAXE_TYPE_CHAN) == NULL);
+        assert(faxe_handle_resolve(other, FAXE_TYPE_SOUND) == &objC);
+        assert(gHookPtr == NULL && gHookHandle == 0);
         faxe_handle_free(other);
     }
 

@@ -64,6 +64,10 @@ typedef struct {
     unsigned short gen;   /* 1..FAXE_GEN_MAX once used, 0 = never used yet */
     unsigned char type;
     unsigned char alive;
+    /* 1 when the library owns the object's lifetime: a programmer sound
+     * it created, or a plugin instrument's DSP. The public release entry
+     * points refuse such a handle, since FMOD releases the object. */
+    unsigned char owned;
     int next_free;        /* free-list link, -1 = end of list */
 } FaxeSlot;
 
@@ -113,6 +117,7 @@ static int faxe_handle_alloc(void* ptr, unsigned char type) {
     s->lock = NULL;
     s->type = type;
     s->alive = 1;
+    s->owned = 0;
     if (s->gen == 0) s->gen = 1; /* first use of this slot */
 
     gFaxeLiveCount++;
@@ -231,6 +236,7 @@ static void faxe_handle_free(int handle) {
     if (!s->alive || s->gen != gen) return;
 
     s->alive = 0;
+    s->owned = 0;
     s->ptr = NULL;
     if (s->aux) { free(s->aux); s->aux = NULL; }
     if (s->lock) { free(s->lock); s->lock = NULL; }
@@ -239,6 +245,20 @@ static void faxe_handle_free(int handle) {
     s->next_free = gFaxeFreeHead;
     gFaxeFreeHead = idx;
     gFaxeLiveCount--;
+}
+
+/* Marks the object behind a live handle as owned by the library, or
+ * clears the mark. The handle must resolve (callers check first). */
+static void faxe_handle_set_owned(int handle, int owned) {
+    gFaxeSlots[handle & 0xFFFF].owned = (unsigned char)(owned ? 1 : 0);
+}
+
+/* True for a live handle whose object the library owns. */
+static int faxe_handle_is_owned(int handle) {
+    int idx = handle & 0xFFFF;
+    unsigned short gen = (unsigned short)((handle >> 16) & FAXE_GEN_MAX);
+    if (handle <= 0 || idx >= gFaxeSlotCap) return 0;
+    return gFaxeSlots[idx].alive && gFaxeSlots[idx].gen == gen && gFaxeSlots[idx].owned;
 }
 
 /* Replaces the slot's owned memory, freeing the previous block. The handle

@@ -83,13 +83,14 @@ class jaxe {
         } else {
             idx = jaxe.slots.length;
             if (idx >= 0x10000) return 0;
-            jaxe.slots.push({ ptr: null, raw: 0, gen: 0, type: 0, alive: false });
+            jaxe.slots.push({ ptr: null, raw: 0, gen: 0, type: 0, alive: false, owned: false });
         }
         var s = jaxe.slots[idx];
         s.ptr = ptr;
         s.raw = jaxe.rawPtr(ptr);
         s.type = type;
         s.alive = true;
+        s.owned = false;
         if (s.gen == 0) s.gen = 1; // first use of this slot
         jaxe.liveCount++;
         return (s.gen << 16) | idx;
@@ -234,6 +235,19 @@ class jaxe {
         return s.ptr;
     }
 
+    // Marks a handle whose object FMOD releases: a programmer sound this
+    // shim created, or a plugin instrument's DSP. The public release
+    // entry points refuse it.
+    static markOwned(handle) {
+        if (handle > 0) jaxe.slots[handle & 0xFFFF].owned = true;
+    }
+
+    static isOwned(handle) {
+        if (handle <= 0) return false;
+        var s = jaxe.slots[handle & 0xFFFF];
+        return !!(s && s.alive && s.gen == ((handle >> 16) & 0x7FFF) && s.owned);
+    }
+
     static handleFree(handle) {
         if (handle <= 0) return;
         var idx = handle & 0xFFFF;
@@ -241,6 +255,7 @@ class jaxe {
         var s = jaxe.slots[idx];
         if (!s || !s.alive || s.gen != gen) return;
         s.alive = false;
+        s.owned = false;
         // The embind wrapper holds a record in the wasm heap that only
         // delete() frees. The FMOD object behind it is untouched.
         if (s.ptr && typeof s.ptr.delete === "function") {
@@ -347,6 +362,9 @@ class jaxe {
         if (jaxe.psKeys[handle]) {
             mask |= 0x80 /* CREATE_PROGRAMMER_SOUND */ | 0x100 /* DESTROY_PROGRAMMER_SOUND */;
         }
+        // A created plugin record mints a handle its destroyed record
+        // frees, so the pair is installed together
+        if (mask & 0x200 /* PLUGIN_CREATED */) mask |= 0x400 /* PLUGIN_DESTROYED */;
         return mask >>> 0;
     }
 
@@ -455,14 +473,15 @@ class jaxe {
 
         if ((type == 0x80 || type == 0x100) && parameters) {
             if (typeof parameters.name === "string") ev.str = parameters.name;
-            // The callback runs on the main thread, so the sound's handle is
-            // minted here and rides in i1, and the destroy record frees it
-            // before the release, while the object is still the same one.
+            // The callback runs on the main thread, so the sound's handle
+            // is minted here and rides in i1. The destroy path releases
+            // the sound and frees that handle while the object is the same.
             // Every sound on this target is one this shim created, since
             // assignProgrammerSoundFrom is native only. i3 marks it.
             if (parameters.sound) {
                 if (type == 0x80) {
                     ev.i1 = jaxe.handleFindOrAlloc(parameters.sound, jaxe.TYPE_SOUND);
+                    jaxe.markOwned(ev.i1);
                 } else {
                     ev.i1 = jaxe.releaseRecordedObject(parameters.sound, jaxe.TYPE_SOUND, true);
                 }
@@ -503,6 +522,7 @@ class jaxe {
                 ev.i1 = type == 0x00000200
                     ? jaxe.handleFindOrAlloc(parameters.dsp, jaxe.TYPE_DSP)
                     : jaxe.releaseRecordedObject(parameters.dsp, jaxe.TYPE_DSP, false);
+                if (type == 0x00000200) jaxe.markOwned(ev.i1);
             }
         }
 
@@ -2587,6 +2607,8 @@ class jaxe {
     static fmod_core_release_sound(handle) {
         var sound = jaxe.handleResolve(handle, jaxe.TYPE_SOUND);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        // A sound this shim created for an instrument is released by the shim
+        if (jaxe.isOwned(handle)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         jaxe.releaseSubSoundHandles(sound);
         jaxe.lastResult = sound.release();
         // INVALID_HANDLE means FMOD already freed the sound. The slot goes
@@ -2877,6 +2899,8 @@ class jaxe {
     static fmod_dsp_release(handle) {
         var dsp = jaxe.resolveDsp(handle);
         if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        // A plugin instrument's DSP belongs to its event
+        if (jaxe.isOwned(handle)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         jaxe.lastResult = dsp.release();
         if (jaxe.lastResult == jaxe.FMOD.OK) {
             jaxe.handleFree(handle);

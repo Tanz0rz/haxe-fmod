@@ -23,7 +23,9 @@
  * and pluginDsps are written from the FMOD thread and read from the Haxe
  * thread, their handle twins the other way round. Every
  * writer and every cross-thread reader of handle and those fields must
- * hold the callback-queue mutex (see faxe_cbqueue.h) around access.
+ * hold the callback-queue mutex (see faxe_cbqueue.h) around access. The
+ * drain that frees a context owns it alone, since the DESTROYED callback
+ * detached it from FMOD first, so that final walk needs no lock.
  *
  * Used by linc_faxe.cpp (C++) and hlaxe_fmod.c (C99). jaxe.js mirrors the
  * same logic with a plain map (JS is single-threaded).
@@ -44,7 +46,7 @@
 #define FAXE_PS_NAME_MAX 64
 /* Name-to-key entries one instance can hold. */
 #define FAXE_PS_NAMED_MAX 8
-#define FAXE_PLUGIN_MAX 16 /* plugin instruments live at once on one instance */
+#define FAXE_PLUGIN_MAX 16 /* cap on the live plugin instruments one instance records */
 
 typedef struct {
     char name[FAXE_PS_NAME_MAX];
@@ -116,12 +118,13 @@ static int faxe_instctx_ps_sound_add(FaxeInstCtx* ctx, void* sound) {
     return 0;
 }
 
-/* Records the handle the create drain minted for a recorded sound, so
- * the destroy record carries it back instead of an address a later
+/* Records the handle the create drain minted for a recorded sound. The
+ * destroy record then carries it back instead of an address a later
  * sound can reuse. Returns 0 when the sound is no longer recorded, so
  * the caller drops a handle it just minted. Caller holds the lock. */
 static int faxe_instctx_ps_sound_set_handle(FaxeInstCtx* ctx, const void* sound, int handle) {
     int i;
+    if (!sound) return 0;
     for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
         if (ctx->psSounds[i] == sound) {
             ctx->psSoundHandles[i] = handle;
@@ -181,6 +184,7 @@ static int faxe_instctx_plugin_add(FaxeInstCtx* ctx, void* dsp) {
 
 static int faxe_instctx_plugin_set_handle(FaxeInstCtx* ctx, const void* dsp, int handle) {
     int i;
+    if (!dsp) return 0;
     for (i = 0; i < FAXE_PLUGIN_MAX; i++) {
         if (ctx->pluginDsps[i] == dsp) {
             ctx->pluginHandles[i] = handle;

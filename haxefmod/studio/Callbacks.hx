@@ -67,18 +67,24 @@ enum EventCallbackData {
      * A programmer instrument received its sound (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES).
      * properties.name is the instrument's name in FMOD Studio, properties.sound
      * the Sound it plays and properties.subsoundIndex the subsound inside it.
+     * A sound the library created belongs to the library. Its release() is
+     * refused, and the library releases it when the instrument is done.
      */
     ProgrammerSoundCreated(properties:FmodProgrammerSoundProperties);
     /**
      * A programmer instrument finished with its sound. properties.sound
      * carries the same handle ProgrammerSoundCreated delivered, for
-     * matching. A sound the library created does not resolve after this,
-     * one the game handed over stays the game's.
+     * matching. A sound the library created is released before this
+     * arrives, so that handle is for matching only. One the game handed
+     * over stays the game's.
      */
     ProgrammerSoundDestroyed(properties:FmodProgrammerSoundProperties);
     /**
      * A plugin effect on the instance was created (FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES).
      * properties.dsp is the effect unit, valid until PluginDestroyed arrives for it.
+     * The event owns it, so its release() is refused. An instance records at
+     * most sixteen live plugin instruments. A further one still gets a handle,
+     * found by address when it is destroyed.
      */
     PluginCreated(properties:FmodPluginInstanceProperties);
     /**

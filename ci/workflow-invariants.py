@@ -29,6 +29,8 @@ leans on:
      checkout and cache key reads it there.
   10. HAXELIB_PINS names every pinned haxelib install and every haxelib
      cache key carries it, so a bump rotates the caches.
+  11. Every other workflow that repeats HASHLINK_COMMIT or HAXELIB_PINS
+     carries the same value, and its pinned installs are in the pins.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -152,6 +154,34 @@ if missing_pins or not haxelib_keys or any("env.HAXELIB_PINS" not in k for k in 
     fail(f"HAXELIB_PINS out of step: missing {missing_pins}, keys {haxelib_keys}")
 else:
     ok(f"HAXELIB_PINS covers {len(installs)} pinned installs across {len(haxelib_keys)} cache keys")
+
+# 11. The other workflows repeat the two values. A bump in one file
+# that misses another would build or cache against the old pin there.
+for other in sorted(os.listdir(os.path.dirname(PATH))):
+    other_path = os.path.join(os.path.dirname(PATH), other)
+    if not other.endswith(".yml") or os.path.abspath(other_path) == os.path.abspath(PATH):
+        continue
+    with open(other_path) as fh:
+        other_text = fh.read()
+    other_commit = re.search(r"HASHLINK_COMMIT: (\S+)", other_text)
+    this_commit = re.search(r"HASHLINK_COMMIT: (\S+)", text)
+    if other_commit and (not this_commit or other_commit.group(1) != this_commit.group(1)):
+        fail(f"{other} names HashLink commit {other_commit.group(1)}, this workflow names {this_commit.group(1) if this_commit else None}")
+    elif other_commit:
+        ok(f"{other} names the same HashLink commit")
+    if re.search(r"git checkout [0-9a-f]{40}", other_text):
+        fail(f"{other} checks a HashLink commit out literally")
+    other_pins = re.search(r"HAXELIB_PINS: (\S+)", other_text)
+    if other_pins and other_pins.group(1) != pins:
+        fail(f"{other} carries HAXELIB_PINS {other_pins.group(1)}, this workflow carries {pins}")
+    elif other_pins:
+        other_installs = set(re.findall(r"haxelib install ([a-z]+) ([0-9][0-9.]*)", other_text))
+        other_missing = sorted(f"{lib}{ver}" for lib, ver in other_installs if f"{lib}{ver}" not in pins.split("-"))
+        other_keys = re.findall(r"key: haxelib-[^\n]*", other_text)
+        if other_missing or any("env.HAXELIB_PINS" not in k for k in other_keys):
+            fail(f"{other} HAXELIB_PINS out of step: missing {other_missing}, keys {other_keys}")
+        else:
+            ok(f"{other} pins {len(other_installs)} installs inside HAXELIB_PINS")
 
 # 8. Every portability loop over the shared header tests names the same
 # tests, so a header added to one compiler pass reaches the others

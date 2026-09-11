@@ -18,9 +18,9 @@ instance.setCallback(data -> switch (data) {
 instance.start();
 ```
 
-The constructors are `Created`, `Destroyed`, `Starting`, `Started`, `Restarted`, `Stopped`, `StartFailed`, `TimelineMarker(properties)`, `TimelineBeat(properties)`, `NestedTimelineBeat(properties)`, `SoundPlayed`, `SoundStopped`, `RealToVirtual`, `VirtualToReal`, `PluginCreated(properties)`, `PluginDestroyed(properties)`, `ProgrammerSoundCreated(properties)`, `ProgrammerSoundDestroyed(properties)`, and `Other(type)` for the callback types without a dedicated constructor. Each payload is the FMOD struct of that callback, as a typedef in `haxefmod.studio.Types` with FMOD's field names. Two fields carry haxefmod handles. `FmodPluginInstanceProperties.dsp` is a `haxefmod.core.Dsp` that stays live until the destroyed callback. `FmodProgrammerSoundProperties.sound` is the `Sound` the instrument plays (see below). On HTML5 `NestedTimelineBeat` never arrives. [Limitations](../limitations.md#html5) has the details.
+The constructors are `Created`, `Destroyed`, `Starting`, `Started`, `Restarted`, `Stopped`, `StartFailed`, `TimelineMarker(properties)`, `TimelineBeat(properties)`, `NestedTimelineBeat(properties)`, `SoundPlayed`, `SoundStopped`, `RealToVirtual`, `VirtualToReal`, `PluginCreated(properties)`, `PluginDestroyed(properties)`, `ProgrammerSoundCreated(properties)`, `ProgrammerSoundDestroyed(properties)`, and `Other(type)` for the callback types without a dedicated constructor. Each payload is the FMOD struct of that callback, as a typedef in `haxefmod.studio.Types` with FMOD's field names. Two fields carry haxefmod handles. `FmodPluginInstanceProperties.dsp` is a `haxefmod.core.Dsp` that stays live until the destroyed callback. The event owns it, so `release()` on it is refused. An instance records at most sixteen live plugin instruments. A further one still gets a handle, found by address when it is destroyed. `FmodProgrammerSoundProperties.sound` is the `Sound` the instrument plays (see below). On HTML5 `NestedTimelineBeat` never arrives. [Limitations](../limitations.md#html5) has the details.
 
-`setCallback(handler, ?mask)` takes an optional mask of `EventCallbackType` bits. Without a mask the binding delivers every type, the same default as FMOD's own API. `DESTROYED` is always in the mask, so the registration cleans itself up. Pass a mask to receive only the types the handler switches on.
+`setCallback(handler, ?mask)` takes an optional mask of `EventCallbackType` bits. Without a mask the binding delivers every type, the same default as FMOD's own API. `DESTROYED` is always in the mask, so the registration cleans itself up. `PLUGIN_DESTROYED` joins a mask that has `PLUGIN_CREATED`, so the effect handle is freed with the effect. Pass a mask to receive only the types the handler switches on.
 
 ```haxe
 import haxefmod.studio.Callbacks;
@@ -57,7 +57,7 @@ The library creates the sound with `FMOD_NONBLOCKING`. The decode runs off the S
 
 An event with several programmer instruments tells them apart by name. `assignProgrammerSoundForName(name, key)` maps one instrument name to a key or path. `assignProgrammerSounds(map)` sets several at once and stops at the first entry that fails. A name with no entry falls back to the single key.
 
-The handler passed to `setCallback` receives `ProgrammerSoundCreated(properties)` when an instrument receives its sound, and `ProgrammerSoundDestroyed(properties)` when it is done. `properties` is an `FmodProgrammerSoundProperties`. `name` is the instrument's name in FMOD Studio. `sound` is the `Sound` the instrument plays. That is the one the game handed to `assignProgrammerSoundFrom`, or the one the library created for the key. A library-created sound stops resolving after the destroyed callback. `subsoundIndex` is the subsound inside it, `-1` for the whole sound.
+The handler passed to `setCallback` receives `ProgrammerSoundCreated(properties)` when an instrument receives its sound, and `ProgrammerSoundDestroyed(properties)` when it is done. `properties` is an `FmodProgrammerSoundProperties`. `name` is the instrument's name in FMOD Studio. `sound` is the `Sound` the instrument plays. That is the one the game handed to `assignProgrammerSoundFrom`, or the one the library created for the key. A library-created sound is released before the destroyed callback runs, so its handle there is for matching only. Its `release()` is refused with `FMOD_ERR_INVALID_PARAM`. `subsoundIndex` is the subsound inside it, `-1` for the whole sound.
 
 `sound` is `Sound.NULL` when no assignment matched. `clearProgrammerSound()` drops every assignment.
 
@@ -74,7 +74,7 @@ line.start();
 
 ## System events
 
-`StudioSystem.setSystemCallback(handler, ?coreMask, ?studioMask)` installs one `SystemCallback` for events the systems themselves raise. The binding delivers them as `SystemEvent` values through the same per-frame drain. The constructors are `DeviceListChanged`, `DeviceLost`, and `Error(info)` from the core system, and `BankUnload(path)`, `LiveUpdateConnected`, and `LiveUpdateDisconnected` from Studio. `Error` arrives once `SystemCallbacks.CORE_ERROR` is in the core mask, with FMOD's error callback struct as `FmodErrorCallbackInfo`.
+`StudioSystem.setSystemCallback(handler, ?coreMask, ?studioMask)` installs one `SystemCallback` for events the systems themselves raise. The binding delivers them as `SystemEvent` values through the same per-frame drain. The constructors are `DeviceListChanged`, `DeviceLost`, and `Error(info)` from the core system, and `BankUnload(path)`, `LiveUpdateConnected`, and `LiveUpdateDisconnected` from Studio. `Error` arrives once `SystemCallbacks.CORE_ERROR` is in the core mask, with FMOD's error callback struct as `FmodErrorCallbackInfo`. Its `instance` field is a lookup by address, done a frame later. An object released and replaced in between makes it name the new object.
 
 A second registration replaces the handler. `clearSystemCallback()` removes it.
 

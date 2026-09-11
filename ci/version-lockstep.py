@@ -109,6 +109,11 @@ lib_version = json.load(open(os.path.join(ROOT, "haxelib.json")))["version"]
 manifest_version = json.load(open(os.path.join(ROOT, "extension", "manifest.json")))["version"]
 if manifest_version != lib_version:
     failures.append(f"extension/manifest.json version {manifest_version} differs from haxelib.json {lib_version}")
+with open(os.path.join(ROOT, "extension", "haxefmod-fmod-docs.user.js")) as fh:
+    script_version = re.search(r"^// @version\s+(\S+)", fh.read(), re.M)
+script_version = script_version.group(1) if script_version else None
+if script_version != lib_version:
+    failures.append(f"the userscript @version {script_version} differs from haxelib.json {lib_version}")
 
 print(f"version-lockstep: expected {expected} (from fmod_expected_version), "
       f"compat {COMPAT_VERSION}, {found_expected} expected-version literals, library {lib_version}")

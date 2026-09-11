@@ -128,7 +128,10 @@ jobs:
         run: python3 ci/generate-run-jobs.py --check
 
       - name: Check the extension package manifest
-        run: python3 extension/package.py --check
+        run: |
+          python3 extension/package.py --check
+          # The unpacked tree is the documented Firefox path, so it is built too
+          python3 extension/package.py --unpacked
 
       - name: Check FMOD version literal lockstep
         run: python3 ci/version-lockstep.py
@@ -608,7 +611,25 @@ jobs:
           echo "Verified: package.sh refuses to build without an hdll"
           rm -rf "$STAGE"
 
+      - name: Check the pre-built hdll ABI
+        id: abi
+        run: |
+          # A binding ABI bump lands before update-hdlls can rebuild the
+          # shipped hdlls, so the marker check and the hl steps wait for
+          # it on a branch. A tag keeps the hard failure: a release ships
+          # no stale hdll. An hdll with no marker at all counts as stale.
+          ABI=$(grep -o "abi-version: [0-9]*" native/manifest/studio_api.txt | grep -o "[0-9]*")
+          MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$" || true)
+          if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "::notice ::the pre-built hdll carries ABI '$MARKER' and the manifest says $ABI, the hl package steps wait for update-hdlls"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build the haxelib package
+        env:
+          STALE: ${{ steps.abi.outputs.stale }}
         run: |
           ./package.sh
           echo "=== Package contents (top level) ==="
@@ -660,14 +681,18 @@ jobs:
           # The zip's hdlls must all carry the current ABI marker, beyond
           # the Linux one the hl build below happens to scan
           ABI=$(grep -o "abi-version: [0-9]*" native/manifest/studio_api.txt | grep -o "[0-9]*")
-          for platform in Linux64 Mac64 Windows64; do
-            unzip -p haxefmod.zip "templates/bin/hl/$platform/hlaxe_fmod.hdll" \
-              | grep -aq "hlaxe_fmod_abi=$ABI" || {
-              echo "FAIL: $platform hdll in the zip lacks the hlaxe_fmod_abi=$ABI marker"
-              exit 1
-            }
-          done
-          echo "All packaged hdlls carry ABI marker $ABI"
+          if [ "$STALE" = "true" ]; then
+            echo "::notice ::the packaged hdlls trail ABI $ABI, the marker check waits for update-hdlls"
+          else
+            for platform in Linux64 Mac64 Windows64; do
+              unzip -p haxefmod.zip "templates/bin/hl/$platform/hlaxe_fmod.hdll" \
+                | grep -aq "hlaxe_fmod_abi=$ABI" || {
+                echo "FAIL: $platform hdll in the zip lacks the hlaxe_fmod_abi=$ABI marker"
+                exit 1
+              }
+            done
+            echo "All packaged hdlls carry ABI marker $ABI"
+          fi
           # On a release tag the hdlls must come from the tagged shim
           # sources, which the source marker build-hdll stamps proves
           case "$GITHUB_REF" in refs/tags/*)
@@ -755,21 +780,6 @@ jobs:
           sudo make install
           sudo ldconfig
           hl --version || echo "HashLink installed"
-
-      - name: Check the pre-built hdll ABI
-        id: abi
-        run: |
-          # A binding ABI bump lands before update-hdlls can rebuild the
-          # shipped hdlls, so the hl steps below wait for it on a branch.
-          # A tag keeps the hard failure: a release ships no stale hdll.
-          ABI=$(grep -o "abi-version: [0-9]*" native/manifest/studio_api.txt | grep -o "[0-9]*")
-          MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$")
-          if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
-            echo "stale=true" >> "$GITHUB_OUTPUT"
-            echo "::notice ::the pre-built hdll carries ABI $MARKER and the manifest says $ABI, the hl package build waits for update-hdlls"
-          else
-            echo "stale=false" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Build HashLink target from the installed package
         if: steps.abi.outputs.stale != 'true'

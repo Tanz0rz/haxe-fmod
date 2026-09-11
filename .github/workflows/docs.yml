@@ -27,7 +27,9 @@ permissions:
   contents: read
 
 # Every ref publishes the same site, so the deploys serialize in push
-# order rather than racing the symlink swap
+# order rather than racing the symlink swap. One run waits per group,
+# and a newer push cancels the run still waiting. The release list
+# pushes nothing after the tag until the tag run has started.
 concurrency:
   group: docs-deploy
   cancel-in-progress: false

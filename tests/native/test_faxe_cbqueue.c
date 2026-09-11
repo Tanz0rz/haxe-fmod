@@ -226,6 +226,46 @@ int main(void) {
     assert(drained == FAXE_CBQ_CAPACITY);
     assert(out.handle == FAXE_CBQ_CAPACITY + 9); /* newest survived */
 
+    /* a dropped record marked freesI1 parks its handle for the drain. A
+     * dropped record without the mark, or without a handle, parks nothing */
+    {
+        int parked[FAXE_CBQ_DROPPED_MAX];
+        memset(&ev, 0, sizeof(ev));
+        ev.i1 = 0x30001;
+        ev.freesI1 = 1;
+        faxe_cbq_push(&ev);
+        ev.i1 = 0x30002;
+        ev.freesI1 = 0;
+        faxe_cbq_push(&ev);
+        ev.i1 = 0;
+        ev.freesI1 = 1;
+        faxe_cbq_push(&ev);
+        ev.i1 = 0x30004;
+        faxe_cbq_push(&ev);
+        assert(faxe_cbq_take_dropped_handles(parked, FAXE_CBQ_DROPPED_MAX) == 0); /* nothing dropped yet */
+        ev.freesI1 = 0;
+        ev.i1 = 0;
+        for (int i = 0; i < FAXE_CBQ_CAPACITY; i++) faxe_cbq_push(&ev); /* pushes all four off */
+        assert(faxe_cbq_take_overflow() == 1);
+        assert(faxe_cbq_take_dropped_handles(parked, FAXE_CBQ_DROPPED_MAX) == 2);
+        assert(parked[0] == 0x30001 && parked[1] == 0x30004);
+        assert(faxe_cbq_take_dropped_handles(parked, FAXE_CBQ_DROPPED_MAX) == 0); /* cleared on take */
+        while (faxe_cbq_pop(&out)) {}
+        /* the list caps rather than growing */
+        for (int i = 0; i < FAXE_CBQ_DROPPED_MAX + 1; i++) {
+            ev.freesI1 = 1;
+            ev.i1 = 0x40000 + i;
+            faxe_cbq_push(&ev);
+        }
+        ev.freesI1 = 0;
+        ev.i1 = 0;
+        for (int i = 0; i < FAXE_CBQ_CAPACITY; i++) faxe_cbq_push(&ev);
+        assert(faxe_cbq_take_dropped_handles(parked, FAXE_CBQ_DROPPED_MAX) == FAXE_CBQ_DROPPED_MAX);
+        assert(parked[0] == 0x40000 && parked[FAXE_CBQ_DROPPED_MAX - 1] == 0x40000 + FAXE_CBQ_DROPPED_MAX - 1);
+        assert(faxe_cbq_take_overflow() == 1);
+        while (faxe_cbq_pop(&out)) {}
+    }
+
     /* opaque payloads ride the queue and come back intact */
     {
         TestPayload payload;

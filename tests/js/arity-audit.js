@@ -40,8 +40,10 @@ jaxe.onRuntimeInitialized = function () {
 
 let failures = 0;
 // A call that throws is the arity error this file exists for. A call
-// that returns an FMOD error code is a failure too: a wrong argument
-// order reaches FMOD as a refused call rather than a throw.
+// that returns an FMOD error code is a failure too. A wrong argument
+// order reaches FMOD as a refused call rather than a throw. A getter
+// returns its error value in band, so its predicate reads the last
+// result as well.
 function check(label, fn, ok) {
     try {
         const r = fn();
@@ -53,6 +55,7 @@ function check(label, fn, ok) {
 }
 const isOk = r => r === 0;
 const isHandle = r => typeof r === 'number' && r > 0;
+const lastOk = () => jaxe.fmod_sys_last_result() === 0;
 
 async function main() {
     jaxe.FMOD['preRun'] = jaxe.preRun;
@@ -70,12 +73,15 @@ async function main() {
     const evd = check('fmod_sys_get_event', () => jaxe.fmod_sys_get_event(SONG), isHandle);
     const h = check('fmod_evd_create_instance', () => jaxe.fmod_evd_create_instance(evd), isHandle);
     check('fmod_evi_start', () => jaxe.fmod_evi_start(h), isOk);
+    // The instance reaches PLAYING (0) within a few updates, then plays on
+    // for a while so the timeline has moved
+    for (let i = 0; i < 200 && jaxe.fmod_evi_get_playback_state(h) !== 0; i++) { jaxe.fmod_sys_update(); await new Promise(r => setTimeout(r, 10)); }
     for (let i = 0; i < 10; i++) { jaxe.fmod_sys_update(); await new Promise(r => setTimeout(r, 10)); }
-    check('fmod_evi_get_playback_state', () => jaxe.fmod_evi_get_playback_state(h), r => r >= 0 && r <= 4);
-    check('fmod_evi_get_timeline_position', () => jaxe.fmod_evi_get_timeline_position(h), r => r >= 0);
+    check('fmod_evi_get_playback_state', () => jaxe.fmod_evi_get_playback_state(h), r => r === 0 && lastOk());
+    check('fmod_evi_get_timeline_position', () => jaxe.fmod_evi_get_timeline_position(h), r => r > 0 && lastOk());
     // HighPass is a parameter the example's music event carries
     check('fmod_evi_set_param_by_name', () => jaxe.fmod_evi_set_param_by_name(h, 'HighPass', 0.5, false), isOk);
-    check('fmod_evi_get_param_by_name', () => jaxe.fmod_evi_get_param_by_name(h, 'HighPass'), r => typeof r === 'number');
+    check('fmod_evi_get_param_by_name', () => jaxe.fmod_evi_get_param_by_name(h, 'HighPass'), r => Math.abs(r - 0.5) < 1e-6 && lastOk());
     check('fmod_evi_set_paused(true)', () => jaxe.fmod_evi_set_paused(h, true), isOk);
     check('fmod_evi_set_paused(false)', () => jaxe.fmod_evi_set_paused(h, false), isOk);
     check('fmod_evi_set_callback_mask', () => jaxe.fmod_evi_set_callback_mask(h, 0x7FFFF), isOk);
@@ -88,7 +94,7 @@ async function main() {
     }
     console.log('Stopped delivered:', saw);
     if (!saw) failures++;
-    check('fmod_evi_release', () => jaxe.fmod_evi_release(h));
+    check('fmod_evi_release', () => jaxe.fmod_evi_release(h), isOk);
 
     console.log(failures ? `AUDIT FAILED: ${failures} failures` : 'AUDIT CLEAN');
     process.exit(failures ? 1 : 0);
