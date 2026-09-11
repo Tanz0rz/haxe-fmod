@@ -268,7 +268,9 @@ class Run {
 		// locates MSVC. Without -products * it skips the standalone Build
 		// Tools product, which is exactly what the remediation below tells
 		// the user to install.
-		var vswherePath = "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
+		var programFiles = Sys.getEnv("ProgramFiles(x86)");
+		if (programFiles == null || programFiles == "") programFiles = "C:\\Program Files (x86)";
+		var vswherePath = programFiles + "\\Microsoft Visual Studio\\Installer\\vswhere.exe";
 		if (FileSystem.exists(vswherePath)) {
 			var result = runQuiet(vswherePath, ["-latest", "-products", "*", "-property", "installationPath"]);
 			if (result.exitCode == 0 && result.stdout != "") {

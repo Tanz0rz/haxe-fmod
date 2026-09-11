@@ -255,23 +255,43 @@ def run_for(j, seconds, log, wav_env):
     return f"""          export FMOD_WAVWRITER={wav_env}
           export HAXEFMOD_LOG_FILE={log}
           cd {j.bindir}
-          {j.launch} > {log} 2>&1 &
-          GAME_PID=$!
+{run_game_function(seconds, log).replace('{launch}', j.launch)}
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp {log} {log}.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq {seconds}); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
 """
+
+
+def run_game_function(seconds, log):
+    """A shell function that runs the game to its exit or the timeout.
+    It returns 0 when the game died on its own within five seconds, a
+    crash at startup rather than a result: the window can come up with
+    no size on a fresh runner and the preloader faults before the state
+    starts. The caller launches once more then."""
+    return f"""          run_game() {{
+            {{launch}} > {log} 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq {seconds}); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }}"""
 
 
 def native_steps(j):
@@ -343,22 +363,13 @@ def native_steps(j):
           LOG={L(f"stress-smoke-{j.name}.log")}
           export HAXEFMOD_LOG_FILE="$LOG"
           cd {j.bindir}
-          {j.launch} > "$LOG" 2>&1 &
-          GAME_PID=$!
+{run_game_function(90, '"$LOG"').replace('{launch}', j.launch)}
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || {{ echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }}
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi

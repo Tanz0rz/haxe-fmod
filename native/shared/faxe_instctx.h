@@ -19,9 +19,10 @@
  * Threading: handle and cgHandle are written from the game thread and read
  * on FMOD threads (handle) or the game thread only (cgHandle). The
  * programmer-sound fields (psKey, psGameSound, psGameSubsound, psNamed)
- * are written from the Haxe thread and read from FMOD threads. Writers and
- * the FMOD-thread readers of handle and those fields must hold the
- * callback-queue mutex (see faxe_cbqueue.h) around access.
+ * are written from the Haxe thread and read from FMOD threads. psSounds
+ * is written from the FMOD thread and read from the Haxe thread. Every
+ * writer and every cross-thread reader of handle and those fields must
+ * hold the callback-queue mutex (see faxe_cbqueue.h) around access.
  *
  * Used by linc_faxe.cpp (C++) and hlaxe_fmod.c (C99). jaxe.js mirrors the
  * same logic with a plain map (JS is single-threaded).
@@ -54,7 +55,7 @@ typedef struct {
     int cgHandle;             /* handle minted for the instance's channel group, or 0 */
     unsigned int cbMask;      /* callback mask requested via evi_set_callback_mask */
     char psKey[FAXE_PS_KEY_MAX]; /* programmer-sound key or file path. "" = none */
-    void* psSound;            /* FMOD_SOUND* the shim created for the active programmer sound, released on destroy */
+    void* psSounds[FAXE_PS_NAMED_MAX]; /* FMOD_SOUND* the shim created per live instrument, released on destroy */
     void* psGameSound;        /* FMOD_SOUND* the game owns and keeps alive, never released here */
     int psGameSubsound;       /* subsound index handed over with psGameSound, -1 for the sound itself */
     FaxePsNamed* psNamed;     /* name-to-key entries, allocated on first use */
@@ -81,17 +82,61 @@ static int faxe_instctx_ps_armed(const FaxeInstCtx* ctx) {
     return ctx->psKey[0] != '\0' || ctx->psGameSound != NULL || ctx->psNamedCount > 0;
 }
 
-/* True while the shim still owns a sound it created for the instrument.
+/* True while the shim still owns a sound it created for an instrument.
  * The installed callback mask keeps its DESTROY_PROGRAMMER_SOUND bit as
  * long as this holds, so the release runs even after a clear. Caller
  * holds the callback-queue lock. */
 static int faxe_instctx_ps_sound_pending(const FaxeInstCtx* ctx) {
-    return ctx->psSound != NULL;
+    int i;
+    for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
+        if (ctx->psSounds[i] != NULL) return 1;
+    }
+    return 0;
 }
 
-/* Drops every assignment. psSound survives, because the sound behind it
- * is live and still needs its release. Caller holds the callback-queue
- * lock. */
+/* Records a sound the shim created for an instrument. Several
+ * instruments on one instance can be live at once, so each gets its
+ * own slot. Returns 0 when every slot is taken. Caller holds the
+ * callback-queue lock. */
+static int faxe_instctx_ps_sound_add(FaxeInstCtx* ctx, void* sound) {
+    int i;
+    if (!sound) return 0;
+    for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
+        if (ctx->psSounds[i] == NULL) {
+            ctx->psSounds[i] = sound;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* How many sounds are recorded. */
+static int faxe_instctx_ps_take_count(const FaxeInstCtx* ctx) {
+    int i, n = 0;
+    for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
+        if (ctx->psSounds[i] != NULL) n++;
+    }
+    return n;
+}
+
+/* Forgets a recorded sound. Returns 1 when the shim owned it, so the
+ * caller releases it, 0 for a game-owned or unknown sound. Caller holds
+ * the callback-queue lock. */
+static int faxe_instctx_ps_sound_take(FaxeInstCtx* ctx, const void* sound) {
+    int i;
+    if (!sound) return 0;
+    for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
+        if (ctx->psSounds[i] == sound) {
+            ctx->psSounds[i] = NULL;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Drops every assignment. The recorded sounds survive, because the
+ * sounds behind them are live and still need their release. Caller
+ * holds the callback-queue lock. */
 static void faxe_instctx_ps_clear(FaxeInstCtx* ctx) {
     ctx->psKey[0] = '\0';
     ctx->psGameSound = NULL;

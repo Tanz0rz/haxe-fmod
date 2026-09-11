@@ -28,6 +28,9 @@ class FmodHeapsUpdater {
     static var installed:Bool = false;
     #if js
     static var frameRequest:Int = 0;
+    // True while browserFrame runs its tickers. An init from inside
+    // leaves the re-arm to the running frame.
+    static var inFrame:Bool = false;
     #elseif (target.threaded && haxe_ver >= 4.2)
     static var eventHandler:sys.thread.EventLoop.EventHandler = null;
     #else
@@ -40,7 +43,7 @@ class FmodHeapsUpdater {
         installed = true;
         installCount++;
         #if js
-        frameRequest = js.Browser.window.requestAnimationFrame(browserFrame);
+        if (!inFrame) frameRequest = js.Browser.window.requestAnimationFrame(browserFrame);
         #elseif (target.threaded && haxe_ver >= 4.2)
         // Interval 0 runs the event exactly once per progress() call.
         eventHandler = sys.thread.Thread.current().events.repeat(frame, 0);
@@ -72,9 +75,12 @@ class FmodHeapsUpdater {
 
     #if js
     static function browserFrame(_:Float):Void {
+        inFrame = true;
         frame();
+        inFrame = false;
         // A removeHook from inside frame() cancels a request that is
-        // already being serviced, so the loop ends here instead
+        // already being serviced, so the loop ends here instead. An init
+        // from inside left the re-arm to this line, so one loop runs.
         if (!installed) return;
         frameRequest = js.Browser.window.requestAnimationFrame(browserFrame);
     }

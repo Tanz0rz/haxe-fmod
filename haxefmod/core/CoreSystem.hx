@@ -209,7 +209,7 @@ class CoreSystem {
     #end
     /** Proxy for FMOD's own network streams, as "host:port" ("user:pass@host:port" with credentials). */
     public static inline function setNetworkProxy(proxy:String):FmodResult {
-        return NativeStudio.sys_set_network_proxy(proxy);
+        return NativeStudio.sys_set_network_proxy(proxy == null ? "" : proxy);
     }
 
     /**

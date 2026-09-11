@@ -223,8 +223,11 @@ class BuildHdll {
 				"/usr/include",
 			];
 			case "windows": [
-				// Common Windows HL install locations
+				// Common Windows HL install locations, headers beside the
+				// binaries or under include/
+				"C:\\HaxeToolkit\\hashlink\\include",
 				"C:\\HaxeToolkit\\hashlink",
+				"C:\\hashlink\\include",
 				"C:\\hashlink",
 			];
 			default: [];
@@ -308,10 +311,13 @@ class BuildHdll {
 					'/LIBPATH:$studioLib',
 					"fmod_vc.lib", "fmodstudio_vc.lib",
 				];
+				// The shim uses only the HL_PRIM thunks, which need no
+				// runtime symbols. libhl.lib is linked when it was found,
+				// the way the Linux and macOS links leave it out.
 				if (hlLib != null) {
 					args.push('/LIBPATH:$hlLib');
+					args.push("libhl.lib");
 				}
-				args.push("libhl.lib");
 				args.push('/OUT:$output');
 				args;
 			default: [];

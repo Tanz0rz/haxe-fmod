@@ -1634,7 +1634,10 @@ class ApiProbeScenario implements TestScenario {
         var channel = stream.play(true);
         var echo = Dsp.create(DspType.ECHO);
         channel.addDsp(0, echo);
-        check("lifecycle_conn_survives_add", !conn.isNull() && (conn : Int) != 0, "");
+        // The connection still answers after a graph change elsewhere
+        conn.getMix();
+        check("lifecycle_conn_survives_add", StudioSystem.lastResult().isOk(),
+            'result=${StudioSystem.lastResult().toString()}');
         var removeResult = channel.removeDsp(echo);
         check("lifecycle_remove_dsp", removeResult.isOk(), 'result=${removeResult.toString()}');
         conn.getMix();
@@ -2375,8 +2378,10 @@ class ApiProbeScenario implements TestScenario {
         check("channel_dsp_head_constant", !routed.getDsp(Channel.DSP_HEAD).isNull(),
             'result=${StudioSystem.lastResult().toString()}');
         var headLookup = StudioSystem.liveHandleCount() - beforeHead;
-        check("channel_dsp_constants_match_group", Channel.DSP_HEAD == ChannelGroup.DSP_HEAD
-            && Channel.DSP_FADER == ChannelGroup.DSP_FADER && Channel.DSP_TAIL == ChannelGroup.DSP_TAIL, "");
+        // FMOD_CHANNELCONTROL_DSP_HEAD, _FADER, _TAIL are -1, -2, -3
+        check("channel_dsp_constants_match_group", Channel.DSP_HEAD == -1 && ChannelGroup.DSP_HEAD == -1
+            && Channel.DSP_FADER == -2 && ChannelGroup.DSP_FADER == -2
+            && Channel.DSP_TAIL == -3 && ChannelGroup.DSP_TAIL == -3, "");
         routed.stop();
         var unrouted = sound.play(true);
         check("core_play_sound_default_master", !unrouted.isNull() && unrouted.getChannelGroup() == ChannelGroup.master(),

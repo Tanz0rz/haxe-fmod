@@ -95,6 +95,9 @@ abstract Sound(Int) from Int to Int {
      * initialSubsound wins over the argument when both are given.
      */
     public static function create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1, ?exinfo:FmodCreateSoundExInfo):Sound {
+        // A null path is an empty one, which FMOD refuses. The HashLink
+        // string conversion cannot take null.
+        if (path == null) path = "";
         var fullMode = mode | (loop ? ChannelMode.LOOP_NORMAL : 0) | (openOnly ? ChannelMode.OPENONLY : 0);
         if (exinfo == null) return NativeStudio.core_create_sound(path, fullMode, initialSubsound);
         packExInfo(exinfo, initialSubsound);
@@ -359,7 +362,7 @@ abstract Sound(Int) from Int to Int {
      * StudioSystem.lastResult).
      */
     public inline function addSyncPoint(offset:Int, name:String, offsetType:FmodTimeUnit = FmodTimeUnit.MS):FmodSyncPoint {
-        return NativeStudio.sound_add_sync_point(this, offset, offsetType, name);
+        return NativeStudio.sound_add_sync_point(this, offset, offsetType, name == null ? "" : name);
     }
 
     /** Removes a point. The points after it move down by one. */

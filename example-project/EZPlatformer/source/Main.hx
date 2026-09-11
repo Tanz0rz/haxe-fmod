@@ -10,6 +10,11 @@ class Main extends Sprite {
         // TestPreloader has FMOD and the default banks ready before the
         // first state, so it starts the game directly
         addChild(new FlxGame(320, 240, firstState(), 60, 60, true));
+        #if audio_test
+        // Flixel pauses the game when the window loses focus. A test
+        // state counts frames, so a focus change would stall it.
+        flixel.FlxG.autoPause = false;
+        #end
     }
 
     static function firstState():Class<FlxState> {

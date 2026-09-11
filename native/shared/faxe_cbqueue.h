@@ -213,6 +213,12 @@ static void faxe_bankpath_put(const void* bank, const char* path) {
         if (gBankPaths[i].bank == bank) break;
     }
     if (i == FAXE_BANKPATH_CAPACITY) {
+        /* An empty slot first. Only a full table evicts the oldest. */
+        for (i = 0; i < FAXE_BANKPATH_CAPACITY; i++) {
+            if (gBankPaths[i].bank == NULL) break;
+        }
+    }
+    if (i == FAXE_BANKPATH_CAPACITY) {
         i = gBankPathHead;
         gBankPathHead = (gBankPathHead + 1) % FAXE_BANKPATH_CAPACITY;
     }

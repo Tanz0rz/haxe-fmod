@@ -307,11 +307,15 @@ class FmodManager {
         }
         // A running instance keeps the snapshot applied. One that is
         // fading out after StopSnapshot restarts in place instead of
-        // ending while a second instance begins.
+        // ending while a second instance begins. A stop queued this
+        // frame is not visible in the state yet, so the stop list
+        // remembers it.
         var instances = description.getInstanceList();
         if (instances.length > 0) {
+            var stopQueued = snapshotStopsQueued.exists(snapshotPath);
+            snapshotStopsQueued.remove(snapshotPath);
             for (existing in instances) {
-                if (existing.getPlaybackState() == FmodPlaybackState.STOPPING) existing.start();
+                if (stopQueued || existing.getPlaybackState() == FmodPlaybackState.STOPPING) existing.start();
             }
             return;
         }
@@ -331,8 +335,15 @@ class FmodManager {
         if (description.isNull()) return;
         // The instances were released at start, so FMOD destroys each one
         // when its fade completes.
-        for (instance in description.getInstanceList()) instance.stop(ALLOWFADEOUT);
+        var instances = description.getInstanceList();
+        if (instances.length > 0) snapshotStopsQueued.set(snapshotPath, true);
+        for (instance in instances) instance.stop(ALLOWFADEOUT);
     }
+
+    // Snapshots stopped with a fade this frame. The stop reaches the
+    // instance state on the next Studio update, and a StartSnapshot in
+    // between restarts the instance instead of trusting PLAYING.
+    static var snapshotStopsQueued:Map<String, Bool> = new Map();
 
     /** Removes a snapshot immediately, without its authored fade. */
     public static function StopSnapshotImmediately(snapshotPath:String):Void {

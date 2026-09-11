@@ -67,8 +67,16 @@ class FmodRuntime {
      * frame and start events once it reports true.
      */
     public static function init(?settings:FmodSettings):FmodResult {
-        if (initStarted) return FmodResult.FMOD_OK;
+        if (initStarted) return initResult;
         initStarted = true;
+        initResult = initOnce(settings);
+        return initResult;
+    }
+
+    // The result of the first init, returned by every later call
+    static var initResult:FmodResult = FmodResult.FMOD_OK;
+
+    static function initOnce(settings:FmodSettings):FmodResult {
         resolved = FmodSettingsResolver.resolve(settings);
         muteWhenUnfocused = resolved.muteWhenUnfocused;
         attached.maxVelocity = resolved.maxAttachedVelocity;

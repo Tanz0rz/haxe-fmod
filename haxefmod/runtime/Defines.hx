@@ -11,7 +11,9 @@ import haxe.macro.Expr;
 class Defines {
     public static macro function getInt(name:String, fallback:Int):Expr {
         var value = Context.definedValue(name);
-        var parsed = value == null ? null : Std.parseInt(value);
+        // A define with no value reads as "1", the way a flag does. It
+        // means the fallback here, since 1 is never a wanted count.
+        var parsed = value == null || value == "1" ? null : Std.parseInt(value);
         return macro $v{parsed == null ? fallback : parsed};
     }
 

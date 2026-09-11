@@ -131,10 +131,10 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             if (props && props->name) {
                 strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
             }
+            FMOD_SOUND* shimSound = NULL;
             if (props && gameSound) {
                 props->sound = (FMOD_SOUND*)gameSound;
                 props->subsoundIndex = gameSubsound;
-                ctx->psSound = NULL;
             } else if (props && key[0] != '\0' && gCoreSystem && gStudioSystem) {
                 // NONBLOCKING moves the decode off the Studio thread. FMOD
                 // waits for the sound to become ready before the instrument
@@ -152,7 +152,19 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                     props->sound = sound;
                     props->subsoundIndex = -1;
                 }
-                ctx->psSound = sound;
+                /* Each live instrument keeps its own slot, so overlapping
+                 * instruments on one instance all get their release */
+                if (sound && props->sound == sound) {
+                    faxe_cbq_lock();
+                    if (faxe_instctx_ps_sound_add(ctx, sound)) shimSound = sound;
+                    faxe_cbq_unlock();
+                    if (!shimSound) {
+                        /* No slot left: the sound cannot be tracked, so
+                         * it is not handed to the instrument */
+                        FMOD_Sound_Release(sound);
+                        props->sound = NULL;
+                    }
+                }
             }
             // The record carries the sound the instrument got, so the drain
             // can hand it to the game as a handle. ptr is the FMOD_SOUND, i2
@@ -162,7 +174,7 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             if (props) {
                 ev.ptr = props->sound;
                 ev.i2 = props->subsoundIndex;
-                ev.i3 = (props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) ? 1 : 0;
+                ev.i3 = (props->sound && shimSound) ? 1 : 0;
             }
             break;
         }
@@ -172,18 +184,21 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             if (props && props->name) {
                 strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
             }
-            if (props) {
-                ev.ptr = props->sound;
-                ev.i2 = props->subsoundIndex;
-                ev.i3 = (props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) ? 1 : 0;
-            }
             // Only a sound this shim created is released. A game-owned one
             // stays with the game. The address in ev.ptr is only a lookup
             // key for the drain, which never dereferences it.
-            if (props && props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) {
-                FMOD_Sound_Release(props->sound);
+            int owned = 0;
+            if (props && props->sound) {
+                faxe_cbq_lock();
+                owned = faxe_instctx_ps_sound_take(ctx, props->sound);
+                faxe_cbq_unlock();
             }
-            ctx->psSound = NULL;
+            if (props) {
+                ev.ptr = props->sound;
+                ev.i2 = props->subsoundIndex;
+                ev.i3 = owned;
+            }
+            if (owned) FMOD_Sound_Release(props->sound);
             break;
         }
         case FMOD_STUDIO_EVENT_CALLBACK_TIMELINE_MARKER: {
@@ -808,6 +823,7 @@ DEFINE_PRIM(_I32, core_pcm_write, _I32 _BYTES _I32);
 HL_PRIM int HL_NAME(core_pcm_space)(int h) {
     HlaxePcmStream* ps = resolve_pcm(h);
     if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_OK;
     return faxe_pcmring_space(ps->ring);
 }
 DEFINE_PRIM(_I32, core_pcm_space, _I32);
@@ -815,6 +831,7 @@ DEFINE_PRIM(_I32, core_pcm_space, _I32);
 HL_PRIM int HL_NAME(core_pcm_underruns)(int h) {
     HlaxePcmStream* ps = resolve_pcm(h);
     if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_OK;
     return faxe_pcmring_take_underruns(ps->ring);
 }
 DEFINE_PRIM(_I32, core_pcm_underruns, _I32);
@@ -941,6 +958,14 @@ DEFINE_PRIM(_I32, chan_stop, _I32);
 //// Core DSP effects
 
 static void hlaxe_reclaim_dead_lookups(void);
+
+/* A lookup that cannot get a slot reports it: the table is full, so
+ * the caller sees FMOD_ERR_MEMORY instead of a silent zero */
+static int hlaxe_handle_or_memory(void* ptr, unsigned char type) {
+    int handle = faxe_handle_find_or_alloc(ptr, type);
+    if (handle == 0 && ptr) gLastResult = FMOD_ERR_MEMORY;
+    return handle;
+}
 
 static FMOD_DSP* resolve_dsp(int h) {
     return (FMOD_DSP*)faxe_handle_resolve(h, FAXE_TYPE_DSP);
@@ -1150,7 +1175,7 @@ HL_PRIM int HL_NAME(cg_get_master)() {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_GetMasterChannelGroup(gCoreSystem, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    return hlaxe_handle_or_memory(group, FAXE_TYPE_CHANGROUP);
 }
 DEFINE_PRIM(_I32, cg_get_master, _NO_ARG);
 
@@ -1426,7 +1451,7 @@ HL_PRIM int HL_NAME(bus_get_channel_group)(int h) {
     if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_Bus_GetChannelGroup(bus, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    return hlaxe_handle_or_memory(group, FAXE_TYPE_CHANGROUP);
 }
 DEFINE_PRIM(_I32, bus_get_channel_group, _I32);
 
@@ -1512,7 +1537,7 @@ HL_PRIM int HL_NAME(dsp_add_input)(int h, int inputHandle, int type) {
     if (!dsp || !input) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_AddInput(dsp, input, &conn, (FMOD_DSPCONNECTION_TYPE)type);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+    return hlaxe_handle_or_memory(conn, FAXE_TYPE_DSPCONN);
 }
 DEFINE_PRIM(_I32, dsp_add_input, _I32 _I32 _I32);
 
@@ -1568,7 +1593,7 @@ HL_PRIM int HL_NAME(dsp_get_input_dsp)(int h, int index) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetInput(dsp, index, &input, &conn);
     if (gLastResult != FMOD_OK || !input) return 0;
-    return faxe_handle_find_or_alloc(input, FAXE_TYPE_DSP);
+    return hlaxe_handle_or_memory(input, FAXE_TYPE_DSP);
 }
 DEFINE_PRIM(_I32, dsp_get_input_dsp, _I32 _I32);
 
@@ -1579,7 +1604,7 @@ HL_PRIM int HL_NAME(dsp_get_input_connection)(int h, int index) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetInput(dsp, index, &input, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+    return hlaxe_handle_or_memory(conn, FAXE_TYPE_DSPCONN);
 }
 DEFINE_PRIM(_I32, dsp_get_input_connection, _I32 _I32);
 
@@ -1619,7 +1644,7 @@ HL_PRIM int HL_NAME(cg_add_group)(int h, int childHandle, bool propagateDspClock
     if (!group || !child) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_AddGroup(group, child, propagateDspClock ? 1 : 0, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+    return hlaxe_handle_or_memory(conn, FAXE_TYPE_DSPCONN);
 }
 DEFINE_PRIM(_I32, cg_add_group, _I32 _I32 _BOOL);
 
@@ -1638,7 +1663,7 @@ HL_PRIM int HL_NAME(cg_get_group)(int h, int index) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetGroup(group, index, &child);
     if (gLastResult != FMOD_OK || !child) return 0;
-    return faxe_handle_find_or_alloc(child, FAXE_TYPE_CHANGROUP);
+    return hlaxe_handle_or_memory(child, FAXE_TYPE_CHANGROUP);
 }
 DEFINE_PRIM(_I32, cg_get_group, _I32 _I32);
 
@@ -1648,7 +1673,7 @@ HL_PRIM int HL_NAME(cg_get_parent_group)(int h) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetParentGroup(group, &parent);
     if (gLastResult != FMOD_OK || !parent) return 0;
-    return faxe_handle_find_or_alloc(parent, FAXE_TYPE_CHANGROUP);
+    return hlaxe_handle_or_memory(parent, FAXE_TYPE_CHANGROUP);
 }
 DEFINE_PRIM(_I32, cg_get_parent_group, _I32);
 
@@ -2348,7 +2373,7 @@ static FMOD_RESULT F_CALLBACK hlaxe_studio_system_callback(FMOD_STUDIO_SYSTEM* s
 static void hlaxe_stash_bank_path(FMOD_STUDIO_BANK* bank) {
     char path[FAXE_BANKPATH_STR_MAX];
     int retrieved = 0;
-    if (!gSystemCallbackMask) return;
+    if (!(gSystemCallbackMask & FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD)) return;
     if (FMOD_Studio_Bank_GetPath(bank, path, FAXE_BANKPATH_STR_MAX, &retrieved) == FMOD_OK) {
         faxe_bankpath_put(bank, path);
     }
@@ -2358,7 +2383,7 @@ static void hlaxe_stash_all_bank_paths(void) {
     static FMOD_STUDIO_BANK* banks[FAXE_LIST_MAX];
     int count = 0;
     int i;
-    if (!gSystemCallbackMask || !gStudioSystem) return;
+    if (!(gSystemCallbackMask & FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD) || !gStudioSystem) return;
     if (FMOD_Studio_System_GetBankList(gStudioSystem, banks, FAXE_LIST_MAX, &count) != FMOD_OK) return;
     if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) hlaxe_stash_bank_path(banks[i]);
@@ -2484,7 +2509,7 @@ HL_PRIM int HL_NAME(sys_get_master_sound_group)() {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_GetMasterSoundGroup(gCoreSystem, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_SOUNDGROUP);
+    return hlaxe_handle_or_memory(group, FAXE_TYPE_SOUNDGROUP);
 }
 DEFINE_PRIM(_I32, sys_get_master_sound_group, _NO_ARG);
 
@@ -2778,7 +2803,10 @@ HL_PRIM int HL_NAME(sys_load_bank_memory)(vbyte* data, int len, int flags) {
     gLastResult = FMOD_Studio_System_LoadBankMemory(gStudioSystem, (const char*)data, len,
         FMOD_STUDIO_LOAD_MEMORY, (FMOD_STUDIO_LOAD_BANK_FLAGS)flags, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
-    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+    int bankHandle = hlaxe_handle_or_memory(bank, FAXE_TYPE_BANK);
+    // No slot means no way to ever unload it, so it goes back out
+    if (bankHandle == 0) FMOD_Studio_Bank_Unload(bank);
+    return bankHandle;
 }
 DEFINE_PRIM(_I32, sys_load_bank_memory, _BYTES _I32 _I32);
 
@@ -2974,7 +3002,7 @@ HL_PRIM int HL_NAME(chan_get_current_sound)(int h) {
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Channel_GetCurrentSound(channel, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
-    return faxe_handle_find_or_alloc(sound, FAXE_TYPE_SOUND);
+    return hlaxe_handle_or_memory(sound, FAXE_TYPE_SOUND);
 }
 DEFINE_PRIM(_I32, chan_get_current_sound, _I32);
 
@@ -3049,7 +3077,7 @@ HL_PRIM int HL_NAME(chan_get_dsp)(int h, int index) {
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Channel_GetDSP(channel, index, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+    return hlaxe_handle_or_memory(dsp, FAXE_TYPE_DSP);
 }
 DEFINE_PRIM(_I32, chan_get_dsp, _I32 _I32);
 
@@ -3071,7 +3099,7 @@ HL_PRIM int HL_NAME(sound_get_sound_group)(int h) {
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Sound_GetSoundGroup(sound, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_SOUNDGROUP);
+    return hlaxe_handle_or_memory(group, FAXE_TYPE_SOUNDGROUP);
 }
 DEFINE_PRIM(_I32, sound_get_sound_group, _I32);
 
@@ -3183,7 +3211,7 @@ HL_PRIM int HL_NAME(dsp_get_output_dsp)(int h, int index) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetOutput(dsp, index, &output, &conn);
     if (gLastResult != FMOD_OK || !output) return 0;
-    return faxe_handle_find_or_alloc(output, FAXE_TYPE_DSP);
+    return hlaxe_handle_or_memory(output, FAXE_TYPE_DSP);
 }
 DEFINE_PRIM(_I32, dsp_get_output_dsp, _I32 _I32);
 
@@ -3194,7 +3222,7 @@ HL_PRIM int HL_NAME(dsp_get_output_connection)(int h, int index) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetOutput(dsp, index, &output, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+    return hlaxe_handle_or_memory(conn, FAXE_TYPE_DSPCONN);
 }
 DEFINE_PRIM(_I32, dsp_get_output_connection, _I32 _I32);
 
@@ -3204,7 +3232,7 @@ HL_PRIM int HL_NAME(dspconn_get_input_dsp)(int h) {
     if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSPConnection_GetInput(conn, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+    return hlaxe_handle_or_memory(dsp, FAXE_TYPE_DSP);
 }
 DEFINE_PRIM(_I32, dspconn_get_input_dsp, _I32);
 
@@ -3214,7 +3242,7 @@ HL_PRIM int HL_NAME(dspconn_get_output_dsp)(int h) {
     if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSPConnection_GetOutput(conn, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+    return hlaxe_handle_or_memory(dsp, FAXE_TYPE_DSP);
 }
 DEFINE_PRIM(_I32, dspconn_get_output_dsp, _I32);
 
@@ -3577,7 +3605,7 @@ HL_PRIM int HL_NAME(cg_get_channel)(int h, int index) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetChannel(group, index, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
-    return faxe_handle_find_or_alloc(channel, FAXE_TYPE_CHAN);
+    return hlaxe_handle_or_memory(channel, FAXE_TYPE_CHAN);
 }
 DEFINE_PRIM(_I32, cg_get_channel, _I32 _I32);
 
@@ -3593,10 +3621,18 @@ static void free_destroyed_ctx(FaxeInstCtx* ctx) {
     if (ctx->cgHandle != 0) faxe_handle_free(ctx->cgHandle);
     if (ctx->handle > 0) faxe_handle_free(ctx->handle);
     /* A programmer sound the shim created outlives the instance when the
-     * instrument never got its destroy callback. Release it here. */
-    if (ctx->psSound) {
-        FMOD_Sound_Release((FMOD_SOUND*)ctx->psSound);
-        ctx->psSound = NULL;
+     * instrument never got its destroy callback. Release it here and
+     * free the handle the create drain minted for it. Otherwise a later
+     * sound at the same address resolves through that stale handle. */
+    int i;
+    for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
+        void* sound = ctx->psSounds[i];
+        int soundHandle;
+        if (!sound) continue;
+        soundHandle = faxe_handle_find(sound, FAXE_TYPE_SOUND);
+        if (soundHandle) faxe_handle_free(soundHandle);
+        FMOD_Sound_Release((FMOD_SOUND*)sound);
+        ctx->psSounds[i] = NULL;
     }
     faxe_instctx_destroy(ctx);
 }
@@ -3904,7 +3940,7 @@ HL_PRIM int HL_NAME(sys_get_bus)(vbyte* path) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_Studio_System_GetBus(gStudioSystem, (const char*)path, &bus);
     if (gLastResult != FMOD_OK || !bus) return 0;
-    return faxe_handle_find_or_alloc(bus, FAXE_TYPE_BUS);
+    return hlaxe_handle_or_memory(bus, FAXE_TYPE_BUS);
 }
 DEFINE_PRIM(_I32, sys_get_bus, _BYTES);
 
@@ -3915,7 +3951,7 @@ HL_PRIM int HL_NAME(sys_get_bus_by_id)(vbyte* guid) {
     if (!faxe_guid_parse((const char*)guid, &id)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_Studio_System_GetBusByID(gStudioSystem, &id, &bus);
     if (gLastResult != FMOD_OK || !bus) return 0;
-    return faxe_handle_find_or_alloc(bus, FAXE_TYPE_BUS);
+    return hlaxe_handle_or_memory(bus, FAXE_TYPE_BUS);
 }
 DEFINE_PRIM(_I32, sys_get_bus_by_id, _BYTES);
 
@@ -3924,7 +3960,7 @@ HL_PRIM int HL_NAME(sys_get_event)(vbyte* path) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_Studio_System_GetEvent(gStudioSystem, (const char*)path, &desc);
     if (gLastResult != FMOD_OK || !desc) return 0;
-    return faxe_handle_find_or_alloc(desc, FAXE_TYPE_EVD);
+    return hlaxe_handle_or_memory(desc, FAXE_TYPE_EVD);
 }
 DEFINE_PRIM(_I32, sys_get_event, _BYTES);
 
@@ -3935,7 +3971,7 @@ HL_PRIM int HL_NAME(sys_get_event_by_id)(vbyte* guid) {
     if (!faxe_guid_parse((const char*)guid, &id)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_Studio_System_GetEventByID(gStudioSystem, &id, &desc);
     if (gLastResult != FMOD_OK || !desc) return 0;
-    return faxe_handle_find_or_alloc(desc, FAXE_TYPE_EVD);
+    return hlaxe_handle_or_memory(desc, FAXE_TYPE_EVD);
 }
 DEFINE_PRIM(_I32, sys_get_event_by_id, _BYTES);
 
@@ -3944,7 +3980,7 @@ HL_PRIM int HL_NAME(sys_get_vca)(vbyte* path) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_Studio_System_GetVCA(gStudioSystem, (const char*)path, &vca);
     if (gLastResult != FMOD_OK || !vca) return 0;
-    return faxe_handle_find_or_alloc(vca, FAXE_TYPE_VCA);
+    return hlaxe_handle_or_memory(vca, FAXE_TYPE_VCA);
 }
 DEFINE_PRIM(_I32, sys_get_vca, _BYTES);
 
@@ -3955,7 +3991,7 @@ HL_PRIM int HL_NAME(sys_get_vca_by_id)(vbyte* guid) {
     if (!faxe_guid_parse((const char*)guid, &id)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_Studio_System_GetVCAByID(gStudioSystem, &id, &vca);
     if (gLastResult != FMOD_OK || !vca) return 0;
-    return faxe_handle_find_or_alloc(vca, FAXE_TYPE_VCA);
+    return hlaxe_handle_or_memory(vca, FAXE_TYPE_VCA);
 }
 DEFINE_PRIM(_I32, sys_get_vca_by_id, _BYTES);
 
@@ -3964,7 +4000,7 @@ HL_PRIM int HL_NAME(sys_get_bank)(vbyte* path) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_Studio_System_GetBank(gStudioSystem, (const char*)path, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
-    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+    return hlaxe_handle_or_memory(bank, FAXE_TYPE_BANK);
 }
 DEFINE_PRIM(_I32, sys_get_bank, _BYTES);
 
@@ -3975,7 +4011,7 @@ HL_PRIM int HL_NAME(sys_get_bank_by_id)(vbyte* guid) {
     if (!faxe_guid_parse((const char*)guid, &id)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_Studio_System_GetBankByID(gStudioSystem, &id, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
-    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+    return hlaxe_handle_or_memory(bank, FAXE_TYPE_BANK);
 }
 DEFINE_PRIM(_I32, sys_get_bank_by_id, _BYTES);
 
@@ -4228,7 +4264,10 @@ HL_PRIM int HL_NAME(sys_load_bank_file)(vbyte* path, int flags) {
     loadFlags = (flags & 1) ? FMOD_STUDIO_LOAD_BANK_NONBLOCKING : FMOD_STUDIO_LOAD_BANK_NORMAL;
     gLastResult = FMOD_Studio_System_LoadBankFile(gStudioSystem, (const char*)path, loadFlags, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
-    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+    int bankHandle = hlaxe_handle_or_memory(bank, FAXE_TYPE_BANK);
+    // No slot means no way to ever unload it, so it goes back out
+    if (bankHandle == 0) FMOD_Studio_Bank_Unload(bank);
+    return bankHandle;
 }
 DEFINE_PRIM(_I32, sys_load_bank_file, _BYTES _I32);
 
@@ -4240,7 +4279,10 @@ HL_PRIM int HL_NAME(sys_load_bank_async)(vbyte* path) {
     gLastResult = FMOD_Studio_System_LoadBankFile(gStudioSystem, (const char*)path,
         FMOD_STUDIO_LOAD_BANK_NONBLOCKING, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
-    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+    int bankHandle = hlaxe_handle_or_memory(bank, FAXE_TYPE_BANK);
+    // No slot means no way to ever unload it, so it goes back out
+    if (bankHandle == 0) FMOD_Studio_Bank_Unload(bank);
+    return bankHandle;
 }
 DEFINE_PRIM(_I32, sys_load_bank_async, _BYTES);
 
@@ -5119,7 +5161,7 @@ HL_PRIM int HL_NAME(evi_get_description)(int h) {
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_EventInstance_GetDescription(instance, &desc);
     if (gLastResult != FMOD_OK || !desc) return 0;
-    return faxe_handle_find_or_alloc(desc, FAXE_TYPE_EVD);
+    return hlaxe_handle_or_memory(desc, FAXE_TYPE_EVD);
 }
 DEFINE_PRIM(_I32, evi_get_description, _I32);
 
@@ -6214,7 +6256,7 @@ HL_PRIM int HL_NAME(chan_get_channel_group)(int h) {
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Channel_GetChannelGroup(channel, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    return hlaxe_handle_or_memory(group, FAXE_TYPE_CHANGROUP);
 }
 DEFINE_PRIM(_I32, chan_get_channel_group, _I32);
 
@@ -6276,7 +6318,7 @@ HL_PRIM int HL_NAME(sg_get_sound)(int h, int index) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_SoundGroup_GetSound(group, index, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
-    return faxe_handle_find_or_alloc(sound, FAXE_TYPE_SOUND);
+    return hlaxe_handle_or_memory(sound, FAXE_TYPE_SOUND);
 }
 DEFINE_PRIM(_I32, sg_get_sound, _I32 _I32);
 
@@ -6287,7 +6329,7 @@ HL_PRIM int HL_NAME(sys_get_channel)(int index) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_GetChannel(gCoreSystem, index, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
-    return faxe_handle_find_or_alloc(channel, FAXE_TYPE_CHAN);
+    return hlaxe_handle_or_memory(channel, FAXE_TYPE_CHAN);
 }
 DEFINE_PRIM(_I32, sys_get_channel, _I32);
 
@@ -6836,7 +6878,7 @@ HL_PRIM int HL_NAME(core_sound_get_sub_sound)(int h, int index) {
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Sound_GetSubSound(sound, index, &sub);
     if (gLastResult != FMOD_OK || !sub) return 0;
-    return faxe_handle_find_or_alloc(sub, FAXE_TYPE_SOUND);
+    return hlaxe_handle_or_memory(sub, FAXE_TYPE_SOUND);
 }
 DEFINE_PRIM(_I32, core_sound_get_sub_sound, _I32 _I32);
 
@@ -6846,7 +6888,7 @@ HL_PRIM int HL_NAME(core_sound_get_sub_sound_parent)(int h) {
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Sound_GetSubSoundParent(sound, &parent);
     if (gLastResult != FMOD_OK || !parent) return 0;
-    return faxe_handle_find_or_alloc(parent, FAXE_TYPE_SOUND);
+    return hlaxe_handle_or_memory(parent, FAXE_TYPE_SOUND);
 }
 DEFINE_PRIM(_I32, core_sound_get_sub_sound_parent, _I32);
 
@@ -6972,7 +7014,7 @@ HL_PRIM int HL_NAME(dsp_add_input_preallocated)(int h, int inputHandle, int conn
     gLastResult = FMOD_ERR_UNSUPPORTED;
 #endif
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+    return hlaxe_handle_or_memory(conn, FAXE_TYPE_DSPCONN);
 }
 DEFINE_PRIM(_I32, dsp_add_input_preallocated, _I32 _I32 _I32);
 
@@ -7088,7 +7130,7 @@ HL_PRIM int HL_NAME(cg_get_dsp)(int h, int index) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetDSP(group, index, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+    return hlaxe_handle_or_memory(dsp, FAXE_TYPE_DSP);
 }
 DEFINE_PRIM(_I32, cg_get_dsp, _I32 _I32);
 

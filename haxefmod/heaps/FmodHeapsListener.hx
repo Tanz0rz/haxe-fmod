@@ -29,6 +29,9 @@ class FmodHeapsListener implements IHeapsTicker {
     **/
     public var teleportDistance:Float = 0;
 
+    /** The auto teleport distance for an object, in scene units. **/
+    static inline var AUTO_TELEPORT_DISTANCE:Float = 500;
+
     var tracker:ListenerTracker;
     var provider:DerivedVelocityProvider;
     var scene:Scene;
@@ -88,8 +91,8 @@ class FmodHeapsListener implements IHeapsTicker {
         if (provider == null) return;
         if (scene != null) {
             provider.teleportDistance = teleportDistance > 0 ? teleportDistance : scene.width / scene.camera.scaleX;
-        } else if (teleportDistance > 0) {
-            provider.teleportDistance = teleportDistance;
+        } else {
+            provider.teleportDistance = teleportDistance > 0 ? teleportDistance : AUTO_TELEPORT_DISTANCE;
         }
         provider.sample(dt);
         tracker.update();

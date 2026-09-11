@@ -474,14 +474,17 @@ class PanTestScenario implements TestScenario {
             attributes != null && approx(attributes.velocity.x, 0) && approx(attributes.velocity.y, 0),
             attributes == null ? "unreadable" : 'velocity=(${attributes.velocity.x}, ${attributes.velocity.y})');
 
-        // resetMotion: the next frame reads as a fresh seed instead of movement
-        cameraX = 100;
+        // resetMotion: a small move right after it reads as a fresh seed
+        // instead of movement. The move stays under teleportDistance, so
+        // only the reset can zero the velocity.
+        cameraX -= 30;
         cameraListener.resetMotion();
         cameraListener.tick(0.5);
         attributes = StudioSystem.getListenerAttributes(0);
         check("camera_listener_reset_motion_seeds",
             attributes != null && approx(attributes.velocity.x, 0),
             attributes == null ? "unreadable" : 'velocity=(${attributes.velocity.x})');
+        cameraX = 100;
         cameraListener.dispose();
     }
 

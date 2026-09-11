@@ -21,7 +21,7 @@ abstract SoundGroup(Int) from Int to Int {
 
     /** Creates a group. Returns SoundGroup.NULL on failure. */
     public static inline function create(name:String):SoundGroup {
-        return NativeStudio.sys_create_sound_group(name);
+        return NativeStudio.sys_create_sound_group(name == null ? "" : name);
     }
 
     /** The master group every sound starts in. One shared handle per session. */

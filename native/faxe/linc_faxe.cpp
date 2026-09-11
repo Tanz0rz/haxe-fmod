@@ -114,10 +114,10 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             if (props && props->name) {
                 strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
             }
+            FMOD::Sound* shimSound = NULL;
             if (props && gameSound) {
                 props->sound = (FMOD_SOUND*)gameSound;
                 props->subsoundIndex = gameSubsound;
-                ctx->psSound = NULL;
             } else if (props && key[0] != '\0' && gCoreSystem && gStudioSystem) {
                 FMOD_STUDIO_SOUND_INFO info;
                 FMOD::Sound* sound = NULL;
@@ -137,7 +137,19 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                     props->sound = (FMOD_SOUND*)sound;
                     props->subsoundIndex = -1;
                 }
-                ctx->psSound = sound;
+                // Each live instrument keeps its own slot, so overlapping
+                // instruments on one instance all get their release
+                if (sound && props->sound == (FMOD_SOUND*)sound) {
+                    faxe_cbq_lock();
+                    if (faxe_instctx_ps_sound_add(ctx, sound)) shimSound = sound;
+                    faxe_cbq_unlock();
+                    if (!shimSound) {
+                        // No slot left: the sound cannot be tracked, so
+                        // it is not handed to the instrument
+                        sound->release();
+                        props->sound = NULL;
+                    }
+                }
             }
             // The record carries the sound the instrument got, so the drain
             // can hand it to the game as a handle. ptr is the FMOD_SOUND, i2
@@ -147,7 +159,7 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             if (props) {
                 ev.ptr = props->sound;
                 ev.i2 = props->subsoundIndex;
-                ev.i3 = (props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) ? 1 : 0;
+                ev.i3 = (props->sound && shimSound) ? 1 : 0;
             }
             break;
         }
@@ -157,18 +169,21 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             if (props && props->name) {
                 strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
             }
-            if (props) {
-                ev.ptr = props->sound;
-                ev.i2 = props->subsoundIndex;
-                ev.i3 = (props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) ? 1 : 0;
-            }
             // Only a sound this shim created is released. A game-owned one
             // stays with the game. The address in ev.ptr is only a lookup
             // key for the drain, which never dereferences it.
-            if (props && props->sound && props->sound == (FMOD_SOUND*)ctx->psSound) {
-                ((FMOD::Sound*)props->sound)->release();
+            int owned = 0;
+            if (props && props->sound) {
+                faxe_cbq_lock();
+                owned = faxe_instctx_ps_sound_take(ctx, props->sound);
+                faxe_cbq_unlock();
             }
-            ctx->psSound = NULL;
+            if (props) {
+                ev.ptr = props->sound;
+                ev.i2 = props->subsoundIndex;
+                ev.i3 = owned;
+            }
+            if (owned) ((FMOD::Sound*)props->sound)->release();
             break;
         }
         case FMOD_STUDIO_EVENT_CALLBACK_TIMELINE_MARKER: {
@@ -731,12 +746,14 @@ int fmod_core_pcm_write(int h, ::Array<unsigned char> data, int len) {
 int fmod_core_pcm_space(int h) {
     LincPcmStream* ps = resolvePcm(h);
     if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_OK;
     return faxe_pcmring_space(ps->ring);
 }
 
 int fmod_core_pcm_underruns(int h) {
     LincPcmStream* ps = resolvePcm(h);
     if (!ps) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    gLastResult = FMOD_OK;
     return faxe_pcmring_take_underruns(ps->ring);
 }
 
@@ -851,6 +868,14 @@ int fmod_chan_stop(int h) {
 //// Core DSP effects
 
 static void lincReclaimDeadLookups();
+
+// A lookup that cannot get a slot reports it: the table is full, so
+// the caller sees FMOD_ERR_MEMORY instead of a silent zero
+static inline int lincHandleOrMemory(void* ptr, unsigned char type) {
+    int handle = faxe_handle_find_or_alloc(ptr, type);
+    if (handle == 0 && ptr) gLastResult = FMOD_ERR_MEMORY;
+    return handle;
+}
 
 static inline FMOD::DSP* resolveDsp(int h) {
     return (FMOD::DSP*)faxe_handle_resolve(h, FAXE_TYPE_DSP);
@@ -1034,7 +1059,7 @@ int fmod_cg_get_master() {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = gCoreSystem->getMasterChannelGroup(&group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    return lincHandleOrMemory(group, FAXE_TYPE_CHANGROUP);
 }
 
 int fmod_cg_create(const ::String& name) {
@@ -1278,7 +1303,7 @@ int fmod_bus_get_channel_group(int h) {
     if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = bus->getChannelGroup(&group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    return lincHandleOrMemory(group, FAXE_TYPE_CHANGROUP);
 }
 
 //// Core system extras
@@ -1361,7 +1386,7 @@ int fmod_dsp_add_input(int h, int inputHandle, int type) {
     if (!dsp || !input) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = dsp->addInput(input, &conn, (FMOD_DSPCONNECTION_TYPE)type);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+    return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
 }
 
 // connHandle 0 means any connection between the two units
@@ -1412,7 +1437,7 @@ int fmod_dsp_get_input_dsp(int h, int index) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = dsp->getInput(index, &input, &conn);
     if (gLastResult != FMOD_OK || !input) return 0;
-    return faxe_handle_find_or_alloc(input, FAXE_TYPE_DSP);
+    return lincHandleOrMemory(input, FAXE_TYPE_DSP);
 }
 
 int fmod_dsp_get_input_connection(int h, int index) {
@@ -1422,7 +1447,7 @@ int fmod_dsp_get_input_connection(int h, int index) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = dsp->getInput(index, &input, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+    return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
 }
 
 int fmod_dspconn_set_mix(int h, float mix) {
@@ -1458,7 +1483,7 @@ int fmod_cg_add_group(int h, int childHandle, bool propagateDspClock) {
     if (!group || !child) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = group->addGroup(child, propagateDspClock, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+    return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
 }
 
 int fmod_cg_get_num_groups(int h) {
@@ -1475,7 +1500,7 @@ int fmod_cg_get_group(int h, int index) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = group->getGroup(index, &child);
     if (gLastResult != FMOD_OK || !child) return 0;
-    return faxe_handle_find_or_alloc(child, FAXE_TYPE_CHANGROUP);
+    return lincHandleOrMemory(child, FAXE_TYPE_CHANGROUP);
 }
 
 int fmod_cg_get_parent_group(int h) {
@@ -1484,7 +1509,7 @@ int fmod_cg_get_parent_group(int h) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = group->getParentGroup(&parent);
     if (gLastResult != FMOD_OK || !parent) return 0;
-    return faxe_handle_find_or_alloc(parent, FAXE_TYPE_CHANGROUP);
+    return lincHandleOrMemory(parent, FAXE_TYPE_CHANGROUP);
 }
 
 //// Core channel spatial and control extras
@@ -2096,7 +2121,7 @@ static FMOD_RESULT F_CALLBACK lincStudioSystemCallback(FMOD_STUDIO_SYSTEM* syste
 static void lincStashBankPath(FMOD::Studio::Bank* bank) {
     char path[FAXE_BANKPATH_STR_MAX];
     int retrieved = 0;
-    if (!gSystemCallbackMask) return;
+    if (!(gSystemCallbackMask & FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD)) return;
     if (bank->getPath(path, FAXE_BANKPATH_STR_MAX, &retrieved) == FMOD_OK) {
         faxe_bankpath_put(bank, path);
     }
@@ -2105,7 +2130,7 @@ static void lincStashBankPath(FMOD::Studio::Bank* bank) {
 static void lincStashAllBankPaths() {
     static FMOD::Studio::Bank* banks[FAXE_LIST_MAX];
     int count = 0;
-    if (!gSystemCallbackMask || !gStudioSystem) return;
+    if (!(gSystemCallbackMask & FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD) || !gStudioSystem) return;
     if (gStudioSystem->getBankList(banks, FAXE_LIST_MAX, &count) != FMOD_OK) return;
     if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (int i = 0; i < count; i++) lincStashBankPath(banks[i]);
@@ -2217,7 +2242,7 @@ int fmod_sys_get_master_sound_group() {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = gCoreSystem->getMasterSoundGroup(&group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_SOUNDGROUP);
+    return lincHandleOrMemory(group, FAXE_TYPE_SOUNDGROUP);
 }
 
 int fmod_sg_release(int h) {
@@ -2477,7 +2502,10 @@ int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len, int flags) {
     gLastResult = gStudioSystem->loadBankMemory((const char*)&data[0], len,
         FMOD_STUDIO_LOAD_MEMORY, (FMOD_STUDIO_LOAD_BANK_FLAGS)flags, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
-    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+    int bankHandle = lincHandleOrMemory(bank, FAXE_TYPE_BANK);
+    // No slot means no way to ever unload it, so it goes back out
+    if (bankHandle == 0) bank->unload();
+    return bankHandle;
 }
 
 //// Event instance core bridge
@@ -2649,7 +2677,7 @@ int fmod_chan_get_current_sound(int h) {
     FMOD::Sound* sound = NULL;
     gLastResult = ch->getCurrentSound(&sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
-    return faxe_handle_find_or_alloc(sound, FAXE_TYPE_SOUND);
+    return lincHandleOrMemory(sound, FAXE_TYPE_SOUND);
 }
 
 // Each point carries its own FMOD_TIMEUNIT
@@ -2714,7 +2742,7 @@ int fmod_chan_get_dsp(int h, int index) {
     FMOD::DSP* dsp = NULL;
     gLastResult = ch->getDSP(index, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+    return lincHandleOrMemory(dsp, FAXE_TYPE_DSP);
 }
 
 //// Sound name, group getter, and loop count
@@ -2734,7 +2762,7 @@ int fmod_sound_get_sound_group(int h) {
     FMOD::SoundGroup* group = NULL;
     gLastResult = snd->getSoundGroup(&group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_SOUNDGROUP);
+    return lincHandleOrMemory(group, FAXE_TYPE_SOUNDGROUP);
 }
 
 int fmod_sound_get_loop_count(int h) {
@@ -2835,7 +2863,7 @@ int fmod_dsp_get_output_dsp(int h, int index) {
     FMOD::DSPConnection* conn = NULL;
     gLastResult = dsp->getOutput(index, &output, &conn);
     if (gLastResult != FMOD_OK || !output) return 0;
-    return faxe_handle_find_or_alloc(output, FAXE_TYPE_DSP);
+    return lincHandleOrMemory(output, FAXE_TYPE_DSP);
 }
 
 int fmod_dsp_get_output_connection(int h, int index) {
@@ -2845,7 +2873,7 @@ int fmod_dsp_get_output_connection(int h, int index) {
     FMOD::DSPConnection* conn = NULL;
     gLastResult = dsp->getOutput(index, &output, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+    return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
 }
 
 int fmod_dspconn_get_input_dsp(int h) {
@@ -2854,7 +2882,7 @@ int fmod_dspconn_get_input_dsp(int h) {
     FMOD::DSP* dsp = NULL;
     gLastResult = conn->getInput(&dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+    return lincHandleOrMemory(dsp, FAXE_TYPE_DSP);
 }
 
 int fmod_dspconn_get_output_dsp(int h) {
@@ -2863,7 +2891,7 @@ int fmod_dspconn_get_output_dsp(int h) {
     FMOD::DSP* dsp = NULL;
     gLastResult = conn->getOutput(&dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+    return lincHandleOrMemory(dsp, FAXE_TYPE_DSP);
 }
 
 //// Reverb3D getters
@@ -3173,7 +3201,7 @@ int fmod_cg_get_channel(int h, int index) {
     FMOD::Channel* ch = NULL;
     gLastResult = group->getChannel(index, &ch);
     if (gLastResult != FMOD_OK || !ch) return 0;
-    return faxe_handle_find_or_alloc(ch, FAXE_TYPE_CHAN);
+    return lincHandleOrMemory(ch, FAXE_TYPE_CHAN);
 }
 
 // Drain protocol: cb_next pops the oldest queued event into a static slot
@@ -3188,10 +3216,16 @@ static void freeDestroyedCtx(FaxeInstCtx* ctx) {
     if (ctx->cgHandle != 0) faxe_handle_free(ctx->cgHandle);
     if (ctx->handle > 0) faxe_handle_free(ctx->handle);
     // A programmer sound the shim created outlives the instance when the
-    // instrument never got its destroy callback. Release it here.
-    if (ctx->psSound) {
-        ((FMOD::Sound*)ctx->psSound)->release();
-        ctx->psSound = NULL;
+    // instrument never got its destroy callback. Release it here and
+    // free the handle the create drain minted for it. Otherwise a later
+    // sound at the same address resolves through that stale handle.
+    for (int i = 0; i < FAXE_PS_NAMED_MAX; i++) {
+        void* sound = ctx->psSounds[i];
+        if (!sound) continue;
+        int soundHandle = faxe_handle_find(sound, FAXE_TYPE_SOUND);
+        if (soundHandle) faxe_handle_free(soundHandle);
+        ((FMOD::Sound*)sound)->release();
+        ctx->psSounds[i] = NULL;
     }
     faxe_instctx_destroy(ctx);
 }
@@ -3492,7 +3526,7 @@ int fmod_sys_get_bus(const ::String& path) {
     FMOD::Studio::Bus* bus = NULL;
     gLastResult = gStudioSystem->getBus(path.c_str(), &bus);
     if (gLastResult != FMOD_OK || !bus) return 0;
-    return faxe_handle_find_or_alloc(bus, FAXE_TYPE_BUS);
+    return lincHandleOrMemory(bus, FAXE_TYPE_BUS);
 }
 
 int fmod_sys_get_bus_by_id(const ::String& guid) {
@@ -3502,7 +3536,7 @@ int fmod_sys_get_bus_by_id(const ::String& guid) {
     FMOD::Studio::Bus* bus = NULL;
     gLastResult = gStudioSystem->getBusByID(&id, &bus);
     if (gLastResult != FMOD_OK || !bus) return 0;
-    return faxe_handle_find_or_alloc(bus, FAXE_TYPE_BUS);
+    return lincHandleOrMemory(bus, FAXE_TYPE_BUS);
 }
 
 int fmod_sys_get_event(const ::String& path) {
@@ -3510,7 +3544,7 @@ int fmod_sys_get_event(const ::String& path) {
     FMOD::Studio::EventDescription* desc = NULL;
     gLastResult = gStudioSystem->getEvent(path.c_str(), &desc);
     if (gLastResult != FMOD_OK || !desc) return 0;
-    return faxe_handle_find_or_alloc(desc, FAXE_TYPE_EVD);
+    return lincHandleOrMemory(desc, FAXE_TYPE_EVD);
 }
 
 int fmod_sys_get_event_by_id(const ::String& guid) {
@@ -3520,7 +3554,7 @@ int fmod_sys_get_event_by_id(const ::String& guid) {
     FMOD::Studio::EventDescription* desc = NULL;
     gLastResult = gStudioSystem->getEventByID(&id, &desc);
     if (gLastResult != FMOD_OK || !desc) return 0;
-    return faxe_handle_find_or_alloc(desc, FAXE_TYPE_EVD);
+    return lincHandleOrMemory(desc, FAXE_TYPE_EVD);
 }
 
 int fmod_sys_get_vca(const ::String& path) {
@@ -3528,7 +3562,7 @@ int fmod_sys_get_vca(const ::String& path) {
     FMOD::Studio::VCA* vca = NULL;
     gLastResult = gStudioSystem->getVCA(path.c_str(), &vca);
     if (gLastResult != FMOD_OK || !vca) return 0;
-    return faxe_handle_find_or_alloc(vca, FAXE_TYPE_VCA);
+    return lincHandleOrMemory(vca, FAXE_TYPE_VCA);
 }
 
 int fmod_sys_get_vca_by_id(const ::String& guid) {
@@ -3538,7 +3572,7 @@ int fmod_sys_get_vca_by_id(const ::String& guid) {
     FMOD::Studio::VCA* vca = NULL;
     gLastResult = gStudioSystem->getVCAByID(&id, &vca);
     if (gLastResult != FMOD_OK || !vca) return 0;
-    return faxe_handle_find_or_alloc(vca, FAXE_TYPE_VCA);
+    return lincHandleOrMemory(vca, FAXE_TYPE_VCA);
 }
 
 int fmod_sys_get_bank(const ::String& path) {
@@ -3546,7 +3580,7 @@ int fmod_sys_get_bank(const ::String& path) {
     FMOD::Studio::Bank* bank = NULL;
     gLastResult = gStudioSystem->getBank(path.c_str(), &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
-    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+    return lincHandleOrMemory(bank, FAXE_TYPE_BANK);
 }
 
 int fmod_sys_get_bank_by_id(const ::String& guid) {
@@ -3556,7 +3590,7 @@ int fmod_sys_get_bank_by_id(const ::String& guid) {
     FMOD::Studio::Bank* bank = NULL;
     gLastResult = gStudioSystem->getBankByID(&id, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
-    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+    return lincHandleOrMemory(bank, FAXE_TYPE_BANK);
 }
 
 int fmod_sys_get_bank_count() {
@@ -3761,7 +3795,10 @@ int fmod_sys_load_bank_file(const ::String& path, int flags) {
     FMOD::Studio::Bank* bank = NULL;
     gLastResult = gStudioSystem->loadBankFile(path.c_str(), loadFlags, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
-    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+    int bankHandle = lincHandleOrMemory(bank, FAXE_TYPE_BANK);
+    // No slot means no way to ever unload it, so it goes back out
+    if (bankHandle == 0) bank->unload();
+    return bankHandle;
 }
 
 // Async bank load: always FMOD_STUDIO_LOAD_BANK_NONBLOCKING, polled via
@@ -3771,7 +3808,10 @@ int fmod_sys_load_bank_async(const ::String& path) {
     FMOD::Studio::Bank* bank = NULL;
     gLastResult = gStudioSystem->loadBankFile(path.c_str(), FMOD_STUDIO_LOAD_BANK_NONBLOCKING, &bank);
     if (gLastResult != FMOD_OK || !bank) return 0;
-    return faxe_handle_find_or_alloc(bank, FAXE_TYPE_BANK);
+    int bankHandle = lincHandleOrMemory(bank, FAXE_TYPE_BANK);
+    // No slot means no way to ever unload it, so it goes back out
+    if (bankHandle == 0) bank->unload();
+    return bankHandle;
 }
 
 // Frees the cached lookup handles whose objects an unload just destroyed,
@@ -4346,6 +4386,7 @@ int fmod_evd_create_instance(int h) {
     // Attach the per-instance context so FMOD-thread callbacks can find the
     // handle (and programmer-sound key) without touching the handle table.
     if (!attachInstanceCtx(instance, handle)) {
+        gLastResult = FMOD_ERR_MEMORY;
         faxe_handle_free(handle);
         instance->release();
         return 0;
@@ -4546,7 +4587,7 @@ int fmod_evi_get_description(int h) {
     FMOD::Studio::EventDescription* desc = NULL;
     gLastResult = instance->getDescription(&desc);
     if (gLastResult != FMOD_OK || !desc) return 0;
-    return faxe_handle_find_or_alloc(desc, FAXE_TYPE_EVD);
+    return lincHandleOrMemory(desc, FAXE_TYPE_EVD);
 }
 
 int fmod_evi_start(int h) {
@@ -5054,6 +5095,10 @@ int fmod_chan_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, int coun
     FMOD::Channel* ch = resolveChannel(h);
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (count > 0 && (data == null() || (size_t)count * 12u > (size_t)data->length)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
     FMOD_VECTOR* points = rolloffCopy(data, count);
     if (count > 0 && !points) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
     gLastResult = ch->set3DCustomRolloff(points, points ? count : 0);
@@ -5076,6 +5121,10 @@ int fmod_cg_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, int count)
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (count > 0 && (data == null() || (size_t)count * 12u > (size_t)data->length)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
     FMOD_VECTOR* points = rolloffCopy(data, count);
     if (count > 0 && !points) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
     gLastResult = group->set3DCustomRolloff(points, points ? count : 0);
@@ -5098,6 +5147,10 @@ int fmod_core_sound_set_3d_custom_rolloff(int h, ::Array<unsigned char> data, in
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     if (count < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (count > 0 && (data == null() || (size_t)count * 12u > (size_t)data->length)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
     FMOD_VECTOR* points = rolloffCopy(data, count);
     if (count > 0 && !points) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
     gLastResult = sound->set3DCustomRolloff(points, points ? count : 0);
@@ -5492,7 +5545,7 @@ int fmod_chan_get_channel_group(int h) {
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = ch->getChannelGroup(&group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    return lincHandleOrMemory(group, FAXE_TYPE_CHANGROUP);
 }
 
 int fmod_cg_set_dsp_index(int h, int dspHandle, int index) {
@@ -5547,7 +5600,7 @@ int fmod_sg_get_sound(int h, int index) {
     FMOD::Sound* sound = NULL;
     gLastResult = group->getSound(index, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
-    return faxe_handle_find_or_alloc(sound, FAXE_TYPE_SOUND);
+    return lincHandleOrMemory(sound, FAXE_TYPE_SOUND);
 }
 
 // The pool channel at this index. An idle channel answers every call on
@@ -5557,7 +5610,7 @@ int fmod_sys_get_channel(int index) {
     FMOD::Channel* ch = NULL;
     gLastResult = gCoreSystem->getChannel(index, &ch);
     if (gLastResult != FMOD_OK || !ch) return 0;
-    return faxe_handle_find_or_alloc(ch, FAXE_TYPE_CHAN);
+    return lincHandleOrMemory(ch, FAXE_TYPE_CHAN);
 }
 
 int fmod_sys_get_output() {
@@ -5743,7 +5796,7 @@ int fmod_core_sound_get_sub_sound(int h, int index) {
     FMOD::Sound* sub = NULL;
     gLastResult = sound->getSubSound(index, &sub);
     if (gLastResult != FMOD_OK || !sub) return 0;
-    return faxe_handle_find_or_alloc(sub, FAXE_TYPE_SOUND);
+    return lincHandleOrMemory(sub, FAXE_TYPE_SOUND);
 }
 
 int fmod_core_sound_get_sub_sound_parent(int h) {
@@ -5752,7 +5805,7 @@ int fmod_core_sound_get_sub_sound_parent(int h) {
     FMOD::Sound* parent = NULL;
     gLastResult = sound->getSubSoundParent(&parent);
     if (gLastResult != FMOD_OK || !parent) return 0;
-    return faxe_handle_find_or_alloc(parent, FAXE_TYPE_SOUND);
+    return lincHandleOrMemory(parent, FAXE_TYPE_SOUND);
 }
 
 int fmod_core_sound_get_num_tags(int h, ::Array<int> ibuf) {
@@ -6162,7 +6215,7 @@ int fmod_dsp_add_input_preallocated(int h, int inputHandle, int connHandle) {
     gLastResult = FMOD_ERR_UNSUPPORTED;
 #endif
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return faxe_handle_find_or_alloc(conn, FAXE_TYPE_DSPCONN);
+    return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
 }
 
 // fbuf = one gain per input channel, count of them
@@ -6262,7 +6315,7 @@ int fmod_cg_get_dsp(int h, int index) {
     FMOD::DSP* dsp = NULL;
     gLastResult = group->getDSP(index, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return faxe_handle_find_or_alloc(dsp, FAXE_TYPE_DSP);
+    return lincHandleOrMemory(dsp, FAXE_TYPE_DSP);
 }
 
 //// DSP data parameters and unit info

@@ -50,13 +50,29 @@ int main(void) {
     /* a sound the shim created outlives the clear, so the installed mask
      * keeps its destroy bit and the release still runs */
     assert(!faxe_instctx_ps_sound_pending(ctx));
-    ctx->psSound = (void*)ctx;
+    assert(faxe_instctx_ps_sound_add(ctx, (void*)ctx));
     strcpy(ctx->psKey, "hello");
     assert(faxe_instctx_ps_armed(ctx) && faxe_instctx_ps_sound_pending(ctx));
     faxe_instctx_ps_clear(ctx);
     assert(!faxe_instctx_ps_armed(ctx));
-    assert(faxe_instctx_ps_sound_pending(ctx) && ctx->psSound == (void*)ctx);
-    ctx->psSound = NULL;
+    assert(faxe_instctx_ps_sound_pending(ctx) && ctx->psSounds[0] == (void*)ctx);
+    /* two instruments live at once keep separate slots, and a take only
+     * forgets its own sound */
+    {
+        static int second;
+        int i;
+        assert(faxe_instctx_ps_sound_add(ctx, (void*)&second));
+        assert(faxe_instctx_ps_take_count(ctx) == 2);
+        assert(!faxe_instctx_ps_sound_take(ctx, (void*)&i));
+        assert(faxe_instctx_ps_sound_take(ctx, (void*)ctx));
+        assert(faxe_instctx_ps_sound_pending(ctx) && ctx->psSounds[1] == (void*)&second);
+        assert(faxe_instctx_ps_sound_take(ctx, (void*)&second));
+        assert(!faxe_instctx_ps_sound_take(ctx, (void*)&second));
+        /* every slot taken: the add reports it */
+        for (i = 0; i < FAXE_PS_NAMED_MAX; i++) assert(faxe_instctx_ps_sound_add(ctx, (void*)(&second + 1 + i)));
+        assert(!faxe_instctx_ps_sound_add(ctx, (void*)ctx));
+        for (i = 0; i < FAXE_PS_NAMED_MAX; i++) assert(faxe_instctx_ps_sound_take(ctx, (void*)(&second + 1 + i)));
+    }
     assert(!faxe_instctx_ps_sound_pending(ctx));
 
     /* the name table allocates on first use, replaces by name, and fills up */

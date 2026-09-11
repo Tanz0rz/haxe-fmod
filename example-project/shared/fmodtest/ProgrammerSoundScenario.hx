@@ -222,6 +222,7 @@ class ProgrammerSoundScenario implements TestScenario {
         _atDestroySound = Sound.NULL;
         _atStopped = false;
         _atMaxPeak = 0;
+        _atNameSeen = false;
         _atInstance = desc.createInstance();
         check("at_create_instance", !_atInstance.isNull(), 'key=$key');
         #if js

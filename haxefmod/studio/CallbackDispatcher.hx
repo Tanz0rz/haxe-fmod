@@ -81,6 +81,16 @@ class CallbackDispatcher {
         handlers.set(handle, handler);
     }
 
+    #if js
+    static function dropDeadHandlers():Void {
+        var dead:Array<Int> = [];
+        for (handle in handlers.keys()) {
+            if (!NativeStudio.evi_is_valid(handle)) dead.push(handle);
+        }
+        for (handle in dead) handlers.remove(handle);
+    }
+    #end
+
     /** Removes the handler for an event instance. */
     public static function remove(handle:Int):Void {
         handlers.remove(handle);
@@ -110,7 +120,10 @@ class CallbackDispatcher {
             trace("Warn: FMOD - callback event queue overflowed. Oldest events were dropped.");
         }
         #if js
+        // The web runtime never delivers DESTROYED, so the handlers of
+        // destroyed instances are dropped here, like their user data
         UserData.dropDeadInstances();
+        dropDeadHandlers();
         #end
         if (frameHook != null) frameHook();
     }

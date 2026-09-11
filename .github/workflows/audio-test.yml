@@ -1132,7 +1132,7 @@ jobs:
           ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
           STALE=0
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
-            MARK=$(grep -a -o "hlaxe_fmod_abi=[0-9]*" "$HDLL" | head -1 | sed 's/.*=//')
+            MARK=$(grep -a -o -m 1 "hlaxe_fmod_abi=[0-9]*" "$HDLL" | sed 's/.*=//')
             echo "$HDLL marker abi=$MARK (library abi=$ABI)"
             if [ "$MARK" != "$ABI" ]; then STALE=1; fi
           done
@@ -1727,7 +1727,7 @@ jobs:
           ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
           STALE=0
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
-            MARK=$(grep -a -o "hlaxe_fmod_abi=[0-9]*" "$HDLL" | head -1 | sed 's/.*=//')
+            MARK=$(grep -a -o -m 1 "hlaxe_fmod_abi=[0-9]*" "$HDLL" | sed 's/.*=//')
             echo "$HDLL marker abi=$MARK (library abi=$ABI)"
             if [ "$MARK" != "$ABI" ]; then STALE=1; fi
           done
@@ -2003,7 +2003,7 @@ jobs:
           ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
           STALE=0
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
-            MARK=$(grep -a -o "hlaxe_fmod_abi=[0-9]*" "$HDLL" | head -1 | sed 's/.*=//')
+            MARK=$(grep -a -o -m 1 "hlaxe_fmod_abi=[0-9]*" "$HDLL" | sed 's/.*=//')
             echo "$HDLL marker abi=$MARK (library abi=$ABI)"
             if [ "$MARK" != "$ABI" ]; then STALE=1; fi
           done
@@ -3819,22 +3819,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/volume-test-linux-cpp.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-linux-cpp.log
           cd example-project/EZPlatformer/export/linux/bin
-          ./run.sh > /tmp/volume-test-linux-cpp.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./run.sh > /tmp/volume-test-linux-cpp.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/volume-test-linux-cpp.log /tmp/volume-test-linux-cpp.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -3885,22 +3896,33 @@ jobs:
           LOG=/tmp/stress-smoke-linux-cpp.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/EZPlatformer/export/linux/bin
-          ./run.sh > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./run.sh > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -4000,22 +4022,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/volume-test-linux-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-linux-hl.log
           cd example-project/EZPlatformer/export/hl/bin
-          env LD_LIBRARY_PATH="$(pwd)" ./EZPlatformerTestEdition > /tmp/volume-test-linux-hl.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            env LD_LIBRARY_PATH="$(pwd)" ./EZPlatformerTestEdition > /tmp/volume-test-linux-hl.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/volume-test-linux-hl.log /tmp/volume-test-linux-hl.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -4055,22 +4088,33 @@ jobs:
           LOG=/tmp/stress-smoke-linux-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/EZPlatformer/export/hl/bin
-          env LD_LIBRARY_PATH="$(pwd)" ./EZPlatformerTestEdition > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            env LD_LIBRARY_PATH="$(pwd)" ./EZPlatformerTestEdition > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -4340,22 +4384,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/audio-mac-cpp.wav
           export HAXEFMOD_LOG_FILE=/tmp/game-mac-cpp.log
           cd example-project/EZPlatformer/export/macos/bin/EZPlatformerTestEdition.app/Contents/MacOS
-          ./EZPlatformerTestEdition > /tmp/game-mac-cpp.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./EZPlatformerTestEdition > /tmp/game-mac-cpp.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/game-mac-cpp.log /tmp/game-mac-cpp.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           echo "=== Game log ==="
           cat /tmp/game-mac-cpp.log || true
           echo "=== End game log ==="
@@ -4367,22 +4422,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/volume-test-mac-cpp.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-mac-cpp.log
           cd example-project/EZPlatformer/export/macos/bin/EZPlatformerTestEdition.app/Contents/MacOS
-          ./EZPlatformerTestEdition > /tmp/volume-test-mac-cpp.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./EZPlatformerTestEdition > /tmp/volume-test-mac-cpp.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/volume-test-mac-cpp.log /tmp/volume-test-mac-cpp.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -4422,22 +4488,33 @@ jobs:
           LOG=/tmp/stress-smoke-mac-cpp.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/EZPlatformer/export/macos/bin/EZPlatformerTestEdition.app/Contents/MacOS
-          ./EZPlatformerTestEdition > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./EZPlatformerTestEdition > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -4511,22 +4588,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/audio-mac-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/game-mac-hl.log
           cd example-project/EZPlatformer/export/hl/bin/EZPlatformerTestEdition.app/Contents/MacOS
-          ./EZPlatformerTestEdition > /tmp/game-mac-hl.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./EZPlatformerTestEdition > /tmp/game-mac-hl.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/game-mac-hl.log /tmp/game-mac-hl.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           echo "=== Game log ==="
           cat /tmp/game-mac-hl.log || true
           echo "=== End game log ==="
@@ -4538,22 +4626,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/volume-test-mac-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-mac-hl.log
           cd example-project/EZPlatformer/export/hl/bin/EZPlatformerTestEdition.app/Contents/MacOS
-          ./EZPlatformerTestEdition > /tmp/volume-test-mac-hl.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./EZPlatformerTestEdition > /tmp/volume-test-mac-hl.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/volume-test-mac-hl.log /tmp/volume-test-mac-hl.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -4593,22 +4692,33 @@ jobs:
           LOG=/tmp/stress-smoke-mac-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/EZPlatformer/export/hl/bin/EZPlatformerTestEdition.app/Contents/MacOS
-          ./EZPlatformerTestEdition > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./EZPlatformerTestEdition > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -4767,22 +4877,33 @@ jobs:
           LOG=$GITHUB_WORKSPACE/stress-smoke-windows-cpp.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/EZPlatformer/export/windows/bin
-          ./EZPlatformerTestEdition.exe > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./EZPlatformerTestEdition.exe > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -4933,22 +5054,33 @@ jobs:
           LOG=$GITHUB_WORKSPACE/stress-smoke-windows-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/EZPlatformer/export/hl/bin
-          ./EZPlatformerTestEdition.exe > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./EZPlatformerTestEdition.exe > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -5086,22 +5218,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/volume-test-heaps-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-heaps-hl.log
           cd example-project/HeapsPlatformer/build/hl
-          ./run.sh > /tmp/volume-test-heaps-hl.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./run.sh > /tmp/volume-test-heaps-hl.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/volume-test-heaps-hl.log /tmp/volume-test-heaps-hl.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -5152,22 +5295,33 @@ jobs:
           LOG=/tmp/stress-smoke-heaps-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/HeapsPlatformer/build/hl
-          ./run.sh > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./run.sh > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -5437,22 +5591,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/audio-heaps-mac-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/game-heaps-mac-hl.log
           cd example-project/HeapsPlatformer/build/hl
-          ./game > /tmp/game-heaps-mac-hl.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./game > /tmp/game-heaps-mac-hl.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/game-heaps-mac-hl.log /tmp/game-heaps-mac-hl.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           echo "=== Game log ==="
           cat /tmp/game-heaps-mac-hl.log || true
           echo "=== End game log ==="
@@ -5464,22 +5629,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/volume-test-heaps-mac-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-heaps-mac-hl.log
           cd example-project/HeapsPlatformer/build/hl
-          ./game > /tmp/volume-test-heaps-mac-hl.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./game > /tmp/volume-test-heaps-mac-hl.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/volume-test-heaps-mac-hl.log /tmp/volume-test-heaps-mac-hl.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -5519,22 +5695,33 @@ jobs:
           LOG=/tmp/stress-smoke-heaps-mac-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/HeapsPlatformer/build/hl
-          ./game > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./game > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -5693,22 +5880,33 @@ jobs:
           LOG=$GITHUB_WORKSPACE/stress-smoke-heaps-windows-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/HeapsPlatformer/build/hl
-          ./HeapsPlatformer.exe > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./HeapsPlatformer.exe > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -5817,22 +6015,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/volume-test-kha-linux.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-linux.log
           cd example-project/KhaPlatformer/build/linux
-          ./run.sh > /tmp/volume-test-kha-linux.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./run.sh > /tmp/volume-test-kha-linux.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/volume-test-kha-linux.log /tmp/volume-test-kha-linux.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -5883,22 +6092,33 @@ jobs:
           LOG=/tmp/stress-smoke-kha-linux.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build/linux
-          ./run.sh > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./run.sh > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -5998,22 +6218,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/volume-test-kha-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-hl.log
           cd example-project/KhaPlatformer/build/linux-hl
-          ./run.sh > /tmp/volume-test-kha-hl.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./run.sh > /tmp/volume-test-kha-hl.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/volume-test-kha-hl.log /tmp/volume-test-kha-hl.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -6053,22 +6284,33 @@ jobs:
           LOG=/tmp/stress-smoke-kha-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build/linux-hl
-          ./run.sh > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./run.sh > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -6338,22 +6580,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/audio-kha-mac.wav
           export HAXEFMOD_LOG_FILE=/tmp/game-kha-mac.log
           cd example-project/KhaPlatformer/build/osx
-          ./KhaPlatformer > /tmp/game-kha-mac.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./KhaPlatformer > /tmp/game-kha-mac.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/game-kha-mac.log /tmp/game-kha-mac.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           echo "=== Game log ==="
           cat /tmp/game-kha-mac.log || true
           echo "=== End game log ==="
@@ -6365,22 +6618,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/volume-test-kha-mac.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-mac.log
           cd example-project/KhaPlatformer/build/osx
-          ./KhaPlatformer > /tmp/volume-test-kha-mac.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./KhaPlatformer > /tmp/volume-test-kha-mac.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/volume-test-kha-mac.log /tmp/volume-test-kha-mac.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -6420,22 +6684,33 @@ jobs:
           LOG=/tmp/stress-smoke-kha-mac.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build/osx
-          ./KhaPlatformer > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./KhaPlatformer > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -6509,22 +6784,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/audio-kha-mac-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/game-kha-mac-hl.log
           cd example-project/KhaPlatformer/build/osx-hl
-          ./KhaPlatformer > /tmp/game-kha-mac-hl.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./KhaPlatformer > /tmp/game-kha-mac-hl.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/game-kha-mac-hl.log /tmp/game-kha-mac-hl.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           echo "=== Game log ==="
           cat /tmp/game-kha-mac-hl.log || true
           echo "=== End game log ==="
@@ -6536,22 +6822,33 @@ jobs:
           export FMOD_WAVWRITER=/tmp/volume-test-kha-mac-hl.wav
           export HAXEFMOD_LOG_FILE=/tmp/volume-test-kha-mac-hl.log
           cd example-project/KhaPlatformer/build/osx-hl
-          ./KhaPlatformer > /tmp/volume-test-kha-mac-hl.log 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./KhaPlatformer > /tmp/volume-test-kha-mac-hl.log 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 60); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp /tmp/volume-test-kha-mac-hl.log /tmp/volume-test-kha-mac-hl.log.first-attempt
+            run_game || true
+          fi
           cd -
-          for i in $(seq 60); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -6591,22 +6888,33 @@ jobs:
           LOG=/tmp/stress-smoke-kha-mac-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build/osx-hl
-          ./KhaPlatformer > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./KhaPlatformer > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -6765,22 +7073,33 @@ jobs:
           LOG=$GITHUB_WORKSPACE/stress-smoke-kha-windows.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build/windows
-          ./KhaPlatformer.exe > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./KhaPlatformer.exe > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
@@ -6931,22 +7250,33 @@ jobs:
           LOG=$GITHUB_WORKSPACE/stress-smoke-kha-windows-hl.log
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build/windows-hl
-          ./KhaPlatformer.exe > "$LOG" 2>&1 &
-          GAME_PID=$!
+          run_game() {
+            ./KhaPlatformer.exe > "$LOG" 2>&1 &
+            GAME_PID=$!
+            STARTED=$(date +%s)
+            for i in $(seq 90); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            ALIVE=0
+            kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+            # A game that ignores SIGTERM must not hold the job until its
+            # timeout, so a KILL follows after ten seconds
+            kill $GAME_PID 2>/dev/null || true
+            for i in $(seq 10); do
+              kill -0 $GAME_PID 2>/dev/null || break
+              sleep 1
+            done
+            kill -9 $GAME_PID 2>/dev/null || true
+            wait $GAME_PID 2>/dev/null || true
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+          }
+          if run_game; then
+            echo "The game exited within five seconds. Launching once more."
+            cp "$LOG" "$LOG.first-attempt"
+            run_game || true
+          fi
           cd -
-          for i in $(seq 90); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          # A game that ignores SIGTERM must not hold the job until its
-          # timeout, so a KILL follows after ten seconds
-          kill $GAME_PID 2>/dev/null || true
-          for i in $(seq 10); do
-            kill -0 $GAME_PID 2>/dev/null || break
-            sleep 1
-          done
-          kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi

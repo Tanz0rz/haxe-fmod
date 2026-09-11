@@ -46,6 +46,7 @@ class FmodFlxPreloader extends FlxPreloader {
     var failureText:TextField;
     var fmodSettings:FmodSettings;
     var resolved:haxefmod.runtime.ResolvedFmodSettings;
+    var visualsCreated:Bool = false;
 
     /** The settings FMOD initializes with. Override it in a subclass. Null means the defines and defaults. **/
     function settings():Null<FmodSettings> {
@@ -53,12 +54,24 @@ class FmodFlxPreloader extends FlxPreloader {
     }
 
     override function create():Void {
-        super.create();
+        createVisuals();
         #if js
         // The wasm module loads while lime loads the assets. The banks
         // arrive once the assets are in, and the runtime waits for them.
         initialize();
         #end
+    }
+
+    // A native window can report a zero-sized stage on its first frame.
+    // FlxPreloader draws bitmaps at the stage size, and a zero-sized
+    // bitmap faults on the native targets, so the drawing waits for a
+    // size and runs from update() until then.
+    function createVisuals():Void {
+        if (visualsCreated) return;
+        var stage = openfl.Lib.current.stage;
+        if (stage == null || stage.stageWidth <= 0 || stage.stageHeight <= 0) return;
+        visualsCreated = true;
+        super.create();
     }
 
     function initialize():Void {
@@ -125,7 +138,9 @@ class FmodFlxPreloader extends FlxPreloader {
     }
 
     override public function update(percent:Float):Void {
-        super.update(percent);
+        createVisuals();
+        // FlxPreloader.update drives the bitmaps create() made
+        if (visualsCreated) super.update(percent);
         if (!provided) {
             // Lime hands out asset bytes after its own preload, and on
             // native targets it registers the library a frame or two after

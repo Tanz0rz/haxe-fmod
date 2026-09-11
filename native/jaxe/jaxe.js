@@ -119,6 +119,14 @@ class jaxe {
         return jaxe.handleAlloc(ptr, type);
     }
 
+    // Releases a wrapper the caller never keeps: an out parameter of a
+    // call that only wanted the other one
+    static dropWrapper(obj) {
+        if (obj && typeof obj.delete === "function") {
+            try { obj.delete(); } catch (e) {}
+        }
+    }
+
     // The existing handle for an object the table has seen (same type), 0
     // when it has not. Mirrors faxe_handle_find.
     static handleFind(ptr, type) {
@@ -166,7 +174,10 @@ class jaxe {
             var s = jaxe.slots[i];
             if (!s.alive) continue;
             if (s.type != jaxe.TYPE_BUS && s.type != jaxe.TYPE_VCA && s.type != jaxe.TYPE_EVD
-                && s.type != jaxe.TYPE_CHANGROUP && s.type != jaxe.TYPE_EVI) continue;
+                && s.type != jaxe.TYPE_CHANGROUP && s.type != jaxe.TYPE_EVI && s.type != jaxe.TYPE_BANK) continue;
+            // An async load parks a placeholder in a bank slot until the
+            // fetch lands. It is not a wrapper and stays.
+            if (s.type == jaxe.TYPE_BANK && s.ptr && s.ptr.pendingBankPath !== undefined) continue;
             if (!jaxe.lookupSlotUsable(s)) jaxe.handleFree((s.gen << 16) | i);
         }
     }
@@ -197,6 +208,11 @@ class jaxe {
         var s = jaxe.slots[idx];
         if (!s || !s.alive || s.gen != gen) return;
         s.alive = false;
+        // The embind wrapper holds a record in the wasm heap that only
+        // delete() frees. The FMOD object behind it is untouched.
+        if (s.ptr && typeof s.ptr.delete === "function") {
+            try { s.ptr.delete(); } catch (e) {}
+        }
         s.ptr = null;
         s.raw = 0;
         s.type = 0;
@@ -1041,7 +1057,7 @@ class jaxe {
         if (!jaxe.sysReady()) return 0;
         var placeholder = { pendingBankPath: path };
         var handle = jaxe.handleAlloc(placeholder, jaxe.TYPE_BANK);
-        if (handle == 0) return 0;
+        if (handle == 0) { jaxe.lastResult = jaxe.ERR_MEMORY; return 0; }
         jaxe.lastResult = jaxe.FMOD.OK;
         var idx = handle & 0xFFFF;
         var memfsName = "async_" + (++jaxe.asyncBankCounter) + ".bank";
@@ -2609,12 +2625,14 @@ class jaxe {
     static fmod_core_pcm_space(handle) {
         var ps = jaxe.handleResolve(handle, jaxe.TYPE_PCM);
         if (!ps) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        jaxe.lastResult = jaxe.FMOD.OK;
         return ps.ring.buf.length - ps.ring.fill;
     }
 
     static fmod_core_pcm_underruns(handle) {
         var ps = jaxe.handleResolve(handle, jaxe.TYPE_PCM);
         if (!ps) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        jaxe.lastResult = jaxe.FMOD.OK;
         var n = ps.ring.underruns;
         ps.ring.underruns = 0;
         return n;
@@ -3253,6 +3271,7 @@ class jaxe {
         var dspOut = {};
         var connOut = {};
         jaxe.lastResult = dsp.getInput(index, dspOut, connOut);
+        jaxe.dropWrapper(connOut.val);
         if (jaxe.lastResult != jaxe.FMOD.OK || !dspOut.val) return 0;
         return jaxe.handleFindOrAlloc(dspOut.val, jaxe.TYPE_DSP);
     }
@@ -3263,6 +3282,7 @@ class jaxe {
         var dspOut = {};
         var connOut = {};
         jaxe.lastResult = dsp.getInput(index, dspOut, connOut);
+        jaxe.dropWrapper(dspOut.val);
         if (jaxe.lastResult != jaxe.FMOD.OK || !connOut.val) return 0;
         return jaxe.handleFindOrAlloc(connOut.val, jaxe.TYPE_DSPCONN);
     }
@@ -4648,6 +4668,7 @@ class jaxe {
         var dspOut = {};
         var connOut = {};
         jaxe.lastResult = dsp.getOutput(index, dspOut, connOut);
+        jaxe.dropWrapper(connOut.val);
         if (jaxe.lastResult != jaxe.FMOD.OK || !dspOut.val) return 0;
         return jaxe.handleFindOrAlloc(dspOut.val, jaxe.TYPE_DSP);
     }
@@ -4658,6 +4679,7 @@ class jaxe {
         var dspOut = {};
         var connOut = {};
         jaxe.lastResult = dsp.getOutput(index, dspOut, connOut);
+        jaxe.dropWrapper(dspOut.val);
         if (jaxe.lastResult != jaxe.FMOD.OK || !connOut.val) return 0;
         return jaxe.handleFindOrAlloc(connOut.val, jaxe.TYPE_DSPCONN);
     }

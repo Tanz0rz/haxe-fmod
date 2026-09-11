@@ -33,7 +33,7 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /** Creates a custom group. Returns ChannelGroup.NULL on failure. */
     public static inline function create(name:String):ChannelGroup {
-        return NativeStudio.cg_create(name);
+        return NativeStudio.cg_create(name == null ? "" : name);
     }
 
     public inline function isNull():Bool {

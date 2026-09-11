@@ -212,12 +212,14 @@ class TestComponentCores {
 		// provider's position once it has one
 		var stub = haxefmod.studio.native.NativeStudioStub;
 		stub.testListenerPushes = [];
+		stub.testRecordListenerPushes = true;
 		var listener = new ListenerTracker(null);
 		listener.update();
 		assert(stub.testListenerPushes.length == 0, "no listener push without a provider");
 		listener.provider = provider;
 		listener.update();
 		assert(stub.testListenerPushes.length == 1, "one listener push per update with a provider");
+		stub.testRecordListenerPushes = false;
 	}
 }
 
