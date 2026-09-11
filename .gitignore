@@ -9,6 +9,8 @@
 /example-project/EZPlatformer/export
 /example-project/HeapsPlatformer/build
 /example-project/HeapsPlatformer/build-manual
+/example-project/KhaPlatformer/build
+/example-project/KhaPlatformer/build-manual
 /example-project/HeapsPlatformer/.haxefmod
 /example-project/EZPlatformer/.haxefmod
 # build-hdll run at the library root writes its project-local hdll here
@@ -50,5 +52,3 @@ __pycache__/
 
 # Local CI runner output
 /ci/local/
-/example-project/KhaPlatformer/build
-/example-project/KhaPlatformer/build-manual

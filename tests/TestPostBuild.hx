@@ -323,9 +323,11 @@ class TestPostBuild {
 		}
 		rmTree(base);
 
-		// Library side: version marker, a pre-built hdll, jaxe.js
+		// Library side: version marker, the manifest header, a pre-built
+		// hdll carrying the matching ABI marker, jaxe.js
 		write('$libRoot/fmod_expected_version', "0x00020312\n");
-		write('$libRoot/templates/bin/hl/Linux64/hlaxe_fmod.hdll', "hdll bytes");
+		write('$libRoot/native/manifest/studio_api.txt', "# abi-version: 12\n");
+		write('$libRoot/templates/bin/hl/Linux64/hlaxe_fmod.hdll', "hdll bytes hlaxe_fmod_abi=12");
 		write('$libRoot/native/jaxe/jaxe.js', "// jaxe");
 
 		// Desktop SDK: header plus versioned .so files with the symlinks
@@ -348,7 +350,7 @@ class TestPostBuild {
 		check("stage copies libfmodstudio.so", sys.FileSystem.exists('$out/libfmodstudio.so'));
 		check("stage copies the versioned library", sys.FileSystem.exists('$out/libfmod.so.14.12'));
 		check("stage copies the pre-built hdll", sys.FileSystem.exists('$out/hlaxe_fmod.hdll')
-			&& sys.io.File.getContent('$out/hlaxe_fmod.hdll') == "hdll bytes");
+			&& sys.io.File.getContent('$out/hlaxe_fmod.hdll') == "hdll bytes hlaxe_fmod_abi=12");
 		check("stage clears the executable stack flag",
 			sys.io.File.getBytes('$out/libfmod.so.14.12').getInt32(124) & 1 == 0);
 		var runSh = '$out/run.sh';
@@ -365,11 +367,11 @@ class TestPostBuild {
 			&& sys.io.File.getContent(runSh).indexOf('hl "./main.hl"') != -1);
 
 		// A project-local custom hdll wins when its marker matches the SDK
-		write('$projectDir/.haxefmod/hlaxe_fmod.hdll', "custom hdll");
+		write('$projectDir/.haxefmod/hlaxe_fmod.hdll', "custom hdll hlaxe_fmod_abi=12");
 		write('$projectDir/.haxefmod/hlaxe_fmod.version', "0x00020312\n");
 		PostBuild.stage("linux", "hl", libRoot, projectDir, out);
 		check("stage prefers the custom hdll",
-			sys.io.File.getContent('$out/hlaxe_fmod.hdll') == "custom hdll");
+			sys.io.File.getContent('$out/hlaxe_fmod.hdll') == "custom hdll hlaxe_fmod_abi=12");
 
 		// cpp target: libraries only, no hdll, and the directory is created
 		var cppOut = '$projectDir/build/cpp';

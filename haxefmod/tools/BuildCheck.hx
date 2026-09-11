@@ -158,7 +158,14 @@ class BuildCheck {
         // ABI check on the hdll the build uses (the custom one when its
         // marker matches the SDK, the shipped pre-built one otherwise).
         var expectedAbi = PostBuild.expectedAbiVersion(libRoot);
-        if (expectedAbi <= 0) return;
+        if (expectedAbi <= 0) {
+            // The manifest ships with the library, so an unreadable header
+            // is a broken install rather than a choice to skip the gate
+            fail("haxefmod install has no readable native manifest",
+                'haxefmod: native/manifest/studio_api.txt under $libRoot has no readable "# abi-version:" header.\n'
+                + "  Reinstall haxefmod.");
+            return;
+        }
         var useCustom = haveCustom
             && (markerHex == null || sdkHex == null || PostBuild.sameVersion(markerHex, sdkHex));
         var hdll = useCustom ? customHdll : haxe.io.Path.join(

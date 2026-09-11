@@ -397,9 +397,13 @@ class Run {
 			return;
 		}
 
-		// The binding ABI half of the build gate.
+		// The binding ABI half of the build gate. The manifest ships with
+		// the library, so an unreadable header is a broken install.
 		var expectedAbi = PostBuild.expectedAbiVersion(libRoot);
-		if (expectedAbi <= 0) return;
+		if (expectedAbi <= 0) {
+			fail("hlaxe_fmod.hdll binding ABI", 'native/manifest/studio_api.txt under $libRoot has no readable "# abi-version:" header. Reinstall haxefmod.');
+			return;
+		}
 		if (!FileSystem.exists(hdll)) {
 			fail("hlaxe_fmod.hdll binding ABI", 'Missing: $hdll. Reinstall haxefmod, or run: haxelib run haxefmod build-hdll');
 			return;

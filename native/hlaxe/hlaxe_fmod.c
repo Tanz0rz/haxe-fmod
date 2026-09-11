@@ -688,12 +688,12 @@ static void sound_lock_close(int h, FMOD_SOUND* sound) {
 // Releasing a parent sound destroys its subsounds, so every sound handle
 // whose FMOD parent is this sound is dropped first. Otherwise those slots
 // would keep pointing at freed memory.
-static void release_subsound_handles(FMOD_SOUND* parent) {
+static int collect_subsound_handles(FMOD_SOUND* parent, int* out, int cap) {
     int i;
-    for (i = 0; i < gFaxeSlotCap; i++) {
+    int n = 0;
+    for (i = 0; i < gFaxeSlotCap && n < cap; i++) {
         FMOD_SOUND* owner = NULL;
         FMOD_SOUND* up;
-        int handle;
         int depth;
         int inTree = 0;
         if (!gFaxeSlots[i].alive || gFaxeSlots[i].type != FAXE_TYPE_SOUND) continue;
@@ -707,13 +707,9 @@ static void release_subsound_handles(FMOD_SOUND* parent) {
             up = owner;
         }
         if (!inTree) continue;
-        handle = ((int)gFaxeSlots[i].gen << 16) | i;
-        sound_lock_close(handle, (FMOD_SOUND*)gFaxeSlots[i].ptr);
-        /* The slot frees the subsound's rolloff points, so detach them
-         * while the subsound is still alive */
-        if (faxe_handle_get_aux(handle)) FMOD_Sound_Set3DCustomRolloff((FMOD_SOUND*)gFaxeSlots[i].ptr, NULL, 0);
-        faxe_handle_free(handle);
+        out[n++] = ((int)gFaxeSlots[i].gen << 16) | i;
     }
+    return n;
 }
 
 /* Closes what the game left open on a sound this shim is about to
@@ -730,15 +726,21 @@ HL_PRIM int HL_NAME(core_release_sound)(int h) {
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     /* A sound this shim created for an instrument is released by the shim */
     if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
-    sound_lock_close(h, sound);
-    release_subsound_handles(sound);
-    /* The sound's custom rolloff points are freed with the slot below,
-     * so detach them while the sound is still alive. */
-    if (faxe_handle_get_aux(h)) FMOD_Sound_Set3DCustomRolloff(sound, NULL, 0);
-    gLastResult = FMOD_Sound_Release(sound);
-    /* INVALID_HANDLE means FMOD already freed the sound. The slot goes
-     * either way, since the cleanup above cannot be undone. */
-    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
+    /* Nothing is touched before the release, so a refusal leaves the
+     * sound, its lock, its rolloff, and its subsound handles as they were.
+     * A sound FMOD freed reads neither its lock nor its rolloff points
+     * any more, so both records go with the slots below. */
+    {
+        int subs[FAXE_LIST_MAX];
+        int n = collect_subsound_handles(sound, subs, FAXE_LIST_MAX);
+        int i;
+        gLastResult = FMOD_Sound_Release(sound);
+        /* INVALID_HANDLE means FMOD already freed the sound, so the slots go too */
+        if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
+            for (i = 0; i < n; i++) faxe_handle_free(subs[i]);
+            faxe_handle_free(h);
+        }
+    }
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, core_release_sound, _I32);
@@ -1268,9 +1270,8 @@ DEFINE_PRIM(_I32, cg_create, _BYTES);
 HL_PRIM int HL_NAME(cg_release)(int h) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    /* The group's custom rolloff points are freed with the slot below,
-     * so detach them while the group is still alive. */
-    if (faxe_handle_get_aux(h)) FMOD_ChannelGroup_Set3DCustomRolloff(group, NULL, 0);
+    /* A refused release keeps the group and its rolloff points. A group
+     * FMOD freed reads them no more, so they go with the slot below. */
     gLastResult = FMOD_ChannelGroup_Release(group);
     /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
@@ -7057,7 +7058,7 @@ HL_PRIM int HL_NAME(core_sound_get_num_sub_sounds)(int h) {
 DEFINE_PRIM(_I32, core_sound_get_num_sub_sounds, _I32);
 
 // The subsound stays owned by its parent. The handle is looked up or
-// allocated, never released from Haxe (see release_subsound_handles).
+// allocated, never released from Haxe (see collect_subsound_handles).
 HL_PRIM int HL_NAME(core_sound_get_sub_sound)(int h, int index) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     FMOD_SOUND* sub = NULL;
@@ -7710,6 +7711,9 @@ HL_PRIM int HL_NAME(core_sound_lock)(int h, int offset, int length, vbyte* out) 
     unsigned int len1 = 0;
     unsigned int len2 = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -(int)gLastResult; }
+    /* A sound the library owns is released on FMOD's thread, where no
+     * lock can be closed, so none is opened on it */
+    if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
     if (!out || offset < 0 || length <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
     if (faxe_handle_get_lock(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
     lock = (SoundLock*)malloc(sizeof(SoundLock));

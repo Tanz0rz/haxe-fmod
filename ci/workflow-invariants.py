@@ -28,14 +28,16 @@ leans on:
   9. The HashLink commit is named once, in HASHLINK_COMMIT, and every
      checkout and cache key reads it there.
   10. HAXELIB_PINS names every pinned haxelib install and every haxelib
-     cache key carries it, so a bump rotates the caches.
-  11. Every other workflow that repeats HASHLINK_COMMIT or HAXELIB_PINS
-     carries the same value, and every other workflow's pinned installs
-     are in the pins, with or without the variable.
-  12. Every manifest ABI parse in the workflow is the same line, and a
-     guard that refuses a non-number follows each one.
-  13. Every Haxe install in every workflow goes through the local
-     setup-haxe action, which retries a failed download.
+     cache key carries it, so a bump rotates the caches. No install is
+     left unpinned outside the canary.
+  11. Every other workflow that repeats HASHLINK_COMMIT, HAXELIB_PINS,
+     or HAXE_VERSION carries the same value. Every other workflow's
+     pinned installs are in the pins, with or without the variable.
+  12. The six manifest ABI parses across the workflows are the same
+     line, and a guard that refuses a non-number follows each one.
+  13. No workflow uses krdlab/setup-haxe directly, so every such install
+     goes through the local action with the retry. The macOS jobs
+     install Haxe through Homebrew, which retries on its own.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -154,9 +156,11 @@ pins_match = re.search(r"HAXELIB_PINS: (\S+)", text)
 pins = pins_match.group(1) if pins_match else ""
 installs = set(re.findall(r"haxelib install ([a-z]+) ([0-9][0-9.]*)", text))
 missing_pins = sorted(f"{lib}{ver}" for lib, ver in installs if f"{lib}{ver}" not in pins.split("-"))
+# The library under test is installed at whatever version is published
+unpinned = sorted(set(re.findall(r"haxelib install ([a-z]+) --", text)) - {"haxefmod"})
 haxelib_keys = re.findall(r"key: haxelib-[^\n]*", text)
-if missing_pins or not haxelib_keys or any("env.HAXELIB_PINS" not in k for k in haxelib_keys):
-    fail(f"HAXELIB_PINS out of step: missing {missing_pins}, keys {haxelib_keys}")
+if missing_pins or unpinned or not haxelib_keys or any("env.HAXELIB_PINS" not in k for k in haxelib_keys):
+    fail(f"HAXELIB_PINS out of step: missing {missing_pins}, unpinned {unpinned}, keys {haxelib_keys}")
 else:
     ok(f"HAXELIB_PINS covers {len(installs)} pinned installs across {len(haxelib_keys)} cache keys")
 
@@ -176,6 +180,17 @@ for other in sorted(os.listdir(os.path.dirname(PATH))):
         ok(f"{other} names the same HashLink commit")
     if re.search(r"git checkout [0-9a-f]{40}", other_text):
         fail(f"{other} checks a HashLink commit out literally")
+    other_haxe = re.search(r"HAXE_VERSION: (\S+)", other_text)
+    this_haxe = re.search(r"HAXE_VERSION: (\S+)", text)
+    if other_haxe and (not this_haxe or other_haxe.group(1) != this_haxe.group(1)):
+        fail(f"{other} names Haxe {other_haxe.group(1)}, this workflow names {this_haxe.group(1) if this_haxe else None}")
+    elif other_haxe:
+        ok(f"{other} names the same Haxe version")
+    # The canary installs the newest versions on purpose, every other
+    # sibling pins each install
+    other_unpinned = sorted(set(re.findall(r"haxelib install ([a-z]+) --", other_text)) - {"haxefmod"})
+    if other_unpinned and other != "canary.yml":
+        fail(f"{other} installs without a version: {other_unpinned}")
     other_pins = re.search(r"HAXELIB_PINS: (\S+)", other_text)
     if other_pins and other_pins.group(1) != pins:
         fail(f"{other} carries HAXELIB_PINS {other_pins.group(1)}, this workflow carries {pins}")
@@ -192,17 +207,27 @@ for other in sorted(os.listdir(os.path.dirname(PATH))):
         ok(f"{other} installs {len(other_installs)} pinned versions the pins name")
 
 # 12. The six ABI parses of the manifest header are one line each, and a
-# numeric guard follows each. None of them can fail open again.
-abi_lines = re.findall(r"\n( *)(ABI=\$\([^\n]*)\n( *[^\n]*)", text)
-abi_parse = 'ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1)'
-abi_bad = [l for _, l, _ in abi_lines if l != abi_parse]
-abi_unguarded = [l for _, l, nxt in abi_lines if not nxt.strip().startswith('case "$ABI" in \'\'|*[!0-9]*)')]
-if not abi_lines or abi_bad or abi_unguarded:
-    fail(f"ABI parses out of step: {len(abi_lines)} found, differing {abi_bad}, unguarded {abi_unguarded}")
+# numeric guard follows each. None of them can fail open again. Every
+# workflow is scanned, and the count is held, so a seventh parse under
+# another name or in another file is noticed.
+ABI_PARSE_COUNT = 6
+abi_parse = 'ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)'
+abi_lines = []
+for wf in sorted(os.listdir(os.path.dirname(PATH))):
+    if not wf.endswith(".yml"):
+        continue
+    with open(os.path.join(os.path.dirname(PATH), wf)) as fh:
+        wf_text = fh.read()
+    abi_lines += [(wf, l, nxt) for l, nxt in re.findall(r"\n *([A-Z_]+=\$\(grep \"\^# abi-version:\"[^\n]*)\n *([^\n]*)", wf_text)]
+abi_bad = [(wf, l) for wf, l, _ in abi_lines if l != abi_parse]
+abi_unguarded = [(wf, l) for wf, l, nxt in abi_lines if not nxt.strip().startswith('case "$ABI" in \'\'|*[!0-9]*)')]
+if len(abi_lines) != ABI_PARSE_COUNT or abi_bad or abi_unguarded:
+    fail(f"ABI parses out of step: {len(abi_lines)} found of {ABI_PARSE_COUNT}, differing {abi_bad}, unguarded {abi_unguarded}")
 else:
     ok(f"{len(abi_lines)} ABI parses match and carry the numeric guard")
 
-# 13. Every Haxe install goes through the local action with the retry
+# 13. No workflow uses krdlab/setup-haxe directly, so every such install
+# goes through the local action with the retry
 direct = []
 for wf in sorted(os.listdir(os.path.dirname(PATH))):
     if not wf.endswith(".yml"):
@@ -211,20 +236,26 @@ for wf in sorted(os.listdir(os.path.dirname(PATH))):
         if re.search(r"uses: krdlab/setup-haxe", fh.read()):
             direct.append(wf)
 if direct:
-    fail(f"a workflow installs Haxe without the retrying action: {direct}")
+    fail(f"a workflow uses krdlab/setup-haxe directly instead of the retrying action: {direct}")
 else:
-    ok("every Haxe install goes through .github/actions/setup-haxe")
+    ok("no workflow uses krdlab/setup-haxe directly")
 
 # 8. Every portability loop over the shared header tests names the same
 # tests, so a header added to one compiler pass reaches the others
 loops = re.findall(r"for (?:%%t|t) in \(?([a-z0-9_ ]+?)\)?(?:;| do\b)", text)
-# The ThreadSanitizer loops run the threaded tests only, so they are apart
+# The ThreadSanitizer loops run the threaded tests only, so they are apart.
+# The sanitizer loops take the SDK-dependent tests on top of the shared
+# header set, so they are compared among themselves and must cover it.
 loops = [l for l in loops if "handles" in l]
-loop_sets = {tuple(sorted(l.split())) for l in loops}
-if len(loops) < 3 or len(loop_sets) != 1:
-    fail(f"the shared header test loops differ: {loops}")
+plain = [l for l in loops if "dspdata" not in l]
+sanitized = [l for l in loops if "dspdata" in l]
+plain_sets = {tuple(sorted(l.split())) for l in plain}
+sanitized_sets = {tuple(sorted(l.split())) for l in sanitized}
+covers = all(set(plain[0].split()) <= set(l.split()) for l in sanitized) if plain else False
+if len(plain) + len(sanitized) < 3 or not plain or len(plain_sets) != 1 or len(sanitized) < 2 or len(sanitized_sets) != 1 or not covers:
+    fail(f"the shared header test loops differ: plain {plain}, sanitized {sanitized}")
 else:
-    ok(f"{len(loops)} shared header test loops name the same {len(loops[0].split())} tests")
+    ok(f"{len(plain)} shared header test loops name the same {len(plain[0].split())} tests, {len(sanitized)} sanitizer loops add the SDK tests")
 
 # 5. linux-html5-chromium requires a FAILING build against a doctored web SDK,
 # with pipefail, and verifies the version-mismatch banner. The check is

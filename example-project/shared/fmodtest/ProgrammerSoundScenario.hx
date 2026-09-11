@@ -150,6 +150,10 @@ class ProgrammerSoundScenario implements TestScenario {
     var _atName:String = null;
     var _atNameSeen:Bool = false;
     var _atCreateSound:Sound = Sound.NULL;
+    // Parked on the library's sound and its subsound, so the release the
+    // library runs frees both with their handles. A leak or a stale read
+    // shows in the leak check, and in the sanitizer legs.
+    static var AT_ROLLOFF:Array<FmodVector> = [{x: 1, y: 1, z: 0}, {x: 10, y: 0.1, z: 0}];
     var _atCreateSubsound:Int = -2;
     var _atDestroySound:Sound = Sound.NULL;
 
@@ -188,6 +192,7 @@ class ProgrammerSoundScenario implements TestScenario {
         check("at_event_lookup", !desc.isNull(),
             'result=${StudioSystem.lastResult().toString()}');
         if (desc.isNull()) {
+            teardownMeter();
             finishState();
             return;
         }
@@ -235,6 +240,7 @@ class ProgrammerSoundScenario implements TestScenario {
         FmodManager.Update();
         check("no_at_leaks", StudioSystem.liveHandleCount() == _atBaseline,
             'baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
+        teardownMeter();
         finishState();
         return;
         #end
@@ -247,6 +253,22 @@ class ProgrammerSoundScenario implements TestScenario {
                     _atName = properties.name;
                     _atCreateSound = properties.sound;
                     _atCreateSubsound = properties.subsoundIndex;
+                    #if !js
+                    if (_atMode != "game" && !properties.sound.isNull()) {
+                        // A lock on a sound the library owns is refused, since
+                        // the library releases the sound on FMOD's thread
+                        check("at_owned_lock_refused", properties.sound.lock(0, 64) == null
+                            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
+                            'result=${StudioSystem.lastResult().toString()}');
+                        check("at_owned_rolloff_set", properties.sound.set3DCustomRolloff(AT_ROLLOFF).isOk(),
+                            'result=${StudioSystem.lastResult().toString()}');
+                        if (properties.subsoundIndex >= 0) {
+                            var sub = properties.sound.getSubSound(properties.subsoundIndex);
+                            check("at_owned_subsound_rolloff_set", !sub.isNull() && sub.set3DCustomRolloff(AT_ROLLOFF).isOk(),
+                                'sub=${(sub : Int)} result=${StudioSystem.lastResult().toString()}');
+                        }
+                    }
+                    #end
                 case ProgrammerSoundDestroyed(properties):
                     _atDestroys++;
                     _atDestroySound = properties.sound;
@@ -387,11 +409,17 @@ class ProgrammerSoundScenario implements TestScenario {
         FmodManager.Update();
         check("no_bogus_leaks", StudioSystem.liveHandleCount() == _atBaseline,
             'baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
-        if (!_atMeterGroup.isNull()) _atMeterGroup.removeDsp(_atMeter);
-        _atMeter.release();
-        _atMeter = Dsp.NULL;
-        _atMasterBus.unlockChannelGroup();
+        teardownMeter();
         finishState();
+    }
+
+    // Every exit of the audio table phase runs this, so the master bus
+    // lock and the meter never outlive the scenario
+    function teardownMeter():Void {
+        if (!_atMeterGroup.isNull() && !_atMeter.isNull()) _atMeterGroup.removeDsp(_atMeter);
+        if (!_atMeter.isNull()) _atMeter.release();
+        _atMeter = Dsp.NULL;
+        if (!_atMasterBus.isNull()) _atMasterBus.unlockChannelGroup();
     }
 
     function finishState():Void {

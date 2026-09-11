@@ -2,8 +2,9 @@ name: Setup Haxe
 description: Installs Haxe through krdlab/setup-haxe, and once more after a failed download
 
 # The Haxe release download comes from GitHub releases, which answers
-# with a server error now and then. One failed attempt costs the whole
-# job otherwise, so a second attempt runs after a pause.
+# with a server error now and then. krdlab's own curl retries within
+# about ninety seconds, and one outage outlasted that and cost a job.
+# A second attempt after a longer pause covers the gap.
 inputs:
   haxe-version:
     description: The exact Haxe version to install

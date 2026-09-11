@@ -136,10 +136,14 @@ class StudioSystem {
      * every instance callback is dropped here too.
      */
     public static function unloadAll():FmodResult {
-        UserData.clearAll();
-        EventDescription.clearAllCallbacks();
-        CallbackDispatcher.clearAll();
-        return NativeStudio.sys_unload_all();
+        // A refused unload keeps every bank, so the entries and handlers stay
+        var result:FmodResult = NativeStudio.sys_unload_all();
+        if (result.isOk()) {
+            UserData.clearAll();
+            EventDescription.clearAllCallbacks();
+            CallbackDispatcher.clearAll();
+        }
+        return result;
     }
 
     /**

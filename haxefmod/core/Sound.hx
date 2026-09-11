@@ -194,7 +194,8 @@ abstract Sound(Int) from Int to Int {
      * Edit the bytes and hand them to unlock, which writes them back and
      * closes the lock. Null on failure with the reason in
      * StudioSystem.lastResult(). That is FMOD_ERR_INVALID_PARAM when a
-     * lock is already open on this sound or the range is empty. A stream
+     * lock is already open on this sound, the range is empty, or the
+     * library owns the sound and releases it on its own. A stream
      * or a range past the end reports FMOD's own error. Only sample sounds
      * (fromPcm, createRecordBuffer, or create without a stream mode) hold
      * a buffer to lock. The copy can be shorter than length when FMOD
@@ -211,7 +212,8 @@ abstract Sound(Int) from Int to Int {
      * Edit the bytes and hand them to unlock, which writes them back and
      * closes the lock. Null on failure with the reason in
      * StudioSystem.lastResult(). That is FMOD_ERR_INVALID_PARAM when a
-     * lock is already open on this sound or the range is empty. A stream
+     * lock is already open on this sound, the range is empty, or the
+     * library owns the sound and releases it on its own. A stream
      * or a range past the end reports FMOD's own error. Only sample sounds
      * (fromPcm, createRecordBuffer, or create without a stream mode) hold
      * a buffer to lock. The copy can be shorter than length when FMOD
@@ -231,7 +233,7 @@ abstract Sound(Int) from Int to Int {
      * Writes the bytes from lock back into the sample buffer and closes
      * the lock (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).
      * FMOD_ERR_INVALID_PARAM without an open lock or when data is not the
-     * length lock returned. Releasing a sound with a lock open unlocks it.
+     * length lock returned. Releasing a sound with a lock open drops the lock with it.
      */
     public macro function unlock(self:haxe.macro.Expr, data:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Sound.unlock", "FMOD's web build cannot expose the sample buffer");
@@ -241,7 +243,7 @@ abstract Sound(Int) from Int to Int {
      * Writes the bytes from lock back into the sample buffer and closes
      * the lock (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED).
      * FMOD_ERR_INVALID_PARAM without an open lock or when data is not the
-     * length lock returned. Releasing a sound with a lock open unlocks it.
+     * length lock returned. Releasing a sound with a lock open drops the lock with it.
      */
     public function unlock(data:haxe.io.Bytes):FmodResult {
         if (data == null) return FmodResult.FMOD_ERR_INVALID_PARAM;

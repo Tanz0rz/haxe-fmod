@@ -194,13 +194,6 @@ class jaxe {
         }
     }
 
-    // After an unload destroys bank content, drop every cached lookup
-    // slot whose object died. A reload can then not alias a recycled
-    // address under a stale handle. Flushing first makes the async unload
-    // observable to isValid. Mirrors faxe_handles_sweep_lookups in the
-    // native shims, and sweeps instance slots on top of that. The native
-    // shims reclaim those when the DESTROYED event drains, which this
-    // target never receives.
     // Drops what a dead instance handle still owns on this side: the
     // cached group handle and the per-handle callback state. Both dead
     // slot sweeps call it, so the two cannot drift apart.
@@ -211,6 +204,13 @@ class jaxe {
         delete jaxe.pluginSeen[handle];
     }
 
+    // After an unload destroys bank content, drop every cached lookup
+    // slot whose object died. A reload can then not alias a recycled
+    // address under a stale handle. Flushing first makes the async unload
+    // observable to isValid. Mirrors faxe_handles_sweep_lookups in the
+    // native shims, and sweeps instance slots on top of that. The native
+    // shims reclaim those when the DESTROYED event drains, which this
+    // target never receives.
     static sweepDeadLookups() {
         if (jaxe.gSystem) jaxe.gSystem.flushCommands();
         for (var i = 0; i < jaxe.slots.length; i++) {
@@ -2625,8 +2625,11 @@ class jaxe {
     // Releasing a parent sound destroys its subsounds, so every sound
     // handle whose FMOD parent is this sound is dropped first. Otherwise
     // those slots would keep a dead wrapper.
-    static releaseSubSoundHandles(parent) {
+    // Collects the handles of every subsound under the parent while the
+    // tree is alive. The caller frees them once the release took effect.
+    static collectSubSoundHandles(parent) {
         var raw = jaxe.rawPtr(parent);
+        var found = [];
         for (var i = 0; i < jaxe.slots.length; i++) {
             var s = jaxe.slots[i];
             if (!s.alive || s.type != jaxe.TYPE_SOUND || s.ptr === parent || (raw != 0 && s.raw === raw)) continue;
@@ -2648,8 +2651,9 @@ class jaxe {
                 if (raw != 0 && owner === raw) inTree = true;
             }
             if (up !== s.ptr) jaxe.dropWrapper(up);
-            if (inTree) jaxe.handleFree((s.gen << 16) | i);
+            if (inTree) found.push((s.gen << 16) | i);
         }
+        return found;
     }
 
     static fmod_core_release_sound(handle) {
@@ -2657,11 +2661,12 @@ class jaxe {
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         // A sound this shim created for an instrument is released by the shim
         if (jaxe.isOwned(handle)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
-        jaxe.releaseSubSoundHandles(sound);
+        // A refused release keeps the sound and its subsound handles
+        var subs = jaxe.collectSubSoundHandles(sound);
         jaxe.lastResult = sound.release();
-        // INVALID_HANDLE means FMOD already freed the sound. The slot goes
-        // either way, since the subsound cleanup cannot be undone.
+        // INVALID_HANDLE means FMOD already freed the sound, so the slots go too
         if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
+            for (var i = 0; i < subs.length; i++) jaxe.handleFree(subs[i]);
             jaxe.handleFree(handle);
         }
         return jaxe.lastResult;
@@ -6089,7 +6094,7 @@ class jaxe {
     }
 
     // The subsound stays owned by its parent. The handle is looked up or
-    // allocated, never released from Haxe (see releaseSubSoundHandles).
+    // allocated, never released from Haxe (see collectSubSoundHandles).
     static fmod_core_sound_get_sub_sound(handle, index) {
         var sound = jaxe.resolveCoreSound(handle);
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }

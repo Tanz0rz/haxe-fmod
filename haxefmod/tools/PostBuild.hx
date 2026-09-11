@@ -435,6 +435,13 @@ class PostBuild {
 		}
 
 		var expected = expectedAbiVersion(libRoot);
+		if (expected <= 0) {
+			// The manifest ships with the library, so a missing header is a
+			// broken install rather than a choice to skip the gate
+			log('ERROR: native/manifest/studio_api.txt under $libRoot has no readable "# abi-version:" header');
+			log("  Reinstall haxefmod.");
+			Sys.exit(1);
+		}
 		if (expected > 0) {
 			var found = scanHdllAbi(source);
 			if (found != expected) {

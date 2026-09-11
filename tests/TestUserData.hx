@@ -58,6 +58,7 @@ class TestUserData {
 		NativeStudioStub.testReleaseResult = 68;
 		NativeStudioStub.testOwnedHandles = [];
 		NativeStudioStub.testPcmReleaseResult = 68;
+		NativeStudioStub.testUnloadAllResult = 68;
 	}
 
 	static function testSetGetClearPerKind():Void {
@@ -208,6 +209,11 @@ class TestUserData {
 		pcm.setUserData(1); pcm.release();
 		haxefmod.studio.native.NativeStudioStub.testPcmReleaseResult = 68;
 		assert("pcm cleared on release", pcm.getUserData() == null);
+		// A dead handle drops the entry as well, since the stream is gone
+		haxefmod.studio.native.NativeStudioStub.testPcmReleaseResult = 30;
+		pcm.setUserData(1); pcm.release();
+		haxefmod.studio.native.NativeStudioStub.testPcmReleaseResult = 68;
+		assert("dead pcm handle drops the entry", pcm.getUserData() == null);
 		// A refused unload or release keeps the entry, an accepted one drops it
 		var bank:Bank = 308;
 		var replay:CommandReplay = 309;
@@ -257,7 +263,14 @@ class TestUserData {
 		var desc:EventDescription = 401;
 		desc.setUserData("d");
 		desc.setCallback(function(_) {});
+		// The stub refuses the unload, so every bank stays and so does the state
+		assert("refused unloadAll reports the result", StudioSystem.unloadAll() == 68);
+		assert("refused unloadAll keeps system", StudioSystem.getUserData() == "sys");
+		assert("refused unloadAll keeps handles", UserData.count() == 2);
+		assert("refused unloadAll keeps description callbacks", desc.hasCallback());
+		NativeStudioStub.testUnloadAllResult = 0;
 		StudioSystem.unloadAll();
+		NativeStudioStub.testUnloadAllResult = 68;
 		assert("unloadAll clears system", StudioSystem.getUserData() == null);
 		assert("unloadAll clears handles", UserData.count() == 0);
 		assert("unloadAll clears description callbacks", !desc.hasCallback());

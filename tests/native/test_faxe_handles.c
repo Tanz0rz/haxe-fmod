@@ -27,6 +27,8 @@ static void* gHookPtr = NULL;
 static int gHookHandle = 0;
 static int gHookCalls = 0;
 static void sweep_note_free(void* ptr, int handle) {
+    /* the hook runs while the slot still resolves to that object */
+    assert(faxe_handle_resolve(handle, gFaxeSlots[handle & 0xFFFF].type) == ptr);
     gHookPtr = ptr;
     gHookHandle = handle;
     gHookCalls++;
@@ -232,7 +234,8 @@ int main(void) {
         assert(faxe_handle_resolve(childA, FAXE_TYPE_SOUND) == NULL);
         assert(faxe_handle_resolve(childB, FAXE_TYPE_SOUND) == NULL);
         assert(faxe_handle_resolve(grandchild, FAXE_TYPE_SOUND) == NULL);
-        /* the hook saw each of the three while it still resolved */
+        /* the hook ran three times, each on a slot that still resolved
+         * (the hook asserts that itself) */
         assert(gHookCalls == 3 && gHookPtr != NULL);
         /* a slot that names itself as parent is skipped rather than looped */
         {

@@ -171,7 +171,7 @@ class NativeManifestCheck {
     }
 
     /**
-     * Four places declare the binding ABI version and must agree. They are
+     * Five places declare the binding ABI version and must agree. They are
      * the manifest header, the hl marker string (PostBuild scans it from
      * hdll binaries), and the constants in the cpp/js shims and FmodRuntime.
      */

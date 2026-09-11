@@ -82,7 +82,9 @@ class NativeStudioStub {
     public static function sys_set_listener_weight(index:Int, weight:Float):Int return ERR_UNSUPPORTED;
     public static function sys_load_bank_file(path:String, flags:Int):Int
         return testSyntheticHandles ? ++testNextHandle : 0;
-    public static function sys_unload_all():Int return ERR_UNSUPPORTED;
+    /** The result sys_unload_all reports. Tests toggle it. */
+    public static var testUnloadAllResult:Int = ERR_UNSUPPORTED;
+    public static function sys_unload_all():Int return testUnloadAllResult;
     public static function sys_flush_commands():Int return ERR_UNSUPPORTED;
     public static function sys_flush_sample_loading():Int return ERR_UNSUPPORTED;
     public static function sys_get_cpu_usage():Int return ERR_UNSUPPORTED;
@@ -306,7 +308,7 @@ class NativeStudioStub {
         return 0;
     }
     public static var testLastPlayGroup:Int = -1;
-    /** The result the object releases and the bank unload report. The PCM stream has its own hook. */
+    /** The result the core object releases, the replay release, and the bank unload report. The PCM stream and the event instance have their own paths. */
     public static var testReleaseResult:Int = ERR_UNSUPPORTED;
     /** Handles the stub reports as library-owned, whose release is refused. Tests fill it. */
     public static var testOwnedHandles:Array<Int> = [];

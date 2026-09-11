@@ -20,7 +20,7 @@ concurrency:
 
 env:
   # The pinned libraries, part of every haxelib cache key so a bump rotates it
-  HAXELIB_PINS: lime8.3.0-openfl9.5.0-flixel6.1.2-heaps2.1.0-hxcpp4.3.2-hashlink1.15.0-hlsdl1.15.0-hldx1.15.0
+  HAXELIB_PINS: lime8.3.0-openfl9.5.0-flixel6.1.2-heaps2.1.0-hxcpp4.3.2-hashlink1.15.0-hlsdl1.15.0-hldx1.15.0-dox1.6.0
   # The pre-SDL3 HashLink commit every job builds, named once
   HASHLINK_COMMIT: 781960a5daca32ad6d5cea87b255fe8b5872551e
   HAXE_VERSION: 4.3.6
@@ -202,9 +202,11 @@ jobs:
       # a real producer thread.
       - name: Run native tests under AddressSanitizer and UBSan
         run: |
-          for t in handles cbqueue guid instctx pcmring; do
+          # The SDK-dependent tests join, since a fixture read past its
+          # arrays there stays hidden in a plain build
+          for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums; do
             gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
-              -Wall -Wextra -Werror -o /tmp/asan_$t tests/native/test_faxe_$t.c
+              -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" -o /tmp/asan_$t tests/native/test_faxe_$t.c
             /tmp/asan_$t
           done
 
@@ -263,7 +265,7 @@ jobs:
           # shipped hdlls. The doctor check waits for it on a branch. A
           # tag keeps the hard failure: a release ships no stale hdll. An
           # hdll with no marker at all counts as stale.
-          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1)
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
           case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
           MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$" || true)
           if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
@@ -500,7 +502,7 @@ jobs:
       - name: Install dox
         run: |
           haxelib setup ~/haxelib
-          haxelib install dox --always --quiet
+          haxelib install dox 1.6.0 --always --quiet
 
       - name: Generate type XML
         run: |
@@ -637,7 +639,7 @@ jobs:
           # shipped hdlls. The marker check and the hl steps wait for it
           # on a branch. A tag keeps the hard failure: a release ships
           # no stale hdll. An hdll with no marker at all counts as stale.
-          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1)
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
           case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
           MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$" || true)
           if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
@@ -700,7 +702,7 @@ jobs:
 
           # The zip's hdlls must all carry the current ABI marker, beyond
           # the Linux one the hl build below happens to scan
-          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1)
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
           case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
           if [ "$STALE" = "true" ]; then
             echo "::notice ::the packaged hdlls trail ABI $ABI, the marker check waits for update-hdlls"
@@ -1219,7 +1221,7 @@ jobs:
           # the fresh hdll from build-hdll carries the rest of the job.
           # update-hdlls refreshes the templates once the HL jobs pass and
           # the next run verifies the pre-built one again.
-          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1)
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
           case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
           STALE=0
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
@@ -1743,9 +1745,9 @@ jobs:
       - name: Test native headers with Apple clang (sanitizers)
         if: ${{ !cancelled() }}
         run: |
-          for t in handles cbqueue guid instctx pcmring; do
+          for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums; do
             clang -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
-              -Wall -Wextra -Werror -o /tmp/asan_$t tests/native/test_faxe_$t.c
+              -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" -o /tmp/asan_$t tests/native/test_faxe_$t.c
             /tmp/asan_$t
           done
           for t in cbqueue pcmring; do
@@ -1824,7 +1826,7 @@ jobs:
           # the fresh hdll from build-hdll carries the rest of the job.
           # update-hdlls refreshes the templates once the HL jobs pass and
           # the next run verifies the pre-built one again.
-          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1)
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
           case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
           STALE=0
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
@@ -2082,7 +2084,12 @@ jobs:
         shell: powershell
         run: |
           $HL_URL = "https://github.com/HaxeFoundation/hashlink/releases/download/1.14/hashlink-1.14.0-win.zip"
-          Invoke-WebRequest -Uri $HL_URL -OutFile "C:\hashlink.zip"
+          # A GitHub release download answers with a server error now and
+          # then, so three attempts run with a pause between them
+          foreach ($attempt in 1..3) {
+            try { Invoke-WebRequest -Uri $HL_URL -OutFile "C:\hashlink.zip"; break }
+            catch { if ($attempt -eq 3) { throw }; Start-Sleep -Seconds 30 }
+          }
           Expand-Archive -Path "C:\hashlink.zip" -DestinationPath "C:\"
           $HL_DIR = Get-ChildItem "C:\" -Directory | Where-Object { $_.Name -like "hashlink*" } | Select-Object -First 1
           Rename-Item $HL_DIR.FullName "C:\hashlink"
@@ -2102,7 +2109,7 @@ jobs:
           # the fresh hdll from build-hdll carries the rest of the job.
           # update-hdlls refreshes the templates once the HL jobs pass and
           # the next run verifies the pre-built one again.
-          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1)
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
           case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
           STALE=0
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
@@ -2683,7 +2690,12 @@ jobs:
         shell: powershell
         run: |
           $HL_URL = "https://github.com/HaxeFoundation/hashlink/releases/download/1.14/hashlink-1.14.0-win.zip"
-          Invoke-WebRequest -Uri $HL_URL -OutFile "C:\hashlink.zip"
+          # A GitHub release download answers with a server error now and
+          # then, so three attempts run with a pause between them
+          foreach ($attempt in 1..3) {
+            try { Invoke-WebRequest -Uri $HL_URL -OutFile "C:\hashlink.zip"; break }
+            catch { if ($attempt -eq 3) { throw }; Start-Sleep -Seconds 30 }
+          }
           Expand-Archive -Path "C:\hashlink.zip" -DestinationPath "C:\"
           $HL_DIR = Get-ChildItem "C:\" -Directory | Where-Object { $_.Name -like "hashlink*" } | Select-Object -First 1
           Rename-Item $HL_DIR.FullName "C:\hashlink"
@@ -3202,7 +3214,12 @@ jobs:
         shell: powershell
         run: |
           $HL_URL = "https://github.com/HaxeFoundation/hashlink/releases/download/1.15/hashlink-1.15.0-win.zip"
-          Invoke-WebRequest -Uri $HL_URL -OutFile "C:\hashlink.zip"
+          # A GitHub release download answers with a server error now and
+          # then, so three attempts run with a pause between them
+          foreach ($attempt in 1..3) {
+            try { Invoke-WebRequest -Uri $HL_URL -OutFile "C:\hashlink.zip"; break }
+            catch { if ($attempt -eq 3) { throw }; Start-Sleep -Seconds 30 }
+          }
           Expand-Archive -Path "C:\hashlink.zip" -DestinationPath "C:\"
           $HL_DIR = Get-ChildItem "C:\" -Directory | Where-Object { $_.Name -like "hashlink*" } | Select-Object -First 1
           Rename-Item $HL_DIR.FullName "C:\hashlink"

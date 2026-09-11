@@ -14,8 +14,8 @@
 # abi-version: 12
 # The binding ABI version covers the shape of the native surface. Bump it in
 # lockstep with the "hlaxe_fmod_abi=" marker in hlaxe_fmod.c, the constants in
-# the other two shims, and FmodRuntime.BINDING_ABI whenever functions are
-# added, removed, or change signature. PostBuild.hx scans pre-built hdlls for
+# the other two shims, and FmodRuntime.BINDING_ABI. That happens whenever
+# functions are added, removed, or change signature. PostBuild.hx scans pre-built hdlls for
 # the marker and refuses mismatches before they become loader fatals.
 #
 # Naming domains: sys_, bank_, evd_, evi_, bus_, vca_, cb_, ps_, core_.
@@ -61,7 +61,7 @@ sys_set_studio_callback_mask i32 -> i32
 #   at FAXE_LIST_MAX (1024, lockstep with Scratch.CAPACITY). lastResult
 #   reports errors and the abstracts warn on truncation.
 # - Functions missing from the FMOD JS API return FMOD_ERR_UNSUPPORTED (68)
-#   on the js backend: sys_get_memory_usage, bus/evi cpu+memory usage.
+#   on the js backend. LIMITATIONS.md lists them.
 
 ## Studio System
 sys_last_result -> i32

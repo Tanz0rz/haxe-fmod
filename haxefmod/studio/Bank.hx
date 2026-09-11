@@ -48,7 +48,7 @@ abstract Bank(Int) from Int to Int {
      */
     public function unload():FmodResult {
         // The descriptions are read while the bank is loaded, and their
-        // entries go once FMOD accepted the unload
+        // entries go once FMOD accepted the unload or reported the bank gone
         var descriptions = getEventList();
         var result:FmodResult = NativeStudio.bank_unload(this);
         if (UserData.releaseTookEffect(result)) {

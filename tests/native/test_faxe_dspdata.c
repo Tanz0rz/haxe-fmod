@@ -99,12 +99,19 @@ static void test_desc(void) {
     FMOD_DSP_PARAMETER_DESC desc;
     double f[FAXE_DSPDATA_DESC_FLOATS + 2 * FAXE_DSPDATA_MAX_MAPPING_POINTS];
     int ints[FAXE_DSPDATA_DESC_INTS];
-    float values[3] = { 0.0f, 50.0f, 100.0f };
-    float positions[3] = { 0.0f, 0.2f, 1.0f };
+    /* Sized to the cap: the unpack reads numpoints entries up to it, and
+     * the oversized case below must not read past the arrays */
+    float values[FAXE_DSPDATA_MAX_MAPPING_POINTS];
+    float positions[FAXE_DSPDATA_MAX_MAPPING_POINTS];
     static const char* const boolNames[2] = { "Off", "On" };
     static const char* const intNames[3] = { "Low", "Mid", "High" };
     char buf[64];
     int i;
+
+    for (i = 0; i < FAXE_DSPDATA_MAX_MAPPING_POINTS; i++) {
+        values[i] = i < 3 ? (float)(i * 50) : (float)i;
+        positions[i] = i < 3 ? (i == 0 ? 0.0f : i == 1 ? 0.2f : 1.0f) : (float)i / 100.0f;
+    }
 
     memset(&desc, 0, sizeof(desc));
     desc.type = FMOD_DSP_PARAMETER_TYPE_FLOAT;
@@ -138,6 +145,8 @@ static void test_desc(void) {
     desc.floatdesc.mapping.piecewiselinearmapping.numpoints = 1000;
     faxe_dspdata_unpack_desc(&desc, f, ints);
     assert(ints[4] == FAXE_DSPDATA_MAX_MAPPING_POINTS);
+    /* the copied prefix is the array up to the cap */
+    assert(f[FAXE_DSPDATA_DESC_FLOATS + FAXE_DSPDATA_MAX_MAPPING_POINTS - 1] == values[FAXE_DSPDATA_MAX_MAPPING_POINTS - 1]);
 
     memset(&desc, 0, sizeof(desc));
     desc.type = FMOD_DSP_PARAMETER_TYPE_INT;

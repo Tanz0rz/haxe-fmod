@@ -19,7 +19,7 @@ on:
 
 env:
   # The pinned libraries, part of every haxelib cache key so a bump rotates it
-  HAXELIB_PINS: lime8.3.0-openfl9.5.0-flixel6.1.2-heaps2.1.0-hxcpp4.3.2-hashlink1.15.0-hlsdl1.15.0-hldx1.15.0
+  HAXELIB_PINS: lime8.3.0-openfl9.5.0-flixel6.1.2-heaps2.1.0-hxcpp4.3.2-hashlink1.15.0-hlsdl1.15.0-hldx1.15.0-dox1.6.0
   HAXE_VERSION: 4.3.6
 
 # The build job reads only. The deploy job raises its own grant for Pages.
@@ -55,7 +55,7 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install dox --always --quiet
+          haxelib install dox 1.6.0 --always --quiet
           haxelib install lime 8.3.0 --always --quiet
           haxelib install openfl 9.5.0 --always --quiet
           haxelib install flixel 6.1.2 --always --quiet
