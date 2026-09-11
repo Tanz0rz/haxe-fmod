@@ -13,10 +13,10 @@ needs. Two things fill it here:
     commit behind at roughly 100MB a commit.
 
 So this removes caches whose branch is gone, caches left by tag runs,
-caches on a side branch that has gone quiet, and all but the newest few
-entries of each remaining key. Anything deleted is rebuilt by the next run
-that wants it: the cost of being wrong here is one slow job, never a
-broken one. The default branch is only ever pruned by the keep rule.
+and caches on a side branch that has gone quiet. It also removes all
+but the newest few entries of each remaining key. Anything deleted is
+rebuilt by the next run that wants it. The cost of being wrong here is
+one slow job, never a broken one. The default branch is only ever pruned by the keep rule.
 
 Usage:
   python3 ci/prune-caches.py --dry-run

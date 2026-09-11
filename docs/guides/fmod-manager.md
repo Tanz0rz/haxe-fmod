@@ -153,7 +153,7 @@ FmodManager.StartSnapshot(FmodSnapshots.Paused);
 FmodManager.StopSnapshot(FmodSnapshots.Paused);
 ```
 
-`StartSnapshot(path)` applies a snapshot until `StopSnapshot(path)` removes it with its authored fade. `StopSnapshotImmediately(path)` cuts. A second `StartSnapshot` for a snapshot that is already applied does nothing. During the fade out it restarts the snapshot. `IsSnapshotActive(path)` reports whether it is applied, and stays true through the fade out. The generated `FmodSnapshots` class holds the paths as constants.
+`StartSnapshot(path)` applies a snapshot until `StopSnapshot(path)` removes it with its authored fade. `StopSnapshotImmediately(path)` cuts. A second `StartSnapshot` for a snapshot that is already applied does nothing. During the fade out it restarts the snapshot. Once every instance has stopped, it makes a fresh one. `IsSnapshotActive(path)` reports whether it is applied, and stays true through the fade out. The generated `FmodSnapshots` class holds the paths as constants.
 
 A snapshot's intensity is authored in FMOD Studio and is not a parameter the API can set. To vary it at runtime, the sound designer automates the intensity on a parameter. The game then drives that parameter with `SetGlobalParameter`.
 

@@ -5,12 +5,12 @@ README.md and MIGRATION.md ship in the haxelib package, and docs/ is the
 published site, so their examples have to keep compiling as the API
 moves. Each fence is wrapped in a scaffold class with stub identifiers for
 the game-side names snippets reference (FmodEvents constants, flixel
-hooks, helper functions), then type-checked with `haxe --no-output`
-against the actual haxefmod source, so an API change that breaks an
+hooks, helper functions). It is then type-checked with `haxe --no-output`
+against the actual haxefmod source. An API change that breaks an
 example fails CI here.
 
 A fence that mentions flixel compiles against flixel, openfl, and lime
-with a set of flixel-shaped stubs, so those libraries must be installed
+with a set of flixel-shaped stubs. Those libraries must be installed
 for the docs/ check. A fence that mentions heaps compiles against an
 installed heaps. Kha fences compile against small kha stubs written
 here, since Kha only exists as a checkout and only the adapter-facing

@@ -266,6 +266,8 @@ class FmodRuntime {
 
     static function bankFileName(fileName:String):String {
         var slash = fileName.lastIndexOf("/");
+        var back = fileName.lastIndexOf("\\");
+        if (back > slash) slash = back;
         return slash >= 0 ? fileName.substr(slash + 1) : fileName;
     }
 
@@ -610,14 +612,15 @@ class FmodRuntime {
         if (!isInitialized()) return;
         var shouldMute = isFocusMuted();
         if (shouldMute == focusMuteApplied) return;
-        ChannelGroup.master().setMute(shouldMute);
-        focusMuteApplied = shouldMute;
+        // A refused mute (no master group handle) is retried on the next
+        // change or update, so the flag only follows a mute that landed
+        if (ChannelGroup.master().setMute(shouldMute).isOk()) focusMuteApplied = shouldMute;
     }
 
     /**
      * Resolves a bank file name against the configured bank folder. Before
      * init, pass the folder the settings name, or the default applies.
-     * A name that already holds a slash is a path and comes back as is.
+     * A name that already holds a slash or a backslash is a path and comes back as is.
      */
     public static function bankPath(fileName:String, ?folder:String):String {
         if (folder == null) folder = resolved != null ? resolved.bankFolder : "assets/fmod/Desktop";

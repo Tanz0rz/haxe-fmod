@@ -3,7 +3,7 @@
 
 Each entry names an old type or field kept for one release and the
 message its @:deprecated metadata carries. A snippet using the old name
-must compile for interp and print that warning, so a rename cannot
+must compile for interp and print that warning. A rename then cannot
 silently drop the alias or its message before the release that removes
 it.
 

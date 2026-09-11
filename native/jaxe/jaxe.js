@@ -692,7 +692,13 @@ class jaxe {
         var written = 0;
         for (var i = 0; i < n; i++) {
             var handle = jaxe.handleFindOrAlloc(items[i], type);
-            if (handle != 0) ibuf[written++] = handle;
+            if (handle == 0) {
+                // A full table: the wrapper never got a slot, so it goes now
+                jaxe.lastResult = jaxe.ERR_MEMORY;
+                jaxe.dropWrapper(items[i]);
+                continue;
+            }
+            ibuf[written++] = handle;
         }
         return written;
     }
@@ -1807,7 +1813,12 @@ class jaxe {
         var written = 0;
         for (var i = 0; i < n; i++) {
             var eviHandle = jaxe.handleFindOrAlloc(list.val[i], jaxe.TYPE_EVI);
-            if (eviHandle == 0) { jaxe.lastResult = jaxe.ERR_MEMORY; continue; }
+            if (eviHandle == 0) {
+                // A full table: the wrapper never got a slot, so it goes now
+                jaxe.lastResult = jaxe.ERR_MEMORY;
+                jaxe.dropWrapper(list.val[i]);
+                continue;
+            }
             // Stamp the handle whenever userdata disagrees, so re-minted
             // and alias-recycled instances route callbacks to the live
             // handle. (A liveCount delta cannot detect the alias path:

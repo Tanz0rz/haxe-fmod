@@ -62,9 +62,9 @@ class HeapsTestHost implements TestHost {
         };
         #if js
         // This check runs inside a live frame on HTML5 (create() is
-        // reached from the updater's own tick). The loop state is saved,
-        // the driven frame runs as its own, and the request it armed is
-        // handed back so the outer frame arms the one request that stays.
+        // reached from the updater's own tick). The loop state is saved
+        // and the driven frame runs as its own. The request it armed is
+        // handed back, so the outer frame arms the one request that stays.
         var arms = 0;
         var window:Dynamic = js.Browser.window;
         var realRequest:Dynamic = window.requestAnimationFrame;

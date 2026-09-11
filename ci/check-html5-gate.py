@@ -3,8 +3,9 @@
 
 Each row of GATED names a public method that FMOD's web build cannot
 serve. haxefmod declares those methods twice (see
-haxefmod/studio/native/Html5Gate.hx): a macro that stops compilation at
-the call site on a js build, and the real body everywhere else. For each
+haxefmod/studio/native/Html5Gate.hx). One is a macro that stops
+compilation at the call site on a js build, the other the real body
+everywhere else. For each
 row this script compiles a one-call fixture four ways and expects:
 
   js                                   fails, naming the method and

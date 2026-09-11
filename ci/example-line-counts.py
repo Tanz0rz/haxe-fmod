@@ -67,7 +67,7 @@ spec.loader.exec_module(hc)
 def counted_lines(code):
     """The lines that carry content. A line holding only an opening
     brace joins the line before it. C# samples put the brace on its own
-    line where the Haxe declarations open on the same line, and that is
+    line where the Haxe declarations open on the same line. That is
     layout rather than information. A line holding only a C# attribute
     ([Flags], [StructLayout]) is metadata Haxe has no spelling for. The
     package line a declaration shows (with the blank under it) is the

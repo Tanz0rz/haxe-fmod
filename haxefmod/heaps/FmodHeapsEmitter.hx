@@ -103,13 +103,15 @@ class H2dObjectPositionProvider extends DerivedVelocityProvider {
         super(() -> centerX(target), () -> centerY(target), teleportDistance);
     }
 
+    // getBounds collapses an object with no drawable extent to a point
+    // at its absolute position, so the middle of the box is right either way
     public static function centerX(target:Object):Float {
         var bounds = target.getBounds();
-        return bounds.isEmpty() ? target.x : (bounds.xMin + bounds.xMax) / 2;
+        return (bounds.xMin + bounds.xMax) / 2;
     }
 
     public static function centerY(target:Object):Float {
         var bounds = target.getBounds();
-        return bounds.isEmpty() ? target.y : (bounds.yMin + bounds.yMax) / 2;
+        return (bounds.yMin + bounds.yMax) / 2;
     }
 }

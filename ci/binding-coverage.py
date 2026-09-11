@@ -2,12 +2,12 @@
 """Binding-coverage lockstep for native/manifest/studio_api.txt.
 
 verify-native proves every manifest function EXISTS in the three shims.
-This proves every manifest function is EXERCISED: called somewhere in the
-unit tests, the Node wasm harnesses, or the example project's CI test
-states - directly, or through a wrapper method in haxefmod/ that those
-tests call. A function with no exercise evidence must carry an entry in
-ci/binding-coverage-excused.txt with a reason, so coverage can only be
-dropped by writing the removal down.
+This proves every manifest function is EXERCISED. It is called somewhere
+in the unit tests, the Node wasm harnesses, or the example project's CI
+test states. That is direct, or through a wrapper method in haxefmod/
+that those tests call. A function with no exercise evidence must carry
+an entry in ci/binding-coverage-excused.txt with a reason. Coverage can
+only be dropped by writing the removal down.
 
 Evidence sources, in order:
   1. Direct call in a test: `<name>(` in tests/*.hx or the shared test

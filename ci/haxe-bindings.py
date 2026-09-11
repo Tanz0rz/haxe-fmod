@@ -19,8 +19,8 @@ The chain is FMOD function <- native shim function <- Haxe wrapper method:
      ERR_UNSUPPORTED marks the entry as limited on HTML5.
 
 Functions the shim never calls get an entry when
-extension/functions.md has a section for them (same format as the
-example files, keyed by the fmod.com heading id). Those sections cover
+extension/functions.md has a section for them. The format is the one
+of the example files, keyed by the fmod.com heading id. Those sections cover
 lifecycle calls the library makes on the game's behalf, settings that
 FmodSettings covers, and features that are deliberately left out. Each
 one carries a note and an optional Haxe fence.
@@ -154,10 +154,10 @@ NATIVE_OBJECT_PREFIXES = {
 def primary_functions(native, fmod_names):
     """The FMOD functions a native shim function exists to call.
 
-    A shim body often reaches more than one FMOD function: cg_create
-    releases the group it made when a later step fails, bank_unload reads
-    the bank path before unloading, core_play_sound stops the channel it
-    started. The wrapper that calls the shim is about one of them, the
+    A shim body often reaches more than one FMOD function. cg_create
+    releases the group it made when a later step fails. bank_unload reads
+    the bank path before unloading, and core_play_sound stops the channel
+    it started. The wrapper that calls the shim is about one of them, the
     one the shim is named after. The operation words of the native name
     (create, unload, play) are matched against each FMOD function's
     method name and the best match wins. Ties keep every tied function,
@@ -185,7 +185,7 @@ def html5_limited():
     """Shim functions whose web path reports FMOD_ERR_UNSUPPORTED on
     purpose. A feature guard of the form `if (!obj.method) { ...
     ERR_UNSUPPORTED ... }` is defensive code for a glue method that is
-    absent in another SDK version and does not make the call limited, so
+    absent in another SDK version. It does not make the call limited, so
     those lines are dropped before looking for the marker."""
     text = read(JAXE)
     limited = set()
@@ -209,7 +209,7 @@ FUNCTION = re.compile(
 
 def return_type_and_body(text, index):
     """Reads an optional `:Type` after the argument list, then the body.
-    Anonymous structures put braces inside the type, so the body brace is
+    Anonymous structures put braces inside the type. The body brace is
     the first one at angle-bracket depth zero that does not follow a
     colon, comma, or opening bracket."""
     i = index
@@ -246,8 +246,8 @@ GATE_OPEN = "#if (macro || (js && !haxefmod_html5_allow_unsupported))"
 
 
 def gated_ranges(text):
-    """Character ranges of the real (#else) branches of the HTML5 gate, so
-    a method declared inside one is known to be a compile error on js."""
+    """Character ranges of the real (#else) branches of the HTML5 gate. A
+    method declared inside one is known to be a compile error on js."""
     ranges = []
     depth = 0
     gate_depth = -1

@@ -461,6 +461,10 @@ class PanTestScenario implements TestScenario {
         var camera = scene.camera;
         var savedX = camera.x;
         var savedY = camera.y;
+        var savedViewportWidth = camera.viewportWidth;
+        // A half-width viewport, so the view center differs from the
+        // scene center and a formula built on scene.width fails
+        camera.viewportWidth = scene.width / 2;
         var cameraListener = new FmodHeapsListener();
         cameraListener.setScene(scene);
         cameraListener.tick(0.5); // seeds tracking, pushes zero velocity
@@ -469,8 +473,10 @@ class PanTestScenario implements TestScenario {
         var attributes = StudioSystem.getListenerAttributes(0);
         check("camera_listener_attributes_readable", attributes != null, "");
         if (attributes != null) {
-            var centerX = camera.x + (0.5 - camera.anchorX) * scene.width / camera.scaleX;
-            var centerY = camera.y + (0.5 - camera.anchorY) * scene.height / camera.scaleY;
+            // Written out for the default anchor, scale, and rotation,
+            // apart from the listener's own math
+            var centerX = camera.x + scene.width / 4;
+            var centerY = camera.y + scene.height / 2;
             check("camera_listener_position_is_center",
                 approx(attributes.position.x, centerX) && approx(attributes.position.y, centerY),
                 'position=(${attributes.position.x}, ${attributes.position.y}) expected=($centerX, $centerY)');
@@ -498,6 +504,7 @@ class PanTestScenario implements TestScenario {
         check("camera_listener_reset_motion_seeds",
             attributes != null && approx(attributes.velocity.x, 0),
             attributes == null ? "unreadable" : 'velocity=(${attributes.velocity.x})');
+        camera.viewportWidth = savedViewportWidth;
         camera.x = savedX;
         camera.y = savedY;
         cameraListener.dispose();

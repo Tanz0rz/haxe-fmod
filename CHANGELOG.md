@@ -138,8 +138,15 @@
 - A bank loader created after FMOD refused to initialize runs `onError` once. It never called back before.
 - A registry entry shared by two spellings of a path is replaced in place when its bank died. Every spelling follows the reload.
 - A bank loader made before `init` resolves its file names against the bank folder once FMOD is ready. It used the default folder before.
-- `StartSnapshot` makes a fresh instance when every listed one has stopped. It applied nothing after a stop in the same frame.
+- `StartSnapshot` makes a fresh instance when every listed one has stopped. It applied nothing once a stop had faded out and the instance awaited its release.
 - A bank name with backslashes counts as a path in `bankPath` and in the provided bank match.
+- `StopAllEvents` drops a pending song transition and any queued snapshot stop. The song restarted a frame later before.
+- `IsSnapshotActive` ignores an instance that stopped and awaits its release.
+- The focus mute records the mute only when FMOD accepted it, so a refused mute is retried.
+- An HTML5 list getter drops the wrapper of an entry the full handle table refused, and reports `FMOD_ERR_MEMORY`.
+- The Heaps position of an object without drawable extent is its scene position. It was the local position before.
+- The Heaps scene listener sits under the viewport center, with the viewport size, anchor, scale, and rotation applied.
+- The flixel camera listener skips a destroyed camera instead of faulting on its null scroll.
 - `ChannelGroup.getParentGroup` on the master group and `Channel.getCurrentSound` on a channel from `playDSP` report no object on HTML5. They minted a handle around a null pointer before.
 - The HTML5 shim drops the wrappers it reads for their pointers only. That covers a bank unload, the callback uninstall, the sub sound parent lookups, and a released `PcmStream`.
 - A null string argument on HashLink reaches the shim as an empty one, which FMOD refuses with an error. It faulted in the string conversion before.

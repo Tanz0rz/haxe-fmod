@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Generates the run jobs of .github/workflows/audio-test.yml.
 
-Every native or browser build job in the workflow has a run job that
+Every native or browser build job in the workflow has a run job. It
 downloads the build artifact and runs one test state per matrix leg. The
-run jobs are all the same shape, so this script writes them from one job
-table and two templates (native, browser) into the region between the
-BEGIN and END markers of the workflow file. The build jobs, and everything
+run jobs are all the same shape. This script writes them from one job
+table and two templates (native, browser). They land in the region
+between the BEGIN and END markers of the workflow file. The build jobs, and everything
 else in the file, stay hand-written.
 
     python3 ci/generate-run-jobs.py          rewrites the region in place

@@ -63,13 +63,17 @@ class FmodFlxListener extends FlxBasic {
         cameraProvider.reset();
     }
 
+    // A destroyed camera keeps its position fields and nulls scroll, and
+    // FlxG.camera can still point at one after cameras.remove
     static function cameraX():Float {
         var camera = FlxG.camera;
+        if (camera == null || camera.scroll == null) return 0;
         return camera.scroll.x + camera.width / 2;
     }
 
     static function cameraY():Float {
         var camera = FlxG.camera;
+        if (camera == null || camera.scroll == null) return 0;
         return camera.scroll.y + camera.height / 2;
     }
 
@@ -78,7 +82,7 @@ class FmodFlxListener extends FlxBasic {
         super.update(elapsed);
         if (target == null) {
             var camera = FlxG.camera;
-            if (camera == null) return;
+            if (camera == null || camera.scroll == null) return;
             // The camera has no velocity of its own. Derive it from the
             // center's movement since the previous frame. A jump beyond the
             // teleport threshold is a cut: zero velocity, re-seed tracking.

@@ -3,8 +3,8 @@
 
 extension/catalog/<page>.md (written by extension/test/catalog-site.js)
 lists every code block on a page of the FMOD API reference under a key
-(see extension/keys.js) with the snippet of each language the site
-shows. extension/haxe/<page>.md holds the Haxe side for the blocks that
+(see extension/keys.js). Each entry holds the snippet of each language
+the site shows. extension/haxe/<page>.md holds the Haxe side for the blocks that
 are not function entries, one section per key:
 
     ## FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES
@@ -21,29 +21,28 @@ are not function entries, one section per key:
     verdict: cannot Codec plug-ins run on FMOD's threads, no Haxe target can host them.
 
 `verdict:` is required. `bound` means the fence or the `Type:` line is
-the Haxe equivalent (a `Type:` line copies the declaration out of the
+the Haxe equivalent. A `Type:` line copies the declaration out of the
 sources, so a struct or enum shown on the page cannot drift from the
-library). `cannot`, `library`, and `covered` carry a reason and mean no
+library. `cannot`, `library`, and `covered` carry a reason and mean no
 Haxe code stands for the block, the reason is shown as a comment. A
 type definition (struct, enum, define block, callback typedef) accepts
-only `bound` with a `Type:` line or `cannot` with the reason it cannot
-exist on the Haxe side: every FMOD type the game can touch has a Haxe
-declaration with the same members. `library` and `covered` are for
+only `bound` with a `Type:` line or `cannot` with a reason. Every FMOD
+type the game can touch has a Haxe declaration with the same members. `library` and `covered` are for
 examples where the library performs the step or another call is the
 Haxe form of it. A type definition is one shown under an FMOD_ heading
-of the API reference, a guide example that opens with a helper struct
+of the API reference. A guide example that opens with a helper struct
 of its own is an example and takes a fence.
 
 Function entries take their Haxe side from bindings-data.js. A function
 with no binding has a section in extension/functions.md under the
-function id holding one verdict line (`cannot`, `covered`, or `library`
+function id. It holds one verdict line (`cannot`, `covered`, or `library`
 with the reason), which the tab shows as a single comment line. A
 section never carries a fence or note lines: the tab shows generated
 signatures or that one line, nothing hand-written.
 
 Some examples appear on the site once per language, as adjacent lone
 blocks under one heading that the selector shows one at a time. Such a
-run is one unit: the Haxe side holds a single section under the first
+run is one unit. The Haxe side holds a single section under the first
 block's key, and a section under a later member's key is an error. The
 fold mirrors grouped() in extension/keys.js and only applies to the
 languages the site's selector toggles.
@@ -266,9 +265,9 @@ def snippet_calls(code):
 # ------------------------------------------------------------- haxe side
 
 def declaration_of(path):
-    """The declaration of a Haxe type as written in its source file, from
-    the declaration keyword through the matching closing brace (or the
-    semicolon of a typedef alias). The doc comment above it stays out,
+    """The declaration of a Haxe type as written in its source file. It runs
+    from the declaration keyword through the matching closing brace (or
+    the semicolon of a typedef alias). The doc comment above it stays out,
     the tab shows code the way the other language tabs do. None when the
     type is not in the sources."""
     parts = path.split(".")
@@ -576,7 +575,7 @@ STRING = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
 
 
 def snippet_numbers(code):
-    """Numeric literals, as values. 0 and 1 stay out: C spells booleans,
+    """Numeric literals, as values. 0 and 1 stay out. C spells booleans,
     null handles, and first indices with them, and every language of a
     snippet differs there without the meaning changing. Bracketed
     indices and array sizes ([3]) are structure rather than data, and Haxe
@@ -618,7 +617,7 @@ def statement_count(code):
 def check_parity(entry, section, record, methods, reverse, problems, label):
     """The fence against the site's snippet: same literals, same calls in
     the same order, no invented work. A finding a reviewer has judged
-    right anyway is silenced by a waive: line, and a waive: line whose
+    right anyway is silenced by a waive: line. A waive: line whose
     check passes is itself a finding, so the set of deviations stays
     exact in both directions."""
     fence = record["code"]

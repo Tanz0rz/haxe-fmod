@@ -7,10 +7,11 @@ declares for it:
     FMOD_SPEAKER            haxefmod.studio.Types.FmodSpeaker
     FMOD_SYSTEM_CALLBACK    cannot    runs on FMOD's threads, delivered through StudioSystem.setSystemCallback instead
 
-A line is the FMOD name and a Haxe type path, or the FMOD name, the
-word `cannot`, and the reason the type cannot exist on the Haxe side
-(it is only ever touched on FMOD's threads, or it belongs to a platform
-the library does not ship for). Every other FMOD type has a Haxe
+A line is the FMOD name and a Haxe type path. Or it is the FMOD name,
+the word `cannot`, and the reason the type cannot exist on the Haxe
+side. That reason is one of two: the type is only ever touched on
+FMOD's threads, or it belongs to a platform the library does not ship
+for. Every other FMOD type has a Haxe
 declaration, the same fields and values under the same names. The
 examples generator reads this table. It turns a type definition on
 fmod.com into the Haxe declaration, or into a comment with the reason.

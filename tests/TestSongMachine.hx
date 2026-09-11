@@ -33,6 +33,7 @@ class TestSongMachine {
 			testTransitionCallbackHandoff();
 			testTransitionDirectHandoff();
 			testStopCancelsTransition();
+			testStopAllCancelsTransition();
 			testSameSongTransitionSupersedes();
 			testOnceConsumedByRestart();
 			testPauseUnpause();
@@ -182,6 +183,18 @@ class TestSongMachine {
 		// must stay silent
 		CallbackDispatcher.deliver(handleA, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("stop cancels the pending transition",
+			FmodManager.GetCurrentSongPath() == "event:/A");
+	}
+
+	static function testStopAllCancelsTransition() {
+		var handleA = playSong("event:/A");
+		NativeStudioStub.testPlaybackStateQueue = [0, 4];
+		FmodManager.PlaySongTransition("event:/B");
+		FmodManager.StopAllEvents();
+		// The master bus stop ends the song, and the fade completing must
+		// not start the next one
+		CallbackDispatcher.deliver(handleA, 0x20, 0, 0, 0, 0, 0, 0.0, "");
+		assert("stop all cancels the pending transition",
 			FmodManager.GetCurrentSongPath() == "event:/A");
 	}
 

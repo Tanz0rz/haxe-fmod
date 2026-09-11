@@ -8,16 +8,16 @@ leans on:
 
   1. Every [skip-build]-gated job condition carries the tag override, so
      a release tag on an hdll auto-commit runs the full suite.
-  2. update-hdlls runs only on branch refs (a tag checkout is a detached
-     HEAD with no branch to push to, and Windows hdll builds are not
-     byte-reproducible, so the push would always be attempted and fail).
+  2. update-hdlls runs only on branch refs. A tag checkout is a detached
+     HEAD with no branch to push to. Windows hdll builds are not
+     byte-reproducible, so the push would always be attempted and fail.
   3. Every job has a timeout.
-  4. The compat jobs assert the mismatched build FAILS (not just that a
-     banner appeared in a zero-exit build), with pipefail set explicitly
-     because only the Windows jobs' shell declaration implies it.
+  4. The compat jobs assert the mismatched build FAILS, beyond a banner
+     appearing in a zero-exit build. pipefail is set explicitly, because
+     only the Windows jobs' shell declaration implies it.
   5. linux-html5-chromium asserts a build against a doctored (wrong-version) web
-     SDK FAILS with the mismatch banner, with pipefail, since html5 pins
-     the web SDK version instead of translating DSP types.
+     SDK FAILS with the mismatch banner, with pipefail. html5 pins the
+     web SDK version instead of translating DSP types.
   6. Every job contains its required test steps by name. Renaming
      or deleting a probe step means updating the list here in the same
      commit.
@@ -127,7 +127,7 @@ else:
 
 # 8. Every portability loop over the shared header tests names the same
 # tests, so a header added to one compiler pass reaches the others
-loops = re.findall(r"for (?:%%t|t) in \(?([a-z0-9_ ]+?)\)?(?:;| do)", text)
+loops = re.findall(r"for (?:%%t|t) in \(?([a-z0-9_ ]+?)\)?(?:;| do\b)", text)
 # The ThreadSanitizer loops run the threaded tests only, so they are apart
 loops = [l for l in loops if "handles" in l]
 loop_sets = {tuple(sorted(l.split())) for l in loops}

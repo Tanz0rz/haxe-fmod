@@ -174,6 +174,10 @@ class FmodManager {
     /** Stops every event routed through the master bus immediately, the song included. */
     public static function StopAllEvents():Void {
         ensureInitialized();
+        // The stop ends the song and every snapshot instance too, so a
+        // pending transition or a queued snapshot stop has nothing to act on
+        NextSong = null;
+        snapshotStopsQueued.clear();
         StudioSystem.getBus("bus:/").stopAllEvents(IMMEDIATE);
     }
 
@@ -368,7 +372,13 @@ class FmodManager {
     /** Returns true while a snapshot is applied. It stays true through the fade out of StopSnapshot. */
     public static function IsSnapshotActive(snapshotPath:String):Bool {
         ensureInitialized();
-        return StudioSystem.getEvent(snapshotPath).getInstanceCount() > 0;
+        var description = StudioSystem.getEvent(snapshotPath);
+        if (description.isNull()) return false;
+        // An instance that stopped and awaits its release applies nothing
+        for (instance in description.getInstanceList()) {
+            if (instance.getPlaybackState() != FmodPlaybackState.STOPPED) return true;
+        }
+        return false;
     }
 
     //// Global parameters

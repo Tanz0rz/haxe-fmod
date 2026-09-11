@@ -36,9 +36,9 @@ class BankLoadTracker {
         @param bankFiles Bank file names, resolved through FmodRuntime.bankPath.
         @param onLoaded Called exactly once, when all banks are loaded.
         @param onError Called exactly once, when any bank settles in an
-        error state (a missing file or a failed fetch on HTML5), or when
-        FMOD refused to initialize. Without it, a failed load is only
-        visible through loadingState polling.
+        error state (a missing file or a failed fetch on HTML5). It also
+        runs once when FMOD refused to initialize. Without it, a failed
+        load is only visible through loadingState polling.
         @param async Loads in the background (default). Pass false to load
         synchronously on native targets.
     */

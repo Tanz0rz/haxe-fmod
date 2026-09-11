@@ -75,14 +75,22 @@ class FmodHeapsListener implements IHeapsTicker {
         FmodHeapsUpdater.remove(this);
     }
 
+    // The world point under the viewport center, from the camera's own
+    // fields. The camera matrix is rebuilt at render time, so a move
+    // this frame counts at once here. The camera maps a world offset
+    // through scale then rotation, and this is the inverse of that.
     function viewCenterX():Float {
         var camera = scene.camera;
-        return camera.x + (0.5 - camera.anchorX) * scene.width / camera.scaleX;
+        var dx = camera.viewportWidth * (0.5 - camera.anchorX);
+        var dy = camera.viewportHeight * (0.5 - camera.anchorY);
+        return camera.x + (dx * Math.cos(camera.rotation) + dy * Math.sin(camera.rotation)) / camera.scaleX;
     }
 
     function viewCenterY():Float {
         var camera = scene.camera;
-        return camera.y + (0.5 - camera.anchorY) * scene.height / camera.scaleY;
+        var dx = camera.viewportWidth * (0.5 - camera.anchorX);
+        var dy = camera.viewportHeight * (0.5 - camera.anchorY);
+        return camera.y + (dy * Math.cos(camera.rotation) - dx * Math.sin(camera.rotation)) / camera.scaleY;
     }
 
     /** Samples the followed position and pushes it to the listener. **/
@@ -90,7 +98,7 @@ class FmodHeapsListener implements IHeapsTicker {
     public function tick(dt:Float):Void {
         if (provider == null) return;
         if (scene != null) {
-            provider.teleportDistance = teleportDistance > 0 ? teleportDistance : scene.width / scene.camera.scaleX;
+            provider.teleportDistance = teleportDistance > 0 ? teleportDistance : scene.camera.viewportWidth / scene.camera.scaleX;
         } else {
             provider.teleportDistance = teleportDistance > 0 ? teleportDistance : AUTO_TELEPORT_DISTANCE;
         }

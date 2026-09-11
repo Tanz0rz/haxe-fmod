@@ -20,10 +20,9 @@ on:
 env:
   HAXE_VERSION: 4.3.6
 
+# The build job reads only. The deploy job raises its own grant for Pages.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: docs-${{ github.ref }}
@@ -150,6 +149,9 @@ jobs:
     # Keeps the GitHub Pages address alive as a redirect to www.tanz0rz.com
     needs: build
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    permissions:
+      pages: write
+      id-token: write
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
