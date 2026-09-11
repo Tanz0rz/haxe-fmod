@@ -15,9 +15,11 @@ import haxefmod.studio.Types;
  * Mode ok: autoLoadBanks resolve. isInitialized() flips true only once
  * the banks are usable, and onceReady fires.
  *
- * Mode missing: the banks 404. isInitialized() stays false, because the
- * game's banks are unusable. The bank settles in ERROR, and the failure
- * warning traces exactly once.
+ * Mode missing: the banks 404. Each bank settles in ERROR and is
+ * reported exactly once. Initialization completes without them, so
+ * isInitialized() turns true and initFailed() reports the failure. The
+ * onFailed side of a handler pair runs instead of the ready side. A
+ * handler with no onFailed still runs.
  *
  * Compiled and run by tests/js/runtime-init-test.js.
  */
@@ -42,7 +44,10 @@ class RuntimeInitTest {
 
 		var folder = mode == "missing" ? "missing/banks" : "assets/fmod/Desktop";
 		var readyFired = false;
+		var pairReady = false;
+		var pairFailed = 0;
 		FmodRuntime.onceReady(() -> readyFired = true);
+		FmodRuntime.onceReady(() -> pairReady = true, () -> pairFailed++);
 		FmodRuntime.init({
 			bankFolder: folder,
 			autoLoadBanks: ["Master.bank", "Master.strings.bank"],
@@ -58,7 +63,8 @@ class RuntimeInitTest {
 				if (FmodRuntime.isInitialized()) {
 					js.Syntax.code("clearInterval({0})", timer);
 					check("initialized_once_banks_usable", true, 'polls=$polls');
-					check("once_ready_fired", readyFired, "");
+					check("once_ready_fired", readyFired && pairReady, "");
+					check("once_ready_not_failed", pairFailed == 0 && !FmodRuntime.initFailed(), "");
 					check("banks_loaded", FmodRuntime.banks.isLoaded(FmodRuntime.bankPath("Master.bank")), "");
 					finish();
 				} else if (polls > 300) {
@@ -68,15 +74,22 @@ class RuntimeInitTest {
 				}
 			} else {
 				// Give the failing fetches ample time to settle, then assert
-				// the gate held the whole way
+				// that every bank was settled as a failure
 				if (polls == 100) {
 					js.Syntax.code("clearInterval({0})", timer);
-					check("missing_banks_hold_init_false", !FmodRuntime.isInitialized(), "");
-					check("once_ready_not_fired", !readyFired, "");
+					check("missing_banks_settle_initialized", FmodRuntime.isInitialized(), "");
+					check("missing_banks_report_failure", FmodRuntime.initFailed(), "");
+					check("pair_runs_on_failed", !pairReady && pairFailed == 1, 'failed=$pairFailed');
+					check("plain_handler_runs_anyway", readyFired, "");
+					// Counted before the state read below, which is a registry call
+					// that warns on its own
+					var warns = traces.filter(t -> t.indexOf("failed to load") >= 0);
+					check("each_failure_reported_exactly_once", warns.length == 2, 'count=${warns.length}');
 					var state = FmodRuntime.banks.loadingState(FmodRuntime.bankPath("Master.bank"));
 					check("missing_bank_settled_error", state == FmodLoadingState.ERROR, 'state=${(state : Int)}');
-					var warns = traces.filter(t -> t.indexOf("default bank failed to load") >= 0);
-					check("failure_warned_exactly_once", warns.length == 1, 'count=${warns.length}');
+					var late = 0;
+					FmodRuntime.onceReady(() -> {}, () -> late++);
+					check("late_pair_fails_at_once", late == 1, "");
 					finish();
 				}
 			}

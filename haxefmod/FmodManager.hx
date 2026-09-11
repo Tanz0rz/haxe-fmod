@@ -81,9 +81,10 @@ class FmodManager {
     }
 
     /**
-     * True when a default bank failed to load or was never provided. The
-     * system runs without that bank, so IsInitialized() turns true too.
-     * The engine preloaders check this first and report it.
+     * True when a default bank failed to load or was never provided, or
+     * when the system refused to initialize. A missing bank leaves the
+     * system running without it, so IsInitialized() turns true too. The
+     * engine preloaders check this first and report it.
      */
     public static function InitializeFailed():Bool {
         return FmodRuntime.initFailed();

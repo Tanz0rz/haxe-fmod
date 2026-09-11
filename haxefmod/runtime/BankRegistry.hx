@@ -168,12 +168,15 @@ class BankRegistry {
             && entry.bank.getLoadingState() == FmodLoadingState.LOADED;
     }
 
-    /** Loading state for a registered bank (UNLOADED if never registered). */
-    public function loadingState(path:String):FmodLoadingState {
+    /**
+     * Loading state for a registered bank (UNLOADED if never registered).
+     * A load that settled in ERROR is warned about once, unless quiet.
+     */
+    public function loadingState(path:String, quiet:Bool = false):FmodLoadingState {
         var entry = banks.get(normalizePath(path));
         if (entry == null) return UNLOADED;
         var state = entry.bank.getLoadingState();
-        if (state == FmodLoadingState.ERROR && entry.errorLogged != true) {
+        if (state == FmodLoadingState.ERROR && !quiet && entry.errorLogged != true) {
             entry.errorLogged = true;
             trace('Warn: FMOD - bank failed to load: $path. Check the file name and the bank folder setting.'
                 + ' On HTML5 the browser fetches it relative to the page.');

@@ -5,7 +5,7 @@ import haxefmod.runtime.FmodRuntime;
 
 /**
  * The default bank failure path on the stub backend. A process gets one
- * init, so this suite owns its own process: the main suite initializes
+ * init, so this suite owns its own process. The main suite initializes
  * with every bank provided, this one with a bank that cannot be.
  */
 class TestPreloadFailure {
@@ -39,13 +39,18 @@ class TestPreloadFailure {
 		var reports = traces.filter(t -> t.indexOf("Master.bank could not be provided") >= 0);
 		assert(reports.length == 1 && reports[0].indexOf("delivered no bytes") >= 0, "a failed bank is reported once, with the first reason");
 
-		// Handlers registered before init
+		// Handlers registered before init. The one with no onFailed waits
+		// for readiness, the pair runs its onFailed instead.
 		var readyRan = false;
 		var failedRan = 0;
+		var plainRan = 0;
 		FmodRuntime.onceReady(() -> readyRan = true, () -> failedRan++);
+		FmodRuntime.onceReady(() -> plainRan++);
 
 		FmodRuntime.provideBank("Master.strings.bank", haxe.io.Bytes.alloc(24));
 		FmodRuntime.provideBank("Unrelated.bank", haxe.io.Bytes.alloc(8));
+		FmodRuntime.provideBank("Stray.bank", null);
+		assert(traces.filter(t -> t.indexOf("Stray.bank could not be provided") >= 0).length == 1, "before init a stray name is reported like any other");
 		stub.testBankMemoryLoads = [];
 		FmodRuntime.init({autoLoadBanks: ["Master.bank", "Master.strings.bank"], banksProvided: true});
 
@@ -60,6 +65,12 @@ class TestPreloadFailure {
 		assert(!FmodRuntime.allBanksProvided(), "a failed bank was never provided");
 		assert(traces.filter(t -> t.indexOf("Unrelated.bank was provided but is not in autoLoadBanks") >= 0).length == 1,
 			"a name outside autoLoadBanks is dropped with a warning");
+		assert(traces.filter(t -> t.indexOf("Stray.bank was provided but is not in autoLoadBanks") >= 0).length == 1,
+			"a stray failure reported before init is dropped at init");
+		FmodRuntime.provideBankFailed("Other.bank", "nothing");
+		assert(traces.filter(t -> t.indexOf("Other.bank was provided but is not in autoLoadBanks") >= 0).length == 1
+			&& traces.filter(t -> t.indexOf("Other.bank could not be provided") >= 0).length == 0,
+			"a stray failure after init is dropped and never counted");
 		assert(traces.filter(t -> t.indexOf("Master.bank") >= 0 && t.indexOf("Error") >= 0).length == 1,
 			"init does not report the failed bank a second time");
 
@@ -71,6 +82,10 @@ class TestPreloadFailure {
 		assert(!lateReady && failedRan == 2, "onceReady after init runs onFailed at once");
 		FmodRuntime.update();
 		assert(failedRan == 2, "a failed handler runs once");
+		// The stub never reports the system up, so a handler with no
+		// onFailed keeps waiting instead of running
+		assert(plainRan == 0 && @:privateAccess FmodRuntime.pendingHandlers.length == 1,
+			"a handler with no onFailed waits for readiness");
 
 		// Bytes for a bank the runtime already handled are dropped
 		FmodRuntime.provideBank("Master.strings.bank", haxe.io.Bytes.alloc(24));

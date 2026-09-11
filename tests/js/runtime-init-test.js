@@ -1,8 +1,9 @@
 // Drives the actual Haxe runtime layer (FmodRuntime + BankRegistry,
 // compiled to js) against the real wasm under Node.
 // The subject is the html5 init contract.
-// isInitialized() gates on the default banks being usable.
-// A failed autoLoadBanks fetch holds it false with one traced warning.
+// isInitialized() gates on the default banks being settled.
+// A failed autoLoadBanks fetch is reported once, initFailed() turns true,
+// and initialization completes without that bank.
 // The other harnesses talk to jaxe.js directly and cannot see this layer.
 //
 // Usage: FMOD_SDK_WEB=<sdk root> node runtime-init-test.js

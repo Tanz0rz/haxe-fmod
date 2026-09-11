@@ -41,8 +41,9 @@ class FmodRuntime {
     // state actually changes, so a focused startup does not allocate it.
     static var focusMuteApplied:Bool = false;
     static var focusMuteSynced:Bool = false;
-    static var readyHandlers:Array<Void->Void> = [];
-    static var failedHandlers:Array<Void->Void> = [];
+    // onceReady handlers waiting for readiness. An entry with an onFailed
+    // runs that instead when a default bank fails.
+    static var pendingHandlers:Array<{ready:Void->Void, failed:Void->Void}> = [];
     // Bank bytes the engine's loader delivered, keyed by file name. An
     // entry is removed once the runtime loaded it, FMOD copies the data.
     static var providedBanks:Map<String, haxe.io.Bytes> = new Map();
@@ -52,6 +53,8 @@ class FmodRuntime {
     // reported once and never retried.
     static var failedBanks:Map<String, Bool> = new Map();
     static var defaultBankFailed:Bool = false;
+    // The system itself refused to initialize. Nothing gets ready then.
+    static var systemFailed:Bool = false;
 
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
     public static inline var BINDING_ABI:Int = 11;
@@ -129,6 +132,7 @@ class FmodRuntime {
                 resolved.rawSpeakers);
             if (!formatResult.isOk()) {
                 trace("Error: FMOD - output type " + (resolved.output : Int) + " refused: " + formatResult.toString());
+                systemFailed = true;
                 return formatResult;
             }
         }
@@ -146,7 +150,10 @@ class FmodRuntime {
             resolved.idleSampleDataPoolSize, resolved.streamingScheduleDelay, resolved.encryptionKey);
 
         #if (cpp || hl)
-        if (!result.isOk()) return result;
+        if (!result.isOk()) {
+            systemFailed = true;
+            return result;
+        }
         #end
         dropUnexpectedProvided();
         #if !js
@@ -184,7 +191,7 @@ class FmodRuntime {
 
     static var defaultBanksLoaded:Bool = false;
     #if js
-    static var defaultBankPaths:Array<String> = null;
+    static var defaultLoadsStarted:Bool = false;
     #end
 
     /**
@@ -200,17 +207,17 @@ class FmodRuntime {
      */
     public static function provideBank(fileName:String, bytes:haxe.io.Bytes):Void {
         var name = bankFileName(fileName);
+        if (resolved != null && !isDefaultBank(name)) {
+            warnUnexpected(name);
+            return;
+        }
         if (bytes == null) {
             provideBankFailed(fileName, "the loader delivered no bytes");
             return;
         }
-        if (resolved != null) {
-            if (!isDefaultBank(name)) {
-                trace('Warning: FMOD - $name was provided but is not in autoLoadBanks (${resolved.autoLoadBanks.join(", ")}). Dropped.');
-                return;
-            }
-            if (banks.isRegistered(bankPath(fileName))) return;
-        }
+        // A bank already handled, loaded or failed, takes no more bytes
+        if (failedBanks.exists(name)) return;
+        if (resolved != null && banks.isRegistered(bankPath(fileName))) return;
         providedNames.set(name, true);
         providedBanks.set(name, bytes);
     }
@@ -223,6 +230,10 @@ class FmodRuntime {
      */
     public static function provideBankFailed(fileName:String, reason:String):Void {
         var name = bankFileName(fileName);
+        if (resolved != null && !isDefaultBank(name)) {
+            warnUnexpected(name);
+            return;
+        }
         if (failedBanks.exists(name)) return;
         failedBanks.set(name, true);
         defaultBankFailed = true;
@@ -258,14 +269,27 @@ class FmodRuntime {
         return false;
     }
 
-    // Bytes provided under a name that is not a default bank are dropped
-    // at init, with the warning provideBank gives after init
+    static function warnUnexpected(name:String):Void {
+        trace('Warning: FMOD - $name was provided but is not in autoLoadBanks (${resolved.autoLoadBanks.join(", ")}). Dropped.');
+    }
+
+    // A name reported before init that is not a default bank is dropped
+    // at init, bytes and failure alike. The warning is the one
+    // provideBank gives after init.
     static function dropUnexpectedProvided():Void {
         for (name in providedBanks.keys()) {
             if (isDefaultBank(name)) continue;
-            trace('Warning: FMOD - $name was provided but is not in autoLoadBanks (${resolved.autoLoadBanks.join(", ")}). Dropped.');
+            warnUnexpected(name);
             providedBanks.remove(name);
+            providedNames.remove(name);
         }
+        for (name in failedBanks.keys()) {
+            if (isDefaultBank(name)) continue;
+            warnUnexpected(name);
+            failedBanks.remove(name);
+        }
+        defaultBankFailed = false;
+        for (name in failedBanks.keys()) defaultBankFailed = true;
     }
 
     /**
@@ -297,13 +321,20 @@ class FmodRuntime {
         // like every other bank. A provided bank loads from memory at
         // once. With banksProvided the rest wait for their bytes instead
         // of being fetched.
-        if (defaultBankPaths == null) {
-            defaultBankPaths = [];
+        if (!defaultLoadsStarted) {
+            defaultLoadsStarted = true;
             for (fileName in resolved.autoLoadBanks) {
                 var path = bankPath(fileName);
-                defaultBankPaths.push(path);
-                if (providedBanks.exists(bankFileName(fileName))) loadProvidedBank(fileName);
-                else if (!resolved.banksProvided) banks.loadAsync(path);
+                var name = bankFileName(fileName);
+                if (failedBanks.exists(name)) continue;
+                if (providedBanks.exists(name)) {
+                    loadProvidedBank(fileName);
+                } else if (!resolved.banksProvided && banks.loadAsync(path).isNull()) {
+                    // The shim refused the load, so nothing is in flight
+                    failedBanks.set(name, true);
+                    defaultBankFailed = true;
+                    trace('Error: FMOD - default bank $path could not start loading (${StudioSystem.lastResult()}). The game runs without it.');
+                }
             }
         }
         // A bank that failed is settled: initialization completes without
@@ -319,7 +350,9 @@ class FmodRuntime {
                 ready = false;
                 continue;
             }
-            if (banks.loadingState(path) == FmodLoadingState.ERROR) {
+            // The registry's own warning stays quiet: the runtime reports
+            // a default bank itself
+            if (banks.loadingState(path, true) == FmodLoadingState.ERROR) {
                 failedBanks.set(name, true);
                 defaultBankFailed = true;
                 trace('Error: FMOD - default bank failed to load: $path.'
@@ -343,21 +376,35 @@ class FmodRuntime {
      * state at setup time replays it through this hook. The optional
      * onFailed runs instead when a default bank failed to load
      * (initFailed), at once when the failure is already known and
-     * otherwise from update(). A game that waits for FMOD on HTML5
-     * calls update() every frame.
+     * otherwise from update(). A handler with no onFailed runs once
+     * FMOD is ready, with or without every bank. A game that waits for
+     * FMOD on HTML5 calls update() every frame.
      */
     public static function onceReady(handler:Void->Void, ?onFailed:Void->Void):Void {
         // A failed default bank wins over readiness on every target
-        if (initFailed()) {
-            if (onFailed != null) onFailed();
+        if (onFailed != null && initFailed()) {
+            onFailed();
             return;
         }
         if (focusMuteSynced || isInitialized()) {
             handler();
             return;
         }
-        readyHandlers.push(handler);
-        if (onFailed != null) failedHandlers.push(onFailed);
+        pendingHandlers.push({ready: handler, failed: onFailed});
+    }
+
+    // Runs the onFailed side of every pending pair that has one. The
+    // pairs without one keep waiting for readiness.
+    static function dispatchFailed():Void {
+        if (!initFailed() || pendingHandlers.length == 0) return;
+        var kept = [];
+        var failed = [];
+        for (pair in pendingHandlers) {
+            if (pair.failed != null) failed.push(pair.failed);
+            else kept.push(pair);
+        }
+        pendingHandlers = kept;
+        for (handler in failed) handler();
     }
 
     /** The resolved settings init ran with (null before init). */
@@ -376,13 +423,14 @@ class FmodRuntime {
     }
 
     /**
-     * True when a default bank failed to load or was never provided.
-     * The system is still initialized and runs without that bank, so
+     * True when a default bank failed to load or was never provided, or
+     * when the system itself refused to initialize. A missing bank
+     * leaves the system initialized and running without it, so
      * isInitialized() turns true as well. Check this first. The console
      * names the bank and the reason.
      */
     public static function initFailed():Bool {
-        return defaultBankFailed;
+        return defaultBankFailed || systemFailed;
     }
 
     static var debugLevel:Int = -1;
@@ -416,17 +464,12 @@ class FmodRuntime {
      * positions. Call once per frame (FmodManager.Update does).
      */
     public static function update():Void {
-        // A failed default bank runs the onFailed handlers instead of the
-        // ready handlers, as soon as the failure is known
-        if (initFailed() && (failedHandlers.length > 0 || readyHandlers.length > 0)) {
-            var failed = failedHandlers;
-            failedHandlers = [];
-            readyHandlers = [];
-            for (handler in failed) handler();
-        }
-        if (!isInitialized()) return;
+        // On HTML5 the readiness poll is what discovers a failed bank, so
+        // the failure dispatch comes after it and before the ready one
+        var ready = isInitialized();
+        dispatchFailed();
+        if (!ready) return;
         if (!focusMuteSynced) {
-            failedHandlers = [];
             // HTML5 initialization completes asynchronously, so the first
             // serviced frame applies state reported during init. Native
             // init applies it directly, so this is a no-op there.
@@ -439,9 +482,9 @@ class FmodRuntime {
             if (resolved != null) NativeStudio.sys_set_auto_update(resolved.autoUpdate);
             if (debugLevel >= 0) NativeStudio.sys_set_debug_level(debugLevel);
             #end
-            var pending = readyHandlers;
-            readyHandlers = [];
-            for (handler in pending) handler();
+            var pending = pendingHandlers;
+            pendingHandlers = [];
+            for (pair in pending) pair.ready();
         }
         // Manual mode ticks FMOD here on every backend. On HTML5 the shim's
         // timer is the only other caller, and it is off in manual mode.

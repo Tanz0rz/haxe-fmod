@@ -29,10 +29,10 @@ import openfl.utils.Assets;
     later are ignored. Override create() and update() for custom visuals
     the way FlxPreloader allows.
 
-    When a default bank is missing from the assets or fails to load, the
-    preloader shows the failure for failureDisplayTime seconds, then
-    completes. The game then runs without that bank, and the console
-    names it.
+    When a default bank is missing from the assets or fails to load, or
+    FMOD refuses to initialize, the preloader shows the failure for
+    failureDisplayTime seconds, then completes. The game then runs
+    without that bank, and the console names it.
 **/
 class FmodFlxPreloader extends FlxPreloader {
     /** How long the failure message stays before the game starts anyway, in seconds. **/
@@ -167,7 +167,7 @@ class FmodFlxPreloader extends FlxPreloader {
         failureText.multiline = true;
         failureText.wordWrap = true;
         failureText.selectable = false;
-        failureText.text = "FMOD could not load its banks. The game starts without audio.";
+        failureText.text = "FMOD did not fully start. The game starts anyway.";
         addChild(failureText);
     }
 
