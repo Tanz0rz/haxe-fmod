@@ -260,14 +260,15 @@ jobs:
         id: abi
         run: |
           # A binding ABI bump lands before update-hdlls can rebuild the
-          # shipped hdlls. The marker check and the hl steps wait for it
-          # on a branch. A tag keeps the hard failure: a release ships
-          # no stale hdll. An hdll with no marker at all counts as stale.
-          ABI=$(grep -o "abi-version: [0-9]*" native/manifest/studio_api.txt | grep -o "[0-9]*")
+          # shipped hdlls. The doctor check waits for it on a branch. A
+          # tag keeps the hard failure: a release ships no stale hdll. An
+          # hdll with no marker at all counts as stale.
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
+          [ -n "$ABI" ] || { echo "FAIL: no '# abi-version:' header in native/manifest/studio_api.txt"; exit 1; }
           MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$" || true)
           if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
             echo "stale=true" >> "$GITHUB_OUTPUT"
-            echo "::notice ::the pre-built hdll carries ABI '$MARKER' and the manifest says $ABI, the hl package steps wait for update-hdlls"
+            echo "::notice ::the pre-built hdll carries ABI '$MARKER' and the manifest says $ABI, the doctor check waits for update-hdlls"
           else
             echo "stale=false" >> "$GITHUB_OUTPUT"
           fi
@@ -636,7 +637,8 @@ jobs:
           # shipped hdlls. The marker check and the hl steps wait for it
           # on a branch. A tag keeps the hard failure: a release ships
           # no stale hdll. An hdll with no marker at all counts as stale.
-          ABI=$(grep -o "abi-version: [0-9]*" native/manifest/studio_api.txt | grep -o "[0-9]*")
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
+          [ -n "$ABI" ] || { echo "FAIL: no '# abi-version:' header in native/manifest/studio_api.txt"; exit 1; }
           MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$" || true)
           if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
             echo "stale=true" >> "$GITHUB_OUTPUT"
@@ -698,7 +700,8 @@ jobs:
 
           # The zip's hdlls must all carry the current ABI marker, beyond
           # the Linux one the hl build below happens to scan
-          ABI=$(grep -o "abi-version: [0-9]*" native/manifest/studio_api.txt | grep -o "[0-9]*")
+          ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
+          [ -n "$ABI" ] || { echo "FAIL: no '# abi-version:' header in native/manifest/studio_api.txt"; exit 1; }
           if [ "$STALE" = "true" ]; then
             echo "::notice ::the packaged hdlls trail ABI $ABI, the marker check waits for update-hdlls"
           else

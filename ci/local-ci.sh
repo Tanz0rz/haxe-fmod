@@ -3,6 +3,9 @@
 # machine. Every gate a replayed job runs is the same script or grep the
 # workflow uses.
 #
+# A game that ignores SIGTERM gets ten seconds, then SIGKILL, like the
+# workflow's record and run steps.
+#
 # Not replayed: env-doctor, js-harness, api-docs, package-check,
 # package-check-cpp, linux-hl-compat, and the heaps-hl and kha-linux
 # manual-update legs.
@@ -373,7 +376,7 @@ job_linux_cpp() {
     ./run.sh > "$2/volume-test-linux-cpp.log" 2>&1 &
     PID=$!
     for i in $(seq 60); do kill -0 $PID 2>/dev/null || break; sleep 1; done
-    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true' _ "$(cpp_bin_dir)" "$TMP"
+    kill $PID 2>/dev/null || true; for i in 1 2 3 4 5 6 7 8 9 10; do kill -0 $PID 2>/dev/null || break; sleep 1; done; kill -9 $PID 2>/dev/null || true; wait $PID 2>/dev/null || true' _ "$(cpp_bin_dir)" "$TMP"
   step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-linux-cpp.wav" 15
   local bin="$EXAMPLE/export/linux*/bin"
   step "Run api-probe state" run_native_state api-probe API_PROBE "$bin" "$TMP/api-probe-linux-cpp.log" 60
@@ -389,7 +392,7 @@ job_linux_cpp() {
     ./run.sh > "$2/stress-smoke-linux-cpp.log" 2>&1 &
     PID=$!
     for i in $(seq 90); do kill -0 $PID 2>/dev/null || break; sleep 1; done
-    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
+    kill $PID 2>/dev/null || true; for i in 1 2 3 4 5 6 7 8 9 10; do kill -0 $PID 2>/dev/null || break; sleep 1; done; kill -9 $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
     grep "STRESS_TEST:" "$2/stress-smoke-linux-cpp.log" || true
     grep -q "STRESS_TEST: COMPLETE" "$2/stress-smoke-linux-cpp.log" || { cat "$2/stress-smoke-linux-cpp.log"; exit 1; }
     ! grep -q "pass=false" "$2/stress-smoke-linux-cpp.log"' _ "$(cpp_bin_dir)" "$TMP"
@@ -454,7 +457,7 @@ job_linux_hl() {
     "$EXE" > "$2/volume-test-linux-hl.log" 2>&1 &
     PID=$!
     for i in $(seq 60); do kill -0 $PID 2>/dev/null || break; sleep 1; done
-    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true' _ "$bin" "$TMP"
+    kill $PID 2>/dev/null || true; for i in 1 2 3 4 5 6 7 8 9 10; do kill -0 $PID 2>/dev/null || break; sleep 1; done; kill -9 $PID 2>/dev/null || true; wait $PID 2>/dev/null || true' _ "$bin" "$TMP"
   step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-linux-hl.wav" 15
   step "Run api-probe state" run_native_state api-probe API_PROBE "$bin" "$TMP/api-probe-linux-hl.log" 60
   step "Run synth-test state" run_native_state synth-test SYNTH_TEST "$bin" "$TMP/synth-test-linux-hl.log" 60 "" false true
@@ -471,7 +474,7 @@ job_linux_hl() {
     "$EXE" > "$2/stress-smoke-linux-hl.log" 2>&1 &
     PID=$!
     for i in $(seq 90); do kill -0 $PID 2>/dev/null || break; sleep 1; done
-    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
+    kill $PID 2>/dev/null || true; for i in 1 2 3 4 5 6 7 8 9 10; do kill -0 $PID 2>/dev/null || break; sleep 1; done; kill -9 $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
     grep "STRESS_TEST:" "$2/stress-smoke-linux-hl.log" || true
     grep -q "STRESS_TEST: COMPLETE" "$2/stress-smoke-linux-hl.log" || { cat "$2/stress-smoke-linux-hl.log"; exit 1; }
     ! grep -q "pass=false" "$2/stress-smoke-linux-hl.log"' _ "$bin" "$TMP"
@@ -594,7 +597,7 @@ job_heaps_hl() {
     ./run.sh > "$2/volume-test-heaps-hl.log" 2>&1 &
     PID=$!
     for i in $(seq 60); do kill -0 $PID 2>/dev/null || break; sleep 1; done
-    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true' _ "$bin" "$TMP"
+    kill $PID 2>/dev/null || true; for i in 1 2 3 4 5 6 7 8 9 10; do kill -0 $PID 2>/dev/null || break; sleep 1; done; kill -9 $PID 2>/dev/null || true; wait $PID 2>/dev/null || true' _ "$bin" "$TMP"
   step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-heaps-hl.wav" 15
   step "Run api-probe state" run_native_state api-probe API_PROBE "$bin" "$TMP/api-probe-heaps-hl.log" 60
   step "Run synth-test state" run_native_state synth-test SYNTH_TEST "$bin" "$TMP/synth-test-heaps-hl.log" 60 "" false true
@@ -609,7 +612,7 @@ job_heaps_hl() {
     ./run.sh > "$2/stress-smoke-heaps-hl.log" 2>&1 &
     PID=$!
     for i in $(seq 90); do kill -0 $PID 2>/dev/null || break; sleep 1; done
-    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
+    kill $PID 2>/dev/null || true; for i in 1 2 3 4 5 6 7 8 9 10; do kill -0 $PID 2>/dev/null || break; sleep 1; done; kill -9 $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
     grep "STRESS_TEST:" "$2/stress-smoke-heaps-hl.log" || true
     grep -q "STRESS_TEST: COMPLETE" "$2/stress-smoke-heaps-hl.log" || { cat "$2/stress-smoke-heaps-hl.log"; exit 1; }
     ! grep -q "pass=false" "$2/stress-smoke-heaps-hl.log"' _ "$bin" "$TMP"
@@ -688,7 +691,7 @@ job_kha_native() {
     ./run.sh > "$2/volume-test-$3.log" 2>&1 &
     PID=$!
     for i in $(seq 60); do kill -0 $PID 2>/dev/null || break; sleep 1; done
-    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true' _ "$bin" "$TMP" "$job"
+    kill $PID 2>/dev/null || true; for i in 1 2 3 4 5 6 7 8 9 10; do kill -0 $PID 2>/dev/null || break; sleep 1; done; kill -9 $PID 2>/dev/null || true; wait $PID 2>/dev/null || true' _ "$bin" "$TMP" "$job"
   step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-$job.wav" 15
   step "Run api-probe state" run_native_state api-probe API_PROBE "$bin" "$TMP/api-probe-$job.log" 60
   step "Run synth-test state" run_native_state synth-test SYNTH_TEST "$bin" "$TMP/synth-test-$job.log" 60 "" false true
@@ -703,7 +706,7 @@ job_kha_native() {
     ./run.sh > "$2/stress-smoke-$3.log" 2>&1 &
     PID=$!
     for i in $(seq 90); do kill -0 $PID 2>/dev/null || break; sleep 1; done
-    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
+    kill $PID 2>/dev/null || true; for i in 1 2 3 4 5 6 7 8 9 10; do kill -0 $PID 2>/dev/null || break; sleep 1; done; kill -9 $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
     grep "STRESS_TEST:" "$2/stress-smoke-$3.log" || true
     grep -q "STRESS_TEST: COMPLETE" "$2/stress-smoke-$3.log" || { cat "$2/stress-smoke-$3.log"; exit 1; }
     ! grep -q "pass=false" "$2/stress-smoke-$3.log"' _ "$bin" "$TMP" "$job"

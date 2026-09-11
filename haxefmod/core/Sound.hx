@@ -543,12 +543,10 @@ abstract Sound(Int) from Int to Int {
      * `FMOD_ERR_INVALID_PARAM`. The library releases it when the instrument is done.
      */
     public function release():FmodResult {
-        // A sound the library owns is refused before any subsound handle
-        // is minted for it, so the refusal leaves nothing behind
-        if (NativeStudio.core_sound_is_owned(this)) return FmodResult.FMOD_ERR_INVALID_PARAM;
         // The subsounds die with the parent, and their entries go too. A
-        // refused release keeps the sound, so the entries stay with it.
-        var subsounds = getNumSubSounds();
+        // sound the library owns is refused by the native release, so no
+        // subsound handle is minted for it and the refusal leaves nothing.
+        var subsounds = NativeStudio.core_sound_is_owned(this) ? 0 : getNumSubSounds();
         var subs:Array<Sound> = [for (i in 0...(subsounds > 0 ? subsounds : 0)) getSubSound(i)];
         var result:FmodResult = NativeStudio.core_release_sound(this);
         if (UserData.releaseTookEffect(result)) {

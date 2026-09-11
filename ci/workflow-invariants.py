@@ -30,7 +30,8 @@ leans on:
   10. HAXELIB_PINS names every pinned haxelib install and every haxelib
      cache key carries it, so a bump rotates the caches.
   11. Every other workflow that repeats HASHLINK_COMMIT or HAXELIB_PINS
-     carries the same value, and its pinned installs are in the pins.
+     carries the same value, and every other workflow's pinned installs
+     are in the pins, with or without the variable.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -178,9 +179,11 @@ for other in sorted(os.listdir(os.path.dirname(PATH))):
     # which must be the ones the pins name
     other_installs = set(re.findall(r"haxelib install ([a-z]+) ([0-9][0-9.]*)", other_text))
     other_missing = sorted(f"{lib}{ver}" for lib, ver in other_installs if f"{lib}{ver}" not in pins.split("-"))
-    other_keys = re.findall(r"key: haxelib-[^\n]*", other_text) if other_pins else []
-    if other_missing or any("env.HAXELIB_PINS" not in k for k in other_keys):
-        fail(f"{other} installs out of step with HAXELIB_PINS: missing {other_missing}, keys {other_keys}")
+    # A haxelib cache key in a sibling needs the pins in it, and the
+    # sibling then needs the variable the key reads
+    other_keys = re.findall(r"key: haxelib-[^\n]*", other_text)
+    if other_missing or (other_keys and not other_pins) or any("env.HAXELIB_PINS" not in k for k in other_keys):
+        fail(f"{other} installs out of step with HAXELIB_PINS: missing {other_missing}, keys {other_keys}, pins declared {bool(other_pins)}")
     elif other_installs:
         ok(f"{other} installs {len(other_installs)} pinned versions the pins name")
 

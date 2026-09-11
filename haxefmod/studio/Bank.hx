@@ -47,12 +47,18 @@ abstract Bank(Int) from Int to Int {
      * rest until StudioSystem.unloadAll.
      */
     public function unload():FmodResult {
-        for (description in getEventList()) {
-            UserData.clear(UserDataKind.EventDescription, description);
-            description.clearCallback();
+        // The descriptions are read while the bank is loaded, and their
+        // entries go once FMOD accepted the unload
+        var descriptions = getEventList();
+        var result:FmodResult = NativeStudio.bank_unload(this);
+        if (UserData.releaseTookEffect(result)) {
+            for (description in descriptions) {
+                UserData.clear(UserDataKind.EventDescription, description);
+                description.clearCallback();
+            }
+            UserData.clear(UserDataKind.Bank, this);
         }
-        UserData.clear(UserDataKind.Bank, this);
-        return NativeStudio.bank_unload(this);
+        return result;
     }
 
     /** Loads all non-streaming sample data for the bank's events. */

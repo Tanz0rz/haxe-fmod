@@ -64,9 +64,10 @@ typedef struct {
     unsigned short gen;   /* 1..FAXE_GEN_MAX once used, 0 = never used yet */
     unsigned char type;
     unsigned char alive;
-    /* 1 when the library owns the object's lifetime: a programmer sound
-     * it created, or a plugin instrument's DSP. The public release entry
-     * points refuse such a handle. The library releases the object. */
+    /* 1 when the game does not own the object. That is a programmer sound
+     * the library created and releases, or a plugin instrument's DSP that
+     * FMOD destroys with its event. The public release entry points
+     * refuse such a handle. */
     unsigned char owned;
     /* The handle of the owned sound this subsound was taken from, or 0.
      * Such a child dies with its parent (see faxe_handles_free_children). */
@@ -272,15 +273,17 @@ static void faxe_handle_set_parent(int handle, int parent) {
     gFaxeSlots[handle & 0xFFFF].parent = parent;
 }
 
-/* Frees every live slot linked to the parent handle. The parent's own
- * slot is left to the caller. */
+/* Frees every live slot linked to the parent handle, and the slots
+ * linked to those in turn. The parent's own slot is left to the caller. */
 static void faxe_handles_free_children(int parent) {
     int i;
     if (parent <= 0) return;
     for (i = 0; i < gFaxeSlotCap; i++) {
         FaxeSlot* s = &gFaxeSlots[i];
         if (s->alive && s->parent == parent) {
-            faxe_handle_free(((int)s->gen << 16) | i);
+            int child = ((int)s->gen << 16) | i;
+            faxe_handles_free_children(child);
+            faxe_handle_free(child);
         }
     }
 }

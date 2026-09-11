@@ -101,12 +101,14 @@ class NativeManifestCheck {
     /**
      * Matches declarations like: extern int fmod_bank_unload(int handle);
      * A long parameter list wraps over several lines, so the file is
-     * scanned as one line.
+     * scanned as one line once its comments are gone. A declaration
+     * inside a comment counts for nothing either way.
      */
     static function scanCppHeader(path:String):Map<String, Int> {
         var found = new Map<String, Int>();
         var re = ~/extern\s+[A-Za-z_][\w:&<>\* ]*\bfmod_(\w+)\s*\(([^)]*)\)\s*;/;
-        var text = File.getContent(path).split("\n").join(" ");
+        var raw = ~/\/\*[\s\S]*?\*\//g.replace(File.getContent(path), " ");
+        var text = [for (line in raw.split("\n")) ~/\/\/.*$/.replace(line, "")].join(" ");
         while (re.match(text)) {
             found.set(re.matched(1), countCArgs(re.matched(2)));
             text = re.matchedRight();

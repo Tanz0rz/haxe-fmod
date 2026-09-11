@@ -58,7 +58,7 @@ sys_set_studio_callback_mask i32 -> i32
 #   (see haxefmod/studio/native/Scratch.hx). Layouts are documented per function.
 # - 3D attributes are 12 flattened doubles: pos xyz, vel xyz, forward xyz, up xyz.
 # - List getters fill ibuf with handles and return the count written, capped
-#   at FAXE_LIST_MAX (1024, lockstep with Scratch.CAPACITY); lastResult
+#   at FAXE_LIST_MAX (1024, lockstep with Scratch.CAPACITY). lastResult
 #   reports errors and the abstracts warn on truncation.
 # - Functions missing from the FMOD JS API return FMOD_ERR_UNSUPPORTED (68)
 #   on the js backend: sys_get_memory_usage, bus/evi cpu+memory usage.

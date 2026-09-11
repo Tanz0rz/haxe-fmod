@@ -621,8 +621,16 @@ static void releaseSubsoundHandles(FMOD::Sound* parent) {
         FMOD::Sound* owner = NULL;
         if (!gFaxeSlots[i].alive || gFaxeSlots[i].type != FAXE_TYPE_SOUND) continue;
         if (gFaxeSlots[i].ptr == (void*)parent) continue;
-        if (((FMOD::Sound*)gFaxeSlots[i].ptr)->getSubSoundParent(&owner) != FMOD_OK) continue;
-        if (owner != parent) continue;
+        // The walk climbs the parent chain, so a subsound of a subsound
+        // goes with the tree too
+        FMOD::Sound* up = (FMOD::Sound*)gFaxeSlots[i].ptr;
+        bool inTree = false;
+        for (int depth = 0; depth < 16 && !inTree; depth++) {
+            if (up->getSubSoundParent(&owner) != FMOD_OK || !owner) break;
+            if (owner == parent) inTree = true;
+            up = owner;
+        }
+        if (!inTree) continue;
         int handle = ((int)gFaxeSlots[i].gen << 16) | i;
         soundLockClose(handle, (FMOD::Sound*)gFaxeSlots[i].ptr);
         // The slot frees the subsound's rolloff points, so detach them
@@ -949,7 +957,8 @@ int fmod_dsp_release(int h) {
     // A plugin instrument's DSP belongs to its event
     if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     gLastResult = dsp->release();
-    if (gLastResult == FMOD_OK) {
+    // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
         // Releasing a DSP tears down its connections
         faxe_handles_free_type(FAXE_TYPE_DSPCONN);
@@ -1126,7 +1135,8 @@ int fmod_cg_release(int h) {
     // so detach them while the group is still alive.
     if (faxe_handle_get_aux(h)) group->set3DCustomRolloff(NULL, 0);
     gLastResult = group->release();
-    if (gLastResult == FMOD_OK) {
+    // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
         // Releasing the group destroys the connections of every DSP in it
         faxe_handles_free_type(FAXE_TYPE_DSPCONN);
@@ -1767,7 +1777,8 @@ int fmod_r3d_release(int h) {
     FMOD::Reverb3D* reverb = resolveReverb3d(h);
     if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = reverb->release();
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
 }
 
@@ -2294,7 +2305,8 @@ int fmod_sg_release(int h) {
     FMOD::SoundGroup* group = resolveSoundGroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = group->release();
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
 }
 
@@ -2613,7 +2625,8 @@ int fmod_replay_release(int h) {
     FMOD::Studio::CommandReplay* replay = resolveReplay(h);
     if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = replay->release();
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
 }
 
@@ -3329,7 +3342,7 @@ bool fmod_cb_next() {
     {
         int dropped[FAXE_CBQ_DROPPED_MAX];
         int n = faxe_cbq_take_dropped_handles(dropped, FAXE_CBQ_DROPPED_MAX);
-        for (int i = 0; i < n; i++) faxe_handle_free(dropped[i]);
+        for (int i = 0; i < n; i++) { faxe_handles_free_children(dropped[i]); faxe_handle_free(dropped[i]); }
     }
     if (faxe_cbq_pop(&gCbCurrent) != 1) {
         // Drain end: dispose of contexts whose DESTROYED events were
@@ -4266,7 +4279,8 @@ int fmod_bank_unload(int h) {
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     lincStashBankPath(bank);
     gLastResult = bank->unload();
-    if (gLastResult == FMOD_OK) {
+    // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
         lincReclaimDeadLookups();
     }
@@ -5375,7 +5389,8 @@ int fmod_geo_release(int h) {
     FMOD::Geometry* geometry = resolveGeometry(h);
     if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = geometry->release();
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
 }
 

@@ -85,8 +85,8 @@ static inline void faxe_str_copy(char* dst, const char* src, size_t cap) {
  * freesI1 marks a record whose i1 handle the drain frees. A dropped record
  * of that kind parks the handle in a list the drain frees before its next
  * pop (see faxe_cbq_take_dropped_handles). The list holds as many handles
- * as the ring holds records, so a slot leaks only once a single drain
- * interval drops more marked records than the ring can hold.
+ * as the ring holds records. A slot leaks only once one drain interval
+ * drops more marked records than that.
  * jaxe.js frees such handles in the callback itself and needs no mark.
  */
 typedef struct {

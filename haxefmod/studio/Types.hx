@@ -472,8 +472,8 @@ typedef FmodPluginInstanceProperties = {
  * instrument plays. That is the one the game handed to
  * assignProgrammerSoundFrom, or the one the library created for the
  * assigned key, released before ProgrammerSoundDestroyed arrives. subsoundIndex
- * is the subsound inside it, -1 for the whole sound. sound is null when
- * no assignment matched.
+ * is the subsound inside it, -1 for the whole sound. sound is Sound.NULL
+ * when no assignment matched.
  */
 typedef FmodProgrammerSoundProperties = {
     var name:String;

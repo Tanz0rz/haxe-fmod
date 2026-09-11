@@ -82,8 +82,9 @@ enum EventCallbackData {
     /**
      * A plugin effect on the instance was created (FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES).
      * properties.dsp is the effect unit, valid until PluginDestroyed arrives for it.
-     * The event owns it, so its release() is refused. An instance records at
-     * most 64 live plugin instruments. A further one arrives with Dsp.NULL.
+     * The event owns it, so its release() is refused. On C++ and HashLink an
+     * instance records at most 64 live plugin instruments. A further one
+     * arrives with Dsp.NULL.
      */
     PluginCreated(properties:FmodPluginInstanceProperties);
     /**

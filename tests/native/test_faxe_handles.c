@@ -220,11 +220,14 @@ int main(void) {
         assert(gFaxeSlots[idx].parent == 0); /* a fresh slot has no parent */
         faxe_handle_set_parent(childA, parent);
         faxe_handle_set_parent(childB, parent);
+        int grandchild = faxe_handle_alloc(&dummy2, FAXE_TYPE_SOUND);
+        faxe_handle_set_parent(grandchild, childA);
         faxe_handles_free_children(0); /* no parent frees nothing */
-        assert(faxe_live_handle_count() == 4);
-        faxe_handles_free_children(parent);
+        assert(faxe_live_handle_count() == 5);
+        faxe_handles_free_children(parent); /* the walk reaches the grandchild */
         assert(faxe_handle_resolve(childA, FAXE_TYPE_SOUND) == NULL);
         assert(faxe_handle_resolve(childB, FAXE_TYPE_SOUND) == NULL);
+        assert(faxe_handle_resolve(grandchild, FAXE_TYPE_SOUND) == NULL);
         assert(faxe_handle_resolve(parent, FAXE_TYPE_SOUND) == &dummy1);
         assert(faxe_handle_resolve(other, FAXE_TYPE_DSP) == &dummy1);
         assert(gFaxeSlots[idx].parent == 0); /* the link goes with the slot */

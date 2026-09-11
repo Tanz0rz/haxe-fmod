@@ -10,6 +10,7 @@ package haxefmod.studio.native;
  */
 class NativeStudioStub {
     static inline var ERR_UNSUPPORTED = 68;
+    static inline var ERR_INVALID_PARAM = 31;
 
     // Test hooks: unit tests set these to simulate specific backend
     // behavior that the uniform no-op defaults cannot express. The
@@ -148,7 +149,7 @@ class NativeStudioStub {
     public static function bank_get_path(handle:Int):String return "";
     public static function bank_unload(handle:Int):Int {
         testBankUnloadCalls++;
-        return ERR_UNSUPPORTED;
+        return testReleaseResult;
     }
     public static function bank_load_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
     public static function bank_unload_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
@@ -305,11 +306,13 @@ class NativeStudioStub {
         return 0;
     }
     public static var testLastPlayGroup:Int = -1;
-    /** The result every core release below reports. Tests toggle it. */
+    /** The result the core releases below report, apart from the PCM stream's own hook. */
     public static var testReleaseResult:Int = ERR_UNSUPPORTED;
-    public static function core_release_sound(handle:Int):Int return testReleaseResult;
-    /** Handles the stub reports as library-owned. Tests fill it. */
+    /** Handles the stub reports as library-owned, whose release is refused. Tests fill it. */
     public static var testOwnedHandles:Array<Int> = [];
+    public static function core_release_sound(handle:Int):Int {
+        return testOwnedHandles.contains(handle) ? ERR_INVALID_PARAM : testReleaseResult;
+    }
     public static function core_sound_is_owned(handle:Int):Bool return testOwnedHandles.contains(handle);
     public static function core_get_sound_length(handle:Int, unit:Int):Int return -1;
 
@@ -542,7 +545,7 @@ class NativeStudioStub {
     public static function sys_start_command_capture(path:String, flags:Int):Int return ERR_UNSUPPORTED;
     public static function sys_stop_command_capture():Int return ERR_UNSUPPORTED;
     public static function sys_load_command_replay(path:String, flags:Int):Int return 0;
-    public static function replay_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function replay_release(handle:Int):Int return testReleaseResult;
     public static function replay_is_valid(handle:Int):Bool return false;
     public static function replay_start(handle:Int):Int return ERR_UNSUPPORTED;
     public static function replay_stop(handle:Int):Int return ERR_UNSUPPORTED;

@@ -8,9 +8,10 @@ version as dotted string literals. On an SDK bump those literals go
 stale: the doctor would demand the wrong version while builds gate on
 the file.
 
-This asserts every FMOD-version-shaped literal in the scanned files is
-either the expected version or the declared compat-test version. A bump
-then flags every leftover literal until each is updated.
+This asserts every FMOD-version-shaped literal in every tracked text
+file is either the expected version or the declared compat-test version.
+A file that carries other versions on purpose sits in EXEMPT with its
+reason. A bump then flags every leftover literal until each is updated.
 
 Run: python3 ci/version-lockstep.py
 """
@@ -35,8 +36,12 @@ EXEMPT = {
 
 
 def tracked_files():
-    out = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, check=True,
-                         capture_output=True).stdout
+    try:
+        out = subprocess.run(["git", "ls-files", "-z"], cwd=ROOT, check=True,
+                             capture_output=True).stdout
+    except (OSError, subprocess.CalledProcessError) as error:
+        print(f"FAIL: version-lockstep needs a git checkout to list the tracked files ({error})")
+        sys.exit(1)
     return [p for p in out.decode("utf-8").split("\0") if p]
 
 # FMOD versions are always major.minor(2).patch(2), e.g. 2.03.12. Other
@@ -87,7 +92,7 @@ for rel in tracked_files():
 if found_expected == 0:
     failures.append(
         f"no file states the expected version {expected} at all - "
-        "the scan list or the regex is broken")
+        "the tracked-file walk or the regex is broken")
 
 # The library version reaches three files. The tag gate compares them
 # late, this compares them on every push.

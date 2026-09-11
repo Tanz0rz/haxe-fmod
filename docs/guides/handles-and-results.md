@@ -50,7 +50,7 @@ A handle that is never released holds a slot in the native table for the life of
 
 Every handle has `setUserData(value)` and `getUserData()`, and so does `StudioSystem`. FMOD's own userdata slot holds a raw pointer, which cannot carry a Haxe value across the binding. The value lives on the Haxe side, keyed by the handle. The library drops the value in three cases:
 
-- when the handle is released through the abstract (`release`, `stop`, `unload`)
+- when the handle is released through the abstract (`release`, `stop`, `unload`) and FMOD accepted the release
 - when FMOD destroys an event instance on its own and delivers `Destroyed`
 - for every handle at once on `unloadAll`
 

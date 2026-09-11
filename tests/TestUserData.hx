@@ -205,12 +205,19 @@ class TestUserData {
 		pcm.setUserData(1); pcm.release();
 		haxefmod.studio.native.NativeStudioStub.testPcmReleaseResult = 68;
 		assert("pcm cleared on release", pcm.getUserData() == null);
+		// A refused unload or release keeps the entry, an accepted one drops it
 		var bank:Bank = 308;
-		bank.setUserData(1); bank.unload();
-		assert("bank cleared on unload", bank.getUserData() == null);
 		var replay:CommandReplay = 309;
+		bank.setUserData(1); bank.unload();
+		assert("refused bank unload keeps the entry", bank.getUserData() == 1);
 		replay.setUserData(1); replay.release();
+		assert("refused replay release keeps the entry", replay.getUserData() == 1);
+		NativeStudioStub.testReleaseResult = 0;
+		bank.unload();
+		assert("bank cleared on unload", bank.getUserData() == null);
+		replay.release();
 		assert("replay cleared on release", replay.getUserData() == null);
+		NativeStudioStub.testReleaseResult = 68;
 		assert("nothing left", UserData.count() == 0);
 	}
 

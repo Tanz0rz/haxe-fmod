@@ -67,8 +67,9 @@ abstract CommandReplay(Int) from Int to Int {
 
     /** Frees the replay and invalidates this handle. */
     public inline function release():FmodResult {
-        UserData.clear(UserDataKind.CommandReplay, this);
-        return NativeStudio.replay_release(this);
+        var result:FmodResult = NativeStudio.replay_release(this);
+        if (UserData.releaseTookEffect(result)) UserData.clear(UserDataKind.CommandReplay, this);
+        return result;
     }
 
     /**

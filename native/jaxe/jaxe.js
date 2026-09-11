@@ -212,7 +212,14 @@ class jaxe {
             // fetch lands. It is not a wrapper and stays.
             if (s.type == jaxe.TYPE_BANK && s.ptr && s.ptr.pendingBankPath !== undefined) continue;
             if (jaxe.lookupSlotUsable(s)) continue;
-            if (s.type == jaxe.TYPE_EVI) jaxe.freeInstanceGroup((s.gen << 16) | i);
+            if (s.type == jaxe.TYPE_EVI) {
+                var dead = (s.gen << 16) | i;
+                jaxe.freeInstanceGroup(dead);
+                // The per-handle callback state ends with the instance
+                delete jaxe.cbMasks[dead];
+                delete jaxe.psKeys[dead];
+                delete jaxe.pluginSeen[dead];
+            }
             jaxe.handleFree((s.gen << 16) | i);
         }
     }
@@ -236,9 +243,10 @@ class jaxe {
         return s.ptr;
     }
 
-    // Marks a handle whose object FMOD releases: a programmer sound this
-    // shim created, or a plugin instrument's DSP. The public release
-    // entry points refuse it.
+    // Marks a handle whose object the game does not own. That is a
+    // programmer sound this shim created and releases, or a plugin
+    // instrument's DSP that FMOD destroys with its event. The public
+    // release entry points refuse it.
     static markOwned(handle) {
         if (handle > 0) jaxe.slots[handle & 0xFFFF].owned = true;
     }
@@ -249,13 +257,17 @@ class jaxe {
         return !!(s && s.alive && s.gen == ((handle >> 16) & 0x7FFF) && s.owned);
     }
 
-    // Frees every live slot linked to an owned parent sound. The
-    // parent's own slot is the caller's.
+    // Frees every live slot linked to an owned parent sound, and the
+    // slots linked to those in turn. The parent's own slot is the caller's.
     static freeChildren(parent) {
         if (parent <= 0) return;
         for (var i = 0; i < jaxe.slots.length; i++) {
             var s = jaxe.slots[i];
-            if (s.alive && s.parent == parent) jaxe.handleFree((s.gen << 16) | i);
+            if (s.alive && s.parent == parent) {
+                var child = (s.gen << 16) | i;
+                jaxe.freeChildren(child);
+                jaxe.handleFree(child);
+            }
         }
     }
 
@@ -1598,7 +1610,8 @@ class jaxe {
         }
         var raw = jaxe.rawPtr(bank);
         jaxe.lastResult = bank.unload();
-        if (jaxe.lastResult == jaxe.FMOD.OK) {
+        // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
             // Async loads copied the bank into MEMFS. Delete the copy or
             // every load/unload cycle retains a full bank in memory.
             var memfsName = jaxe.asyncBankFiles.get(raw);
@@ -2613,15 +2626,25 @@ class jaxe {
         for (var i = 0; i < jaxe.slots.length; i++) {
             var s = jaxe.slots[i];
             if (!s.alive || s.type != jaxe.TYPE_SOUND || s.ptr === parent || (raw != 0 && s.raw === raw)) continue;
-            var out = {};
-            try {
-                if (s.ptr.getSubSoundParent(out) != jaxe.FMOD.OK || !out.val) continue;
-            } catch (e) {
-                continue;
+            // The walk climbs the parent chain, so a subsound of a
+            // subsound goes with the tree too. Each wrapper read for its
+            // pointer is dropped at once.
+            var up = s.ptr;
+            var inTree = false;
+            for (var depth = 0; depth < 16 && !inTree; depth++) {
+                var out = {};
+                try {
+                    if (up.getSubSoundParent(out) != jaxe.FMOD.OK || !out.val) break;
+                } catch (e) {
+                    break;
+                }
+                var owner = jaxe.rawPtr(out.val);
+                if (up !== s.ptr) jaxe.dropWrapper(up);
+                up = out.val;
+                if (raw != 0 && owner === raw) inTree = true;
             }
-            var owner = jaxe.rawPtr(out.val);
-            jaxe.dropWrapper(out.val);
-            if (owner === raw) jaxe.handleFree((s.gen << 16) | i);
+            if (up !== s.ptr) jaxe.dropWrapper(up);
+            if (inTree) jaxe.handleFree((s.gen << 16) | i);
         }
     }
 
@@ -2923,7 +2946,8 @@ class jaxe {
         // A plugin instrument's DSP belongs to its event
         if (jaxe.isOwned(handle)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         jaxe.lastResult = dsp.release();
-        if (jaxe.lastResult == jaxe.FMOD.OK) {
+        // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
             jaxe.handleFree(handle);
             // Releasing a DSP tears down its connections
             jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
@@ -3103,7 +3127,8 @@ class jaxe {
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.chanCallbackHandles.delete(jaxe.rawPtr(group));
         jaxe.lastResult = group.release();
-        if (jaxe.lastResult == jaxe.FMOD.OK) {
+        // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
             jaxe.handleFree(handle);
             // Releasing the group destroys the connections of every DSP in it
             jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
@@ -3722,7 +3747,8 @@ class jaxe {
         var reverb = jaxe.resolveReverb3d(handle);
         if (!reverb) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = reverb.release();
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
+        // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) jaxe.handleFree(handle);
         return jaxe.lastResult;
     }
 
@@ -4236,7 +4262,8 @@ class jaxe {
         var group = jaxe.resolveSoundGroup(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = group.release();
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
+        // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) jaxe.handleFree(handle);
         return jaxe.lastResult;
     }
 
@@ -4561,7 +4588,8 @@ class jaxe {
         var replay = jaxe.resolveReplay(handle);
         if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = replay.release();
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
+        // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) jaxe.handleFree(handle);
         return jaxe.lastResult;
     }
 

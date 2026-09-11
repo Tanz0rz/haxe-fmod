@@ -163,13 +163,16 @@
 - The Linux `stage` launcher runs the bytecode even when the destination holds a stale build.
 - A programmer sound or plugin instrument's handle rides with its instance from creation to destruction. The destroy record frees that handle rather than one found by an address a new object can hold.
 - A refused `PcmStream.release` keeps the read callback and the user data, like the stream itself.
-- A plugin instrument's handle is freed when FMOD destroys the effect, whatever mask the game set before or after. A destroy record the queue dropped on overflow still frees its handle, before the next drain reads a record. An instance records up to 64 live plugin instruments.
+- A plugin instrument's handle is freed when FMOD destroys the effect, whatever mask the game set before or after. A destroy record the queue dropped on overflow still frees its handle, before the next drain reads a record. On C++ and HashLink an instance records up to 64 live plugin instruments.
 - `Sound.release` on a library-created programmer sound and `Dsp.release` on a plugin instrument's effect are refused with `FMOD_ERR_INVALID_PARAM`. Both released an object FMOD still owned before.
 - A refused core release keeps the handle's user data, and a refused `ChannelGroup.release` keeps its callback. The entry went before the native call before.
 - A subsound taken from a library-created programmer sound is owned like its parent and its handle dies with it. It resolved a later sound at the same address before. `Sound.release` on an owned sound returns before it mints subsound handles, through the `core_sound_is_owned` binding.
 - The env doctor and the package check's CLI step wait for the update-hdlls auto-commit on a branch. That is the same wait the hl build steps take while the pre-built hdll trails the manifest ABI.
 - The workflow invariants compare the pinned haxelib installs of every workflow, with or without a `HAXELIB_PINS` variable. `ci/version-lockstep.py` scans every tracked file rather than a hand-kept list.
-- `haxelib run haxefmod verify-native` holds the C++ header to the manifest as well. A definition without its declaration compiled the shim and failed the game link.
+- A subsound handle taken from a sound whose destroy record the queue dropped is freed with its parent, and the subsound walk reaches a subsound of a subsound. A core release FMOD answers with `FMOD_ERR_INVALID_HANDLE` frees the handle slot on every object kind. `Bank.unload` and `CommandReplay.release` drop their entries once FMOD accepted the call.
+- `haxelib run haxefmod verify-native` holds the C++ header to the manifest as well. A definition without its declaration compiled the shim and failed the game link. A declaration inside a comment counts for nothing.
+- The package-check and doctor ABI gates read the manifest header the way the tools do and fail on an empty value. A header with no space after the colon read as empty and every branch push waited, while a tag checked the hdll against nothing.
+- `ci/local-ci.sh` sends SIGKILL ten seconds after a game ignores SIGTERM, like the workflow. The workflow invariants read a sibling workflow's haxelib cache keys with or without the pins variable.
 - `extension/package.py --unpacked` copies every file the manifest names, and CI builds that tree.
 - The package check waits for the update-hdlls auto-commit on a branch whose pre-built hdll trails the manifest ABI. The zip marker check waits with it. The FMOD SDK cache keeps one entry per runner OS, since a Windows checkout turns the library symlinks into files.
 - `ci/version-lockstep.py` compares the userscript version on every push. The workflow invariants check the HashLink commit and the haxelib pins across every workflow.

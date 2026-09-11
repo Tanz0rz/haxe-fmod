@@ -692,11 +692,21 @@ static void release_subsound_handles(FMOD_SOUND* parent) {
     int i;
     for (i = 0; i < gFaxeSlotCap; i++) {
         FMOD_SOUND* owner = NULL;
+        FMOD_SOUND* up;
         int handle;
+        int depth;
+        int inTree = 0;
         if (!gFaxeSlots[i].alive || gFaxeSlots[i].type != FAXE_TYPE_SOUND) continue;
         if (gFaxeSlots[i].ptr == (void*)parent) continue;
-        if (FMOD_Sound_GetSubSoundParent((FMOD_SOUND*)gFaxeSlots[i].ptr, &owner) != FMOD_OK) continue;
-        if (owner != parent) continue;
+        /* The walk climbs the parent chain, so a subsound of a subsound
+         * goes with the tree too */
+        up = (FMOD_SOUND*)gFaxeSlots[i].ptr;
+        for (depth = 0; depth < 16 && !inTree; depth++) {
+            if (FMOD_Sound_GetSubSoundParent(up, &owner) != FMOD_OK || !owner) break;
+            if (owner == parent) inTree = 1;
+            up = owner;
+        }
+        if (!inTree) continue;
         handle = ((int)gFaxeSlots[i].gen << 16) | i;
         sound_lock_close(handle, (FMOD_SOUND*)gFaxeSlots[i].ptr);
         /* The slot frees the subsound's rolloff points, so detach them
@@ -1047,7 +1057,8 @@ HL_PRIM int HL_NAME(dsp_release)(int h) {
     /* A plugin instrument's DSP belongs to its event */
     if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     gLastResult = FMOD_DSP_Release(dsp);
-    if (gLastResult == FMOD_OK) {
+    /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
         // Releasing a DSP tears down its connections
         faxe_handles_free_type(FAXE_TYPE_DSPCONN);
@@ -1250,7 +1261,8 @@ HL_PRIM int HL_NAME(cg_release)(int h) {
      * so detach them while the group is still alive. */
     if (faxe_handle_get_aux(h)) FMOD_ChannelGroup_Set3DCustomRolloff(group, NULL, 0);
     gLastResult = FMOD_ChannelGroup_Release(group);
-    if (gLastResult == FMOD_OK) {
+    /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
         /* Releasing the group destroys the connections of every DSP in it */
         faxe_handles_free_type(FAXE_TYPE_DSPCONN);
@@ -1977,7 +1989,8 @@ HL_PRIM int HL_NAME(r3d_release)(int h) {
     FMOD_REVERB3D* reverb = resolve_reverb3d(h);
     if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Reverb3D_Release(reverb);
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, r3d_release, _I32);
@@ -2567,7 +2580,8 @@ HL_PRIM int HL_NAME(sg_release)(int h) {
     FMOD_SOUNDGROUP* group = resolve_soundgroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_SoundGroup_Release(group);
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, sg_release, _I32);
@@ -2929,7 +2943,8 @@ HL_PRIM int HL_NAME(replay_release)(int h) {
     FMOD_STUDIO_COMMANDREPLAY* replay = resolve_replay(h);
     if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Studio_CommandReplay_Release(replay);
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, replay_release, _I32);
@@ -3743,7 +3758,7 @@ HL_PRIM bool HL_NAME(cb_next)() {
         int dropped[FAXE_CBQ_DROPPED_MAX];
         int n = faxe_cbq_take_dropped_handles(dropped, FAXE_CBQ_DROPPED_MAX);
         int i;
-        for (i = 0; i < n; i++) faxe_handle_free(dropped[i]);
+        for (i = 0; i < n; i++) { faxe_handles_free_children(dropped[i]); faxe_handle_free(dropped[i]); }
     }
     if (faxe_cbq_pop(&gCbCurrent) != 1) {
         /* Drain end: dispose of contexts whose DESTROYED events were
@@ -4790,7 +4805,8 @@ HL_PRIM int HL_NAME(bank_unload)(int h) {
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     hlaxe_stash_bank_path(bank);
     gLastResult = FMOD_Studio_Bank_Unload(bank);
-    if (gLastResult == FMOD_OK) {
+    /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
         hlaxe_reclaim_dead_lookups();
     }
@@ -6046,7 +6062,8 @@ HL_PRIM int HL_NAME(geo_release)(int h) {
     FMOD_GEOMETRY* geometry = resolve_geometry(h);
     if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Geometry_Release(geometry);
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, geo_release, _I32);
