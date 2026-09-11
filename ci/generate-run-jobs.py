@@ -208,14 +208,24 @@ def setup_steps(j):
 """
     return """      - name: Install ffmpeg
         shell: powershell
-        run: choco install ffmpeg -y --no-progress
+        # The Chocolatey feed has outages. Retry before the run fails on it.
+        run: |
+          $ok = $false
+          foreach ($attempt in 1..4) {
+            choco install ffmpeg -y --no-progress
+            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            Start-Sleep -Seconds 45
+          }
+          if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
 
       - name: Add ffmpeg to PATH
         run: |
           echo "C:\\\\ProgramData\\\\chocolatey\\\\bin" >> "$GITHUB_PATH"
+          found=0
           for d in /c/ProgramData/chocolatey/lib/ffmpeg/tools/*/bin; do
-            [ -d "$d" ] && cygpath -w "$d" >> "$GITHUB_PATH"
+            if [ -d "$d" ]; then cygpath -w "$d" >> "$GITHUB_PATH"; found=1; fi
           done
+          if [ "$found" = 0 ]; then echo "FAIL: ffmpeg is not installed under chocolatey/lib/ffmpeg"; exit 1; fi
 """
 
 
