@@ -59,9 +59,10 @@ The checks fail when:
   - a type definition on the site (struct, enum, define, callback) has a
     hand-written fence, note lines, a Shape: line, or a library or
     covered verdict (the tab shows the declaration alone, like the C#
-    tab shows the struct: doc comments left out, and a class or
-    abstract reduced to its public values, fields, and function
-    signatures),
+    tab shows the struct: doc comments left out, a class or abstract
+    reduced to its values and public fields, never a function, and a
+    Type: line that names one constant of a class shows that constant
+    alone),
   - a bound Haxe declaration lacks a member the site's snippet declares
     (unless native/manifest/types.txt lists it after skip:),
   - a bound Haxe fence steps outside the site's snippet: a string
@@ -301,13 +302,14 @@ MEMBER = re.compile(r"^(?:@:\w+(?:\([^)]*\))?\s+)*(?:(?:public|private|static|in
 BODYLESS = re.compile(r"^(typedef|interface)\b")
 
 
-def shown_declaration(code):
+def shown_declaration(code, member_name=None):
     """The declaration the way the tab shows it. The doc comments inside
     it stay out (the other language tabs carry none), and a class,
-    abstract, or enum abstract shows its public surface: values, public
-    fields, and the signature of every public function. Private members,
-    function bodies, and metadata that only decorates a private member
-    are implementation, not declaration."""
+    abstract, or enum abstract shows its values and public fields only.
+    Functions are haxefmod's helpers on the type, not the FMOD
+    declaration, so they never show, and neither do private members or
+    the metadata that decorates one. With member_name (a Type: line that
+    names one constant of a class) only that member shows."""
     text = re.sub(r"[ \t]*/\*\*.*?\*/[ \t]*\n?", "", code, flags=re.S)
     lines = text.split("\n")
     head = re.sub(r"^(?:@:\w+(?:\([^)]*\))?\s*)*", "", lines[0].strip())
@@ -353,21 +355,9 @@ def shown_declaration(code):
             j += 1
         member = lines[i:j + 1]
         public = " public " in " " + stripped or (values_public and match.group(1) == "var" and not re.search(r"\b(static|private)\b", stripped))
-        if public:
-            if match.group(1) == "function":
-                joined = "\n".join(member)
-                cut = joined.find("{")
-                if cut < 0:
-                    cut = re.search(r"\)\s*(?::[^=;{]*?)?\s+((?:return|this)\b|\w+\s*=)", joined)
-                    cut = cut.start(1) if cut else -1
-                signature = (joined[:cut] if cut >= 0 else joined).rstrip()
-                if signature.endswith(":") or not signature.endswith(";"):
-                    signature = signature.rstrip(": ") + ";"
-                out.extend(meta)
-                out.append(signature)
-            else:
-                out.extend(meta)
-                out.extend(member)
+        if public and match.group(1) == "var" and (member_name is None or re.search(r"\bvar\s+" + re.escape(member_name) + r"\b", stripped)):
+            out.extend(meta)
+            out.extend(member)
         meta = []
         i = j + 1
     out.append(lines[-1])
@@ -485,8 +475,16 @@ def resolve(section, problems, label, type_definition=False):
     if section["notes"]:
         problems.append(f"{label}: a bound entry shows code only, drop the note lines")
     code = section["code"]
+    member = None
     if section["type"]:
         declared = declaration_of(section["type"])
+        if declared is None and "." in section["type"]:
+            # A Type: line may name one constant of a class, the way the
+            # site shows one define per entry: Types.FmodLimits.MAX_SYSTEMS
+            path, member = section["type"].rsplit(".", 1)
+            declared = declaration_of(path)
+            if declared is not None and not re.search(r"\bvar\s+" + re.escape(member) + r"\b", declared):
+                declared = None
         if declared is None:
             problems.append(f"{label}: Type: {section['type']} is not in the sources")
             return None
@@ -495,7 +493,7 @@ def resolve(section, problems, label, type_definition=False):
     if code is None:
         problems.append(f"{label}: verdict bound with neither a haxe fence nor a Type: line")
         return None
-    return {"verdict": "bound", "notes": section["notes"], "code": code, "type": section["type"]}
+    return {"verdict": "bound", "notes": section["notes"], "code": code, "type": section["type"], "member": member}
 
 
 def strip_imports(record):
@@ -510,7 +508,7 @@ def strip_imports(record):
         # itself is an import detail the guides cover.
         package = ".".join(record["type"].split(".")[:2])
         shown = dict(record)
-        shown["code"] = "package " + package + ";\n\n" + shown_declaration("\n".join(lines))
+        shown["code"] = "package " + package + ";\n\n" + shown_declaration("\n".join(lines), record.get("member"))
         shown["type"] = None
         return shown
     types = []

@@ -15,13 +15,9 @@
 | core-api-channelcontrol | ChannelControl::addFadePoint | C++ | 5 | 4 | getDspClock returns the clocks, no out variable to declare. |
 | core-api-channelcontrol | FMOD_CHANNELCONTROL_CALLBACK | C# | 7 | 1 | The five delegate parameters arrive as one ChannelEvent (types.txt skip). |
 | core-api-common | FMOD_CPU_USAGE | C# | 8 | 9 | FmodSystemCpuUsage carries the Studio update field too, one struct for both getCPUUsage calls. |
-| core-api-common | FMOD_GUID | C# | 1 | 12 | The site names System.Guid, the tab shows the public surface of the FmodGuid abstract. |
-| core-api-common | FMOD_MAX_CHANNEL_WIDTH | C# | 3 | 7 | FmodLimits holds all five limits, the site shows one per entry. |
-| core-api-common | FMOD_MAX_LISTENERS | C# | 3 | 7 | FmodLimits holds all five limits, the site shows one per entry. |
-| core-api-common | FMOD_MAX_SYSTEMS | C# | 3 | 7 | FmodLimits holds all five limits, the site shows one per entry. |
+| core-api-common | FMOD_GUID | C# | 1 | 7 | The site names System.Guid, FmodGuid declares NULL and the four data fields. |
 | core-api-common | FMOD_MODE | C# | 31 | 37 | ChannelMode keeps six aliases with the older haxefmod spelling of the 3D flags. |
-| core-api-common | FMOD_RESULT | C# | 84 | 86 | FmodResult adds isOk and toString. |
-| core-api-common | FMOD_SYNCPOINT | C# | 1 | 5 | The site shows IntPtr, FmodSyncPoint is an index abstract with NULL, index, and isNull. |
+| core-api-common | FMOD_SYNCPOINT | C# | 1 | 3 | The site shows IntPtr, FmodSyncPoint is an index abstract with a NULL value. |
 | core-api-common | FMOD_THREAD_AFFINITY | C# | 34 | 19 | The 64-bit group values and the per-thread defaults do not fit an Int (types.txt skip). |
 | core-api-common | FMOD_THREAD_PRIORITY | C# | 22 | 24 | CONVOLUTION1 and CONVOLUTION2 are in the 2.03 header, the C# integration leaves them out. |
 | core-api-common | FMOD_THREAD_STACK_SIZE | C# | 14 | 16 | CONVOLUTION1 and CONVOLUTION2 are in the 2.03 header, the C# integration leaves them out. |
@@ -32,22 +28,20 @@
 | core-api-sound | FMOD_TAG | C# | 8 | 10 | data and datalen are folded into intValue, floatValue, stringValue, and length (types.txt skip). |
 | core-api-system | FMOD_ADVANCEDSETTINGS | C# | 24 | 12 | Only the fields FmodSettings sets and getAdvancedSettings reads back are declared (types.txt skip). |
 | core-api-system | FMOD_CREATESOUNDEXINFO | C# | 38 | 25 | cbsize, the callbacks, and the pointer fields run on FMOD threads (types.txt skip). |
-| core-api-system | FMOD_REVERB_MAXINSTANCES | C# | 3 | 7 | FmodLimits holds all five limits, the site shows one per entry. |
 | core-api-system | FMOD_SYSTEM_CALLBACK | C# | 7 | 1 | The five delegate parameters arrive as one SystemEvent (types.txt skip). |
 | core-api-system | System::setDSPBufferSize | text | 13 | 10 | The four declarations fold into the var lines that read the getter results. |
-| dsp-plugin-api-guide | 18.7 Multiple Plug-ins Within One File#2 | text | 11 | 13 | ERRCHECK on loadPlugin is a three-line check, getPluginInfo returns null on failure and the body sits inside that check. |
+| dsp-plugin-api-guide | 18.7 Multiple Plug-ins Within One File#2 | text | 11 | 8 | ERRCHECK lines on calls that return their value, and the plugin info is read in the line that declares the type. |
 | glossary | 22.33 Reading Sound Data | C# | 9 | 5 | The three declarations fold into the var lines that receive each result. |
 | glossary | 22.49 User Data | C# | 10 | 5 | setUserData takes the string itself, no GCHandle round trip. |
-| loading-and-playing-sounds-in-the-core-api | 4.1.1 Non-blocking Sound Creation | text | 3 | 4 | ERRCHECK is a three-line isNull check, the declaration folds into the var line. |
-| loading-and-playing-sounds-in-the-core-api | 4.1.1 Non-blocking Sound Creation#3 | text | 10 | 9 | The nonblock callback cannot be hosted, the exinfo lines are replaced by a getOpenState poll. |
-| loading-and-playing-sounds-in-the-core-api | 4.2 Playing a sound | C# | 9 | 12 | The two ERRCHECK lines are three-line isNull checks, the result declaration goes. |
+| loading-and-playing-sounds-in-the-core-api | 4.1.1 Non-blocking Sound Creation | text | 3 | 2 | The declaration folds into the var line. |
+| loading-and-playing-sounds-in-the-core-api | 4.1.1 Non-blocking Sound Creation#3 | text | 10 | 7 | The nonblock callback cannot be hosted, the exinfo lines are replaced by a getOpenState poll. |
+| loading-and-playing-sounds-in-the-core-api | 4.2 Playing a sound | C# | 9 | 8 | The result declaration goes, the checks read lastResult. |
 | loading-and-playing-sounds-in-the-core-api | 4.3.1 Creating a Sound from memory | C# | 16 | 9 | fromMemory reads the length from the bytes, the exinfo lines and the GCHandle note go. |
 | loading-and-playing-sounds-in-the-core-api | 4.3.3 Creating a Sound by manually providing sample data | C# | 15 | 11 | The read callback cannot be hosted, PcmStream takes the same rate, channels, and size and the game writes the samples. |
-| loading-and-playing-sounds-in-the-core-api | 4.3.4 Creating the Sound as a Streamed FSB File | text | 10 | 6 | initialSubsound is an argument of Sound.create, the exinfo lines go, ERRCHECK is a three-line check. |
+| loading-and-playing-sounds-in-the-core-api | 4.3.4 Creating the Sound as a Streamed FSB File | text | 10 | 4 | initialSubsound is an argument of Sound.create, the exinfo lines and the result declaration go. |
 | managing-resources-in-the-core-api | 9.5.1 Use a Fixed-size Memory Pool. | text | 2 | 1 | The pool is a setting of Initialize, its result surfaces through lastResult. |
 | platforms-html5 | Setting and getting | JavaScript | 7 | 5 | getName returns the string, the outval object goes. |
-| platforms-html5 | Direct from host, via FMOD's filesystem#2 | JavaScript | 2 | 4 | CHECK_RESULT is a three-line isNull check. |
-| platforms-html5 | Via memory | JavaScript | 8 | 4 | fromMemory takes the bytes, mode, and length, the exinfo and outval lines go, CHECK_RESULT is a three-line check. |
+| platforms-html5 | Via memory | JavaScript | 8 | 2 | fromMemory takes the bytes, mode, and length, the exinfo and outval lines go. |
 | platforms-html5 | Audio Stability (Stuttering) | JavaScript | 2 | 1 | The buffer size is a setting of Initialize, its result surfaces through lastResult. |
 | platforms-uwp | Background Music | C++ | 6 | 4 | The group and channel declarations fold into the var lines. |
 | platforms-uwp | Pass Through | C++ | 6 | 4 | The group and channel declarations fold into the var lines. |
@@ -65,7 +59,7 @@
 | studio-api-system | FMOD_STUDIO_ADVANCEDSETTINGS | C# | 9 | 7 | cbsize and the encryption key are init-time only (types.txt skip). |
 | studio-api-system | FMOD_STUDIO_BANK_INFO | C# | 9 | 5 | The four file callbacks run on FMOD's loading threads (types.txt skip). |
 | studio-api-system | FMOD_STUDIO_CPU_USAGE | C# | 3 | 9 | FmodSystemCpuUsage carries the Core fields too, one struct for both getCPUUsage calls. |
-| studio-api-system | FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT | C/C++ | 1 | 7 | FmodLimits holds all five limits, the site shows one per entry. |
+| studio-api-system | FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT | C/C++ | 1 | 3 | One define against a class constant with its opening and closing lines. |
 | studio-api-system | FMOD_STUDIO_LOAD_MEMORY_MODE#2 | JavaScript | 2 | 4 | Two JavaScript constants against an enum with its opening and closing lines. |
 | studio-api-system | FMOD_STUDIO_SOUND_INFO | C# | 7 | 9 | name carries name_or_data and the exinfo fields are flattened into four fields (types.txt skip). |
 | studio-api-system | FMOD_STUDIO_SYSTEM_CALLBACK | C# | 6 | 1 | The four delegate parameters arrive as one SystemEvent (types.txt skip). |
@@ -77,6 +71,6 @@
 | using-dsp-effects-in-the-core-api | Creating an effect and making all Channels send to it.#3 | text | 5 | 4 | The declaration folds into the var line. |
 | using-dsp-effects-in-the-core-api | Controlling mix level and pan matrices for DSPConnections | text | 6 | 4 | The two declarations fold into the var lines. |
 | using-dsp-effects-in-the-core-api | Set the output format of a DSP unit, and control the pan matrix for its output signal#2 | text | 10 | 9 | The connection declaration folds into the var line. |
-| using-dsp-effects-in-the-core-api | 7.2.4 Multiple plug-ins within one file#2 | text | 11 | 13 | ERRCHECK on loadPlugin is a three-line check, getPluginInfo returns null on failure and the body sits inside that check. |
+| using-dsp-effects-in-the-core-api | 7.2.4 Multiple plug-ins within one file#2 | text | 11 | 8 | ERRCHECK lines on calls that return their value, and the plugin info is read in the line that declares the type. |
 | welcome-whats-new-201 | Thread attributes | C++ | 3 | 5 | Thread attributes are a setting of Initialize, the array adds its opening and closing lines. |
 | welcome-whats-new-201 | Thread attributes#2 | C++ | 2 | 4 | Thread attributes are a setting of Initialize, the array adds its opening and closing lines. |

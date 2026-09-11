@@ -38,17 +38,12 @@ verdict: cannot The plug-in list and the descriptors it points to are C code ins
 verdict: bound
 ```haxe
 var baseHandle = StudioSystem.loadPlugin("plugin_name.dll");
-if (baseHandle == 0) {
-    trace('loadPlugin failed: ${StudioSystem.lastResult()}');
-}
+if (baseHandle == 0) trace(StudioSystem.lastResult());
 var count = StudioSystem.getNestedPluginCount(baseHandle);
 for (index in 0...count) {
     var handle = StudioSystem.getNestedPlugin(baseHandle, index);
-    var info = StudioSystem.getPluginInfo(handle);
-    if (info != null) {
-        var type = info.type;
-        // We have an output plug-in, a DSP plug-in, or a codec plug-in here.
-    }
+    var type = StudioSystem.getPluginInfo(handle).type;
+    // We have an output plug-in, a DSP plug-in, or a codec plug-in here.
 }
 ```
 

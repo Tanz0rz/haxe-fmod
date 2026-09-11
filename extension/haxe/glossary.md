@@ -6,11 +6,11 @@ verdict: bound
 import haxefmod.core.Sound;
 import haxefmod.studio.Types;
 
-var sound = Sound.create("drumloop.wav", false, true); // openOnly, like FMOD_OPENONLY
+var sound = Sound.create("drumloop.wav", false, true);
 var length = sound.getLength(FmodTimeUnit.RAWBYTES);
 
 var buffer = haxe.io.Bytes.alloc(length);
-var read = sound.readData(buffer);
+sound.readData(buffer);
 ```
 
 ## 22.49 User Data

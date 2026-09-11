@@ -38,7 +38,7 @@ Type: haxefmod.studio.Types.FmodLoadBankFlags
 
 ## FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT
 verdict: bound
-Type: haxefmod.studio.Types.FmodLimits
+Type: haxefmod.studio.Types.FmodLimits.STUDIO_LOAD_MEMORY_ALIGNMENT
 
 ## FMOD_STUDIO_LOAD_MEMORY_MODE
 verdict: bound

@@ -42,9 +42,7 @@ verdict: bound
 import haxefmod.core.Sound;
 
 var sound = Sound.create("/lion.wav", false);
-if (sound.isNull()) {
-    trace(StudioSystem.lastResult());
-}
+if (sound.isNull()) trace(StudioSystem.lastResult());
 ```
 
 ## Via memory
@@ -55,9 +53,7 @@ import haxefmod.core.Sound;
 import haxefmod.core.ChannelMode;
 
 var sound = Sound.fromMemory(chars, ChannelMode.LOOP_OFF | ChannelMode.CREATESTREAM, chars.length);
-if (sound.isNull()) {
-    trace(StudioSystem.lastResult());
-}
+if (sound.isNull()) trace(StudioSystem.lastResult());
 ```
 
 ## Via callbacks

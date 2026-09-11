@@ -6,10 +6,8 @@ verdict: bound
 import haxefmod.core.ChannelMode;
 import haxefmod.core.Sound;
 
-var sound = Sound.create("../media/wave.mp3", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING); // Returns at once, the stream opens on FMOD's thread.
-if (sound.isNull()) {
-    trace('load failed: ${StudioSystem.lastResult()}');
-}
+var sound = Sound.create("../media/wave.mp3", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING); // Creates a handle to a stream then commands the FMOD Async loader to open the stream in the background.
+if (sound.isNull()) trace(StudioSystem.lastResult());
 ```
 
 ## 4.1.1 Non-blocking Sound Creation#2
@@ -24,9 +22,7 @@ import haxefmod.core.Sound;
 import haxefmod.studio.Types.FmodOpenState;
 
 var sound = Sound.create("../media/wave.mp3", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING);
-if (sound.isNull()) {
-    trace(StudioSystem.lastResult());
-}
+if (sound.isNull()) trace(StudioSystem.lastResult());
 
 // There is no nonblock callback to host, poll each frame until the sound is ready
 if (sound.getOpenState() == FmodOpenState.READY) {
@@ -44,14 +40,10 @@ var sound:Sound;
 var channel:Channel;
 
 sound = Sound.create("../media/wave.mp3");
-if (sound.isNull()) {
-    trace('load failed: ${StudioSystem.lastResult()}');
-}
+if (sound.isNull()) trace(StudioSystem.lastResult());
 
 channel = sound.play();
-if (channel.isNull()) {
-    trace('play failed: ${StudioSystem.lastResult()}');
-}
+if (channel.isNull()) trace(StudioSystem.lastResult());
 ```
 
 ## 4.3.1 Creating a Sound from memory
@@ -63,11 +55,11 @@ var sound:Sound;
 var buffer:haxe.io.Bytes = null;
 
 //
-// Load your file image (wav, ogg, mp3, fsb) into the "buffer" bytes here
+// Load your audio data to the "buffer" bytes here
 //
 
-sound = Sound.fromMemory(buffer); // The buffer's length is the length of the file image in bytes
-// The audio data stored in "buffer" has been duplicated into FMOD's buffers, and can now be freed
+sound = Sound.fromMemory(buffer);
+// The audio data stored by the "buffer" bytes has been duplicated into FMOD's buffers, and can now be freed
 ```
 
 ## 4.3.1 Creating a Sound from memory#2
@@ -120,9 +112,7 @@ import haxefmod.core.Sound;
 var sound:Sound;
 
 sound = Sound.create("../media/sounds.fsb", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING, 1);
-if (sound.isNull()) {
-    trace('load failed: ${StudioSystem.lastResult()}');
-}
+if (sound.isNull()) trace(StudioSystem.lastResult());
 ```
 
 ## 4.5.1 Setup : Override FMOD's file system with callbacks

@@ -33,15 +33,15 @@ Type: haxefmod.studio.Types.FmodGuid
 
 ## FMOD_MAX_CHANNEL_WIDTH
 verdict: bound
-Type: haxefmod.studio.Types.FmodLimits
+Type: haxefmod.studio.Types.FmodLimits.MAX_CHANNEL_WIDTH
 
 ## FMOD_MAX_LISTENERS
 verdict: bound
-Type: haxefmod.studio.Types.FmodLimits
+Type: haxefmod.studio.Types.FmodLimits.MAX_LISTENERS
 
 ## FMOD_MAX_SYSTEMS
 verdict: bound
-Type: haxefmod.studio.Types.FmodLimits
+Type: haxefmod.studio.Types.FmodLimits.MAX_SYSTEMS
 
 ## FMOD_MEMORY_ALLOC_CALLBACK
 verdict: cannot FMOD calls its allocator on every one of its threads. No Haxe target can run code there. FMOD keeps its default allocator, and StudioSystem.getMemoryStats reports what it has allocated.

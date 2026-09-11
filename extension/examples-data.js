@@ -3,61 +3,71 @@
 const HAXEFMOD_EXAMPLES = {
  "advanced-core-api-topics": {
   "10.2 Extracting PCM Data from a Sound": {
-   "code": "var sound = Sound.create(\"drumloop.wav\", false, true); // openOnly, like FMOD_OPENONLY\nvar length = sound.getLength(FmodTimeUnit.RAWBYTES);\n\nvar buffer = haxe.io.Bytes.alloc(length);\nvar read = sound.readData(buffer);",
+   "code": "var sound = Sound.create(\"drumloop.wav\", false, true);\nvar length = sound.getLength(FmodTimeUnit.RAWBYTES);\n\nvar buffer = haxe.io.Bytes.alloc(length);\nsound.readData(buffer);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound, haxefmod.studio.Types",
    "verdict": "bound"
   },
   "10.7.1 3D Reverbs": {
    "code": "var reverb = Reverb3D.create();\nvar prop2 = Reverb.PRESET_CONCERTHALL;\nreverb.setProperties(prop2);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Reverb, haxefmod.core.Reverb3D",
    "verdict": "bound"
   },
   "10.7.1 3D Reverbs#2": {
    "code": "var pos = {x: -10.0, y: 0.0, z: 0.0};\nvar mindist = 10.0;\nvar maxdist = 20.0;\nreverb.set3DAttributes(pos.x, pos.y, pos.z, mindist, maxdist);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "10.7.1 3D Reverbs#3": {
    "code": "var listenerpos = {x: 0.0, y: 0.0, z: -1.0};\nStudioSystem.setListenerAttributes(0, {\n    position: listenerpos,\n    velocity: {x: 0.0, y: 0.0, z: 0.0},\n    forward: {x: 0.0, y: 0.0, z: 1.0},\n    up: {x: 0.0, y: 1.0, z: 0.0}\n});",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "10.7.2 Using Multiple Reverbs": {
    "code": "var prop1 = Reverb.PRESET_HALLWAY;\nvar prop2 = Reverb.PRESET_SEWERPIPE;\nvar prop3 = Reverb.PRESET_PARKINGLOT;\nvar prop4 = Reverb.PRESET_CONCERTHALL;",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Reverb",
    "verdict": "bound"
   },
   "10.7.2 Using Multiple Reverbs#2": {
    "code": "var result = Reverb.set(0, prop1);\nresult = Reverb.set(1, prop2);\nresult = Reverb.set(2, prop3);\nresult = Reverb.set(3, prop4);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Reverb",
    "verdict": "bound"
   },
   "10.7.2 Using Multiple Reverbs#3": {
    "code": "var prop = Reverb.get(3);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Reverb",
    "verdict": "bound"
   },
   "10.7.2 Using Multiple Reverbs#4": {
    "code": "var result = channel.setReverbWet(1, 0.0);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "10.7.2 Using Multiple Reverbs#5": {
    "code": "var result = channel.setReverbWet(1, 1.0);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "Added new DSP effects": {
    "code": "package haxefmod.core;\n\nenum abstract DspType(Int) from Int to Int {\n    var UNKNOWN = 0;\n    var MIXER = 1;\n    var OSCILLATOR = 2;\n    var LOWPASS = 3;\n    var ITLOWPASS = 4;\n    var HIGHPASS = 5;\n    var ECHO = 6;\n    var FADER = 7;\n    var FLANGE = 8;\n    var DISTORTION = 9;\n    var NORMALIZE = 10;\n    var LIMITER = 11;\n    var PARAMEQ = 12;\n    var PITCHSHIFT = 13;\n    var CHORUS = 14;\n    var ITECHO = 15;\n    var COMPRESSOR = 16;\n    var SFXREVERB = 17;\n    var LOWPASS_SIMPLE = 18;\n    var DELAY = 19;\n    var TREMOLO = 20;\n    var SEND = 21;\n    var RETURN = 22;\n    var HIGHPASS_SIMPLE = 23;\n    var PAN = 24;\n    var THREE_EQ = 25;\n    var FFT = 26;\n    var LOUDNESS_METER = 27;\n    var CONVOLUTIONREVERB = 28;\n    var CHANNELMIX = 29;\n    var TRANSCEIVER = 30;\n    var OBJECTPAN = 31;\n    var MULTIBAND_EQ = 32;\n    var MULTIBAND_DYNAMICS = 33;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -72,6 +82,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "Codec Example#2": {
    "code": "var handle = StudioSystem.loadPlugin(\"example_codec.dll\");\n\n// example.xyz is a file encoded with the codec's corresponding encoder\nvar sound = Sound.create(\"example.xyz\");",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -86,6 +97,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "DSP Example#2": {
    "code": "var handle = StudioSystem.loadPlugin(\"example_dsp.dll\");\nvar channel = sound.play();\nvar dsp = Dsp.createByPlugin(handle);\nvar result = channel.addDsp(0, dsp);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Dsp, haxefmod.core.Sound",
    "verdict": "bound"
@@ -100,6 +112,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "Output Example#2": {
    "code": "var handle = StudioSystem.loadPlugin(\"example_output.dll\");\nvar result = CoreSystem.setOutputByPlugin(handle);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.CoreSystem",
    "verdict": "bound"
@@ -108,36 +121,42 @@ const HAXEFMOD_EXAMPLES = {
  "core-api-channelcontrol": {
   "ChannelControl::addFadePoint": {
    "code": "// Example. Ramp from full volume to half volume over the next 4096 samples\nvar parentclock = channel.getDspClock().parent;\nchannel.addFadePoint(parentclock,        1.0);\nchannel.addFadePoint(parentclock + 4096, 0.5);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "ChannelControl::set3DCustomRolloff": {
    "code": "// Defining a custom array of points\nvar curve:Array<FmodVector> = [\n    {x: 0.0,  y: 1.0, z: 0.0},\n    {x: 2.0,  y: 0.2, z: 0.0},\n    {x: 20.0, y: 0.0, z: 0.0}\n];",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.Types.FmodVector",
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_CALLBACK": {
    "code": "package haxefmod.core;\n\ntypedef ChannelCallback = ChannelEvent->Void;",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_CALLBACK_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodChannelControlCallbackType(Int) from Int to Int {\n    var END = 0;\n    var VIRTUALVOICE = 1;\n    var SYNCPOINT = 2;\n    var OCCLUSION = 3;\n    var MAX = 4;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_DSP_INDEX": {
    "code": "package haxefmod.studio;\n\nenum abstract ChannelControlDspIndex(Int) from Int to Int {\n    var HEAD = -1;\n    var FADER = -2;\n    var TAIL = -3;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_CHANNELCONTROL_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodChannelControlType(Int) from Int to Int {\n    var CHANNEL = 0;\n    var CHANNELGROUP = 1;\n    var MAX = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -146,24 +165,28 @@ const HAXEFMOD_EXAMPLES = {
  "core-api-common": {
   "FMOD_3D_ATTRIBUTES": {
    "code": "package haxefmod.studio;\n\ntypedef Fmod3DAttributes = {\n    var position:FmodVector;\n    var velocity:FmodVector;\n    var forward:FmodVector;\n    var up:FmodVector;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_CHANNELMASK": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodChannelMask(Int) from Int to Int {\n    var FRONT_LEFT = 0x00000001;\n    var FRONT_RIGHT = 0x00000002;\n    var FRONT_CENTER = 0x00000004;\n    var LOW_FREQUENCY = 0x00000008;\n    var SURROUND_LEFT = 0x00000010;\n    var SURROUND_RIGHT = 0x00000020;\n    var BACK_LEFT = 0x00000040;\n    var BACK_RIGHT = 0x00000080;\n    var BACK_CENTER = 0x00000100;\n    var MONO = 0x00000001;\n    var STEREO = 0x00000003;\n    var LRC = 0x00000007;\n    var QUAD = 0x00000033;\n    var SURROUND = 0x00000037;\n    var _5POINT1 = 0x0000003F;\n    var _5POINT1_REARS = 0x000000CF;\n    var _7POINT0 = 0x000000F7;\n    var _7POINT1 = 0x000000FF;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_CHANNELORDER": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodChannelOrder(Int) from Int to Int {\n    var DEFAULT = 0;\n    var WAVEFORMAT = 1;\n    var PROTOOLS = 2;\n    var ALLMONO = 3;\n    var ALLSTEREO = 4;\n    var ALSA = 5;\n    var MAX = 6;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_CPU_USAGE": {
    "code": "package haxefmod.studio;\n\ntypedef FmodSystemCpuUsage = {\n    var studioUpdate:Float;\n    var dsp:Float;\n    var stream:Float;\n    var geometry:Float;\n    var update:Float;\n    var convolution1:Float;\n    var convolution2:Float;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -178,36 +201,42 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DEBUG_FLAGS": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodDebugFlags(Int) from Int to Int {\n    var LEVEL_NONE = 0x00000000;\n    var LEVEL_ERROR = 0x00000001;\n    var LEVEL_WARNING = 0x00000002;\n    var LEVEL_LOG = 0x00000004;\n    var TYPE_MEMORY = 0x00000100;\n    var TYPE_FILE = 0x00000200;\n    var TYPE_CODEC = 0x00000400;\n    var TYPE_TRACE = 0x00000800;\n    var TYPE_VIRTUAL = 0x00001000;\n    var DISPLAY_TIMESTAMPS = 0x00010000;\n    var DISPLAY_LINENUMBERS = 0x00020000;\n    var DISPLAY_THREAD = 0x00040000;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DEBUG_MODE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodDebugMode(Int) from Int to Int {\n    var TTY = 0;\n    var FILE = 1;\n    var CALLBACK = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_GUID": {
-   "code": "package haxefmod.studio;\n\nabstract FmodGuid(String) from String to String {\n    public static inline var NULL:FmodGuid = cast \"{00000000-0000-0000-0000-000000000000}\";\n    public static function fromString(text:String):FmodGuid;\n    public static function fromFields(data1:Int, data2:Int, data3:Int, data4:Array<Int>):FmodGuid;\n    public inline function toString():String;\n    public var data1(get, never):Int;\n    public var data2(get, never):Int;\n    public var data3(get, never):Int;\n    public var data4(get, never):Array<Int>;\n    public function isNull():Bool;\n    public function equals(other:FmodGuid):Bool;\n}",
+   "code": "package haxefmod.studio;\n\nabstract FmodGuid(String) from String to String {\n    public static inline var NULL:FmodGuid = cast \"{00000000-0000-0000-0000-000000000000}\";\n    public var data1(get, never):Int;\n    public var data2(get, never):Int;\n    public var data3(get, never):Int;\n    public var data4(get, never):Array<Int>;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_MAX_CHANNEL_WIDTH": {
-   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    public static inline var MAX_SYSTEMS = 8;\n    public static inline var MAX_LISTENERS = 8;\n    public static inline var REVERB_MAXINSTANCES = 4;\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
+   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n}",
+   "member": "MAX_CHANNEL_WIDTH",
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_MAX_LISTENERS": {
-   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    public static inline var MAX_SYSTEMS = 8;\n    public static inline var MAX_LISTENERS = 8;\n    public static inline var REVERB_MAXINSTANCES = 4;\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
+   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    public static inline var MAX_LISTENERS = 8;\n}",
+   "member": "MAX_LISTENERS",
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_MAX_SYSTEMS": {
-   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    public static inline var MAX_SYSTEMS = 8;\n    public static inline var MAX_LISTENERS = 8;\n    public static inline var REVERB_MAXINSTANCES = 4;\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
+   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    public static inline var MAX_SYSTEMS = 8;\n}",
+   "member": "MAX_SYSTEMS",
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -238,78 +267,91 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_MEMORY_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodMemoryType(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var STREAM_FILE = 0x00000001;\n    var STREAM_DECODE = 0x00000002;\n    var SAMPLEDATA = 0x00000004;\n    var DSP_BUFFER = 0x00000008;\n    var PLUGIN = 0x00000010;\n    var PERSISTENT = 0x00200000;\n    var ALL = 0xFFFFFFFF;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_MODE": {
    "code": "package haxefmod.core;\n\nclass ChannelMode {\n    public static inline var DEFAULT:Int = 0x00000000;\n    public static inline var LOOP_OFF:Int = 0x00000001;\n    public static inline var LOOP_NORMAL:Int = 0x00000002;\n    public static inline var LOOP_BIDI:Int = 0x00000004;\n    public static inline var MODE_2D:Int = 0x00000008;\n    public static inline var MODE_3D:Int = 0x00000010;\n    public static inline var CREATESTREAM:Int = 0x00000080;\n    public static inline var CREATESAMPLE:Int = 0x00000100;\n    public static inline var CREATECOMPRESSEDSAMPLE:Int = 0x00000200;\n    public static inline var OPENUSER:Int = 0x00000400;\n    public static inline var OPENMEMORY:Int = 0x00000800;\n    public static inline var OPENMEMORY_POINT:Int = 0x10000000;\n    public static inline var OPENRAW:Int = 0x00001000;\n    public static inline var OPENONLY:Int = 0x00002000;\n    public static inline var ACCURATETIME:Int = 0x00004000;\n    public static inline var MPEGSEARCH:Int = 0x00008000;\n    public static inline var NONBLOCKING:Int = 0x00010000;\n    public static inline var UNIQUE:Int = 0x00020000;\n    public static inline var MODE_3D_HEADRELATIVE:Int = 0x00040000;\n    public static inline var MODE_3D_WORLDRELATIVE:Int = 0x00080000;\n    public static inline var MODE_3D_INVERSEROLLOFF:Int = 0x00100000;\n    public static inline var MODE_3D_LINEARROLLOFF:Int = 0x00200000;\n    public static inline var MODE_3D_LINEARSQUAREROLLOFF:Int = 0x00400000;\n    public static inline var MODE_3D_INVERSETAPEREDROLLOFF:Int = 0x00800000;\n    public static inline var MODE_3D_CUSTOMROLLOFF:Int = 0x04000000;\n    public static inline var MODE_3D_IGNOREGEOMETRY:Int = 0x40000000;\n    public static inline var IGNORETAGS:Int = 0x02000000;\n    public static inline var LOWMEM:Int = 0x08000000;\n    public static inline var VIRTUAL_PLAYFROMSTART:Int = 0x80000000;\n    public static inline var HEAD_RELATIVE_3D:Int = MODE_3D_HEADRELATIVE;\n    public static inline var WORLD_RELATIVE_3D:Int = MODE_3D_WORLDRELATIVE;\n    public static inline var INVERSE_ROLLOFF_3D:Int = MODE_3D_INVERSEROLLOFF;\n    public static inline var LINEAR_ROLLOFF_3D:Int = MODE_3D_LINEARROLLOFF;\n    public static inline var LINEAR_SQUARE_ROLLOFF_3D:Int = MODE_3D_LINEARSQUAREROLLOFF;\n    public static inline var INVERSE_TAPERED_ROLLOFF_3D:Int = MODE_3D_INVERSETAPEREDROLLOFF;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_RESULT": {
-   "code": "package haxefmod.studio;\n\nenum abstract FmodResult(Int) from Int to Int {\n    var FMOD_OK = 0;\n    var FMOD_ERR_BADCOMMAND = 1;\n    var FMOD_ERR_CHANNEL_ALLOC = 2;\n    var FMOD_ERR_CHANNEL_STOLEN = 3;\n    var FMOD_ERR_DMA = 4;\n    var FMOD_ERR_DSP_CONNECTION = 5;\n    var FMOD_ERR_DSP_DONTPROCESS = 6;\n    var FMOD_ERR_DSP_FORMAT = 7;\n    var FMOD_ERR_DSP_INUSE = 8;\n    var FMOD_ERR_DSP_NOTFOUND = 9;\n    var FMOD_ERR_DSP_RESERVED = 10;\n    var FMOD_ERR_DSP_SILENCE = 11;\n    var FMOD_ERR_DSP_TYPE = 12;\n    var FMOD_ERR_FILE_BAD = 13;\n    var FMOD_ERR_FILE_COULDNOTSEEK = 14;\n    var FMOD_ERR_FILE_DISKEJECTED = 15;\n    var FMOD_ERR_FILE_EOF = 16;\n    var FMOD_ERR_FILE_ENDOFDATA = 17;\n    var FMOD_ERR_FILE_NOTFOUND = 18;\n    var FMOD_ERR_FORMAT = 19;\n    var FMOD_ERR_HEADER_MISMATCH = 20;\n    var FMOD_ERR_HTTP = 21;\n    var FMOD_ERR_HTTP_ACCESS = 22;\n    var FMOD_ERR_HTTP_PROXY_AUTH = 23;\n    var FMOD_ERR_HTTP_SERVER_ERROR = 24;\n    var FMOD_ERR_HTTP_TIMEOUT = 25;\n    var FMOD_ERR_INITIALIZATION = 26;\n    var FMOD_ERR_INITIALIZED = 27;\n    var FMOD_ERR_INTERNAL = 28;\n    var FMOD_ERR_INVALID_FLOAT = 29;\n    var FMOD_ERR_INVALID_HANDLE = 30;\n    var FMOD_ERR_INVALID_PARAM = 31;\n    var FMOD_ERR_INVALID_POSITION = 32;\n    var FMOD_ERR_INVALID_SPEAKER = 33;\n    var FMOD_ERR_INVALID_SYNCPOINT = 34;\n    var FMOD_ERR_INVALID_THREAD = 35;\n    var FMOD_ERR_INVALID_VECTOR = 36;\n    var FMOD_ERR_MAXAUDIBLE = 37;\n    var FMOD_ERR_MEMORY = 38;\n    var FMOD_ERR_MEMORY_CANTPOINT = 39;\n    var FMOD_ERR_NEEDS3D = 40;\n    var FMOD_ERR_NEEDSHARDWARE = 41;\n    var FMOD_ERR_NET_CONNECT = 42;\n    var FMOD_ERR_NET_SOCKET_ERROR = 43;\n    var FMOD_ERR_NET_URL = 44;\n    var FMOD_ERR_NET_WOULD_BLOCK = 45;\n    var FMOD_ERR_NOTREADY = 46;\n    var FMOD_ERR_OUTPUT_ALLOCATED = 47;\n    var FMOD_ERR_OUTPUT_CREATEBUFFER = 48;\n    var FMOD_ERR_OUTPUT_DRIVERCALL = 49;\n    var FMOD_ERR_OUTPUT_FORMAT = 50;\n    var FMOD_ERR_OUTPUT_INIT = 51;\n    var FMOD_ERR_OUTPUT_NODRIVERS = 52;\n    var FMOD_ERR_PLUGIN = 53;\n    var FMOD_ERR_PLUGIN_MISSING = 54;\n    var FMOD_ERR_PLUGIN_RESOURCE = 55;\n    var FMOD_ERR_PLUGIN_VERSION = 56;\n    var FMOD_ERR_RECORD = 57;\n    var FMOD_ERR_REVERB_CHANNELGROUP = 58;\n    var FMOD_ERR_REVERB_INSTANCE = 59;\n    var FMOD_ERR_SUBSOUNDS = 60;\n    var FMOD_ERR_SUBSOUND_ALLOCATED = 61;\n    var FMOD_ERR_SUBSOUND_CANTMOVE = 62;\n    var FMOD_ERR_TAGNOTFOUND = 63;\n    var FMOD_ERR_TOOMANYCHANNELS = 64;\n    var FMOD_ERR_TRUNCATED = 65;\n    var FMOD_ERR_UNIMPLEMENTED = 66;\n    var FMOD_ERR_UNINITIALIZED = 67;\n    var FMOD_ERR_UNSUPPORTED = 68;\n    var FMOD_ERR_VERSION = 69;\n    var FMOD_ERR_EVENT_ALREADY_LOADED = 70;\n    var FMOD_ERR_EVENT_LIVEUPDATE_BUSY = 71;\n    var FMOD_ERR_EVENT_LIVEUPDATE_MISMATCH = 72;\n    var FMOD_ERR_EVENT_LIVEUPDATE_TIMEOUT = 73;\n    var FMOD_ERR_EVENT_NOTFOUND = 74;\n    var FMOD_ERR_STUDIO_UNINITIALIZED = 75;\n    var FMOD_ERR_STUDIO_NOT_LOADED = 76;\n    var FMOD_ERR_INVALID_STRING = 77;\n    var FMOD_ERR_ALREADY_LOCKED = 78;\n    var FMOD_ERR_NOT_LOCKED = 79;\n    var FMOD_ERR_RECORD_DISCONNECTED = 80;\n    var FMOD_ERR_TOOMANYSAMPLES = 81;\n    public inline function isOk():Bool;\n    public function toString():String;\n}",
+   "code": "package haxefmod.studio;\n\nenum abstract FmodResult(Int) from Int to Int {\n    var FMOD_OK = 0;\n    var FMOD_ERR_BADCOMMAND = 1;\n    var FMOD_ERR_CHANNEL_ALLOC = 2;\n    var FMOD_ERR_CHANNEL_STOLEN = 3;\n    var FMOD_ERR_DMA = 4;\n    var FMOD_ERR_DSP_CONNECTION = 5;\n    var FMOD_ERR_DSP_DONTPROCESS = 6;\n    var FMOD_ERR_DSP_FORMAT = 7;\n    var FMOD_ERR_DSP_INUSE = 8;\n    var FMOD_ERR_DSP_NOTFOUND = 9;\n    var FMOD_ERR_DSP_RESERVED = 10;\n    var FMOD_ERR_DSP_SILENCE = 11;\n    var FMOD_ERR_DSP_TYPE = 12;\n    var FMOD_ERR_FILE_BAD = 13;\n    var FMOD_ERR_FILE_COULDNOTSEEK = 14;\n    var FMOD_ERR_FILE_DISKEJECTED = 15;\n    var FMOD_ERR_FILE_EOF = 16;\n    var FMOD_ERR_FILE_ENDOFDATA = 17;\n    var FMOD_ERR_FILE_NOTFOUND = 18;\n    var FMOD_ERR_FORMAT = 19;\n    var FMOD_ERR_HEADER_MISMATCH = 20;\n    var FMOD_ERR_HTTP = 21;\n    var FMOD_ERR_HTTP_ACCESS = 22;\n    var FMOD_ERR_HTTP_PROXY_AUTH = 23;\n    var FMOD_ERR_HTTP_SERVER_ERROR = 24;\n    var FMOD_ERR_HTTP_TIMEOUT = 25;\n    var FMOD_ERR_INITIALIZATION = 26;\n    var FMOD_ERR_INITIALIZED = 27;\n    var FMOD_ERR_INTERNAL = 28;\n    var FMOD_ERR_INVALID_FLOAT = 29;\n    var FMOD_ERR_INVALID_HANDLE = 30;\n    var FMOD_ERR_INVALID_PARAM = 31;\n    var FMOD_ERR_INVALID_POSITION = 32;\n    var FMOD_ERR_INVALID_SPEAKER = 33;\n    var FMOD_ERR_INVALID_SYNCPOINT = 34;\n    var FMOD_ERR_INVALID_THREAD = 35;\n    var FMOD_ERR_INVALID_VECTOR = 36;\n    var FMOD_ERR_MAXAUDIBLE = 37;\n    var FMOD_ERR_MEMORY = 38;\n    var FMOD_ERR_MEMORY_CANTPOINT = 39;\n    var FMOD_ERR_NEEDS3D = 40;\n    var FMOD_ERR_NEEDSHARDWARE = 41;\n    var FMOD_ERR_NET_CONNECT = 42;\n    var FMOD_ERR_NET_SOCKET_ERROR = 43;\n    var FMOD_ERR_NET_URL = 44;\n    var FMOD_ERR_NET_WOULD_BLOCK = 45;\n    var FMOD_ERR_NOTREADY = 46;\n    var FMOD_ERR_OUTPUT_ALLOCATED = 47;\n    var FMOD_ERR_OUTPUT_CREATEBUFFER = 48;\n    var FMOD_ERR_OUTPUT_DRIVERCALL = 49;\n    var FMOD_ERR_OUTPUT_FORMAT = 50;\n    var FMOD_ERR_OUTPUT_INIT = 51;\n    var FMOD_ERR_OUTPUT_NODRIVERS = 52;\n    var FMOD_ERR_PLUGIN = 53;\n    var FMOD_ERR_PLUGIN_MISSING = 54;\n    var FMOD_ERR_PLUGIN_RESOURCE = 55;\n    var FMOD_ERR_PLUGIN_VERSION = 56;\n    var FMOD_ERR_RECORD = 57;\n    var FMOD_ERR_REVERB_CHANNELGROUP = 58;\n    var FMOD_ERR_REVERB_INSTANCE = 59;\n    var FMOD_ERR_SUBSOUNDS = 60;\n    var FMOD_ERR_SUBSOUND_ALLOCATED = 61;\n    var FMOD_ERR_SUBSOUND_CANTMOVE = 62;\n    var FMOD_ERR_TAGNOTFOUND = 63;\n    var FMOD_ERR_TOOMANYCHANNELS = 64;\n    var FMOD_ERR_TRUNCATED = 65;\n    var FMOD_ERR_UNIMPLEMENTED = 66;\n    var FMOD_ERR_UNINITIALIZED = 67;\n    var FMOD_ERR_UNSUPPORTED = 68;\n    var FMOD_ERR_VERSION = 69;\n    var FMOD_ERR_EVENT_ALREADY_LOADED = 70;\n    var FMOD_ERR_EVENT_LIVEUPDATE_BUSY = 71;\n    var FMOD_ERR_EVENT_LIVEUPDATE_MISMATCH = 72;\n    var FMOD_ERR_EVENT_LIVEUPDATE_TIMEOUT = 73;\n    var FMOD_ERR_EVENT_NOTFOUND = 74;\n    var FMOD_ERR_STUDIO_UNINITIALIZED = 75;\n    var FMOD_ERR_STUDIO_NOT_LOADED = 76;\n    var FMOD_ERR_INVALID_STRING = 77;\n    var FMOD_ERR_ALREADY_LOCKED = 78;\n    var FMOD_ERR_NOT_LOCKED = 79;\n    var FMOD_ERR_RECORD_DISCONNECTED = 80;\n    var FMOD_ERR_TOOMANYSAMPLES = 81;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_SPEAKER": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodSpeaker(Int) from Int to Int {\n    var NONE = -1;\n    var FRONT_LEFT = 0;\n    var FRONT_RIGHT = 1;\n    var FRONT_CENTER = 2;\n    var LOW_FREQUENCY = 3;\n    var SURROUND_LEFT = 4;\n    var SURROUND_RIGHT = 5;\n    var BACK_LEFT = 6;\n    var BACK_RIGHT = 7;\n    var TOP_FRONT_LEFT = 8;\n    var TOP_FRONT_RIGHT = 9;\n    var TOP_BACK_LEFT = 10;\n    var TOP_BACK_RIGHT = 11;\n    var MAX = 12;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_SPEAKERMODE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodSpeakerMode(Int) from Int to Int {\n    var DEFAULT = 0;\n    var RAW = 1;\n    var MONO = 2;\n    var STEREO = 3;\n    var QUAD = 4;\n    var SURROUND = 5;\n    var _5POINT1 = 6;\n    var _7POINT1 = 7;\n    var _7POINT1POINT4 = 8;\n    var MAX = 9;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_SYNCPOINT": {
-   "code": "package haxefmod.core;\n\nabstract FmodSyncPoint(Int) from Int to Int {\n    public static inline var NULL:FmodSyncPoint = cast -1;\n    public inline function index():Int;\n    public inline function isNull():Bool;\n}",
+   "code": "package haxefmod.core;\n\nabstract FmodSyncPoint(Int) from Int to Int {\n    public static inline var NULL:FmodSyncPoint = cast -1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_THREAD_AFFINITY": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodThreadAffinity(Int) from Int to Int {\n    var CORE_ALL = 0;\n    var CORE_0 = 0x00000001;\n    var CORE_1 = 0x00000002;\n    var CORE_2 = 0x00000004;\n    var CORE_3 = 0x00000008;\n    var CORE_4 = 0x00000010;\n    var CORE_5 = 0x00000020;\n    var CORE_6 = 0x00000040;\n    var CORE_7 = 0x00000080;\n    var CORE_8 = 0x00000100;\n    var CORE_9 = 0x00000200;\n    var CORE_10 = 0x00000400;\n    var CORE_11 = 0x00000800;\n    var CORE_12 = 0x00001000;\n    var CORE_13 = 0x00002000;\n    var CORE_14 = 0x00004000;\n    var CORE_15 = 0x00008000;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_THREAD_PRIORITY": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodThreadPriority(Int) from Int to Int {\n    var PLATFORM_MIN = -32768;\n    var PLATFORM_MAX = 32768;\n    var DEFAULT = -32769;\n    var LOW = -32770;\n    var MEDIUM = -32771;\n    var HIGH = -32772;\n    var VERY_HIGH = -32773;\n    var EXTREME = -32774;\n    var CRITICAL = -32775;\n    var MIXER = -32774;\n    var FEEDER = -32775;\n    var STREAM = -32773;\n    var FILE = -32772;\n    var NONBLOCKING = -32772;\n    var RECORD = -32772;\n    var GEOMETRY = -32770;\n    var PROFILER = -32771;\n    var STUDIO_UPDATE = -32771;\n    var STUDIO_LOAD_BANK = -32771;\n    var STUDIO_LOAD_SAMPLE = -32771;\n    var CONVOLUTION1 = -32773;\n    var CONVOLUTION2 = -32773;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_THREAD_STACK_SIZE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodThreadStackSize(Int) from Int to Int {\n    var DEFAULT = 0;\n    var MIXER = 81920;\n    var FEEDER = 16384;\n    var STREAM = 98304;\n    var FILE = 65536;\n    var NONBLOCKING = 114688;\n    var RECORD = 16384;\n    var GEOMETRY = 49152;\n    var PROFILER = 131072;\n    var STUDIO_UPDATE = 98304;\n    var STUDIO_LOAD_BANK = 98304;\n    var STUDIO_LOAD_SAMPLE = 98304;\n    var CONVOLUTION1 = 16384;\n    var CONVOLUTION2 = 16384;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_THREAD_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodThreadType(Int) from Int to Int {\n    var MIXER = 0;\n    var FEEDER = 1;\n    var STREAM = 2;\n    var FILE = 3;\n    var NONBLOCKING = 4;\n    var RECORD = 5;\n    var GEOMETRY = 6;\n    var PROFILER = 7;\n    var STUDIO_UPDATE = 8;\n    var STUDIO_LOAD_BANK = 9;\n    var STUDIO_LOAD_SAMPLE = 10;\n    var CONVOLUTION1 = 11;\n    var CONVOLUTION2 = 12;\n    var MAX = 13;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_TIMEUNIT": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodTimeUnit(Int) from Int to Int {\n    var MS = 0x00000001;\n    var PCM = 0x00000002;\n    var PCMBYTES = 0x00000004;\n    var RAWBYTES = 0x00000008;\n    var PCMFRACTION = 0x00000010;\n    var MODORDER = 0x00000100;\n    var MODROW = 0x00000200;\n    var MODPATTERN = 0x00000400;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_VECTOR": {
    "code": "package haxefmod.studio;\n\ntypedef FmodVector = {\n    var x:Float;\n    var y:Float;\n    var z:Float;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_VERSION": {
    "code": "package haxefmod.studio;\n\nclass FmodVersion {\n    public static inline var VERSION = 0x00020312;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -318,222 +360,259 @@ const HAXEFMOD_EXAMPLES = {
  "core-api-common-dsp-effects": {
   "FMOD_DSP_CHANNELMIX": {
    "code": "package haxefmod.core;\n\nenum abstract DspChannelMix(Int) from Int to Int {\n    var OUTPUTGROUPING = 0;\n    var GAIN_CH0 = 1;\n    var GAIN_CH1 = 2;\n    var GAIN_CH2 = 3;\n    var GAIN_CH3 = 4;\n    var GAIN_CH4 = 5;\n    var GAIN_CH5 = 6;\n    var GAIN_CH6 = 7;\n    var GAIN_CH7 = 8;\n    var GAIN_CH8 = 9;\n    var GAIN_CH9 = 10;\n    var GAIN_CH10 = 11;\n    var GAIN_CH11 = 12;\n    var GAIN_CH12 = 13;\n    var GAIN_CH13 = 14;\n    var GAIN_CH14 = 15;\n    var GAIN_CH15 = 16;\n    var GAIN_CH16 = 17;\n    var GAIN_CH17 = 18;\n    var GAIN_CH18 = 19;\n    var GAIN_CH19 = 20;\n    var GAIN_CH20 = 21;\n    var GAIN_CH21 = 22;\n    var GAIN_CH22 = 23;\n    var GAIN_CH23 = 24;\n    var GAIN_CH24 = 25;\n    var GAIN_CH25 = 26;\n    var GAIN_CH26 = 27;\n    var GAIN_CH27 = 28;\n    var GAIN_CH28 = 29;\n    var GAIN_CH29 = 30;\n    var GAIN_CH30 = 31;\n    var GAIN_CH31 = 32;\n    var OUTPUT_CH0 = 33;\n    var OUTPUT_CH1 = 34;\n    var OUTPUT_CH2 = 35;\n    var OUTPUT_CH3 = 36;\n    var OUTPUT_CH4 = 37;\n    var OUTPUT_CH5 = 38;\n    var OUTPUT_CH6 = 39;\n    var OUTPUT_CH7 = 40;\n    var OUTPUT_CH8 = 41;\n    var OUTPUT_CH9 = 42;\n    var OUTPUT_CH10 = 43;\n    var OUTPUT_CH11 = 44;\n    var OUTPUT_CH12 = 45;\n    var OUTPUT_CH13 = 46;\n    var OUTPUT_CH14 = 47;\n    var OUTPUT_CH15 = 48;\n    var OUTPUT_CH16 = 49;\n    var OUTPUT_CH17 = 50;\n    var OUTPUT_CH18 = 51;\n    var OUTPUT_CH19 = 52;\n    var OUTPUT_CH20 = 53;\n    var OUTPUT_CH21 = 54;\n    var OUTPUT_CH22 = 55;\n    var OUTPUT_CH23 = 56;\n    var OUTPUT_CH24 = 57;\n    var OUTPUT_CH25 = 58;\n    var OUTPUT_CH26 = 59;\n    var OUTPUT_CH27 = 60;\n    var OUTPUT_CH28 = 61;\n    var OUTPUT_CH29 = 62;\n    var OUTPUT_CH30 = 63;\n    var OUTPUT_CH31 = 64;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_CHANNELMIX_OUTPUT": {
    "code": "package haxefmod.core;\n\nenum abstract DspChannelMixOutput(Int) from Int to Int {\n    var DEFAULT = 0;\n    var ALLMONO = 1;\n    var ALLSTEREO = 2;\n    var ALLQUAD = 3;\n    var ALL5POINT1 = 4;\n    var ALL7POINT1 = 5;\n    var ALLLFE = 6;\n    var ALL7POINT1POINT4 = 7;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_CHORUS": {
    "code": "package haxefmod.core;\n\nenum abstract DspChorus(Int) from Int to Int {\n    var MIX = 0;\n    var RATE = 1;\n    var DEPTH = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_COMPRESSOR": {
    "code": "package haxefmod.core;\n\nenum abstract DspCompressor(Int) from Int to Int {\n    var THRESHOLD = 0;\n    var RATIO = 1;\n    var ATTACK = 2;\n    var RELEASE = 3;\n    var GAINMAKEUP = 4;\n    var USESIDECHAIN = 5;\n    var LINKED = 6;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_CONVOLUTION_REVERB": {
    "code": "package haxefmod.core;\n\nenum abstract DspConvolutionReverb(Int) from Int to Int {\n    var PARAM_IR = 0;\n    var PARAM_WET = 1;\n    var PARAM_DRY = 2;\n    var PARAM_LINKED = 3;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_DELAY": {
    "code": "package haxefmod.core;\n\nenum abstract DspDelay(Int) from Int to Int {\n    var CH0 = 0;\n    var CH1 = 1;\n    var CH2 = 2;\n    var CH3 = 3;\n    var CH4 = 4;\n    var CH5 = 5;\n    var CH6 = 6;\n    var CH7 = 7;\n    var CH8 = 8;\n    var CH9 = 9;\n    var CH10 = 10;\n    var CH11 = 11;\n    var CH12 = 12;\n    var CH13 = 13;\n    var CH14 = 14;\n    var CH15 = 15;\n    var MAXDELAY = 16;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_DISTORTION": {
    "code": "package haxefmod.core;\n\nenum abstract DspDistortion(Int) from Int to Int {\n    var LEVEL = 0;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_ECHO": {
    "code": "package haxefmod.core;\n\nenum abstract DspEcho(Int) from Int to Int {\n    var DELAY = 0;\n    var FEEDBACK = 1;\n    var DRYLEVEL = 2;\n    var WETLEVEL = 3;\n    var DELAYCHANGEMODE = 4;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_ECHO_DELAYCHANGEMODE_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspEchoDelayChangeMode(Int) from Int to Int {\n    var FADE = 0;\n    var LERP = 1;\n    var NONE = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_FADER": {
    "code": "package haxefmod.core;\n\nenum abstract DspFader(Int) from Int to Int {\n    var GAIN = 0;\n    var OVERALL_GAIN = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_FFT": {
    "code": "package haxefmod.core;\n\nenum abstract DspFft(Int) from Int to Int {\n    var WINDOWSIZE = 0;\n    var WINDOW = 1;\n    var BAND_START_FREQ = 2;\n    var BAND_STOP_FREQ = 3;\n    var SPECTRUMDATA = 4;\n    var RMS = 5;\n    var SPECTRAL_CENTROID = 6;\n    var IMMEDIATE_MODE = 7;\n    var DOWNMIX = 8;\n    var CHANNEL = 9;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_FFT_DOWNMIX_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspFftDownmix(Int) from Int to Int {\n    var NONE = 0;\n    var MONO = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_FFT_WINDOW_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspFftWindow(Int) from Int to Int {\n    var RECT = 0;\n    var TRIANGLE = 1;\n    var HAMMING = 2;\n    var HANNING = 3;\n    var BLACKMAN = 4;\n    var BLACKMANHARRIS = 5;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_FLANGE": {
    "code": "package haxefmod.core;\n\nenum abstract DspFlange(Int) from Int to Int {\n    var MIX = 0;\n    var DEPTH = 1;\n    var RATE = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_HIGHPASS": {
    "code": "package haxefmod.core;\n\nenum abstract DspHighpass(Int) from Int to Int {\n    var CUTOFF = 0;\n    var RESONANCE = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_HIGHPASS#2": {
    "code": "// Configure a single band (band A) as a highpass (all other bands default to off).\n// 12dB roll-off to approximate the old effect curve.\n// Cutoff frequency can be used the same as with the old effect.\n// Resonance can be applied by setting the 'Q' value of the new effect.\nmultiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.HIGHPASS_12DB);\nmultiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);\nmultiband.setParameter(DspMultibandEq.A_Q, resonance);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
    "verdict": "bound"
   },
   "FMOD_DSP_HIGHPASS_SIMPLE": {
    "code": "package haxefmod.core;\n\nenum abstract DspHighpassSimple(Int) from Int to Int {\n    var CUTOFF = 0;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_HIGHPASS_SIMPLE#2": {
    "code": "// Configure a single band (band A) as a highpass (all other bands default to off).\n// 12dB roll-off to approximate the old effect curve.\n// Cutoff frequency can be used the same as with the old effect.\n// Resonance / 'Q' should remain at default 0.707.\nmultiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.HIGHPASS_12DB);\nmultiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
    "verdict": "bound"
   },
   "FMOD_DSP_ITECHO": {
    "code": "package haxefmod.core;\n\nenum abstract DspItEcho(Int) from Int to Int {\n    var WETDRYMIX = 0;\n    var FEEDBACK = 1;\n    var LEFTDELAY = 2;\n    var RIGHTDELAY = 3;\n    var PANDELAY = 4;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_ITLOWPASS": {
    "code": "package haxefmod.core;\n\nenum abstract DspItLowpass(Int) from Int to Int {\n    var CUTOFF = 0;\n    var RESONANCE = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_LIMITER": {
    "code": "package haxefmod.core;\n\nenum abstract DspLimiter(Int) from Int to Int {\n    var RELEASETIME = 0;\n    var CEILING = 1;\n    var MAXIMIZERGAIN = 2;\n    var MODE = 3;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER": {
    "code": "package haxefmod.core;\n\nenum abstract DspLoudnessMeter(Int) from Int to Int {\n    var STATE = 0;\n    var WEIGHTING = 1;\n    var INFO = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_INFO_TYPE": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspLoudnessMeterInfo = {\n    var momentaryLoudness:Float;\n    var shortTermLoudness:Float;\n    var integratedLoudness:Float;\n    var loudness10thPercentile:Float;\n    var loudness95thPercentile:Float;\n    var loudnessHistogram:Array<Float>;\n    var maxTruePeak:Float;\n    var maxMomentaryLoudness:Float;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_STATE_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspLoudnessMeterState(Int) from Int to Int {\n    var RESET_INTEGRATED = -3;\n    var RESET_MAXPEAK = -2;\n    var RESET_ALL = -1;\n    var PAUSED = 0;\n    var ANALYZING = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_LOUDNESS_METER_WEIGHTING_TYPE": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspLoudnessMeterWeightingType = {\n    var channelWeight:Array<Float>;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_LOWPASS": {
    "code": "package haxefmod.core;\n\nenum abstract DspLowpass(Int) from Int to Int {\n    var CUTOFF = 0;\n    var RESONANCE = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_LOWPASS#2": {
    "code": "// Configure a single band (band A) as a lowpass (all other bands default to off).\n// 24dB roll-off to approximate the old effect curve.\n// Cutoff frequency can be used the same as with the old effect.\n// Resonance can be applied by setting the 'Q' value of the new effect.\nmultiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.LOWPASS_24DB);\nmultiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);\nmultiband.setParameter(DspMultibandEq.A_Q, resonance);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
    "verdict": "bound"
   },
   "FMOD_DSP_LOWPASS_SIMPLE": {
    "code": "package haxefmod.core;\n\nenum abstract DspLowpassSimple(Int) from Int to Int {\n    var CUTOFF = 0;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_LOWPASS_SIMPLE#2": {
    "code": "// Configure a single band (band A) as a lowpass (all other bands default to off).\n// 12dB roll-off to approximate the old effect curve.\n// Cutoff frequency can be used the same as with the old effect.\n// Resonance / 'Q' should remain at default 0.707.\nmultiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.LOWPASS_12DB);\nmultiband.setParameter(DspMultibandEq.A_FREQUENCY, frequency);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
    "verdict": "bound"
   },
   "FMOD_DSP_MULTIBAND_DYNAMICS": {
    "code": "package haxefmod.core;\n\nenum abstract DspMultibandDynamics(Int) from Int to Int {\n    var LOWER_FREQUENCY = 0;\n    var UPPER_FREQUENCY = 1;\n    var LINKED = 2;\n    var USE_SIDECHAIN = 3;\n    var A_MODE = 4;\n    var A_GAIN = 5;\n    var A_THRESHOLD = 6;\n    var A_RATIO = 7;\n    var A_ATTACK = 8;\n    var A_RELEASE = 9;\n    var A_GAIN_MAKEUP = 10;\n    var A_RESPONSE_DATA = 11;\n    var B_MODE = 12;\n    var B_GAIN = 13;\n    var B_THRESHOLD = 14;\n    var B_RATIO = 15;\n    var B_ATTACK = 16;\n    var B_RELEASE = 17;\n    var B_GAIN_MAKEUP = 18;\n    var B_RESPONSE_DATA = 19;\n    var C_MODE = 20;\n    var C_GAIN = 21;\n    var C_THRESHOLD = 22;\n    var C_RATIO = 23;\n    var C_ATTACK = 24;\n    var C_RELEASE = 25;\n    var C_GAIN_MAKEUP = 26;\n    var C_RESPONSE_DATA = 27;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_MULTIBAND_DYNAMICS_MODE_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspMultibandDynamicsMode(Int) from Int to Int {\n    var DISABLED = 0;\n    var COMPRESS_UP = 1;\n    var COMPRESS_DOWN = 2;\n    var EXPAND_UP = 3;\n    var EXPAND_DOWN = 4;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_MULTIBAND_EQ": {
    "code": "package haxefmod.core;\n\nenum abstract DspMultibandEq(Int) from Int to Int {\n    var A_FILTER = 0;\n    var A_FREQUENCY = 1;\n    var A_Q = 2;\n    var A_GAIN = 3;\n    var B_FILTER = 4;\n    var B_FREQUENCY = 5;\n    var B_Q = 6;\n    var B_GAIN = 7;\n    var C_FILTER = 8;\n    var C_FREQUENCY = 9;\n    var C_Q = 10;\n    var C_GAIN = 11;\n    var D_FILTER = 12;\n    var D_FREQUENCY = 13;\n    var D_Q = 14;\n    var D_GAIN = 15;\n    var E_FILTER = 16;\n    var E_FREQUENCY = 17;\n    var E_Q = 18;\n    var E_GAIN = 19;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_MULTIBAND_EQ_FILTER_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspMultibandEqFilter(Int) from Int to Int {\n    var DISABLED = 0;\n    var LOWPASS_12DB = 1;\n    var LOWPASS_24DB = 2;\n    var LOWPASS_48DB = 3;\n    var HIGHPASS_12DB = 4;\n    var HIGHPASS_24DB = 5;\n    var HIGHPASS_48DB = 6;\n    var LOWSHELF = 7;\n    var HIGHSHELF = 8;\n    var PEAKING = 9;\n    var BANDPASS = 10;\n    var NOTCH = 11;\n    var ALLPASS = 12;\n    var LOWPASS_6DB = 13;\n    var HIGHPASS_6DB = 14;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_NORMALIZE": {
    "code": "package haxefmod.core;\n\nenum abstract DspNormalize(Int) from Int to Int {\n    var FADETIME = 0;\n    var THRESHOLD = 1;\n    var MAXAMP = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_OBJECTPAN": {
    "code": "package haxefmod.core;\n\nenum abstract DspObjectPan(Int) from Int to Int {\n    var _3D_POSITION = 0;\n    var _3D_ROLLOFF = 1;\n    var _3D_MIN_DISTANCE = 2;\n    var _3D_MAX_DISTANCE = 3;\n    var _3D_EXTENT_MODE = 4;\n    var _3D_SOUND_SIZE = 5;\n    var _3D_MIN_EXTENT = 6;\n    var OVERALL_GAIN = 7;\n    var OUTPUTGAIN = 8;\n    var ATTENUATION_RANGE = 9;\n    var OVERRIDE_RANGE = 10;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_OSCILLATOR": {
    "code": "package haxefmod.core;\n\nenum abstract DspOscillator(Int) from Int to Int {\n    var TYPE = 0;\n    var RATE = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PAN": {
    "code": "package haxefmod.core;\n\nenum abstract DspPan(Int) from Int to Int {\n    var MODE = 0;\n    var _2D_STEREO_POSITION = 1;\n    var _2D_DIRECTION = 2;\n    var _2D_EXTENT = 3;\n    var _2D_ROTATION = 4;\n    var _2D_LFE_LEVEL = 5;\n    var _2D_STEREO_MODE = 6;\n    var _2D_STEREO_SEPARATION = 7;\n    var _2D_STEREO_AXIS = 8;\n    var ENABLED_SPEAKERS = 9;\n    var _3D_POSITION = 10;\n    var _3D_ROLLOFF = 11;\n    var _3D_MIN_DISTANCE = 12;\n    var _3D_MAX_DISTANCE = 13;\n    var _3D_EXTENT_MODE = 14;\n    var _3D_SOUND_SIZE = 15;\n    var _3D_MIN_EXTENT = 16;\n    var _3D_PAN_BLEND = 17;\n    var LFE_UPMIX_ENABLED = 18;\n    var OVERALL_GAIN = 19;\n    var SURROUND_SPEAKER_MODE = 20;\n    var _2D_HEIGHT_BLEND = 21;\n    var ATTENUATION_RANGE = 22;\n    var OVERRIDE_RANGE = 23;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -548,96 +627,112 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_PAN_2D_STEREO_MODE_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspPan2DStereoModeType(Int) from Int to Int {\n    var DISTRIBUTED = 0;\n    var DISCRETE = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PAN_3D_EXTENT_MODE_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspPan3DExtentModeType(Int) from Int to Int {\n    var AUTO = 0;\n    var USER = 1;\n    var OFF = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PAN_3D_ROLLOFF_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspPan3DRolloffType(Int) from Int to Int {\n    var LINEARSQUARED = 0;\n    var LINEAR = 1;\n    var INVERSE = 2;\n    var INVERSETAPERED = 3;\n    var CUSTOM = 4;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PAN_MODE_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspPanModeType(Int) from Int to Int {\n    var MONO = 0;\n    var STEREO = 1;\n    var SURROUND = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMEQ": {
    "code": "package haxefmod.core;\n\nenum abstract DspParamEq(Int) from Int to Int {\n    var CENTER = 0;\n    var BANDWIDTH = 1;\n    var GAIN = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMEQ#2": {
    "code": "// Configure a single band (band A) as a peaking EQ (all other bands default to off).\n// Center frequency can be used as with the old effect.\n// Bandwidth can be applied by setting the 'Q' value of the new effect.\n// Gain at the center frequency can be used the same as with the old effect.\nmultiband.setParameterInt(DspMultibandEq.A_FILTER, DspMultibandEqFilter.PEAKING);\nmultiband.setParameter(DspMultibandEq.A_FREQUENCY, center);\nmultiband.setParameter(DspMultibandEq.A_Q, bandwidth);\nmultiband.setParameter(DspMultibandEq.A_GAIN, gain);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.DspParameters.DspMultibandEq, haxefmod.core.DspEnums.DspMultibandEqFilter",
    "verdict": "bound"
   },
   "FMOD_DSP_PITCHSHIFT": {
    "code": "package haxefmod.core;\n\nenum abstract DspPitchShift(Int) from Int to Int {\n    var PITCH = 0;\n    var FFTSIZE = 1;\n    var OVERLAP = 2;\n    var MAXCHANNELS = 3;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_RETURN": {
    "code": "package haxefmod.core;\n\nenum abstract DspReturn(Int) from Int to Int {\n    var ID = 0;\n    var INPUT_SPEAKER_MODE = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_SEND": {
    "code": "package haxefmod.core;\n\nenum abstract DspSend(Int) from Int to Int {\n    var RETURNID = 0;\n    var LEVEL = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_SFXREVERB": {
    "code": "package haxefmod.core;\n\nenum abstract DspSfxReverb(Int) from Int to Int {\n    var DECAYTIME = 0;\n    var EARLYDELAY = 1;\n    var LATEDELAY = 2;\n    var HFREFERENCE = 3;\n    var HFDECAYRATIO = 4;\n    var DIFFUSION = 5;\n    var DENSITY = 6;\n    var LOWSHELFFREQUENCY = 7;\n    var LOWSHELFGAIN = 8;\n    var HIGHCUT = 9;\n    var EARLYLATEMIX = 10;\n    var WETLEVEL = 11;\n    var DRYLEVEL = 12;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_THREE_EQ": {
    "code": "package haxefmod.core;\n\nenum abstract DspThreeEq(Int) from Int to Int {\n    var LOWGAIN = 0;\n    var MIDGAIN = 1;\n    var HIGHGAIN = 2;\n    var LOWCROSSOVER = 3;\n    var HIGHCROSSOVER = 4;\n    var CROSSOVERSLOPE = 5;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_THREE_EQ_CROSSOVERSLOPE_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspThreeEqCrossoverSlope(Int) from Int to Int {\n    var _12DB = 0;\n    var _24DB = 1;\n    var _48DB = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_TRANSCEIVER": {
    "code": "package haxefmod.core;\n\nenum abstract DspTransceiver(Int) from Int to Int {\n    var TRANSMIT = 0;\n    var GAIN = 1;\n    var CHANNEL = 2;\n    var TRANSMITSPEAKERMODE = 3;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_TRANSCEIVER_SPEAKERMODE": {
    "code": "package haxefmod.core;\n\nenum abstract DspTransceiverSpeakerMode(Int) from Int to Int {\n    var AUTO = -1;\n    var MONO = 0;\n    var STEREO = 1;\n    var SURROUND = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_TREMOLO": {
    "code": "package haxefmod.core;\n\nenum abstract DspTremolo(Int) from Int to Int {\n    var FREQUENCY = 0;\n    var DEPTH = 1;\n    var SHAPE = 2;\n    var SKEW = 3;\n    var DUTY = 4;\n    var SQUARE = 5;\n    var PHASE = 6;\n    var SPREAD = 7;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_TYPE": {
    "code": "package haxefmod.core;\n\nenum abstract DspType(Int) from Int to Int {\n    var UNKNOWN = 0;\n    var MIXER = 1;\n    var OSCILLATOR = 2;\n    var LOWPASS = 3;\n    var ITLOWPASS = 4;\n    var HIGHPASS = 5;\n    var ECHO = 6;\n    var FADER = 7;\n    var FLANGE = 8;\n    var DISTORTION = 9;\n    var NORMALIZE = 10;\n    var LIMITER = 11;\n    var PARAMEQ = 12;\n    var PITCHSHIFT = 13;\n    var CHORUS = 14;\n    var ITECHO = 15;\n    var COMPRESSOR = 16;\n    var SFXREVERB = 17;\n    var LOWPASS_SIMPLE = 18;\n    var DELAY = 19;\n    var TREMOLO = 20;\n    var SEND = 21;\n    var RETURN = 22;\n    var HIGHPASS_SIMPLE = 23;\n    var PAN = 24;\n    var THREE_EQ = 25;\n    var FFT = 26;\n    var LOUDNESS_METER = 27;\n    var CONVOLUTIONREVERB = 28;\n    var CHANNELMIX = 29;\n    var TRANSCEIVER = 30;\n    var OBJECTPAN = 31;\n    var MULTIBAND_EQ = 32;\n    var MULTIBAND_DYNAMICS = 33;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -654,6 +749,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_CALLBACK_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodDspCallbackType(Int) from Int to Int {\n    var DATAPARAMETERRELEASE = 0;\n    var MAX = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -670,6 +766,7 @@ const HAXEFMOD_EXAMPLES = {
  "core-api-dspconnection": {
   "FMOD_DSPCONNECTION_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract DspConnectionType(Int) from Int to Int {\n    var STANDARD = 0;\n    var SIDECHAIN = 1;\n    var SEND = 2;\n    var SEND_SIDECHAIN = 3;\n    var PREALLOCATED = 4;\n    var MAX = 5;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -696,6 +793,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "Example usage.#2": {
    "code": "var bytes = haxe.io.Bytes.alloc(0); // the bank file fetched by the game\nvar bank:Bank = StudioSystem.loadBankMemory(bytes, FmodLoadBankFlags.NONBLOCKING);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.Bank, haxefmod.studio.Types",
    "verdict": "bound"
@@ -730,12 +828,14 @@ const HAXEFMOD_EXAMPLES = {
  "core-api-sound": {
   "FMOD_OPENSTATE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodOpenState(Int) from Int to Int {\n    var READY = 0;\n    var LOADING = 1;\n    var ERROR = 2;\n    var CONNECTING = 3;\n    var BUFFERING = 4;\n    var SEEKING = 5;\n    var PLAYING = 6;\n    var SETPOSITION = 7;\n    var MAX = 8;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_SOUND_FORMAT": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodSoundFormat(Int) from Int to Int {\n    var NONE = 0;\n    var PCM8 = 1;\n    var PCM16 = 2;\n    var PCM24 = 3;\n    var PCM32 = 4;\n    var PCMFLOAT = 5;\n    var BITSTREAM = 6;\n    var MAX = 7;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -750,6 +850,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_SOUND_PCMREAD_CALLBACK": {
    "code": "package haxefmod.core;\n\ntypedef PcmReadCallback = (stream:PcmStream, data:haxe.io.Bytes, dataLen:Int)->FmodResult;",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -764,42 +865,49 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_SOUND_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodSoundType(Int) from Int to Int {\n    var UNKNOWN = 0;\n    var AIFF = 1;\n    var ASF = 2;\n    var DLS = 3;\n    var FLAC = 4;\n    var FSB = 5;\n    var IT = 6;\n    var MIDI = 7;\n    var MOD = 8;\n    var MPEG = 9;\n    var OGGVORBIS = 10;\n    var PLAYLIST = 11;\n    var RAW = 12;\n    var S3M = 13;\n    var USER = 14;\n    var WAV = 15;\n    var XM = 16;\n    var XMA = 17;\n    var AUDIOQUEUE = 18;\n    var AT9 = 19;\n    var VORBIS = 20;\n    var MEDIA_FOUNDATION = 21;\n    var MEDIACODEC = 22;\n    var FADPCM = 23;\n    var OPUS = 24;\n    var MAX = 25;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_TAG": {
    "code": "package haxefmod.studio;\n\ntypedef FmodTag = {\n    var name:String;\n    var type:FmodTagType;\n    var dataType:FmodTagDataType;\n    var updated:Bool;\n    var length:Int;\n    var intValue:Int;\n    var floatValue:Float;\n    var stringValue:String;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_TAGDATATYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodTagDataType(Int) from Int to Int {\n    var BINARY = 0;\n    var INT = 1;\n    var FLOAT = 2;\n    var STRING = 3;\n    var STRING_UTF16 = 4;\n    var STRING_UTF16BE = 5;\n    var STRING_UTF8 = 6;\n    var MAX = 7;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_TAGTYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodTagType(Int) from Int to Int {\n    var UNKNOWN = 0;\n    var ID3V1 = 1;\n    var ID3V2 = 2;\n    var VORBISCOMMENT = 3;\n    var SHOUTCAST = 4;\n    var ICECAST = 5;\n    var ASF = 6;\n    var MIDI = 7;\n    var PLAYLIST = 8;\n    var FMOD = 9;\n    var USER = 10;\n    var MAX = 11;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "Sound::getTag": {
    "code": "var tag = sound.getTag(null, -1);\nwhile (tag != null) {\n    if (tag.type == FmodTagType.FMOD) {\n        /* When a song changes, the sample rate may also change, so compensate here. */\n        if (tag.name == \"Sample Rate Change\" && !channel.isNull()) {\n            var frequency = tag.floatValue;\n\n            channel.setFrequency(frequency);\n        }\n    }\n    tag = sound.getTag(null, -1);\n}",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound, haxefmod.studio.Types",
    "verdict": "bound"
   },
   "Sound::set3DCustomRolloff": {
    "code": "// Defining a custom array of points\nvar curve:Array<FmodVector> = [\n    {x: 0.0, y: 1.0, z: 0.0},\n    {x: 2.0, y: 0.2, z: 0.0},\n    {x: 20.0, y: 0.0, z: 0.0}\n];",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.Types.FmodVector",
    "verdict": "bound"
   },
   "Sound::setDefaults": {
    "code": "var defaults = sound.getDefaults();\nsound.setDefaults(48000, defaults.priority);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -808,6 +916,7 @@ const HAXEFMOD_EXAMPLES = {
  "core-api-soundgroup": {
   "FMOD_SOUNDGROUP_BEHAVIOR": {
    "code": "package haxefmod.studio;\n\nenum abstract SoundGroupBehavior(Int) from Int to Int {\n    var FAIL = 0;\n    var MUTE = 1;\n    var STEALLOWEST = 2;\n    var MAX = 3;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -824,6 +933,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_ADVANCEDSETTINGS": {
    "code": "package haxefmod.studio;\n\ntypedef FmodAdvancedSettings = {\n    var maxMPEGCodecs:Int;\n    var maxVorbisCodecs:Int;\n    var maxFADPCMCodecs:Int;\n    var vol0VirtualVol:Float;\n    var defaultDecodeBufferSize:Int;\n    var profilePort:Int;\n    var geometryMaxFadeTime:Int;\n    var distanceFilterCenterFreq:Float;\n    var randomSeed:Int;\n    var resamplerMethod:FmodDspResampler;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -838,30 +948,35 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_CREATESOUNDEXINFO": {
    "code": "package haxefmod.studio;\n\ntypedef FmodCreateSoundExInfo = {\n    @:optional var length:Int;\n    @:optional var fileOffset:Int;\n    @:optional var numChannels:Int;\n    @:optional var defaultFrequency:Int;\n    @:optional var format:FmodSoundFormat;\n    @:optional var decodeBufferSize:Int;\n    @:optional var initialSubsound:Int;\n    @:optional var numSubsounds:Int;\n    @:optional var inclusionList:Array<Int>;\n    @:optional var dlsName:String;\n    @:optional var encryptionKey:String;\n    @:optional var maxPolyphony:Int;\n    @:optional var suggestedSoundType:FmodSoundType;\n    @:optional var fileBufferSize:Int;\n    @:optional var channelOrder:FmodChannelOrder;\n    @:optional var initialSoundGroup:haxefmod.core.SoundGroup;\n    @:optional var initialSeekPosition:Int;\n    @:optional var initialSeekPosType:FmodTimeUnit;\n    @:optional var ignoreSetFileSystem:Int;\n    @:optional var audioQueuePolicy:Int;\n    @:optional var minMidiGranularity:Int;\n    @:optional var nonBlockThreadId:Int;\n    @:optional var fsbGuid:FmodGuid;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DRIVER_STATE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodDriverState(Int) from Int to Int {\n    var CONNECTED = 0x00000001;\n    var DEFAULT = 0x00000002;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_RESAMPLER": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodDspResampler(Int) from Int to Int {\n    var DEFAULT = 0;\n    var NOINTERP = 1;\n    var LINEAR = 2;\n    var CUBIC = 3;\n    var SPLINE = 4;\n    var MAX = 5;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_ERRORCALLBACK_INFO": {
    "code": "package haxefmod.studio;\n\ntypedef FmodErrorCallbackInfo = {\n    var result:FmodResult;\n    var instanceType:FmodErrorCallbackInstanceType;\n    var instance:Int;\n    var functionName:String;\n    var functionParams:String;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_ERRORCALLBACK_INSTANCETYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodErrorCallbackInstanceType(Int) from Int to Int {\n    var NONE = 0;\n    var SYSTEM = 1;\n    var CHANNEL = 2;\n    var CHANNELGROUP = 3;\n    var CHANNELCONTROL = 4;\n    var SOUND = 5;\n    var SOUNDGROUP = 6;\n    var DSP = 7;\n    var DSPCONNECTION = 8;\n    var GEOMETRY = 9;\n    var REVERB3D = 10;\n    var STUDIO_SYSTEM = 11;\n    var STUDIO_EVENTDESCRIPTION = 12;\n    var STUDIO_EVENTINSTANCE = 13;\n    var STUDIO_PARAMETERINSTANCE = 14;\n    var STUDIO_BUS = 15;\n    var STUDIO_VCA = 16;\n    var STUDIO_BANK = 17;\n    var STUDIO_COMMANDREPLAY = 18;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -924,84 +1039,98 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_INITFLAGS": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodInitFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var STREAM_FROM_UPDATE = 0x00000001;\n    var MIX_FROM_UPDATE = 0x00000002;\n    var _3D_RIGHTHANDED = 0x00000004;\n    var CLIP_OUTPUT = 0x00000008;\n    var CHANNEL_LOWPASS = 0x00000100;\n    var CHANNEL_DISTANCEFILTER = 0x00000200;\n    var PROFILE_ENABLE = 0x00010000;\n    var VOL0_BECOMES_VIRTUAL = 0x00020000;\n    var GEOMETRY_USECLOSEST = 0x00040000;\n    var PREFER_DOLBY_DOWNMIX = 0x00080000;\n    var THREAD_UNSAFE = 0x00100000;\n    var PROFILE_METER_ALL = 0x00200000;\n    var MEMORY_TRACKING = 0x00400000;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_OUTPUTTYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodOutputType(Int) from Int to Int {\n    var AUTODETECT = 0;\n    var UNKNOWN = 1;\n    var NOSOUND = 2;\n    var WAVWRITER = 3;\n    var NOSOUND_NRT = 4;\n    var WAVWRITER_NRT = 5;\n    var WASAPI = 6;\n    var ASIO = 7;\n    var PULSEAUDIO = 8;\n    var ALSA = 9;\n    var COREAUDIO = 10;\n    var AUDIOTRACK = 11;\n    var OPENSL = 12;\n    var AUDIOOUT = 13;\n    var AUDIO3D = 14;\n    var WEBAUDIO = 15;\n    var NNAUDIO = 16;\n    var WINSONIC = 17;\n    var AAUDIO = 18;\n    var AUDIOWORKLET = 19;\n    var PHASE = 20;\n    var OHAUDIO = 21;\n    var MAX = 22;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_PLUGINLIST": {
    "code": "package haxefmod.studio;\n\ntypedef FmodPluginList = {\n    var type:FmodPluginType;\n    var description:Int;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_PLUGINTYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodPluginType(Int) from Int to Int {\n    var OUTPUT = 0;\n    var CODEC = 1;\n    var DSP = 2;\n    var MAX = 3;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_PORT_INDEX": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodPortIndex(Int) from Int to Int {\n    var NONE = -1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_PORT_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodPortType(Int) from Int to Int {\n    var MUSIC = 0;\n    var COPYRIGHT_MUSIC = 1;\n    var VOICE = 2;\n    var CONTROLLER = 3;\n    var PERSONAL = 4;\n    var VIBRATION = 5;\n    var AUX = 6;\n    var PASSTHROUGH = 7;\n    var VR_VIBRATION = 8;\n    var MAX = 9;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_REVERB_MAXINSTANCES": {
-   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    public static inline var MAX_SYSTEMS = 8;\n    public static inline var MAX_LISTENERS = 8;\n    public static inline var REVERB_MAXINSTANCES = 4;\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
+   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    public static inline var REVERB_MAXINSTANCES = 4;\n}",
+   "member": "REVERB_MAXINSTANCES",
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_REVERB_PRESETS": {
    "code": "package haxefmod.core;\n\nclass ReverbPresets {\n    public static var OFF(get, never):ReverbProperties;\n    public static var GENERIC(get, never):ReverbProperties;\n    public static var PADDEDCELL(get, never):ReverbProperties;\n    public static var ROOM(get, never):ReverbProperties;\n    public static var BATHROOM(get, never):ReverbProperties;\n    public static var LIVINGROOM(get, never):ReverbProperties;\n    public static var STONEROOM(get, never):ReverbProperties;\n    public static var AUDITORIUM(get, never):ReverbProperties;\n    public static var CONCERTHALL(get, never):ReverbProperties;\n    public static var CAVE(get, never):ReverbProperties;\n    public static var ARENA(get, never):ReverbProperties;\n    public static var HANGAR(get, never):ReverbProperties;\n    public static var CARPETTEDHALLWAY(get, never):ReverbProperties;\n    public static var HALLWAY(get, never):ReverbProperties;\n    public static var STONECORRIDOR(get, never):ReverbProperties;\n    public static var ALLEY(get, never):ReverbProperties;\n    public static var FOREST(get, never):ReverbProperties;\n    public static var CITY(get, never):ReverbProperties;\n    public static var MOUNTAINS(get, never):ReverbProperties;\n    public static var QUARRY(get, never):ReverbProperties;\n    public static var PLAIN(get, never):ReverbProperties;\n    public static var PARKINGLOT(get, never):ReverbProperties;\n    public static var SEWERPIPE(get, never):ReverbProperties;\n    public static var UNDERWATER(get, never):ReverbProperties;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_REVERB_PROPERTIES": {
    "code": "package haxefmod.core;\n\ntypedef ReverbProperties = {\n    var decayTime:Float;\n    var earlyDelay:Float;\n    var lateDelay:Float;\n    var hfReference:Float;\n    var hfDecayRatio:Float;\n    var diffusion:Float;\n    var density:Float;\n    var lowShelfFrequency:Float;\n    var lowShelfGain:Float;\n    var highCut:Float;\n    var earlyLateMix:Float;\n    var wetLevel:Float;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_SYSTEM_CALLBACK": {
    "code": "package haxefmod.studio;\n\ntypedef SystemCallback = SystemEvent->Void;",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_SYSTEM_CALLBACK_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodSystemCallbackType(Int) from Int to Int {\n    var DEVICELISTCHANGED = 0x00000001;\n    var DEVICELOST = 0x00000002;\n    var MEMORYALLOCATIONFAILED = 0x00000004;\n    var THREADCREATED = 0x00000008;\n    var BADDSPCONNECTION = 0x00000010;\n    var PREMIX = 0x00000020;\n    var POSTMIX = 0x00000040;\n    var ERROR = 0x00000080;\n    var THREADDESTROYED = 0x00000100;\n    var PREUPDATE = 0x00000200;\n    var POSTUPDATE = 0x00000400;\n    var RECORDLISTCHANGED = 0x00000800;\n    var BUFFEREDNOMIX = 0x00001000;\n    var DEVICEREINITIALIZE = 0x00002000;\n    var OUTPUTUNDERRUN = 0x00004000;\n    var RECORDPOSITIONCHANGED = 0x00008000;\n    var ALL = 0xFFFFFFFF;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "System::setDSPBufferSize": {
    "code": "var mixer = CoreSystem.getDSPBufferSize();\nvar blocksize = mixer.bufferLength;\nvar numblocks = mixer.numBuffers;\nvar frequency = CoreSystem.getSoftwareFormat().sampleRate;\n\nvar ms = blocksize * 1000.0 / frequency;\n\ntrace('Mixer blocksize        = $ms ms');\ntrace('Mixer Total buffersize = ${ms * numblocks} ms');\ntrace('Mixer Average Latency  = ${ms * (numblocks - 1.5)} ms');",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.CoreSystem",
    "verdict": "bound"
   },
   "System::setSpeakerPosition": {
    "code": "CoreSystem.setSpeakerPosition(FmodSpeaker.FRONT_LEFT, -1.0, 0.0, true);\nCoreSystem.setSpeakerPosition(FmodSpeaker.FRONT_RIGHT, 1.0, 0.0, true);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.CoreSystem, haxefmod.studio.Types.FmodSpeaker",
    "verdict": "bound"
   },
   "System::setSpeakerPosition#3": {
    "code": "CoreSystem.setSpeakerPosition(FmodSpeaker.FRONT_LEFT, Math.sin(degtorad(-30)), Math.cos(degtorad(-30)), true);\nCoreSystem.setSpeakerPosition(FmodSpeaker.FRONT_RIGHT, Math.sin(degtorad(30)), Math.cos(degtorad(30)), true);\nCoreSystem.setSpeakerPosition(FmodSpeaker.FRONT_CENTER, Math.sin(degtorad(0)), Math.cos(degtorad(0)), true);\nCoreSystem.setSpeakerPosition(FmodSpeaker.LOW_FREQUENCY, Math.sin(degtorad(0)), Math.cos(degtorad(0)), true);\nCoreSystem.setSpeakerPosition(FmodSpeaker.SURROUND_LEFT, Math.sin(degtorad(-90)), Math.cos(degtorad(-90)), true);\nCoreSystem.setSpeakerPosition(FmodSpeaker.SURROUND_RIGHT, Math.sin(degtorad(90)), Math.cos(degtorad(90)), true);\nCoreSystem.setSpeakerPosition(FmodSpeaker.BACK_LEFT, Math.sin(degtorad(-150)), Math.cos(degtorad(-150)), true);\nCoreSystem.setSpeakerPosition(FmodSpeaker.BACK_RIGHT, Math.sin(degtorad(150)), Math.cos(degtorad(150)), true);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.CoreSystem, haxefmod.studio.Types.FmodSpeaker",
    "verdict": "bound"
@@ -1034,18 +1163,21 @@ const HAXEFMOD_EXAMPLES = {
   },
   "18.2.2 Loading the Plug-in in the Game#2": {
    "code": "var handle = StudioSystem.loadPlugin(filename, 0);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "18.2.2 Loading the Plug-in in the Game#3": {
    "code": "var result = StudioSystem.setPluginPath(path);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "18.2.2 Loading the Plug-in in the Game#4": {
    "code": "// Studio::System::unregisterPlugin stays C side with plug-in registration (see 18.2.2).\nvar result = StudioSystem.unloadPlugin(handle);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -1067,7 +1199,8 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "18.7 Multiple Plug-ins Within One File#2": {
-   "code": "var baseHandle = StudioSystem.loadPlugin(\"plugin_name.dll\");\nif (baseHandle == 0) {\n    trace('loadPlugin failed: ${StudioSystem.lastResult()}');\n}\nvar count = StudioSystem.getNestedPluginCount(baseHandle);\nfor (index in 0...count) {\n    var handle = StudioSystem.getNestedPlugin(baseHandle, index);\n    var info = StudioSystem.getPluginInfo(handle);\n    if (info != null) {\n        var type = info.type;\n        // We have an output plug-in, a DSP plug-in, or a codec plug-in here.\n    }\n}",
+   "code": "var baseHandle = StudioSystem.loadPlugin(\"plugin_name.dll\");\nif (baseHandle == 0) trace(StudioSystem.lastResult());\nvar count = StudioSystem.getNestedPluginCount(baseHandle);\nfor (index in 0...count) {\n    var handle = StudioSystem.getNestedPlugin(baseHandle, index);\n    var type = StudioSystem.getPluginInfo(handle).type;\n    // We have an output plug-in, a DSP plug-in, or a codec plug-in here.\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -1181,13 +1314,15 @@ const HAXEFMOD_EXAMPLES = {
  },
  "glossary": {
   "22.33 Reading Sound Data": {
-   "code": "var sound = Sound.create(\"drumloop.wav\", false, true); // openOnly, like FMOD_OPENONLY\nvar length = sound.getLength(FmodTimeUnit.RAWBYTES);\n\nvar buffer = haxe.io.Bytes.alloc(length);\nvar read = sound.readData(buffer);",
+   "code": "var sound = Sound.create(\"drumloop.wav\", false, true);\nvar length = sound.getLength(FmodTimeUnit.RAWBYTES);\n\nvar buffer = haxe.io.Bytes.alloc(length);\nsound.readData(buffer);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound, haxefmod.studio.Types",
    "verdict": "bound"
   },
   "22.49 User Data": {
    "code": "{\n    var userData = \"Hello User Data!\";\n    sound.setUserData(userData);\n}\n{\n    var userData:String = sound.getUserData();\n}",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -1195,7 +1330,8 @@ const HAXEFMOD_EXAMPLES = {
  },
  "loading-and-playing-sounds-in-the-core-api": {
   "4.1.1 Non-blocking Sound Creation": {
-   "code": "var sound = Sound.create(\"../media/wave.mp3\", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING); // Returns at once, the stream opens on FMOD's thread.\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "var sound = Sound.create(\"../media/wave.mp3\", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING); // Creates a handle to a stream then commands the FMOD Async loader to open the stream in the background.\nif (sound.isNull()) trace(StudioSystem.lastResult());",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.ChannelMode, haxefmod.core.Sound",
    "verdict": "bound"
@@ -1209,19 +1345,22 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "4.1.1 Non-blocking Sound Creation#3": {
-   "code": "var sound = Sound.create(\"../media/wave.mp3\", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING);\nif (sound.isNull()) {\n    trace(StudioSystem.lastResult());\n}\n\n// There is no nonblock callback to host, poll each frame until the sound is ready\nif (sound.getOpenState() == FmodOpenState.READY) {\n    startGame();\n}",
+   "code": "var sound = Sound.create(\"../media/wave.mp3\", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING);\nif (sound.isNull()) trace(StudioSystem.lastResult());\n\n// There is no nonblock callback to host, poll each frame until the sound is ready\nif (sound.getOpenState() == FmodOpenState.READY) {\n    startGame();\n}",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.ChannelMode, haxefmod.core.Sound, haxefmod.studio.Types.FmodOpenState",
    "verdict": "bound"
   },
   "4.2 Playing a sound": {
-   "code": "var sound:Sound;\nvar channel:Channel;\n\nsound = Sound.create(\"../media/wave.mp3\");\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}\n\nchannel = sound.play();\nif (channel.isNull()) {\n    trace('play failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "var sound:Sound;\nvar channel:Channel;\n\nsound = Sound.create(\"../media/wave.mp3\");\nif (sound.isNull()) trace(StudioSystem.lastResult());\n\nchannel = sound.play();\nif (channel.isNull()) trace(StudioSystem.lastResult());",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound, haxefmod.core.Channel",
    "verdict": "bound"
   },
   "4.3.1 Creating a Sound from memory": {
-   "code": "var sound:Sound;\nvar buffer:haxe.io.Bytes = null;\n\n//\n// Load your file image (wav, ogg, mp3, fsb) into the \"buffer\" bytes here\n//\n\nsound = Sound.fromMemory(buffer); // The buffer's length is the length of the file image in bytes\n// The audio data stored in \"buffer\" has been duplicated into FMOD's buffers, and can now be freed",
+   "code": "var sound:Sound;\nvar buffer:haxe.io.Bytes = null;\n\n//\n// Load your audio data to the \"buffer\" bytes here\n//\n\nsound = Sound.fromMemory(buffer);\n// The audio data stored by the \"buffer\" bytes has been duplicated into FMOD's buffers, and can now be freed",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -1236,18 +1375,21 @@ const HAXEFMOD_EXAMPLES = {
   },
   "4.3.2 Creating a Sound from PCM data": {
    "code": "var sound:Sound;\nvar exinfo:FmodCreateSoundExInfo;\n\n// Create extended sound info struct\nexinfo = {\n    numChannels: 2,                      // Number of channels in the sound\n    defaultFrequency: 44100,             // Default playback rate of sound\n    format: FmodSoundFormat.PCM16        // Data format of sound\n};\n\nsound = Sound.create(\"./Your/File/Path/Here.raw\", false, false, ChannelMode.OPENRAW, -1, exinfo);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.ChannelMode, haxefmod.core.Sound, haxefmod.studio.Types",
    "verdict": "bound"
   },
   "4.3.3 Creating a Sound by manually providing sample data": {
    "code": "var stream = PcmStream.create(\n    44100,                   // Playback rate of sound\n    2,                       // Number of channels in the sound\n    44100 * 2 * 2 * 5);      // Ring size in bytes. 2 = bytes per sample and 5 = seconds\n\n// Each frame, write sample data instead of a read callback\nvar buffer = haxe.io.Bytes.alloc(stream.space());\nfor (i in 0...Std.int(buffer.length / 2)) {\n    buffer.setUInt16(i * 2, nextSample() & 0xFFFF);\n}\nstream.write(buffer);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.PcmStream",
    "verdict": "bound"
   },
   "4.3.4 Creating the Sound as a Streamed FSB File": {
-   "code": "var sound:Sound;\n\nsound = Sound.create(\"../media/sounds.fsb\", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING, 1);\nif (sound.isNull()) {\n    trace('load failed: ${StudioSystem.lastResult()}');\n}",
+   "code": "var sound:Sound;\n\nsound = Sound.create(\"../media/sounds.fsb\", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING, 1);\nif (sound.isNull()) trace(StudioSystem.lastResult());",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.ChannelMode, haxefmod.core.Sound",
    "verdict": "bound"
@@ -1304,6 +1446,7 @@ const HAXEFMOD_EXAMPLES = {
  "managing-resources-in-the-core-api": {
   "9.5.1 Use a Fixed-size Memory Pool.": {
    "code": "FmodManager.Initialize({memoryPoolSize: 4 * 1024 * 1024}); // allocate 4mb and pass it to the FMOD Engine to use.",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -1320,6 +1463,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "Application Lifecycle Management#2": {
    "code": "function onStart():Void {\n    CoreSystem.mixerResume();\n}\n\nfunction onStop():Void {\n    CoreSystem.mixerSuspend();\n}\n\nfunction onDestroy():Void {\n    CoreSystem.mixerResume();\n}",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.CoreSystem",
    "verdict": "bound"
@@ -1352,6 +1496,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "Audio Stability (Stuttering)": {
    "code": "FmodManager.Initialize({dspBufferSize: 2048, dspNumBuffers: 2});",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -1373,7 +1518,8 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "library"
   },
   "Direct from host, via FMOD's filesystem#2": {
-   "code": "var sound = Sound.create(\"/lion.wav\", false);\nif (sound.isNull()) {\n    trace(StudioSystem.lastResult());\n}",
+   "code": "var sound = Sound.create(\"/lion.wav\", false);\nif (sound.isNull()) trace(StudioSystem.lastResult());",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -1412,6 +1558,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "Setting and getting": {
    "code": "var name:String; // to store name of sound.\n\nname = sound.getName(); // the returned value. Assign it to the variable we want to keep.\n\ntrace(name);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound",
    "verdict": "bound"
@@ -1457,7 +1604,8 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "Via memory": {
-   "code": "var sound = Sound.fromMemory(chars, ChannelMode.LOOP_OFF | ChannelMode.CREATESTREAM, chars.length);\nif (sound.isNull()) {\n    trace(StudioSystem.lastResult());\n}",
+   "code": "var sound = Sound.fromMemory(chars, ChannelMode.LOOP_OFF | ChannelMode.CREATESTREAM, chars.length);\nif (sound.isNull()) trace(StudioSystem.lastResult());",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound, haxefmod.core.ChannelMode",
    "verdict": "bound"
@@ -1560,12 +1708,14 @@ const HAXEFMOD_EXAMPLES = {
  "platforms-uwp": {
   "Background Music": {
    "code": "var bgm = ChannelGroup.create(\"BGM\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, bgm);\n\nvar channel = music.play(false, bgm);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.ChannelGroup, haxefmod.core.CoreSystem, haxefmod.studio.Types",
    "verdict": "bound"
   },
   "Pass Through": {
    "code": "var passthrough = ChannelGroup.create(\"PASSTHROUGH\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.PASSTHROUGH, FmodPortIndex.NONE, passthrough);\n\nvar channel = your_non_diegetic_sound.play(false, passthrough);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.ChannelGroup, haxefmod.core.CoreSystem, haxefmod.studio.Types",
    "verdict": "bound"
@@ -1574,18 +1724,21 @@ const HAXEFMOD_EXAMPLES = {
  "platforms-win": {
   "ASIO and C#": {
    "code": "FmodManager.Initialize({output: FmodOutputType.ASIO, numChannels: 32});",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.Types",
    "verdict": "bound"
   },
   "Background Music": {
    "code": "var bgm = ChannelGroup.create(\"BGM\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.MUSIC, FmodPortIndex.NONE, bgm);\n\nvar channel = music.play(false, bgm);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.ChannelGroup, haxefmod.core.CoreSystem, haxefmod.studio.Types",
    "verdict": "bound"
   },
   "Pass Through": {
    "code": "var passthrough = ChannelGroup.create(\"PASSTHROUGH\");\nCoreSystem.attachChannelGroupToPort(FmodPortType.PASSTHROUGH, FmodPortIndex.NONE, passthrough);\n\nvar channel = your_non_diegetic_sound.play(false, passthrough);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.ChannelGroup, haxefmod.core.CoreSystem, haxefmod.studio.Types",
    "verdict": "bound"
@@ -1956,6 +2109,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_METERING_INFO": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspMeteringInfo = {\n    var numSamples:Int;\n    var peakLevel:Array<Float>;\n    var rmsLevel:Array<Float>;\n    var numChannels:Int;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -2010,114 +2164,133 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_PAN_SURROUND_FLAGS": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodDspPanSurroundFlags(Int) from Int to Int {\n    var DEFAULT = 0;\n    var ROTATION_NOT_BIASED = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_3DATTRIBUTES": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameter3DAttributes = {\n    var relative:Fmod3DAttributes;\n    var absolute:Fmod3DAttributes;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameter3DAttributesMulti = {\n    var numListeners:Int;\n    var relative:Array<Fmod3DAttributes>;\n    var weight:Array<Float>;\n    var absolute:Fmod3DAttributes;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_ATTENUATION_RANGE": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterAttenuationRange = {\n    var min:Float;\n    var max:Float;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DATA_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodDspParameterDataType(Int) from Int to Int {\n    var USER = 0;\n    var OVERALLGAIN = -1;\n    var _3DATTRIBUTES = -2;\n    var SIDECHAIN = -3;\n    var FFT = -4;\n    var _3DATTRIBUTES_MULTI = -5;\n    var ATTENUATION_RANGE = -6;\n    var DYNAMIC_RESPONSE = -7;\n    var FINITE_LENGTH = -8;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterDesc = {\n    var type:FmodDspParameterType;\n    var name:String;\n    var label:String;\n    var description:String;\n    var floatDesc:Null<FmodDspParameterDescFloat>;\n    var intDesc:Null<FmodDspParameterDescInt>;\n    var boolDesc:Null<FmodDspParameterDescBool>;\n    var dataDesc:Null<FmodDspParameterDescData>;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_BOOL": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterDescBool = {\n    var defaultVal:Bool;\n    var valueNames:Null<Array<String>>;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_DATA": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterDescData = {\n    var dataType:FmodDspParameterDataType;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_FLOAT": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterDescFloat = {\n    var min:Float;\n    var max:Float;\n    var defaultVal:Float;\n    var mapping:FmodDspParameterFloatMapping;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DESC_INT": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterDescInt = {\n    var min:Int;\n    var max:Int;\n    var defaultVal:Int;\n    var goesToInf:Bool;\n    var valueNames:Null<Array<String>>;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_DYNAMIC_RESPONSE": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterDynamicResponse = {\n    var numChannels:Int;\n    var rms:Array<Float>;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FFT": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterFft = {\n    var length:Int;\n    var numChannels:Int;\n    var spectrum:Array<Array<Float>>;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FINITE_LENGTH": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterFiniteLength = {\n    var finite:Bool;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterFloatMapping = {\n    var type:FmodDspParameterFloatMappingType;\n    var piecewiseLinearMapping:FmodDspParameterFloatMappingPiecewiseLinear;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING_PIECEWISE_LINEAR": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterFloatMappingPiecewiseLinear = {\n    var numPoints:Int;\n    var pointParamValues:Array<Float>;\n    var pointPositions:Array<Float>;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_FLOAT_MAPPING_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodDspParameterFloatMappingType(Int) from Int to Int {\n    var LINEAR = 0;\n    var AUTO = 1;\n    var PIECEWISE_LINEAR = 2;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_OVERALLGAIN": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterOverallGain = {\n    var linearGain:Float;\n    var linearGainAdditive:Float;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_SIDECHAIN": {
    "code": "package haxefmod.studio;\n\ntypedef FmodDspParameterSidechain = {\n    var sidechainEnable:Bool;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_DSP_PARAMETER_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodDspParameterType(Int) from Int to Int {\n    var FLOAT = 0;\n    var INT = 1;\n    var BOOL = 2;\n    var DATA = 3;\n    var MAX = 4;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -2140,6 +2313,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_DSP_PROCESS_OPERATION": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodDspProcessOperation(Int) from Int to Int {\n    var PERFORM = 0;\n    var QUERY = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -2420,6 +2594,7 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_OUTPUT_METHOD": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodOutputMethod(Int) from Int to Int {\n    var MIX_DIRECT = 0;\n    var MIX_BUFFERED = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -2540,6 +2715,7 @@ const HAXEFMOD_EXAMPLES = {
  "running-the-core-api": {
   "3.1 Initializing the Core API": {
    "code": "var result:FmodResult;\n\nFmodManager.Initialize({numChannels: 512}); // Create the main system object and initialize FMOD.\nresult = StudioSystem.lastResult();\nif (result != FmodResult.FMOD_OK)\n{\n    trace('FMOD error! (${(result : Int)}) $result');\n}",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.FmodResult",
    "verdict": "bound"
@@ -2548,36 +2724,42 @@ const HAXEFMOD_EXAMPLES = {
  "spatializing-sounds-in-the-core-api": {
   "5.0.2 Loading Sounds as 3D": {
    "code": "var sound = Sound.create(\"../media/drumloop.wav\", false, false, ChannelMode.MODE_3D);\nif (sound.isNull()) {\n    handleError(StudioSystem.lastResult());\n}",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound, haxefmod.core.ChannelMode",
    "verdict": "bound"
   },
   "5.1 Controlling a Spatializer DSP": {
    "code": "function dot(a:FmodVector, b:FmodVector):Float {\n    return a.x * b.x + a.y * b.y + a.z * b.z;\n}\n\nfunction cross(a:FmodVector, b:FmodVector):FmodVector {\n    return {x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x};\n}\n\nfunction toListenerSpace(v:FmodVector, listener:Fmod3DAttributes):FmodVector {\n    var right = cross(listener.up, listener.forward);\n    return {x: dot(v, right), y: dot(v, listener.up), z: dot(v, listener.forward)};\n}\n\nfunction calculatePannerAttributes(listener:Fmod3DAttributes, emitter:Fmod3DAttributes):FmodDspParameter3DAttributes {\n    var offset = {x: emitter.position.x - listener.position.x, y: emitter.position.y - listener.position.y, z: emitter.position.z - listener.position.z};\n    var motion = {x: emitter.velocity.x - listener.velocity.x, y: emitter.velocity.y - listener.velocity.y, z: emitter.velocity.z - listener.velocity.z};\n    return {\n        relative: {\n            position: toListenerSpace(offset, listener),\n            velocity: toListenerSpace(motion, listener),\n            forward: toListenerSpace(emitter.forward, listener),\n            up: toListenerSpace(emitter.up, listener)\n        },\n        absolute: emitter\n    };\n}",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.Types",
    "verdict": "bound"
   },
   "5.1 Controlling a Spatializer DSP#2": {
    "code": "do\n{\n    updateGame();       // here the game is updated and the sources would be moved with channel.set3DAttributes.\n\n    StudioSystem.setListenerAttributes(0, {position: listenerPos, velocity: listenerVel, forward: listenerForward, up: listenerUp});     // update 'ears'\n\n    // the library runs the once-per-frame update itself.\n\n} while (gameRunning);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.Types",
    "verdict": "bound"
   },
   "5.1.1 Velocity": {
    "code": "var velx = (posx - lastposx) * 1000 / timedelta;\nvar vely = (posy - lastposy) * 1000 / timedelta;\nvar velz = (posz - lastposz) * 1000 / timedelta;",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "5.1.1 Velocity#2": {
    "code": "var vel = 0.1 * 1000 / 16.67; // 6 meters per second",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "5.1.1 Velocity#3": {
    "code": "var vel = 0.2 * 1000 / 33.33; // 6 meters per second",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -2610,12 +2792,14 @@ const HAXEFMOD_EXAMPLES = {
   },
   "FMOD_STUDIO_COMMAND_INFO": {
    "code": "package haxefmod.studio;\n\ntypedef FmodCommandInfo = {\n    var commandName:String;\n    var parentCommandIndex:Int;\n    var frameNumber:Int;\n    var frameTime:Float;\n    var instanceType:FmodStudioInstanceType;\n    var outputType:FmodStudioInstanceType;\n    var instanceHandle:Int;\n    var outputHandle:Int;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_INSTANCETYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodStudioInstanceType(Int) from Int to Int {\n    var NONE = 0;\n    var SYSTEM = 1;\n    var EVENTDESCRIPTION = 2;\n    var EVENTINSTANCE = 3;\n    var PARAMETERINSTANCE = 4;\n    var BUS = 5;\n    var VCA = 6;\n    var BANK = 7;\n    var COMMANDREPLAY = 8;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -2624,42 +2808,49 @@ const HAXEFMOD_EXAMPLES = {
  "studio-api-common": {
   "FMOD_STUDIO_LOADING_STATE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodLoadingState(Int) from Int to Int {\n    var UNLOADING = 0;\n    var UNLOADED = 1;\n    var LOADING = 2;\n    var LOADED = 3;\n    var ERROR = 4;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_MEMORY_USAGE": {
    "code": "package haxefmod.studio;\n\ntypedef FmodMemoryUsage = {\n    var exclusive:Int;\n    var inclusive:Int;\n    var sampledata:Int;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_PARAMETER_DESCRIPTION": {
    "code": "package haxefmod.studio;\n\ntypedef FmodParameterDescription = {\n    var name:String;\n    var id:FmodParameterId;\n    var minimum:Float;\n    var maximum:Float;\n    var defaultValue:Float;\n    var type:FmodParameterType;\n    var flags:Int;\n    var guid:FmodGuid;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_PARAMETER_FLAGS": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodParameterFlags(Int) from Int to Int {\n    var READONLY = 0x00000001;\n    var AUTOMATIC = 0x00000002;\n    var GLOBAL = 0x00000004;\n    var DISCRETE = 0x00000008;\n    var LABELED = 0x00000010;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_PARAMETER_ID": {
    "code": "package haxefmod.studio;\n\ntypedef FmodParameterId = {\n    var data1:Int;\n    var data2:Int;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_PARAMETER_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodParameterType(Int) from Int to Int {\n    var GAME_CONTROLLED = 0;\n    var AUTOMATIC_DISTANCE = 1;\n    var AUTOMATIC_EVENT_CONE_ANGLE = 2;\n    var AUTOMATIC_EVENT_ORIENTATION = 3;\n    var AUTOMATIC_DIRECTION = 4;\n    var AUTOMATIC_ELEVATION = 5;\n    var AUTOMATIC_LISTENER_ORIENTATION = 6;\n    var AUTOMATIC_SPEED = 7;\n    var AUTOMATIC_SPEED_ABSOLUTE = 8;\n    var AUTOMATIC_DISTANCE_NORMALIZED = 9;\n    var MAX = 10;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_PLAYBACK_STATE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodPlaybackState(Int) from Int to Int {\n    var PLAYING = 0;\n    var SUSTAINING = 1;\n    var STOPPED = 2;\n    var STARTING = 3;\n    var STOPPING = 4;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -2668,12 +2859,14 @@ const HAXEFMOD_EXAMPLES = {
  "studio-api-eventdescription": {
   "FMOD_STUDIO_USER_PROPERTY": {
    "code": "package haxefmod.studio;\n\ntypedef FmodUserProperty = {\n    var name:String;\n    var type:FmodUserPropertyType;\n    var floatValue:Float;\n    var stringValue:String;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_USER_PROPERTY_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodUserPropertyType(Int) from Int to Int {\n    var INTEGER = 0;\n    var BOOLEAN = 1;\n    var FLOAT = 2;\n    var STRING = 3;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -2682,54 +2875,63 @@ const HAXEFMOD_EXAMPLES = {
  "studio-api-eventinstance": {
   "FMOD_STUDIO_EVENT_CALLBACK": {
    "code": "package haxefmod.studio;\n\ntypedef EventCallback = EventCallbackData->Void;",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_EVENT_CALLBACK_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract EventCallbackType(Int) from Int to Int {\n    var CREATED = 0x00000001;\n    var DESTROYED = 0x00000002;\n    var STARTING = 0x00000004;\n    var STARTED = 0x00000008;\n    var RESTARTED = 0x00000010;\n    var STOPPED = 0x00000020;\n    var START_FAILED = 0x00000040;\n    var CREATE_PROGRAMMER_SOUND = 0x00000080;\n    var DESTROY_PROGRAMMER_SOUND = 0x00000100;\n    var PLUGIN_CREATED = 0x00000200;\n    var PLUGIN_DESTROYED = 0x00000400;\n    var TIMELINE_MARKER = 0x00000800;\n    var TIMELINE_BEAT = 0x00001000;\n    var SOUND_PLAYED = 0x00002000;\n    var SOUND_STOPPED = 0x00004000;\n    var REAL_TO_VIRTUAL = 0x00008000;\n    var VIRTUAL_TO_REAL = 0x00010000;\n    var START_EVENT_COMMAND = 0x00020000;\n    var NESTED_TIMELINE_BEAT = 0x00040000;\n    var ALL = 0xFFFFFFFF;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_EVENT_PROPERTY": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodEventProperty(Int) from Int to Int {\n    var CHANNELPRIORITY = 0;\n    var SCHEDULE_DELAY = 1;\n    var SCHEDULE_LOOKAHEAD = 2;\n    var MINIMUM_DISTANCE = 3;\n    var MAXIMUM_DISTANCE = 4;\n    var COOLDOWN = 5;\n    var MAX = 6;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES": {
    "code": "package haxefmod.studio;\n\ntypedef FmodPluginInstanceProperties = {\n    var name:String;\n    var dsp:haxefmod.core.Dsp;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES": {
    "code": "package haxefmod.studio;\n\ntypedef FmodProgrammerSoundProperties = {\n    var name:String;\n    var sound:haxefmod.core.Sound;\n    var subsoundIndex:Int;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_STOP_MODE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodStopMode(Int) from Int to Int {\n    var ALLOWFADEOUT = 0;\n    var IMMEDIATE = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_TIMELINE_BEAT_PROPERTIES": {
    "code": "package haxefmod.studio;\n\ntypedef FmodTimelineBeatProperties = {\n    var bar:Int;\n    var beat:Int;\n    var position:Int;\n    var tempo:Float;\n    var timeSignatureUpper:Int;\n    var timeSignatureLower:Int;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES": {
    "code": "package haxefmod.studio;\n\ntypedef FmodTimelineMarkerProperties = {\n    var name:String;\n    var position:Int;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES": {
    "code": "package haxefmod.studio;\n\ntypedef FmodTimelineNestedBeatProperties = {\n    var eventId:String;\n    var properties:FmodTimelineBeatProperties;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -2738,6 +2940,7 @@ const HAXEFMOD_EXAMPLES = {
  "studio-api-getting-started": {
   "12.1.1 Studio API Initialization": {
    "code": "var result:FmodResult;\n\nFmodManager.Initialize({numChannels: 512}); // Create and initialize the Studio system, which also initializes the Core system\nresult = StudioSystem.lastResult();\nif (result != FmodResult.FMOD_OK)\n{\n    trace('FMOD error! (${(result : Int)}) $result');\n}",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.FmodResult",
    "verdict": "bound"
@@ -2746,90 +2949,105 @@ const HAXEFMOD_EXAMPLES = {
  "studio-api-system": {
   "FMOD_STUDIO_ADVANCEDSETTINGS": {
    "code": "package haxefmod.studio;\n\ntypedef FmodStudioAdvancedSettings = {\n    var commandQueueSize:Int;\n    var handleInitialSize:Int;\n    var studioUpdatePeriod:Int;\n    var idleSampleDataPoolSize:Int;\n    var streamingScheduleDelay:Int;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_BANK_INFO": {
    "code": "package haxefmod.studio;\n\ntypedef FmodStudioBankInfo = {\n    var size:Int;\n    var userData:haxe.io.Bytes;\n    var userDataLength:Int;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_BUFFER_INFO": {
    "code": "package haxefmod.studio;\n\ntypedef FmodBufferInfo = {\n    var currentUsage:Int;\n    var peakUsage:Int;\n    var capacity:Int;\n    var stallCount:Int;\n    var stallTime:Float;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_BUFFER_USAGE": {
    "code": "package haxefmod.studio;\n\ntypedef FmodBufferUsage = {\n    var studioCommandQueue:FmodBufferInfo;\n    var studioHandle:FmodBufferInfo;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_COMMANDCAPTURE_FLAGS": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodCommandCaptureFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var FILEFLUSH = 0x00000001;\n    var SKIP_INITIAL_STATE = 0x00000002;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_COMMANDREPLAY_FLAGS": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodCommandReplayFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var SKIP_CLEANUP = 0x00000001;\n    var FAST_FORWARD = 0x00000002;\n    var SKIP_BANK_LOAD = 0x00000004;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_CPU_USAGE": {
    "code": "package haxefmod.studio;\n\ntypedef FmodSystemCpuUsage = {\n    var studioUpdate:Float;\n    var dsp:Float;\n    var stream:Float;\n    var geometry:Float;\n    var update:Float;\n    var convolution1:Float;\n    var convolution2:Float;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_INITFLAGS": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodStudioInitFlags(Int) from Int to Int {\n    var NORMAL = 0x00000000;\n    var LIVEUPDATE = 0x00000001;\n    var ALLOW_MISSING_PLUGINS = 0x00000002;\n    var SYNCHRONOUS_UPDATE = 0x00000004;\n    var DEFERRED_CALLBACKS = 0x00000008;\n    var LOAD_FROM_UPDATE = 0x00000010;\n    var MEMORY_TRACKING = 0x00000020;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_BANK_FLAGS": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodLoadBankFlags(Int) from Int to Int {\n    var NORMAL = 0;\n    var NONBLOCKING = 1;\n    var DECOMPRESS_SAMPLES = 2;\n    var UNENCRYPTED = 4;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT": {
-   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    public static inline var MAX_CHANNEL_WIDTH = 32;\n    public static inline var MAX_SYSTEMS = 8;\n    public static inline var MAX_LISTENERS = 8;\n    public static inline var REVERB_MAXINSTANCES = 4;\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
+   "code": "package haxefmod.studio;\n\nclass FmodLimits {\n    public static inline var STUDIO_LOAD_MEMORY_ALIGNMENT = 32;\n}",
+   "member": "STUDIO_LOAD_MEMORY_ALIGNMENT",
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_MEMORY_MODE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodLoadMemoryMode(Int) from Int to Int {\n    var MEMORY = 0;\n    var MEMORY_POINT = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_LOAD_MEMORY_MODE#2": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodLoadMemoryMode(Int) from Int to Int {\n    var MEMORY = 0;\n    var MEMORY_POINT = 1;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_SOUND_INFO": {
    "code": "package haxefmod.studio;\n\ntypedef FmodSoundInfo = {\n    var name:String;\n    var mode:Int;\n    var length:Int;\n    var fileOffset:Int;\n    var initialSubsound:Int;\n    var numSubsounds:Int;\n    var subSoundIndex:Int;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_SYSTEM_CALLBACK": {
    "code": "package haxefmod.studio;\n\ntypedef SystemCallback = SystemEvent->Void;",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "FMOD_STUDIO_SYSTEM_CALLBACK_TYPE": {
    "code": "package haxefmod.studio;\n\nenum abstract FmodStudioSystemCallbackType(Int) from Int to Int {\n    var PREUPDATE = 0x00000001;\n    var POSTUPDATE = 0x00000002;\n    var BANK_UNLOAD = 0x00000004;\n    var LIVEUPDATE_CONNECTED = 0x00000008;\n    var LIVEUPDATE_DISCONNECTED = 0x00000010;\n    var ALL = 0xFFFFFFFF;\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -2838,18 +3056,21 @@ const HAXEFMOD_EXAMPLES = {
  "studio-guide": {
   "13.9.1 Scripting Example": {
    "code": "class ProgrammerSoundContext {\n    public var coreSystem:Class<CoreSystem>;\n    public var system:Class<StudioSystem>;\n    public var dialogueString:String;\n    public function new() {}\n}\n\nvar programmerSoundContext = new ProgrammerSoundContext();\nprogrammerSoundContext.system = StudioSystem;\nprogrammerSoundContext.coreSystem = CoreSystem;",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.CoreSystem, haxefmod.studio.StudioSystem",
    "verdict": "bound"
   },
   "13.9.1 Scripting Example#2": {
    "code": "// The library owns the programmer-sound callback and its user data.\nvar result = eventInstance.assignProgrammerSound(key);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "13.9.1 Scripting Example#3": {
    "code": "// Available banks\n// \"Dialogue_EN.bank\", \"Dialogue_JP.bank\", \"Dialogue_CN.bank\"\nvar localizedBank:Bank = StudioSystem.loadBankFile(\"Dialogue_JP.bank\", FmodLoadBankFlags.NORMAL);\neventInstance.assignProgrammerSound(\"welcome\");\neventInstance.start();",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.Bank, haxefmod.studio.Types.FmodLoadBankFlags",
    "verdict": "bound"
@@ -2890,18 +3111,21 @@ const HAXEFMOD_EXAMPLES = {
   },
   "7.2 Plug-in DSP Effects#2": {
    "code": "var handle = StudioSystem.loadPlugin(filename, 0);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "7.2 Plug-in DSP Effects#3": {
    "code": "var result = StudioSystem.setPluginPath(path);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "7.2 Plug-in DSP Effects#4": {
    "code": "// Studio::System::unregisterPlugin stays C side with plug-in registration (see 7.2).\nvar result = StudioSystem.unloadPlugin(handle);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
@@ -2923,79 +3147,92 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "cannot"
   },
   "7.2.4 Multiple plug-ins within one file#2": {
-   "code": "var baseHandle = StudioSystem.loadPlugin(\"plugin_name.dll\");\nif (baseHandle == 0) {\n    trace('loadPlugin failed: ${StudioSystem.lastResult()}');\n}\nvar count = StudioSystem.getNestedPluginCount(baseHandle);\nfor (index in 0...count) {\n    var handle = StudioSystem.getNestedPlugin(baseHandle, index);\n    var info = StudioSystem.getPluginInfo(handle);\n    if (info != null) {\n        var type = info.type;\n        // We have an output plug-in, a DSP plug-in, or a codec plug-in here.\n    }\n}",
+   "code": "var baseHandle = StudioSystem.loadPlugin(\"plugin_name.dll\");\nif (baseHandle == 0) trace(StudioSystem.lastResult());\nvar count = StudioSystem.getNestedPluginCount(baseHandle);\nfor (index in 0...count) {\n    var handle = StudioSystem.getNestedPlugin(baseHandle, index);\n    var type = StudioSystem.getPluginInfo(handle).type;\n    // We have an output plug-in, a DSP plug-in, or a codec plug-in here.\n}",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "Add a DSP effect to a Channel": {
    "code": "var channel = sound.play();\nvar dsp_echo = Dsp.create(DspType.ECHO);\nvar result = channel.addDsp(0, dsp_echo);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Sound, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
   },
   "Add a DSP effect to a Channel#2": {
    "code": "var result = channel.setDspIndex(dsp_echo, 1);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "Add a DSP effect to a Channel#3": {
    "code": "var channelgroup = ChannelGroup.create(\"my channelgroup\");\nvar result = channel.setChannelGroup(channelgroup);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.ChannelGroup",
    "verdict": "bound"
   },
   "Add an effect to the ChannelGroup": {
    "code": "var dsp_lowpass = Dsp.create(DspType.LOWPASS);\nvar result = channelgroup.addDsp(1, dsp_lowpass);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
   },
   "Bypass an effect / disable it.": {
    "code": "var result = dsp_reverb.setBypass(true);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "Controlling mix level and pan matrices for DSPConnections": {
    "code": "var channel = sound.play(true, channelgroup);                                       /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */\nvar channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);                            /* Grab the 'head' unit for the Channel */\nvar dsp_connection = dsp_reverb.addInput(channel_dsp_head);                         /* Manually add a connection from the Channel DSP head to the reverb. */\nvar result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Channel, haxefmod.core.Sound, haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
   },
   "Controlling mix level and pan matrices for DSPConnections#2": {
    "code": "var result = dsp_connection.setMix(0.0);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "Creating an effect and making all Channels send to it.": {
    "code": "var dsp_reverb = Dsp.create(DspType.SFXREVERB);                                     /* Create the reverb DSP */\nvar channelgroup_master = ChannelGroup.master();                                    /* Grab the master ChannelGroup / master bus */\nvar dsp_tail = channelgroup_master.getDsp(ChannelGroup.DSP_TAIL);                  /* Grab the 'tail' unit for the master ChannelGroup.  This is the last DSP unit for the ChannelGroup, in case it has other effects already in it. */\nvar connection = dsp_tail.addInput(dsp_reverb);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
   },
   "Creating an effect and making all Channels send to it.#2": {
    "code": "var result = dsp_reverb.setActive(true);",
+   "member": null,
    "notes": [],
    "type": null,
    "verdict": "bound"
   },
   "Creating an effect and making all Channels send to it.#3": {
    "code": "var channel = sound.play(true, channelgroup);                                       /* Play the sound.  Play it paused so we dont hear the sound play before it is connected to the reverb. */\nvar channel_dsp_head = channel.getDsp(Channel.DSP_HEAD);                            /* Grab the 'head' unit for the Channel */\nvar connection = dsp_reverb.addInput(channel_dsp_head);                             /* Manually add a connection from the Channel DSP head to the reverb. */\nvar result = channel.setPaused(false);                                              /* Unpause the channel and let it be audible. */",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Channel, haxefmod.core.Sound, haxefmod.core.ChannelGroup, haxefmod.core.Dsp, haxefmod.core.DspType",
    "verdict": "bound"
   },
   "Set the output format of a DSP unit, and control the pan matrix for its output signal": {
    "code": "var result = channel_dsp_head.setChannelFormat(0, 0, FmodSpeakerMode.QUAD);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.Types.FmodSpeakerMode",
    "verdict": "bound"
   },
   "Set the output format of a DSP unit, and control the pan matrix for its output signal#2": {
    "code": "var matrix:Array<Float> =\n[   /*                                    FL FR SL SR <- Input signal (columns) */\n    /* row 0 = front left  out    <- */    0, 0, 0, 0,\n    /* row 1 = front right out    <- */    0, 0, 0, 0,\n    /* row 2 = surround left out  <- */    1, 0, 0, 0,\n    /* row 3 = surround right out <- */    0, 1, 0, 0\n];\nvar channel_dsp_head_output_connection = channel_dsp_head.getOutputConnection(0);\nvar result = channel_dsp_head_output_connection.setMixMatrix(matrix, 4, 4);",
+   "member": null,
    "notes": [],
    "type": "haxefmod.core.Channel, haxefmod.core.Dsp",
    "verdict": "bound"
@@ -3004,12 +3241,14 @@ const HAXEFMOD_EXAMPLES = {
  "welcome-whats-new-201": {
   "Thread attributes": {
    "code": "FmodManager.Initialize({threadAttributes: [\n    {type: FmodThreadType.STREAM, stackSize: stackSizeStream},\n    {type: FmodThreadType.NONBLOCKING, stackSize: stackSizeNonBlocking},\n    {type: FmodThreadType.MIXER, stackSize: stackSizeMixer},\n]});",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.Types",
    "verdict": "bound"
   },
   "Thread attributes#2": {
    "code": "FmodManager.Initialize({threadAttributes: [\n    {type: FmodThreadType.MIXER, affinity: FmodThreadAffinity.CORE_5},\n    {type: FmodThreadType.STREAM, affinity: FmodThreadAffinity.CORE_3},\n]});",
+   "member": null,
    "notes": [],
    "type": "haxefmod.studio.Types",
    "verdict": "bound"

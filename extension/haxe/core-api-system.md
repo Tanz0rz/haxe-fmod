@@ -77,7 +77,7 @@ Type: haxefmod.studio.Types.FmodPortType
 
 ## FMOD_REVERB_MAXINSTANCES
 verdict: bound
-Type: haxefmod.studio.Types.FmodLimits
+Type: haxefmod.studio.Types.FmodLimits.REVERB_MAXINSTANCES
 
 ## FMOD_REVERB_PRESETS
 verdict: bound
