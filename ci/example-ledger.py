@@ -181,9 +181,15 @@ def main():
         print(f"stamped {count} entries on {page}")
         return 0
     if "--prune" in args:
+        # A catalog that lost pages to a failed crawl fails the checks, and
+        # a prune then would drop live stamps
+        if not checks_pass():
+            print("prune refused: the catalog checks fail, fix them first")
+            return 1
         live = {f"{page}/{key}" for page, key, _ in rows}
         dropped = [k for k in ledger if k not in live]
         for k in dropped:
+            print(f"  dropping {k}")
             del ledger[k]
         write_ledger(ledger)
         print(f"pruned {len(dropped)} rows")

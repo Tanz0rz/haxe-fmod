@@ -12,8 +12,8 @@ only be dropped by writing the removal down.
 Evidence sources, in order:
   1. Direct call in a test: `<name>(` in tests/*.hx or the shared test
      scenarios, or `fmod_<name>(` in tests/js/*.js. arity-audit.js is
-     EXCLUDED - it invokes every jaxe export mechanically to check
-     arity, which would make this check vacuous.
+     EXCLUDED: it only probes call arity on the instance lifecycle path
+     and proves no behavior.
   2. Wrapper hop: a haxefmod/ method whose body calls
      `NativeStudio.<name>(` counts as exercised when that method's own
      name is called from a test source. Wrapper names shorter than 4

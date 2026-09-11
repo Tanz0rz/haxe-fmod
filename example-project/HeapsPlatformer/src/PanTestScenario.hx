@@ -507,6 +507,11 @@ class PanTestScenario implements TestScenario {
         camera.viewportWidth = savedViewportWidth;
         camera.x = savedX;
         camera.y = savedY;
+        // No scene leaves the listener idle: a tick pushes nothing and
+        // faults nowhere
+        cameraListener.setScene(null);
+        cameraListener.tick(0.5);
+        check("camera_listener_null_scene_idle", true, "");
         cameraListener.dispose();
     }
 

@@ -488,6 +488,11 @@ class PanTestScenario implements TestScenario {
             attributes != null && approx(attributes.velocity.x, 0),
             attributes == null ? "unreadable" : 'velocity=(${attributes.velocity.x})');
         cameraX = 100;
+        // No target leaves the listener idle: a tick pushes nothing and
+        // faults nowhere
+        cameraListener.setTarget(null);
+        cameraListener.tick(0.5);
+        check("camera_listener_null_target_idle", true, "");
         cameraListener.dispose();
     }
 

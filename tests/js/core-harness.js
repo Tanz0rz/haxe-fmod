@@ -36,7 +36,13 @@ function info(label, detail) {
 
 const FMOD = {};
 FMOD['onRuntimeInitialized'] = main;
-FMODModule(FMOD);
+// A module that never calls back would end the process with no check run
+// and exit code 0, so the run fails on its own after a minute
+const watchdog = setTimeout(() => { console.log('CORE_TEST: INIT TIMEOUT'); process.exit(1); }, 60000);
+const bootstrap = FMODModule(FMOD);
+if (bootstrap && typeof bootstrap.catch === 'function') {
+    bootstrap.catch(e => { console.log('CORE_TEST: MODULE REJECTED', e); process.exit(1); });
+}
 
 let gCore = null;
 
@@ -46,6 +52,7 @@ function ok(r, what) {
 }
 
 function main() {
+    clearTimeout(watchdog);
     try {
         const out = {};
         ok(FMOD.Studio_System_Create(out), 'Studio_System_Create');

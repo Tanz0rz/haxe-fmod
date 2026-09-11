@@ -55,12 +55,17 @@ typedef FmodSettings = {
 
     /**
      * Mixer block size in samples (System::setDSPBufferSize). Smaller
-     * buffers cut latency and cost CPU. Default 0 (FMOD's default, 1024 on
-     * desktop, 2048 on the web build).
+     * buffers cut latency and cost CPU. Default 0, which leaves FMOD's
+     * default of 1024 on desktop. The web build then sets 2048, the size
+     * FMOD recommends there.
      */
     @:optional var dspBufferSize:Int;
 
-    /** Number of mixer blocks queued ahead. Default 0 (FMOD's default, 2). */
+    /**
+     * Number of mixer blocks queued ahead. Default 0. That leaves FMOD's
+     * default of 4 on desktop when dspBufferSize is 0 too, and uses 2
+     * blocks otherwise.
+     */
     @:optional var dspNumBuffers:Int;
 
     /**
@@ -208,7 +213,7 @@ typedef FmodSettings = {
     /** Decode buffer size in milliseconds for streams (FMOD_ADVANCEDSETTINGS.defaultDecodeBufferSize). Default 0 (FMOD's default, 400). */
     @:optional var defaultDecodeBufferSize:Int;
 
-    /** TCP port the FMOD profiler listens on (FMOD_ADVANCEDSETTINGS.profilePort). Default 0 (FMOD's default, 9264). */
+    /** TCP port FMOD Studio and the FMOD profiler connect to (FMOD_ADVANCEDSETTINGS.profilePort). Default 0 (FMOD's default, 9264). */
     @:optional var profilePort:Int;
 
     /** Longest geometry occlusion fade in milliseconds (FMOD_ADVANCEDSETTINGS.geometryMaxFadeTime). Default 0 (FMOD's default, 500). */

@@ -96,15 +96,23 @@ def main():
     failures = 0
     with tempfile.TemporaryDirectory(prefix="deprecations-") as workdir:
         stubs = os.path.join(workdir, "kha-stubs")
-        subprocess.run([sys.executable, os.path.join(ROOT, "ci", "check-readme-snippets.py"), "--kha-stubs", stubs],
-                       capture_output=True, text=True, check=True)
+        # KHA_STUBS in a row stands for the Kha stub classpath, which is
+        # generated only when a row asks for it
+        if any("KHA_STUBS" in args for _, _, _, args in ENGINE_DEPRECATED):
+            subprocess.run([sys.executable, os.path.join(ROOT, "ci", "check-readme-snippets.py"), "--kha-stubs", stubs],
+                           capture_output=True, text=True, check=True)
+        def expand(args):
+            out = []
+            for a in args:
+                if a == "KHA_STUBS": out += ["-cp", stubs]
+                else: out.append(a)
+            return out
         entries = [(name, body, message, ["--interp"]) for name, body, message in DEPRECATED]
-        entries += [(name, body, message, [stubs if a == "KHA_STUBS" else a for a in args]) for name, body, message, args in ENGINE_DEPRECATED]
+        entries += [(name, body, message, expand(args)) for name, body, message, args in ENGINE_DEPRECATED]
         for index, (name, body, message, args) in enumerate(entries):
             path = os.path.join(workdir, f"Dep{index}.hx")
             with open(path, "w", encoding="utf-8") as out:
                 out.write(f"class Dep{index} {{ static function main() {{ {body} }} }}\n")
-            # The stubs path already sits in args where KHA_STUBS stood
             result = subprocess.run(
                 ["haxe", "-cp", ROOT, "-cp", workdir, "--no-output", "-main", f"Dep{index}"] + args,
                 capture_output=True, text=True)

@@ -123,6 +123,9 @@ jobs:
       - name: Check the run jobs match their generator
         run: python3 ci/generate-run-jobs.py --check
 
+      - name: Check the extension package manifest
+        run: python3 extension/package.py --check
+
       - name: Check FMOD version literal lockstep
         run: python3 ci/version-lockstep.py
 
@@ -440,7 +443,11 @@ jobs:
       - name: Run Core dynamic-audio prototype against the real wasm
         env:
           FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
-        run: node tests/js/core-harness.js
+        run: |
+          set -o pipefail
+          node tests/js/core-harness.js 2>&1 | tee /tmp/core-harness.log
+          # The exit code alone passes a run where no check ran
+          grep -q "CORE_TEST: COMPLETE" /tmp/core-harness.log
 
   # ===========================================================================
   # API docs (dox) - rendered from the haxefmod package, uploaded as artifact
@@ -1600,12 +1607,16 @@ jobs:
           brew untap aws/tap 2>/dev/null || true
           brew install haxe neko ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
+          # Homebrew ships one Haxe series. A roll to another fails here
+          # rather than switching the macOS compiler in silence.
+          haxe --version | grep -q "^4\.3\." || { echo "FAIL: macOS Haxe $(haxe --version) is off the 4.3 series"; exit 1; }
+          echo "MAC_HAXE_VERSION=$(haxe --version)" >> $GITHUB_ENV
 
       - name: Cache haxelib
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-cpp-${{ runner.os }}-${{ env.MAC_HAXE_VERSION }}
 
       - name: Install Haxe libraries
         run: |
@@ -1706,12 +1717,16 @@ jobs:
           brew untap aws/tap 2>/dev/null || true
           brew install haxe neko hashlink ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
+          # Homebrew ships one Haxe series. A roll to another fails here
+          # rather than switching the macOS compiler in silence.
+          haxe --version | grep -q "^4\.3\." || { echo "FAIL: macOS Haxe $(haxe --version) is off the 4.3 series"; exit 1; }
+          echo "MAC_HAXE_VERSION=$(haxe --version)" >> $GITHUB_ENV
 
       - name: Cache haxelib
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-hl-${{ runner.os }}-${{ env.MAC_HAXE_VERSION }}
 
       - name: Install Haxe libraries
         run: |
@@ -2371,12 +2386,16 @@ jobs:
           brew untap aws/tap 2>/dev/null || true
           brew install haxe neko hashlink ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
+          # Homebrew ships one Haxe series. A roll to another fails here
+          # rather than switching the macOS compiler in silence.
+          haxe --version | grep -q "^4\.3\." || { echo "FAIL: macOS Haxe $(haxe --version) is off the 4.3 series"; exit 1; }
+          echo "MAC_HAXE_VERSION=$(haxe --version)" >> $GITHUB_ENV
 
       - name: Cache haxelib
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-hl-${{ runner.os }}-${{ env.MAC_HAXE_VERSION }}
 
       - name: Install Haxe libraries
         run: |
@@ -3024,6 +3043,10 @@ jobs:
           brew untap aws/tap 2>/dev/null || true
           brew install haxe neko hashlink libuv
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
+          # Homebrew ships one Haxe series. A roll to another fails here
+          # rather than switching the macOS compiler in silence.
+          haxe --version | grep -q "^4\.3\." || { echo "FAIL: macOS Haxe $(haxe --version) is off the 4.3 series"; exit 1; }
+          echo "MAC_HAXE_VERSION=$(haxe --version)" >> $GITHUB_ENV
 
       - name: Install Haxe libraries
         run: |
@@ -3479,6 +3502,10 @@ jobs:
           brew untap aws/tap 2>/dev/null || true
           brew install haxe neko
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
+          # Homebrew ships one Haxe series. A roll to another fails here
+          # rather than switching the macOS compiler in silence.
+          haxe --version | grep -q "^4\.3\." || { echo "FAIL: macOS Haxe $(haxe --version) is off the 4.3 series"; exit 1; }
+          echo "MAC_HAXE_VERSION=$(haxe --version)" >> $GITHUB_ENV
 
       - name: Install Haxe libraries
         run: |
@@ -3553,6 +3580,10 @@ jobs:
           brew untap aws/tap 2>/dev/null || true
           brew install haxe neko
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
+          # Homebrew ships one Haxe series. A roll to another fails here
+          # rather than switching the macOS compiler in silence.
+          haxe --version | grep -q "^4\.3\." || { echo "FAIL: macOS Haxe $(haxe --version) is off the 4.3 series"; exit 1; }
+          echo "MAC_HAXE_VERSION=$(haxe --version)" >> $GITHUB_ENV
 
       - name: Install Haxe libraries
         run: |

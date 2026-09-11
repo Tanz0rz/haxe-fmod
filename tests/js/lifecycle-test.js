@@ -287,6 +287,22 @@ async function main() {
     for (let i = 0; i < bankCount; i++) jaxe.fmod_bank_unload(bankList[i]);
     await pump(3);
 
+    // --- a bank that gets no handle slot is unloaded again, without a throw ---
+    const realAlloc = jaxe.handleAlloc;
+    jaxe.handleAlloc = function () { return 0; };
+    const banksBefore = jaxe.fmod_sys_get_bank_count();
+    const arrayBuf = bankBytes.buffer.slice(bankBytes.byteOffset, bankBytes.byteOffset + bankBytes.length);
+    let fullHandle = -1, fullThrew = null;
+    try { fullHandle = jaxe.fmod_sys_load_bank_memory(arrayBuf, bankBytes.length, 0); } catch (e) { fullThrew = e; }
+    jaxe.handleAlloc = realAlloc;
+    check('full_table_bank_load_reports_memory',
+        fullThrew === null && fullHandle === 0 && jaxe.lastResult === jaxe.ERR_MEMORY,
+        `threw=${fullThrew} handle=${fullHandle} result=${jaxe.lastResult}`);
+    // The unload lands on the next Studio update
+    await pump(3);
+    check('full_table_bank_unloaded_again', jaxe.fmod_sys_get_bank_count() === banksBefore,
+        `banks=${jaxe.fmod_sys_get_bank_count()} before=${banksBefore}`);
+
     const asyncHandle = jaxe.fmod_sys_load_bank_async('assets/fmod/Desktop/Master.bank');
     check('async_reload_handle', asyncHandle > 0, `handle=${asyncHandle}`);
     for (let i = 0; i < 100 && jaxe.fmod_bank_get_loading_state(asyncHandle) === 2; i++) await sleep(20);

@@ -62,7 +62,7 @@ These FMOD features cannot be bound from Haxe. Each one hands FMOD a function po
 
 - **List getters return at most 1024 entries** (banks, events, buses, VCAs, instances, and the other enumerations). A larger result logs a truncation warning with the real total.
 - **Programmer sound keys must be under 512 UTF-8 bytes, and instrument names under 64.** Longer keys or names are rejected with `FMOD_ERR_INVALID_PARAM` on every target. An instance holds at most eight named assignments.
-- **Live Update uses TCP port 9264 and the port is fixed** (the FMOD API has no way to change it). When it is enabled, macOS and Windows show a firewall dialog. It defaults to on in debug builds only.
+- **Live Update uses TCP port 9264 by default.** The `profilePort` setting picks another port. When it is enabled, macOS and Windows show a firewall dialog. It defaults to on in debug builds only.
 - **Numeric arguments pass through to FMOD for validation.** An out-of-range index or count comes back as an FMOD error code from the engine. It is the same code native FMOD reports.
 - **The library owns the system lifecycle.** It initializes FMOD once per process and runs the per-frame update. There is no shutdown or re-init. Init-time engine settings are exposed through `FmodSettings` and compile-time defines.
 - **Generated constants drop non-ASCII characters.** An event name with no ASCII characters at all mangles to `Root`, `Root2`, and so on.

@@ -26,6 +26,6 @@ FmodManager.Initialize({liveUpdate: true});
 
 ## Port and firewall
 
-Live Update opens TCP port 9264. The FMOD API does not allow another port.
+Live Update opens TCP port 9264 by default. The `profilePort` setting picks another port.
 
 The game listens on a local socket. macOS and Windows therefore show a firewall dialog the first time a Live Update build runs. Allow the connection once and the dialog does not return.

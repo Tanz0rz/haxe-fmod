@@ -43,8 +43,8 @@ FmodRuntime.onceReady(() -> {
 | `rawSpeakers` | | 0 | Speaker count for `speakerMode` `RAW`. Every other mode ignores it. |
 | `output` | | `AUTODETECT` | `FmodOutputType` applied before init. `NOSOUND` and `NOSOUND_NRT` mix without a device. `WAVWRITER` writes the mix to a file. The platform values pick a driver. The `FMOD_WAVWRITER` environment variable still forces `WAVWRITER` into the file it names. HTML5 has only `WEBAUDIO`, `AUDIOWORKLET`, `NOSOUND`, and `NOSOUND_NRT`. Any other value there makes init fail with `FMOD_ERR_UNSUPPORTED`. |
 | `resamplerMethod` | | `DEFAULT` | `FmodDspResampler` for sounds that play at another rate than the mixer. `DEFAULT` is FMOD's choice, `LINEAR`. |
-| `dspBufferSize` | `haxefmod_dsp_buffer_size` | 0 | Mixer block size in samples. Smaller buffers cut latency and cost CPU. 0 uses FMOD's default. That default is 1024 on desktop and 2048 on the web build. |
-| `dspNumBuffers` | | 0 | Mixer blocks queued ahead. 0 uses FMOD's default of 2. |
+| `dspBufferSize` | `haxefmod_dsp_buffer_size` | 0 | Mixer block size in samples. Smaller buffers cut latency and cost CPU. 0 leaves FMOD's default of 1024 on desktop. The web build then sets 2048, the size FMOD recommends there. |
+| `dspNumBuffers` | | 0 | Mixer blocks queued ahead. 0 leaves FMOD's default of 4 on desktop when `dspBufferSize` is 0 too. Otherwise 2 blocks are used. |
 | `memoryPoolSize` | | 0 | Bytes of a fixed pool FMOD allocates from instead of the heap. The pool never grows. An exhausted pool fails later calls with `FMOD_ERR_MEMORY`. The size is rounded up to a multiple of 512. Native only. The web build allocates from the wasm heap. |
 | `memoryTracking` | | false | Tracks memory per object. `getMemoryUsage` on `StudioSystem`, `Bus`, and `EventInstance` then reports real numbers. Only the logging FMOD libraries (`libfmodstudioL`) count. The release libraries report zero. Tracking costs a little CPU per allocation. |
 | `threadAttributes` | | `[]` | One `{type, priority, stackSize, affinity}` per FMOD worker thread to change. The library applies them before it creates the system. An unset field keeps FMOD's default for that thread. `affinity` is a 32-bit core mask (`FmodThreadAffinity`). The 64-bit group values stay FMOD's. Native only. The web build has no threads to place. |
@@ -103,7 +103,7 @@ FmodRuntime.onceReady(() -> {
 | `setWindowFocused(focused)` / `isWindowFocused()` | Reports a window focus change. The [engine setup calls](components.md#setup) do this for you. |
 | `setMuteWhenUnfocused(enabled)` / `isMuteWhenUnfocused()` | The focus mute policy. |
 | `setAutoUpdate(enabled)` / `isAutoUpdate()` | The background auto-update. `FmodManager.SetAutoUpdate` and `IsAutoUpdate` call these. |
-| `isFocusMuted()` | Whether the focus mute is holding the master output down right now. |
+| `isFocusMuted()` | Whether the focus state and the policy call for the master output to be muted. |
 | `maxAttachedVelocity()` | The velocity cap applied to attached instances and the engine listeners, 0 for none. |
 | `setDebugLevel(level)` | FMOD's log level on the `logLevel` scale. The level reaches FMOD at once on native targets. On HTML5 the call waits for the module, and the 2.03.12 web package then reports it unsupported (see [Limitations](../limitations.md#html5)). |
 | `initFailed()` | Whether a default bank failed to load or was never provided, or the system refused to initialize. A missing bank leaves the system running without it, so `isInitialized()` turns true too. `FmodManager.InitializeFailed()` reports the same. |

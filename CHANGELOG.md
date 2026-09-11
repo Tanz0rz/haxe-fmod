@@ -68,7 +68,7 @@
 - `FmodManager.GetBus(path)`, `GetVCA(path)`, and `GetEventDescription(path)` return FMOD's own objects for everything beyond the path calls: final volumes, channel groups, event lengths and distances, parameter enumeration, sample data preloading.
 - `FmodManager.SetBusPaused(path, paused)` and `IsBusPaused(path)` are shaped like the mute pair. A pause menu can pause the SFX bus and keep the music bus running.
 - Kha support: the `haxefmod.kha` package (`FmodKhaSetup.init()` one-call setup with per-frame update and application-state muting, `FmodKhaEmitter`, `FmodKhaListener`, `FmodKhaBankLoader`, `FmodKhaParameterTrigger`, `FmodKhaUtilities.PlayOneShotAttached`, all following any object with `x` and `y`) on Kore C++, Kore HL/C, and HTML5. A `kfile.js` at the library root compiles the native binding into Kha's executable when a khafile does `project.addLibrary('haxefmod')`. `example-project/KhaPlatformer` is the working recipe, including the OpenGL backend choice and the stage command for the runtime files.
-- Heaps support: the `haxefmod.heaps` package (`FmodHeapsSetup.init()` one-call setup with per-frame update and focus-driven muting, `FmodHeapsEmitter`, `FmodHeapsListener`, `FmodHeapsBankLoader`, `FmodHeapsParameterTrigger`, `FmodHeapsUtilities.PlayOneShotAttached`) on HashLink and in the browser. `example-project/HeapsPlatformer` is the working recipe: hxml builds, the `stage` command for the runtime files, and a page that script-tags `fmodstudio.js`, `jaxe.js` and the game.
+- Heaps support: the `haxefmod.heaps` package (`FmodHeapsSetup.init()` one-call setup with per-frame update and focus-driven muting, `FmodHeapsEmitter`, `FmodHeapsListener`, `FmodHeapsBankLoader`, `FmodHeapsParameterTrigger`, `FmodHeapsUtilities.PlayOneShotAttached`) on HashLink and in the browser. `example-project/HeapsPlatformer` is the working recipe. It has hxml builds, the `stage` command for the runtime files, and a page script-tagging `fmodstudio.js`, `jaxe.js` and the game.
 - Engine-free component cores in `haxefmod.runtime` (`EmitterTracker`, `ListenerTracker`, `DerivedVelocityProvider`, `ZoneTrigger`, `BankLoadTracker`) for adapting haxefmod to any engine with a position source and a frame hook. The flixel, Heaps, and Kha components are thin wrappers over them.
 - `FmodRuntime.isAttachedProvider(provider)` reports whether an attached instance still follows a position provider.
 - `haxelib run haxefmod stage <platform> <target> <outdir>` copies the FMOD runtime files into any build output directory. Those are the shared libraries, `hlaxe_fmod.hdll`, or the HTML5 engine scripts plus `jaxe.js`. That serves projects that lime does not build (Heaps, Kha, plain hxml). The same SDK, version and hdll checks as the lime postbuild apply. A Linux HashLink bytecode build gets a `run.sh` that launches it through `hl` with the library path set.
@@ -148,10 +148,12 @@
 - The Heaps scene listener sits under the viewport center, with the viewport size, anchor, scale, and rotation applied.
 - The flixel camera listener skips a destroyed camera instead of faulting on its null scroll.
 - Every HTML5 path that cannot seat a handle drops the wrapper it holds.
-- The focus mute retries on every update, so a mute refused during a late init lands once the master group exists.
+- The focus mute retries on every update. A mute refused during a late init lands once the master group exists.
 - `FmodGuid.data1` wraps to the Int range on HTML5 like the native targets.
 - The Kha blob name of a bank path with backslashes is its file name.
-- `setTarget(null)` and `setScene(null)` on the Heaps and Kha listeners leave the listener idle.
+- `setTarget(null)` on the Heaps and Kha listeners, and `setScene(null)` on the Heaps one, leave the listener idle.
+- A direct `FlxG.sound.muted` assignment reaches the FMOD master bus on the next frame. Only the signal path did before.
+- A dead HTML5 instance found by the list lookup takes its cached channel group handle along.
 - `ChannelGroup.getParentGroup` on the master group and `Channel.getCurrentSound` on a channel from `playDSP` report no object on HTML5. They minted a handle around a null pointer before.
 - The HTML5 shim drops the wrappers it reads for their pointers only. That covers a bank unload, the callback uninstall, the sub sound parent lookups, and a released `PcmStream`.
 - A null string argument on HashLink reaches the shim as an empty one, which FMOD refuses with an error. It faulted in the string conversion before.

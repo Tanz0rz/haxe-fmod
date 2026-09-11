@@ -336,7 +336,7 @@ HTML5 initializes asynchronously. The preloaders above cover that, so the first 
 
     `linux` is the Kore C++ target. `linux-hl` builds the same game as HashLink instead, and Kore compiles it to a native executable. For the HashLink targets, set `HAXEFMOD_KHA_HL=1` in the environment before khamake. The library then compiles its HashLink binding into the executable instead of the C++ one. On the other platforms the khamake targets are `osx`/`osx-hl` and `windows`/`windows-hl`. Pass the platform name to the [stage command](guides/tools-cli.md#stage).
 
-    The stage target is `cpp` for every native Kha build, the HashLink ones included. The binding is inside the executable either way, so no hdll or VM is involved. Only the FMOD libraries need staging. Copy your banks to `assets/fmod/Desktop` next to the executable and start it through the `run.sh` the stage command wrote there.
+    The stage target is `cpp` for every native Kha build, the HashLink ones included. The binding is inside the executable either way, so no hdll or VM is involved. Only the FMOD libraries need staging. Copy your banks to `assets/fmod/Desktop` next to the executable. On Linux start it through the `run.sh` the stage command wrote there. On macOS and Windows the libraries resolve next to the executable, so start it directly.
 
     You hear your event as soon as the window opens. A silent run with a clean build points at missing banks. The console output names the failing path when `FmodManager.EnableDebugMessages()` is on.
 

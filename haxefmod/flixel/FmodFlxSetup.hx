@@ -34,6 +34,11 @@ class FmodFlxSetup {
     #if FLX_SOUND_SYSTEM
     static var volumeHandler:Float->Void = _ -> applyVolume();
     static var readyHandler:Void->Void = () -> applyVolume();
+    // FlxG.sound.muted is a plain field with no signal, so a direct
+    // assignment is picked up once per frame instead
+    static var syncHandler:Void->Void = () -> syncVolume();
+    static var lastVolume:Float = -1;
+    static var lastMuted:Null<Bool> = null;
     #end
 
     static var focusGainedHandler:Void->Void = () -> FmodRuntime.setWindowFocused(true);
@@ -60,6 +65,7 @@ class FmodFlxSetup {
         #end
         // add() keeps exactly one wiring across repeated init calls
         FlxG.sound.onVolumeChange.add(volumeHandler);
+        FlxG.signals.postUpdate.add(syncHandler);
         applyVolume();
         // HTML5 initializes asynchronously, so the volume and mute applied
         // above can land before the master bus exists. Replaying once ready
@@ -73,8 +79,16 @@ class FmodFlxSetup {
     // dispatched value. Mute then maps to the bus mute flag, and the
     // volume survives a mute/unmute round trip.
     static function applyVolume():Void {
-        FmodManager.SetMasterVolume(FlxG.sound.volume);
-        FmodManager.SetMasterMute(FlxG.sound.muted);
+        lastVolume = FlxG.sound.volume;
+        lastMuted = FlxG.sound.muted;
+        FmodManager.SetMasterVolume(lastVolume);
+        FmodManager.SetMasterMute(lastMuted);
+    }
+
+    // One comparison per frame, and the two calls only on a change
+    static function syncVolume():Void {
+        if (FlxG.sound.volume == lastVolume && FlxG.sound.muted == lastMuted) return;
+        applyVolume();
     }
     #end
 }

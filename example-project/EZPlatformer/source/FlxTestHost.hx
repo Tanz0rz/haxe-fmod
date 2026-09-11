@@ -126,6 +126,13 @@ class FlxTestHost implements TestHost {
             'value=${FmodManager.GetMasterVolume()}');
         FlxG.sound.toggleMuted();
         check("flx_bridge_mute_cleared", !FmodManager.IsMasterMuted(), "");
+        // The muted field has no signal, so the setup polls it each frame
+        FlxG.sound.muted = true;
+        FlxG.signals.postUpdate.dispatch();
+        check("flx_bridge_mute_field", FmodManager.IsMasterMuted(), "");
+        FlxG.sound.muted = false;
+        FlxG.signals.postUpdate.dispatch();
+        check("flx_bridge_mute_field_cleared", !FmodManager.IsMasterMuted(), "");
         FlxG.sound.volume = 1.0;
         check("flx_bridge_volume_restored", Math.abs(FmodManager.GetMasterVolume() - 1.0) < 0.001,
             'value=${FmodManager.GetMasterVolume()}');

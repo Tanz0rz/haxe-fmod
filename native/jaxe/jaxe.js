@@ -110,6 +110,8 @@ class jaxe {
                 // FMOD can hand a recycled address to a new object after an
                 // unload. A match on a dead cached wrapper must not alias it.
                 if (!jaxe.lookupSlotUsable(s)) {
+                    // A dead instance takes its cached group handle along
+                    if (s.type == jaxe.TYPE_EVI) jaxe.freeInstanceGroup((s.gen << 16) | i);
                     jaxe.handleFree((s.gen << 16) | i);
                     continue;
                 }
@@ -1786,6 +1788,7 @@ class jaxe {
         var eviHandle = jaxe.handleAlloc(instance.val, jaxe.TYPE_EVI);
         if (eviHandle == 0) {
             instance.val.release();
+            jaxe.dropWrapper(instance.val);
             jaxe.lastResult = jaxe.ERR_MEMORY;
             return 0;
         }
@@ -4410,8 +4413,11 @@ class jaxe {
     // No slot means no way to ever unload the bank, so it goes back out,
     // like the native shims do
     static bankHandleOrUnload(bank) {
-        var h = jaxe.handleOrMemory(bank, jaxe.TYPE_BANK);
-        if (h === 0) {
+        // The unload needs the live wrapper, so the drop comes after it
+        // rather than through handleOrMemory
+        var h = jaxe.handleFindOrAlloc(bank, jaxe.TYPE_BANK);
+        if (h === 0 && bank) {
+            jaxe.lastResult = jaxe.ERR_MEMORY;
             bank.unload();
             jaxe.dropWrapper(bank);
         }
