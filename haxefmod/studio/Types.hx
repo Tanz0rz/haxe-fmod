@@ -151,7 +151,9 @@ abstract FmodGuid(String) from String to String {
     function readHex(start:Int, count:Int):Int {
         var digits = hexDigits(this);
         if (digits == null) return 0;
-        return Std.parseInt("0x" + digits.substr(start, count));
+        // JS parses past the Int range, so the first group wraps like the
+        // native targets do
+        return Std.parseInt("0x" + digits.substr(start, count)) | 0;
     }
 
     /** The 32 hex digits in lower case, or null when the text is not a GUID. */

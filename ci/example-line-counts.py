@@ -71,7 +71,7 @@ def counted_lines(code):
     layout rather than information. A line holding only a C# attribute
     ([Flags], [StructLayout]) is metadata Haxe has no spelling for. The
     package line a declaration shows (with the blank under it) is the
-    tab's own header rather than part of the snippet, so it stays out."""
+    tab's own header rather than part of the snippet. It stays out."""
     lines = code.rstrip("\n").split("\n") if code.strip() else []
     if lines and lines[0].startswith("package "):
         lines = lines[1:]

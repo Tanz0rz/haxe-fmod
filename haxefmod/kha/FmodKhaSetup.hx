@@ -99,6 +99,8 @@ class FmodKhaSetup {
     /** The Kha asset name of a bank file: khamake turns dots, dashes, spaces, and slashes into underscores. **/
     public static function blobName(fileName:String):String {
         var slash = fileName.lastIndexOf("/");
+        var back = fileName.lastIndexOf("\\");
+        if (back > slash) slash = back;
         var name = slash >= 0 ? fileName.substr(slash + 1) : fileName;
         name = ~/[-@ .\/\\]/g.replace(name, "_");
         return ~/^[0-9]/.match(name) ? "_" + name : name;

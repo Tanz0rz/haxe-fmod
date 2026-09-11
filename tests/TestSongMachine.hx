@@ -39,6 +39,11 @@ class TestSongMachine {
 			testPauseUnpause();
 			testCreateFailureLeavesMachineUsable();
 			testOnceDestroyedUnwanted();
+			testSnapshotStartsFresh();
+			testSnapshotRestartsFadingInstance();
+			testSnapshotLeavesPlayingInstance();
+			testSnapshotActiveIgnoresStopped();
+			testStopAllClearsQueuedSnapshotStop();
 		} catch (e:haxe.Exception) {
 			failed++;
 			Sys.println('  FAIL: unexpected exception: ${e.message}');
@@ -47,6 +52,7 @@ class TestSongMachine {
 		NativeStudioStub.testSyntheticHandles = false;
 		NativeStudioStub.testPlaybackStateQueue = [];
 		NativeStudioStub.testPlaybackState = 2;
+		NativeStudioStub.testInstanceList = [];
 		CallbackDispatcher.clearAll();
 
 		Sys.println('  $passed passed, $failed failed');
@@ -196,6 +202,69 @@ class TestSongMachine {
 		CallbackDispatcher.deliver(handleA, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("stop all cancels the pending transition",
 			FmodManager.GetCurrentSongPath() == "event:/A");
+	}
+
+	// A snapshot with no instance listed gets a fresh one, and one whose
+	// only instance stopped and awaits its release gets a fresh one too
+	static function testSnapshotStartsFresh() {
+		NativeStudioStub.testInstanceList = [];
+		var starts = NativeStudioStub.testStartCalls;
+		var creates = NativeStudioStub.testCreateInstanceCalls;
+		FmodManager.StartSnapshot("snapshot:/Fresh");
+		assert("an unlisted snapshot starts a fresh instance",
+			NativeStudioStub.testStartCalls == starts + 1 && NativeStudioStub.testCreateInstanceCalls == creates + 1);
+		NativeStudioStub.testInstanceList = [0x7001];
+		NativeStudioStub.testPlaybackStateQueue = [2]; // STOPPED, awaiting release
+		starts = NativeStudioStub.testStartCalls;
+		creates = NativeStudioStub.testCreateInstanceCalls;
+		FmodManager.StartSnapshot("snapshot:/Fresh");
+		assert("a stopped listed instance is replaced by a fresh one",
+			NativeStudioStub.testStartCalls == starts + 1 && NativeStudioStub.testCreateInstanceCalls == creates + 1);
+	}
+
+	static function testSnapshotRestartsFadingInstance() {
+		NativeStudioStub.testInstanceList = [0x7002];
+		NativeStudioStub.testPlaybackStateQueue = [4]; // STOPPING
+		var starts = NativeStudioStub.testStartCalls;
+		var creates = NativeStudioStub.testCreateInstanceCalls;
+		FmodManager.StartSnapshot("snapshot:/Fade");
+		assert("a fading instance restarts in place",
+			NativeStudioStub.testStartCalls == starts + 1 && NativeStudioStub.testCreateInstanceCalls == creates);
+	}
+
+	static function testSnapshotLeavesPlayingInstance() {
+		NativeStudioStub.testInstanceList = [0x7003];
+		NativeStudioStub.testPlaybackStateQueue = [0]; // PLAYING
+		var starts = NativeStudioStub.testStartCalls;
+		var creates = NativeStudioStub.testCreateInstanceCalls;
+		FmodManager.StartSnapshot("snapshot:/Playing");
+		assert("an applied snapshot is left alone",
+			NativeStudioStub.testStartCalls == starts && NativeStudioStub.testCreateInstanceCalls == creates);
+	}
+
+	static function testSnapshotActiveIgnoresStopped() {
+		NativeStudioStub.testInstanceList = [0x7004];
+		NativeStudioStub.testPlaybackStateQueue = [2];
+		assert("a stopped instance awaiting release is not active", !FmodManager.IsSnapshotActive("snapshot:/Active"));
+		NativeStudioStub.testPlaybackStateQueue = [4];
+		assert("a fading instance is still active", FmodManager.IsSnapshotActive("snapshot:/Active"));
+		NativeStudioStub.testInstanceList = [];
+		assert("no instance is not active", !FmodManager.IsSnapshotActive("snapshot:/Active"));
+	}
+
+	// StopAllEvents ends the snapshot instances too, so the queued stop
+	// must not make the next start restart a dead instance
+	static function testStopAllClearsQueuedSnapshotStop() {
+		NativeStudioStub.testInstanceList = [0x7005];
+		FmodManager.StopSnapshot("snapshot:/Queued");
+		FmodManager.StopAllEvents();
+		NativeStudioStub.testPlaybackStateQueue = [2];
+		var starts = NativeStudioStub.testStartCalls;
+		var creates = NativeStudioStub.testCreateInstanceCalls;
+		FmodManager.StartSnapshot("snapshot:/Queued");
+		assert("after StopAllEvents a fresh instance is made",
+			NativeStudioStub.testStartCalls == starts + 1 && NativeStudioStub.testCreateInstanceCalls == creates + 1);
+		NativeStudioStub.testInstanceList = [];
 	}
 
 	static function testSameSongTransitionSupersedes() {

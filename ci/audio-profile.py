@@ -127,10 +127,12 @@ def read_wav(path):
             if chunk_id == b"fmt " and size >= 16:
                 _, fmt_channels, fmt_rate, _, _, fmt_bits = struct.unpack(
                     "<HHIIHH", data[pos + 8:pos + 24])
-                # A zero channel count is the Windows WAVWRITER header bug, so
-                # the CI-format defaults stay in that case
+                # A zero channel count is the Windows WAVWRITER header bug.
+                # The rate and the bit depth next to it are intact, so only
+                # the channel count keeps the CI-format default.
+                rate, bits = fmt_rate, fmt_bits
                 if fmt_channels > 0:
-                    channels, rate, bits = fmt_channels, fmt_rate, fmt_bits
+                    channels = fmt_channels
             elif chunk_id == b"data":
                 # size 0 = unfinalized WAVWRITER header. data runs to EOF
                 pcm = data[pos + 8:pos + 8 + size] if size > 0 else data[pos + 8:]
@@ -395,9 +397,11 @@ def main():
             lead, options["max_lead"]))
     live_channels = sum(1 for value in channel_active
                         if value >= options["min_active"] / 2)
-    if live_channels < min(options["min_channels"], channels):
-        failures.append("only {} of {} channels carry signal".format(
-            live_channels, channels))
+    # A recording with fewer channels than required fails outright: a mono
+    # file is the downmix bug this gate exists for
+    if channels < options["min_channels"] or live_channels < options["min_channels"]:
+        failures.append("only {} of {} channels carry signal (need {})".format(
+            live_channels, channels, options["min_channels"]))
     if clip_window_count >= CLIP_WINDOWS:
         failures.append("sustained clipping in {} windows".format(clip_window_count))
 

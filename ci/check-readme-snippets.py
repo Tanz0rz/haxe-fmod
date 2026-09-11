@@ -231,8 +231,8 @@ def split_snippet(code):
     included) moves to the file header. Class and typedef declarations at
     column zero become extra types of the module. A body that starts with
     a function definition compiles as class members, with any bare field
-    declarations ahead of it, everything else as statements (local
-    functions are legal inside them)."""
+    declarations ahead of it. Everything else compiles as statements,
+    and local functions are legal inside them."""
     header = []
     rest = []
     types = []

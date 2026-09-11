@@ -550,6 +550,9 @@ class FmodRuntime {
             #end
         }
         dispatchPending();
+        // A mute FMOD refused (no master group handle yet) is retried here.
+        // The call returns at once while the applied state matches.
+        applyFocusMute();
         // Manual mode ticks FMOD here on every backend. On HTML5 the shim's
         // timer is the only other caller, and it is off in manual mode.
         if (resolved == null || !resolved.autoUpdate) NativeStudio.sys_update();
@@ -592,7 +595,7 @@ class FmodRuntime {
         applyFocusMute();
     }
 
-    /** True when the master output is currently muted because of lost focus. */
+    /** True when the focus state and the policy call for the master output to be muted. */
     public static function isFocusMuted():Bool {
         return muteWhenUnfocused && !focused;
     }

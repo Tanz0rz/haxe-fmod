@@ -104,10 +104,9 @@ def main():
             path = os.path.join(workdir, f"Dep{index}.hx")
             with open(path, "w", encoding="utf-8") as out:
                 out.write(f"class Dep{index} {{ static function main() {{ {body} }} }}\n")
-            extra = ["-cp", stubs] if stubs in args else []
-            args = [a for a in args if a != stubs]
+            # The stubs path already sits in args where KHA_STUBS stood
             result = subprocess.run(
-                ["haxe", "-cp", ROOT, "-cp", workdir, "--no-output", "-main", f"Dep{index}"] + extra + args,
+                ["haxe", "-cp", ROOT, "-cp", workdir, "--no-output", "-main", f"Dep{index}"] + args,
                 capture_output=True, text=True)
             output = result.stdout + result.stderr
             if result.returncode != 0:

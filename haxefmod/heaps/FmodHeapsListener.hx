@@ -51,14 +51,15 @@ class FmodHeapsListener implements IHeapsTicker {
     /** Follows the center of the object's bounds. **/
     public function setTarget(target:Object):Void {
         scene = null;
-        provider = new H2dObjectPositionProvider(target);
+        // No target leaves the listener idle, like the constructor does
+        provider = target == null ? null : new H2dObjectPositionProvider(target);
         tracker.provider = provider;
     }
 
     /** Follows the center of the scene's camera view. **/
     public function setScene(scene:Scene):Void {
         this.scene = scene;
-        provider = new DerivedVelocityProvider(viewCenterX, viewCenterY, 0);
+        provider = scene == null ? null : new DerivedVelocityProvider(viewCenterX, viewCenterY, 0);
         tracker.provider = provider;
     }
 

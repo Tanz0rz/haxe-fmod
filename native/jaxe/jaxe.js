@@ -127,7 +127,11 @@ class jaxe {
     // lincHandleOrMemory.
     static handleOrMemory(ptr, type) {
         var h = jaxe.handleFindOrAlloc(ptr, type);
-        if (h === 0 && ptr) jaxe.lastResult = jaxe.ERR_MEMORY;
+        if (h === 0 && ptr) {
+            // No slot references the wrapper, so it goes with the failure
+            jaxe.lastResult = jaxe.ERR_MEMORY;
+            jaxe.dropWrapper(ptr);
+        }
         return h;
     }
 
@@ -2389,6 +2393,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             soundOut.val.release();
+            jaxe.dropWrapper(soundOut.val);
             return 0;
         }
         return handle;
@@ -2417,6 +2422,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
+            jaxe.dropWrapper(out.val);
             return 0;
         }
         return handle;
@@ -2481,6 +2487,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             soundOut.val.release();
+            jaxe.dropWrapper(soundOut.val);
             return 0;
         }
         return handle;
@@ -2507,6 +2514,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
+            jaxe.dropWrapper(out.val);
             return 0;
         }
         return handle;
@@ -2618,6 +2626,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             soundOut.val.release();
+            jaxe.dropWrapper(soundOut.val);
             return 0;
         }
         return handle;
@@ -2656,6 +2665,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             soundOut.val.release();
+            jaxe.dropWrapper(soundOut.val);
             return 0;
         }
         return handle;
@@ -2707,6 +2717,7 @@ class jaxe {
         if (ch == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             chOut.val.stop();
+            jaxe.dropWrapper(chOut.val);
             return 0;
         }
         return ch;
@@ -2821,6 +2832,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
+            jaxe.dropWrapper(out.val);
             return 0;
         }
         return handle;
@@ -2999,6 +3011,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
+            jaxe.dropWrapper(out.val);
             return 0;
         }
         return handle;
@@ -3243,6 +3256,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.stop();
+            jaxe.dropWrapper(out.val);
             return 0;
         }
         return handle;
@@ -3616,6 +3630,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
+            jaxe.dropWrapper(out.val);
             return 0;
         }
         return handle;
@@ -3689,6 +3704,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
+            jaxe.dropWrapper(out.val);
             return 0;
         }
         return handle;
@@ -3706,6 +3722,7 @@ class jaxe {
         if (chHandle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.stop();
+            jaxe.dropWrapper(out.val);
             return 0;
         }
         return chHandle;
@@ -4118,6 +4135,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
+            jaxe.dropWrapper(out.val);
             return 0;
         }
         return handle;
@@ -4447,6 +4465,7 @@ class jaxe {
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
             out.val.release();
+            jaxe.dropWrapper(out.val);
             return 0;
         }
         return handle;

@@ -305,6 +305,15 @@ else:
     total = sum(len(v) for v in REQUIRED_STEPS.values())
     ok(f"all {total} required test steps present across {len(REQUIRED_STEPS)} jobs")
 
+# 6a. The required step table names every job and no other, so a new job
+# cannot ship without its probe steps listed
+uncovered = sorted(set(jobs) - set(REQUIRED_STEPS))
+orphaned = sorted(set(REQUIRED_STEPS) - set(jobs))
+if uncovered or orphaned:
+    fail(f"REQUIRED_STEPS out of sync: uncovered {uncovered}, orphaned {orphaned}")
+else:
+    ok("REQUIRED_STEPS names every job")
+
 # 7. Every Node harness in tests/js/ is wired into the workflow
 js_dir = os.path.join(ROOT, "tests", "js")
 unwired = []

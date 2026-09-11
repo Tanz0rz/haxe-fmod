@@ -11,9 +11,10 @@ else in the file, stay hand-written.
     python3 ci/generate-run-jobs.py          rewrites the region in place
     python3 ci/generate-run-jobs.py --check  fails when the region is stale
 
-A job's legs: game-audio (the plain game, recorded), volume (the volume
-and mute flow), the six log-gated states, stress-test (native only) and
-api-probe-manual where a <job>-build-manual job exists.
+A job's legs are game-audio (the plain game, recorded), volume (the
+volume and mute flow), and the six log-gated states. Native jobs add
+stress-test, and api-probe-manual exists where a <job>-build-manual
+job does.
 """
 import os
 import re

@@ -39,7 +39,7 @@ The web build runs on FMOD's Emscripten runtime, which differs from the native e
   - `CoreSystem.getDspInfoByType`, `Dsp.getParameterInfo`, `Dsp.getLoudnessMeterInfo`, `Dsp.getLoudnessMeterWeighting`, `Dsp.getPluginInfo`, and `Dsp.addInputPreallocated`
   - `Sound.lock` and `Sound.unlock`
   - `CoreSystem.setDiskBusy` and `getDiskBusy`, and `Bus.getPortIndex` and `setPortIndex`
-  - `getCpuUsage` and `getMemoryUsage` on `Bus`, `EventInstance`, and `StudioSystem`
+  - `getCpuUsage` and `getMemoryUsage` on `Bus` and `EventInstance`, and `StudioSystem.getMemoryUsage`
 - **Advanced settings readback is native only.** `StudioSystem.getAdvancedSettings` and `getStudioAdvancedSettings` return `null` (unsupported in HTML5). The web build rejects the getter. The settings themselves apply there through `FmodSettings`.
 - **Plugin loading is native only.** `StudioSystem.loadPlugin` loads a plugin shared library and returns FMOD's plugin handle (unsupported in HTML5). It returns `0` there with `FMOD_ERR_UNSUPPORTED` in `lastResult()`. `setPluginPath` and `unloadPlugin` return `FMOD_ERR_UNSUPPORTED`. The count and handle queries return `-1` and `0`, the info queries return `null`, and `Dsp.createByPlugin` returns `Dsp.NULL`. The web build has no plugin host. Every built-in DSP type works everywhere.
 - **Sample readback is native only.** `Sound.readData` decodes PCM out of a sound opened with the `openOnly` flag (unsupported in HTML5). With the opt-out it returns `-68` there, the negated `FMOD_ERR_UNSUPPORTED` code. `seekData` returns `FMOD_ERR_UNSUPPORTED`. A game that needs waveform data in the browser keeps its own copy of the PCM. That is the data it feeds through `PcmStream` or `Sound.fromPcm`.

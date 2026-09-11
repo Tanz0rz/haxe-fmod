@@ -9,7 +9,7 @@ declares for it:
 
 A line is the FMOD name and a Haxe type path. Or it is the FMOD name,
 the word `cannot`, and the reason the type cannot exist on the Haxe
-side. That reason is one of two: the type is only ever touched on
+side. That reason is one of two. The type is only ever touched on
 FMOD's threads, or it belongs to a platform the library does not ship
 for. Every other FMOD type has a Haxe
 declaration, the same fields and values under the same names. The

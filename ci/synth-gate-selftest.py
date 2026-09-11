@@ -37,7 +37,7 @@ def tone(freq, seconds, freq2=0, fade_to=None, gain=1.0):
     return out
 
 
-def write_wav(path, segments):
+def write_wav(path, segments, channels=CHANNELS):
     samples = []
     for seg in segments:
         samples.extend(tone(seg[0], seg[1],
@@ -45,12 +45,12 @@ def write_wav(path, segments):
                             seg[3] if len(seg) > 3 else None,
                             seg[4] if len(seg) > 4 else 1.0))
     frames = len(samples)
-    data = struct.pack("<{}h".format(frames * CHANNELS),
-                       *[s for s in samples for _ in range(CHANNELS)])
+    data = struct.pack("<{}h".format(frames * channels),
+                       *[s for s in samples for _ in range(channels)])
     with open(path, "wb") as handle:
         handle.write(b"RIFF" + struct.pack("<I", 36 + len(data)) + b"WAVE")
-        handle.write(b"fmt " + struct.pack("<IHHIIHH", 16, 1, CHANNELS, RATE,
-                                           RATE * CHANNELS * 2, CHANNELS * 2, 16))
+        handle.write(b"fmt " + struct.pack("<IHHIIHH", 16, 1, channels, RATE,
+                                           RATE * channels * 2, channels * 2, 16))
         handle.write(b"data" + struct.pack("<I", len(data)) + data)
 
 
@@ -76,9 +76,11 @@ TAIL = [(0, 0.3), D3_NEAR, (0, 0.3), D3_FAR]
 
 CASES = [
     # (name, segments as (freq, seconds[, freq2[, fade_to[, gain]]]) with
-    #  freq 0 = silence, must_pass)
+    #  freq 0 = silence, must_pass[, channels])
     ("correct sequence",
      LEAD + MID + [FADE] + TAIL + [(0, 0.5)], True),
+    ("correct sequence recorded mono (a downmix bug)",
+     LEAD + MID + [FADE] + TAIL + [(0, 0.5)], False, 1),
     ("correct with boundary slack",
      [(0, 3.0), (440, 3.5), (0, 1.5), (880, 3.5), (0, 1.5), (1320, 1.5), (0, 1.5),
       DUAL_RAW, (0, 1.5), DUAL_FILTERED, (0, 1.5), FADE, (0, 1.5), D3_NEAR,
@@ -126,9 +128,10 @@ CASES = [
 def main():
     failures = 0
     with tempfile.TemporaryDirectory() as tmp:
-        for index, (name, segments, must_pass) in enumerate(CASES):
+        for index, case in enumerate(CASES):
+            name, segments, must_pass = case[0], case[1], case[2]
             path = os.path.join(tmp, "case{}.wav".format(index))
-            write_wav(path, segments)
+            write_wav(path, segments, case[3] if len(case) > 3 else CHANNELS)
             code, output = run_gate(path)
             ok = (code == 0) == must_pass
             print("SELFTEST: {} -> exit {} (expected {}) {}".format(

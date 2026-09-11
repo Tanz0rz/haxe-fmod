@@ -51,7 +51,8 @@ class FmodKhaListener implements IKhaTicker {
 
     /** Follows the body's midpoint. **/
     public function setTarget(target:KhaBody):Void {
-        provider = new KhaBodyPositionProvider(target, effectiveTeleportDistance());
+        // No target leaves the listener idle, like the constructor does
+        provider = target == null ? null : new KhaBodyPositionProvider(target, effectiveTeleportDistance());
         tracker.provider = provider;
     }
 

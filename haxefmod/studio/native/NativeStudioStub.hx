@@ -178,10 +178,20 @@ class NativeStudioStub {
     public static function evd_is_3d(handle:Int):Bool return false;
     public static function evd_is_doppler_enabled(handle:Int):Bool return false;
     public static function evd_has_sustain_point(handle:Int):Bool return false;
-    public static function evd_create_instance(handle:Int):Int
+    public static var testCreateInstanceCalls:Int = 0;
+    public static function evd_create_instance(handle:Int):Int {
+        testCreateInstanceCalls++;
         return testSyntheticHandles ? ++testNextHandle : 0;
-    public static function evd_get_instance_count(handle:Int):Int return 0;
-    public static function evd_get_instance_list(handle:Int):Int return 0;
+    }
+    // The instances every description lists, for the snapshot tests
+    public static var testInstanceList:Array<Int> = [];
+    public static function evd_get_instance_count(handle:Int):Int
+        return testSyntheticHandles ? testInstanceList.length : 0;
+    public static function evd_get_instance_list(handle:Int):Int {
+        if (!testSyntheticHandles) return 0;
+        for (i in 0...testInstanceList.length) haxefmod.studio.native.Scratch.writeI(i, testInstanceList[i]);
+        return testInstanceList.length;
+    }
     public static function evd_release_all_instances(handle:Int):Int return ERR_UNSUPPORTED;
     public static function evd_load_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
     public static function evd_unload_sample_data(handle:Int):Int return ERR_UNSUPPORTED;

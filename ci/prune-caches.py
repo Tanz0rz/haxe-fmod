@@ -8,8 +8,8 @@ needs. Two things fill it here:
   - Branch caches outlive their branch. Every branch that runs the full
     workflow copies the whole haxelib set (about 3.3GB), and deleting the
     branch does not delete its caches.
-  - The hxcpp keys carry the commit sha so each run gets a fresh entry
-    (that is what keeps them from going stale), which leaves one set per
+  - The hxcpp keys carry the commit sha so each run gets a fresh entry.
+    That is what keeps them from going stale, and it leaves one set per
     commit behind at roughly 100MB a commit.
 
 So this removes caches whose branch is gone, caches left by tag runs,

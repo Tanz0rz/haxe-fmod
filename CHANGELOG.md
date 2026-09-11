@@ -147,6 +147,11 @@
 - The Heaps position of an object without drawable extent is its scene position. It was the local position before.
 - The Heaps scene listener sits under the viewport center, with the viewport size, anchor, scale, and rotation applied.
 - The flixel camera listener skips a destroyed camera instead of faulting on its null scroll.
+- Every HTML5 path that cannot seat a handle drops the wrapper it holds.
+- The focus mute retries on every update, so a mute refused during a late init lands once the master group exists.
+- `FmodGuid.data1` wraps to the Int range on HTML5 like the native targets.
+- The Kha blob name of a bank path with backslashes is its file name.
+- `setTarget(null)` and `setScene(null)` on the Heaps and Kha listeners leave the listener idle.
 - `ChannelGroup.getParentGroup` on the master group and `Channel.getCurrentSound` on a channel from `playDSP` report no object on HTML5. They minted a handle around a null pointer before.
 - The HTML5 shim drops the wrappers it reads for their pointers only. That covers a bank unload, the callback uninstall, the sub sound parent lookups, and a released `PcmStream`.
 - A null string argument on HashLink reaches the shim as an empty one, which FMOD refuses with an error. It faulted in the string conversion before.
