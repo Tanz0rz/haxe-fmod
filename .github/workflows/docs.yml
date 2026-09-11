@@ -111,17 +111,16 @@ jobs:
       - name: Build the site
         run: |
           # The edit link points at the branch this build came from
-          DOCS_EDIT_URI="edit/${GITHUB_REF_NAME}/docs/" DOCS_BRANCH="${GITHUB_REF_NAME}" DOCS_ANALYTICS=custom mkdocs build --strict
+          DOCS_EDIT_URI="edit/${GITHUB_REF_NAME}/docs/" DOCS_BRANCH="${GITHUB_REF_NAME}" mkdocs build --strict
           # The dox output takes the api/ path, so a docs/api page cannot exist
           if [ -e site/api ]; then echo "FAIL: site/api exists before the API reference is moved in"; exit 1; fi
           mv site-api site/api
-          DOCS_ANALYTICS=custom python3 ci/docs-analytics.py site/api
           python3 ci/check-site-links.py site
 
       - name: Ship the site to www.tanz0rz.com
         # The self-hosted runner holds the SSH config and key for the docs
-        # host. The release lands under a fresh directory and goes live
-        # with one symlink swap.
+        # host, and the docs host holds the publish script. The release
+        # lands under a fresh directory and goes live with one symlink swap.
         env:
           RELEASE: ${{ github.run_id }}-${{ github.run_attempt }}
           SSH_CONFIG: /home/runner/.ssh/tanz0rz_deploy_config
@@ -130,8 +129,7 @@ jobs:
           rsync -az --delete --link-dest=/var/www/tanz0rz/haxe-fmod/ \
             -e "ssh -F $SSH_CONFIG" \
             site/ "deploy-target:/var/www/releases/$RELEASE/haxe-fmod/"
-          scp -F "$SSH_CONFIG" ci/docs-release-swap.sh "deploy-target:/var/www/releases/release-swap.sh"
-          ssh -F "$SSH_CONFIG" deploy-target "bash /var/www/releases/release-swap.sh /var/www/releases/$RELEASE"
+          ssh -F "$SSH_CONFIG" deploy-target "bash /var/www/releases/publish.sh /var/www/releases/$RELEASE"
           curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/
           curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/api/
 

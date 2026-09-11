@@ -14,7 +14,6 @@ validation:
 
 theme:
   name: material
-  custom_dir: overrides
   features:
     - navigation.sections
     - navigation.top
@@ -47,14 +46,6 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.tabbed:
       alternate_style: true
-
-# Umami analytics, loaded from the site's own first-party proxy directory
-# (overrides/partials/integrations/analytics/custom.html)
-# The provider is set by the docs workflow, so a local build carries no
-# analytics tag
-extra:
-  analytics:
-    provider: !ENV [DOCS_ANALYTICS, ""]
 
 # Serves LIMITATIONS.md from the repo root inside the site so it appears
 # in the nav without a second copy in docs/
