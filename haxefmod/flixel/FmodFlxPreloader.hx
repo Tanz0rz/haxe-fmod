@@ -140,7 +140,7 @@ class FmodFlxPreloader extends FlxPreloader {
         initialize();
         FmodManager.Update();
         // Every default bank has loaded or failed, or FMOD refused
-        if (!FmodRuntime.initSettled()) return;
+        if (!FmodManager.InitializeSettled()) return;
         if (!FmodManager.InitializeFailed()) {
             complete();
             return;

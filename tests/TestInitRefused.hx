@@ -35,9 +35,10 @@ class TestInitRefused {
 		stub.testRefuseFormat = true;
 		var result = FmodRuntime.init({output: FmodOutputType.NOSOUND});
 		assert(!result.isOk(), "init reports the refusal");
+		assert(stub.testLastInit == null, "the refusal stops init before the system is created");
 		assert(FmodRuntime.initFailed() && !FmodRuntime.isInitialized() && FmodRuntime.initSettled(),
 			"a refused system is failed and settled, never initialized");
-		assert(traces.filter(t -> t.indexOf("refused") >= 0).length == 1, "the refusal is traced once");
+		assert(traces.filter(t -> t.indexOf("output type") >= 0 && t.indexOf("refused") >= 0).length == 1, "the refusal is traced once");
 
 		// The handlers registered before init run from update
 		FmodRuntime.update();
