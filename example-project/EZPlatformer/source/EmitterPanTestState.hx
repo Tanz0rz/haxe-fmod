@@ -481,6 +481,11 @@ class EmitterPanTestState extends FlxState {
         var camera = FlxG.camera;
         var savedX = camera.scroll.x;
         var savedY = camera.scroll.y;
+        // A half-width camera, so the view center differs from the game
+        // center and a formula built on FlxG.width fails
+        var savedWidth = camera.width;
+        var savedHeight = camera.height;
+        camera.setSize(Std.int(savedWidth / 2), savedHeight);
         var cameraListener = new FmodFlxListener();
         cameraListener.update(0.5); // seeds tracking, pushes zero velocity
         camera.scroll.x = savedX + 30;
@@ -489,9 +494,9 @@ class EmitterPanTestState extends FlxState {
         check("camera_listener_attributes_readable", attributes != null, "");
         if (attributes != null) {
             check("camera_listener_position_is_center",
-                approx(attributes.position.x, camera.scroll.x + camera.width / 2)
-                && approx(attributes.position.y, camera.scroll.y + camera.height / 2),
-                'position=(${attributes.position.x}, ${attributes.position.y})');
+                approx(attributes.position.x, camera.scroll.x + savedWidth / 4)
+                && approx(attributes.position.y, camera.scroll.y + savedHeight / 2),
+                'position=(${attributes.position.x}, ${attributes.position.y}) width=${camera.width}');
             check("camera_listener_velocity_from_movement",
                 approx(attributes.velocity.x, 60) && approx(attributes.velocity.y, 0),
                 'velocity=(${attributes.velocity.x}, ${attributes.velocity.y})');
@@ -518,6 +523,7 @@ class EmitterPanTestState extends FlxState {
             attributes == null ? "unreadable" : 'velocity=(${attributes.velocity.x})');
         camera.scroll.x = savedX;
         camera.scroll.y = savedY;
+        camera.setSize(savedWidth, savedHeight);
         cameraListener.destroy();
     }
 

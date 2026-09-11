@@ -85,7 +85,7 @@ async function main() {
     check('fmod_evi_set_paused(true)', () => jaxe.fmod_evi_set_paused(h, true), isOk);
     check('fmod_evi_set_paused(false)', () => jaxe.fmod_evi_set_paused(h, false), isOk);
     check('fmod_evi_set_callback_mask', () => jaxe.fmod_evi_set_callback_mask(h, 0x7FFFF), isOk);
-    check('fmod_evi_stop soft', () => jaxe.fmod_evi_stop(h, 0));
+    check('fmod_evi_stop soft', () => jaxe.fmod_evi_stop(h, 0), isOk);
     let saw = false;
     for (let i = 0; i < 300 && !saw; i++) {
         jaxe.fmod_sys_update();

@@ -1230,7 +1230,8 @@ jobs:
             echo "$HDLL marker abi=$MARK (library abi=$ABI)"
             if [ "$MARK" != "$ABI" ]; then STALE=1; fi
           done
-          if [ "$STALE" = "1" ]; then
+          # A tag keeps the hard failure: a release ships no stale hdll
+          if [ "$STALE" = "1" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
             echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
             exit 0
           fi
@@ -1835,7 +1836,8 @@ jobs:
             echo "$HDLL marker abi=$MARK (library abi=$ABI)"
             if [ "$MARK" != "$ABI" ]; then STALE=1; fi
           done
-          if [ "$STALE" = "1" ]; then
+          # A tag keeps the hard failure: a release ships no stale hdll
+          if [ "$STALE" = "1" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
             echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
             exit 0
           fi
@@ -2118,7 +2120,8 @@ jobs:
             echo "$HDLL marker abi=$MARK (library abi=$ABI)"
             if [ "$MARK" != "$ABI" ]; then STALE=1; fi
           done
-          if [ "$STALE" = "1" ]; then
+          # A tag keeps the hard failure: a release ships no stale hdll
+          if [ "$STALE" = "1" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
             echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
             exit 0
           fi

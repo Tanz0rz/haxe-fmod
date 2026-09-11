@@ -3788,7 +3788,7 @@ static void hlaxe_drain_dropped_sound(int handle, FMOD_SOUND* sound) {
 HL_PRIM bool HL_NAME(cb_next)() {
     /* What destroy records the overflow dropped left goes first. That is
      * a plugin handle whose DSP died with the callback, or a shim sound
-     * with its handle, torn down and released here on the game thread. */
+     * with its handle. The sound is torn down and released on this thread. */
     {
         FaxeCbDropped dropped[FAXE_CBQ_DROPPED_MAX];
         int n = faxe_cbq_take_dropped(dropped, FAXE_CBQ_DROPPED_MAX);
@@ -3828,8 +3828,8 @@ HL_PRIM bool HL_NAME(cb_next)() {
             ? hlaxe_mint_recorded(gCbCurrent.handle, gCbCurrent.ptr, FAXE_TYPE_SOUND, 0)
             : faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_SOUND);
     } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND) {
-        /* i3 marks a shim-created sound, released in the callback, whose
-         * recorded handle ends here. A game-owned sound is alive and keeps
+        /* i3 marks a shim-created sound, which the drain releases here
+         * with its recorded handle. A game-owned sound is alive and keeps
          * its handle, which the address still finds. */
         if (gCbCurrent.i3) {
             /* The sound, its subsound handles, and its own handle end here */

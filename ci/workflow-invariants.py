@@ -24,8 +24,9 @@ leans on:
   7. Every Node harness in tests/js/ is invoked somewhere in the
      workflow.
   8. The plain portability loops name every native test that needs no
-     SDK header, and the sanitizer loops name every native test, both
-     read from tests/native, so a test reaches every compiler pass.
+     SDK header, and the sanitizer loops name every native test. Both
+     sets are read from tests/native and its includes, in the workflow
+     and in ci/local-ci.sh, so a test reaches every pass.
   9. The HashLink commit is named once, in HASHLINK_COMMIT, and every
      checkout and cache key reads it there.
   10. HAXELIB_PINS names every pinned haxelib install and every haxelib
@@ -245,22 +246,54 @@ else:
 # header, and the sanitizer loops name every native test
 loops = re.findall(r"for (?:%%t|t) in \(?([a-z0-9_ ]+?)\)?(?:;| do\b)", text)
 # The ThreadSanitizer loops run the threaded tests only, so they are apart.
-# Both groups are pinned to the test files on disk: the plain loops name
-# every test that needs no SDK header, the sanitizer loops name every
-# test. A new test file wired into neither group fails here too.
-NATIVE_TESTS = sorted(f[len("test_faxe_"):-2] for f in os.listdir(os.path.join(ROOT, "tests", "native"))
+# Both groups are pinned to the test files on disk. The plain loops name
+# every test that needs no SDK header, and the sanitizer loops name every
+# test. A new test file wired into neither group fails here too, and so
+# does a local replay loop that drifts from the workflow.
+NATIVE_DIR = os.path.join(ROOT, "tests", "native")
+NATIVE_TESTS = sorted(f[len("test_faxe_"):-2] for f in os.listdir(NATIVE_DIR)
                       if f.startswith("test_faxe_") and f.endswith(".c"))
-SDK_TESTS = {"dspdata", "dsptype", "dspparams", "enums"}
+
+
+def needs_sdk(path, seen=None):
+    # A test needs the FMOD headers when it, or a shared header it pulls
+    # in, includes one. A test that stubs FMOD_GUID and defines the
+    # common header's guard first compiles without them.
+    seen = seen or set()
+    if path in seen or not os.path.isfile(path):
+        return False
+    seen.add(path)
+    with open(path) as fh:
+        text = fh.read()
+    if "#define _FMOD_COMMON_H" in text:
+        return False
+    for inc in re.findall(r'#include\s+[<"]([^>"]+)[>"]', text):
+        if os.path.basename(inc).startswith("fmod"):
+            return True
+        if needs_sdk(os.path.normpath(os.path.join(os.path.dirname(path), inc)), seen):
+            return True
+    return False
+
+
+SDK_TESTS = {t for t in NATIVE_TESTS if needs_sdk(os.path.join(NATIVE_DIR, f"test_faxe_{t}.c"))}
 PLAIN_TESTS = sorted(set(NATIVE_TESTS) - SDK_TESTS)
+if not SDK_TESTS or not PLAIN_TESTS:
+    fail(f"the native test split reads wrong: SDK {sorted(SDK_TESTS)}, plain {PLAIN_TESTS}")
+# The local replay repeats the loops, so it is held to the same sets
+with open(os.path.join(ROOT, "ci", "local-ci.sh")) as fh:
+    local_loops = re.findall(r"for (?:%%t|t) in \(?([a-z0-9_ ]+?)\)?(?:;| do\b)", fh.read())
 loops = [l for l in loops if "handles" in l]
-plain = [l for l in loops if "dspdata" not in l]
-sanitized = [l for l in loops if "dspdata" in l]
-plain_wrong = [l for l in plain if sorted(l.split()) != PLAIN_TESTS]
-sanitized_wrong = [l for l in sanitized if sorted(l.split()) != NATIVE_TESTS]
-if not plain or len(sanitized) < 2 or plain_wrong or sanitized_wrong:
-    fail(f"the shared header test loops differ from tests/native: plain {plain} (expected {PLAIN_TESTS}), sanitized {sanitized} (expected {NATIVE_TESTS})")
+local_loops = [l for l in local_loops if "handles" in l]
+plain = [l for l in loops if not SDK_TESTS & set(l.split())]
+sanitized = [l for l in loops if SDK_TESTS & set(l.split())]
+local_plain = [l for l in local_loops if not SDK_TESTS & set(l.split())]
+local_sanitized = [l for l in local_loops if SDK_TESTS & set(l.split())]
+plain_wrong = [l for l in plain + local_plain if sorted(l.split()) != PLAIN_TESTS]
+sanitized_wrong = [l for l in sanitized + local_sanitized if sorted(l.split()) != NATIVE_TESTS]
+if not plain or len(sanitized) < 2 or not local_plain or not local_sanitized or plain_wrong or sanitized_wrong:
+    fail(f"the shared header test loops differ from tests/native: plain {plain + local_plain} (expected {PLAIN_TESTS}), sanitized {sanitized + local_sanitized} (expected {NATIVE_TESTS})")
 else:
-    ok(f"{len(plain)} plain loops name the {len(PLAIN_TESTS)} header tests, {len(sanitized)} sanitizer loops name all {len(NATIVE_TESTS)}")
+    ok(f"{len(plain) + len(local_plain)} plain loops name the {len(PLAIN_TESTS)} header tests, {len(sanitized) + len(local_sanitized)} sanitizer loops name all {len(NATIVE_TESTS)}")
 
 # 5. linux-html5-chromium requires a FAILING build against a doctored web SDK,
 # with pipefail, and verifies the version-mismatch banner. The check is

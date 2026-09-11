@@ -245,9 +245,9 @@ int main(void) {
         ev.i1 = 0x30004;
         ev.releaseOnDrain = &soundA; /* a handle and a sound */
         faxe_cbq_push(&ev);
-        ev.i1 = 0;
+        ev.i1 = 0x30005; /* a borrowed handle the drain must not free */
         ev.freesI1 = 0;
-        ev.releaseOnDrain = &soundB; /* a sound with no handle */
+        ev.releaseOnDrain = &soundB; /* a sound with no handle of its own */
         faxe_cbq_push(&ev);
         ev.releaseOnDrain = NULL;
         assert(faxe_cbq_take_dropped(parked, FAXE_CBQ_DROPPED_MAX) == 0); /* nothing dropped yet */

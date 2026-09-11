@@ -80,6 +80,8 @@ abstract PcmStream(Int) from Int to Int {
     public function clearReadCallback():Void {
         readers.remove(this);
         buffers.remove(this);
+        // The frame hook goes with the last reader
+        if (!readers.keys().hasNext()) haxefmod.studio.CallbackDispatcher.frameHook = null;
     }
 
     /** True while a read callback is installed on this stream. */
@@ -91,6 +93,7 @@ abstract PcmStream(Int) from Int to Int {
     public static function clearAllReadCallbacks():Void {
         readers = new Map();
         buffers = new Map();
+        haxefmod.studio.CallbackDispatcher.frameHook = null;
     }
 
     /** Fills every stream with a read callback. Public for tests, runs from the frame drain otherwise. */

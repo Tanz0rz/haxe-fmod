@@ -176,13 +176,16 @@
 - The HTML5 handle lookup that recycles a dead instance slot forgets that instance's callback state, like the dead-lookup sweep.
 - `StudioSystem.unloadAll` drops the user data and the handlers once FMOD accepted the unload. A refused call, before the system is up, wiped them while every bank stayed.
 - `Sound.lock` on a sound the library owns is refused, since the library releases that sound on its own.
-- The library releases a programmer sound it created on the game thread, as the destroy record drains. The subsound handles and the sound's own handle go with it. The callback released it on FMOD's thread before, while the handle still resolved for up to a frame.
+- The library releases a programmer sound it created on the game thread, as the destroy record drains. The subsound handles and the sound's own handle go with it. The sound therefore lives until the next `FmodManager.Update`. The callback released it on FMOD's thread before, while the handle still resolved for up to a frame.
 - `Sound.release` collects the subsound handles of any count. A list of 1024 left the rest of a larger FSB resolving freed sounds.
-- The HTML5 `unloadAll` puts every callback back when FMOD refuses the unload. An HTML5 `ChannelGroup.release` FMOD refuses keeps the group's channel callback mapping.
+- The HTML5 `unloadAll`, `Bank.unload`, and `releaseAllInstances` put every callback back when FMOD refuses the call. The instances FMOD took anyway stay out, and the sweep reclaims their slots. An HTML5 `ChannelGroup.release` FMOD refuses keeps the group's channel callback mapping.
+- A `PcmStream` read callback removed last takes the frame hook with it.
+- The three HashLink build jobs keep their pre-built hdll check on a tag, like the doctor and package check. The loop invariant derives the SDK-only tests from their includes and holds the local replay to the same sets. The FMOD header parser stops on an enum initializer it cannot read rather than shifting the values after it.
+- The flixel pan scenario checks the camera listener against a half-width camera. The dropped record test parks a borrowed handle as none, and the arity audit reads the stop result.
 - A `Sound.release` or `ChannelGroup.release` FMOD refuses leaves the lock, the custom rolloff, and the subsound handles as they were. They were torn down before the call.
 - The Windows HashLink download retries three times with a pause, like the Haxe install. `dox` is pinned with the other haxelibs. The invariants refuse an unpinned install outside the canary and compare `HAXE_VERSION` across the workflows. They hold the six ABI parses by count across every workflow.
 - The build, the doctor, and the build check fail on an install whose native manifest has no readable ABI header. They skipped the hdll gate without a word before.
-- The workflow invariants pin the native test loops to the test files on disk, so a test wired into one compiler pass reaches every pass.
+- The workflow invariants pin the native test loops to the test files on disk. A test wired into one compiler pass then reaches every pass.
 - The Heaps host's reinstall check proves the event loop handler was replaced. The children hook test names the type it expects, and the capped mapping case checks both copied prefixes.
 - The sanitizer legs compile the SDK-dependent native tests too. One fixture read past its point arrays, which a plain build never showed. The programmer sound scenario checks the lock refusal and parks a rolloff on the library's sound and its subsound. It tears its meter down on every exit.
 - Every CI job installs Haxe through one local action that retries a failed download. The six manifest ABI parses read the number alone and refuse anything else, with an invariant over both.

@@ -131,10 +131,10 @@ class StudioSystem {
     }
 
     /**
-     * Unloads all banks. Every handle that came from a bank dies with it,
-     * so every userdata entry, every description-level callback, and
-     * every instance callback is dropped here too, once FMOD accepted
-     * the call. A refused call keeps every bank and all of that state.
+     * Unloads all banks. Every handle that came from a bank dies with it.
+     * Once FMOD accepted the call, every userdata entry, every
+     * description-level callback, and every instance callback is dropped
+     * here too. A refused call keeps every bank and all of that state.
      */
     public static function unloadAll():FmodResult {
         // A refused unload keeps every bank, so the entries and handlers stay

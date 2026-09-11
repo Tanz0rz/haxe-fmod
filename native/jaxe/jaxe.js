@@ -418,6 +418,34 @@ class jaxe {
     // Uninstalls callbacks on every tracked instance (or only those whose
     // description raw pointer is in descPtrs when given). Used before
     // bulk-destroy operations: releaseAllInstances, bank unload, unloadAll.
+    // The per-handle callback state before a bulk destroy, so a refused
+    // destroy puts every callback back on the instances FMOD kept
+    static saveCallbackState() {
+        return {
+            masks: Object.assign({}, jaxe.cbMasks),
+            keys: Object.assign({}, jaxe.psKeys),
+            plugins: Object.assign({}, jaxe.pluginSeen)
+        };
+    }
+
+    // Puts the saved entries back one handle at a time and reinstalls the
+    // FMOD callback on each instance that still resolves and that FMOD
+    // still holds. An instance the failed destroy took anyway stays out,
+    // and the sweep reclaims its slot.
+    static restoreCallbackState(saved) {
+        var kept = Object.keys(saved.masks).concat(Object.keys(saved.keys));
+        for (var k = 0; k < kept.length; k++) {
+            var handle = kept[k] | 0;
+            var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
+            if (!inst || !jaxe.lookupSlotUsable(jaxe.slots[handle & 0xFFFF])) continue;
+            if (saved.masks[handle] !== undefined) jaxe.cbMasks[handle] = saved.masks[handle];
+            if (saved.keys[handle] !== undefined) jaxe.psKeys[handle] = saved.keys[handle];
+            if (saved.plugins[handle] !== undefined) jaxe.pluginSeen[handle] = saved.plugins[handle];
+            inst.setCallback(jaxe.callbackHandler, jaxe.effectiveCallbackMask(handle));
+        }
+        jaxe.sweepDeadLookups();
+    }
+
     static uninstallCallbacksFor(descPtrs) {
         var handles = Object.keys(jaxe.cbMasks).concat(Object.keys(jaxe.psKeys));
         for (var i = 0; i < handles.length; i++) {
@@ -1254,23 +1282,11 @@ class jaxe {
         // All bank content is going away. Uninstall every callback first or
         // the FMOD JS module is corrupted. The per-handle state is kept
         // aside, so a refused unload puts every callback back.
-        var savedMasks = Object.assign({}, jaxe.cbMasks);
-        var savedKeys = Object.assign({}, jaxe.psKeys);
-        var savedPlugins = Object.assign({}, jaxe.pluginSeen);
+        var saved = jaxe.saveCallbackState();
         jaxe.uninstallCallbacksFor(null);
         jaxe.cacheAllBankPaths();
         jaxe.lastResult = jaxe.gSystem.unloadAll();
-        if (jaxe.lastResult != jaxe.FMOD.OK) {
-            jaxe.cbMasks = savedMasks;
-            jaxe.psKeys = savedKeys;
-            jaxe.pluginSeen = savedPlugins;
-            var kept = Object.keys(savedMasks).concat(Object.keys(savedKeys));
-            for (var k = 0; k < kept.length; k++) {
-                var handle = kept[k] | 0;
-                var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
-                if (inst) inst.setCallback(jaxe.callbackHandler, jaxe.effectiveCallbackMask(handle));
-            }
-        }
+        if (jaxe.lastResult != jaxe.FMOD.OK) jaxe.restoreCallbackState(saved);
         if (jaxe.lastResult == jaxe.FMOD.OK) {
             // Every async-loaded bank just died without passing through
             // fmod_bank_unload, so their MEMFS copies are deleted here
@@ -1612,7 +1628,9 @@ class jaxe {
         if (!bank) return jaxe.lastResult;
         jaxe.cacheBankPath(bank);
         // Unloading destroys the bank's event instances. Uninstall their
-        // callbacks first or the FMOD JS module is corrupted.
+        // callbacks first or the FMOD JS module is corrupted. The state is
+        // kept aside, so a refused unload puts every callback back.
+        var saved = jaxe.saveCallbackState();
         var cnt = {};
         if (bank.getEventCount(cnt) == jaxe.FMOD.OK && cnt.val > 0) {
             var list = {};
@@ -1629,6 +1647,7 @@ class jaxe {
         }
         var raw = jaxe.rawPtr(bank);
         jaxe.lastResult = bank.unload();
+        if (jaxe.lastResult != jaxe.FMOD.OK && jaxe.lastResult != jaxe.ERR_INVALID_HANDLE) jaxe.restoreCallbackState(saved);
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
         if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
             // Async loads copied the bank into MEMFS. Delete the copy or
@@ -1951,11 +1970,14 @@ class jaxe {
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         // Uninstall callbacks on this event's instances first: destroying an
         // instance with a callback installed corrupts the FMOD JS module.
+        // The state is kept aside, so a refused release puts them back.
+        var saved = jaxe.saveCallbackState();
         jaxe.uninstallCallbacksFor(new Set([jaxe.rawPtr(evd)]));
         jaxe.lastResult = evd.releaseAllInstances();
         // With no DESTROYED events on this target, the sweep is what
         // reclaims the destroyed instances' handle slots
         if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.sweepDeadLookups();
+        else jaxe.restoreCallbackState(saved);
         return jaxe.lastResult;
     }
 

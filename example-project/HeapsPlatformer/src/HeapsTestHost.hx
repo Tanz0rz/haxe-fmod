@@ -93,8 +93,8 @@ class HeapsTestHost implements TestHost {
             runs == 1 && arms == 1 && FmodHeapsUpdater.isInstalled(),
             'runs=$runs arms=$arms installed=${FmodHeapsUpdater.isInstalled()}');
         #else
-        // The driven frame runs FmodManager.Update once by construction,
-        // so the proof here is that the reinstall replaced the event loop
+        // The driven frame runs FmodManager.Update once by construction.
+        // The proof here is that the reinstall replaced the event loop
         // handler and left the hook installed. The Kha and flixel hosts
         // drive their loops and catch a doubled tick.
         var before = @:privateAccess FmodHeapsUpdater.eventHandler;

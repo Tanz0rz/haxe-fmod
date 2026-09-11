@@ -110,7 +110,9 @@ def read_types():
                     value_name, expr = item.split("=", 1)
                     number = parse_value(expr, known)
                     if number is None:
-                        continue
+                        # A skipped initializer would shift every value after
+                        # it, so an unreadable one stops the run by name
+                        raise SystemExit(f"fmod_headers: cannot evaluate the enum initializer {item.strip()!r}")
                     current = number
                 else:
                     value_name = item
