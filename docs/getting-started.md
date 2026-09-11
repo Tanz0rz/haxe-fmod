@@ -235,6 +235,14 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
 
 `FmodEvents` is one of the [generated constants classes](guides/constants.md). The string paths work too, for example `FmodManager.PlaySong("event:/Music/MainLevel")`.
 
+The setup import belongs in the entry point alone. `FmodManager` is used from every file that plays a sound, so an `import.hx` next to your `Main.hx` imports it once for the whole source tree. Wrap it in `#if !macro`, because the FMOD classes use build macros. The example games and the [constants guide](guides/constants.md#auto-imports) use this file.
+
+```haxe
+#if !macro
+import haxefmod.FmodManager;
+#end
+```
+
 HTML5 initializes asynchronously. The preloaders above cover that, so the first scene starts with FMOD ready. A game that starts FMOD some other way polls `FmodManager.IsInitialized()` first. [Platforms](platforms.md#html5) shows that pattern.
 
 ## 6. Build and run
