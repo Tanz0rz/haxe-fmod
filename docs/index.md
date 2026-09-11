@@ -25,7 +25,7 @@ Pick the lowest tier that does what you need. The tiers compose. A game can star
 
 | Tier            | Package                                      | What it is                                                                                                                                                                               |
 | --------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Helper class](guides/fmod-manager.md) | `haxefmod.FmodManager`, `haxefmod.FmodEvent` | One background song slot, events by path or by handle, buses, VCAs, snapshots, banks, global parameters, and the focus mute policy. Enough for most games.                                          |
+| [Helper class](guides/fmod-manager.md) | `haxefmod.FmodManager`, `haxefmod.FmodEvent` | One background song slot, events by path or handle, buses, VCAs, snapshots, banks, global parameters, and the focus mute policy. Enough for most games.                                             |
 | Runtime         | `haxefmod.runtime`                           | Settings-driven initialization, the bank registry, 3D attachment, and the per-frame update that everything else rides on.                                                                |
 | Studio and Core | `haxefmod.studio`, `haxefmod.core`           | Typed handles for every FMOD Studio and Core object. The binding is complete except for the callback-driven APIs that no Haxe target can host. A few raw-pointer entry points are left out too. [Limitations](limitations.md) lists them. |
 

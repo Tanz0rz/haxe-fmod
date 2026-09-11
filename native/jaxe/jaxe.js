@@ -124,6 +124,15 @@ class jaxe {
 
     // Releases a wrapper the caller never keeps: an out parameter of a
     // call that only wanted the other one
+    // A lookup that cannot get a slot reports it: the table is full, so
+    // the caller sees ERR_MEMORY instead of a silent zero (the JS twin of
+    // lincHandleOrMemory)
+    static handleOrMemory(ptr, type) {
+        var h = jaxe.handleFindOrAlloc(ptr, type);
+        if (h === 0 && ptr) jaxe.lastResult = jaxe.ERR_MEMORY;
+        return h;
+    }
+
     static dropWrapper(obj) {
         if (obj && typeof obj.delete === "function") {
             try { obj.delete(); } catch (e) {}
@@ -762,7 +771,7 @@ class jaxe {
         var bus = {};
         jaxe.lastResult = jaxe.gSystem.getBus(path, bus);
         if (jaxe.lastResult != jaxe.FMOD.OK || !bus.val) return 0;
-        return jaxe.handleFindOrAlloc(bus.val, jaxe.TYPE_BUS);
+        return jaxe.handleOrMemory(bus.val, jaxe.TYPE_BUS);
     }
 
     static fmod_sys_get_bus_by_id(guid) {
@@ -773,7 +782,7 @@ class jaxe {
         var bus = {};
         jaxe.lastResult = jaxe.gSystem.getBusByID(id, bus);
         if (jaxe.lastResult != jaxe.FMOD.OK || !bus.val) return 0;
-        return jaxe.handleFindOrAlloc(bus.val, jaxe.TYPE_BUS);
+        return jaxe.handleOrMemory(bus.val, jaxe.TYPE_BUS);
     }
 
     static fmod_sys_get_event(path) {
@@ -782,7 +791,7 @@ class jaxe {
         var desc = {};
         jaxe.lastResult = jaxe.gSystem.getEvent(path, desc);
         if (jaxe.lastResult != jaxe.FMOD.OK || !desc.val) return 0;
-        return jaxe.handleFindOrAlloc(desc.val, jaxe.TYPE_EVD);
+        return jaxe.handleOrMemory(desc.val, jaxe.TYPE_EVD);
     }
 
     static fmod_sys_get_event_by_id(guid) {
@@ -793,7 +802,7 @@ class jaxe {
         var desc = {};
         jaxe.lastResult = jaxe.gSystem.getEventByID(id, desc);
         if (jaxe.lastResult != jaxe.FMOD.OK || !desc.val) return 0;
-        return jaxe.handleFindOrAlloc(desc.val, jaxe.TYPE_EVD);
+        return jaxe.handleOrMemory(desc.val, jaxe.TYPE_EVD);
     }
 
     static fmod_sys_get_vca(path) {
@@ -802,7 +811,7 @@ class jaxe {
         var vca = {};
         jaxe.lastResult = jaxe.gSystem.getVCA(path, vca);
         if (jaxe.lastResult != jaxe.FMOD.OK || !vca.val) return 0;
-        return jaxe.handleFindOrAlloc(vca.val, jaxe.TYPE_VCA);
+        return jaxe.handleOrMemory(vca.val, jaxe.TYPE_VCA);
     }
 
     static fmod_sys_get_vca_by_id(guid) {
@@ -813,7 +822,7 @@ class jaxe {
         var vca = {};
         jaxe.lastResult = jaxe.gSystem.getVCAByID(id, vca);
         if (jaxe.lastResult != jaxe.FMOD.OK || !vca.val) return 0;
-        return jaxe.handleFindOrAlloc(vca.val, jaxe.TYPE_VCA);
+        return jaxe.handleOrMemory(vca.val, jaxe.TYPE_VCA);
     }
 
     static fmod_sys_get_bank(path) {
@@ -822,7 +831,7 @@ class jaxe {
         var bank = {};
         jaxe.lastResult = jaxe.gSystem.getBank(path, bank);
         if (jaxe.lastResult != jaxe.FMOD.OK || !bank.val) return 0;
-        return jaxe.handleFindOrAlloc(bank.val, jaxe.TYPE_BANK);
+        return jaxe.handleOrMemory(bank.val, jaxe.TYPE_BANK);
     }
 
     static fmod_sys_get_bank_by_id(guid) {
@@ -833,7 +842,7 @@ class jaxe {
         var bank = {};
         jaxe.lastResult = jaxe.gSystem.getBankByID(id, bank);
         if (jaxe.lastResult != jaxe.FMOD.OK || !bank.val) return 0;
-        return jaxe.handleFindOrAlloc(bank.val, jaxe.TYPE_BANK);
+        return jaxe.handleOrMemory(bank.val, jaxe.TYPE_BANK);
     }
 
     static fmod_sys_get_bank_count() {
@@ -1047,7 +1056,7 @@ class jaxe {
         var bank = {};
         jaxe.lastResult = jaxe.gSystem.loadBankFile(fsPath, loadFlags, bank);
         if (jaxe.lastResult != jaxe.FMOD.OK || !bank.val) return 0;
-        return jaxe.handleFindOrAlloc(bank.val, jaxe.TYPE_BANK);
+        return jaxe.handleOrMemory(bank.val, jaxe.TYPE_BANK);
     }
 
     // Async bank load over HTTP, for a file that is NOT in MEMFS. It
@@ -1944,7 +1953,7 @@ class jaxe {
         var desc = {};
         jaxe.lastResult = inst.getDescription(desc);
         if (jaxe.lastResult != jaxe.FMOD.OK || !desc.val) return 0;
-        return jaxe.handleFindOrAlloc(desc.val, jaxe.TYPE_EVD);
+        return jaxe.handleOrMemory(desc.val, jaxe.TYPE_EVD);
     }
 
     static fmod_evi_start(handle) {
@@ -2511,7 +2520,11 @@ class jaxe {
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.releaseSubSoundHandles(sound);
         jaxe.lastResult = sound.release();
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.handleFree(handle);
+        // INVALID_HANDLE means FMOD already freed the sound. The slot goes
+        // either way, since the subsound cleanup cannot be undone.
+        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
+            jaxe.handleFree(handle);
+        }
         return jaxe.lastResult;
     }
 
@@ -2947,7 +2960,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = jaxe.gSystemCore.getMasterChannelGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHANGROUP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
     }
 
     static fmod_cg_create(name) {
@@ -3187,7 +3200,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = bus.getChannelGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHANGROUP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
     }
 
     //// Core system extras
@@ -3246,7 +3259,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = dsp.addInput(input, out, type);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_DSPCONN);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_DSPCONN);
     }
 
     // connHandle 0 means any connection between the two units
@@ -3296,7 +3309,7 @@ class jaxe {
         jaxe.lastResult = dsp.getInput(index, dspOut, connOut);
         jaxe.dropWrapper(connOut.val);
         if (jaxe.lastResult != jaxe.FMOD.OK || !dspOut.val) return 0;
-        return jaxe.handleFindOrAlloc(dspOut.val, jaxe.TYPE_DSP);
+        return jaxe.handleOrMemory(dspOut.val, jaxe.TYPE_DSP);
     }
 
     static fmod_dsp_get_input_connection(handle, index) {
@@ -3307,7 +3320,7 @@ class jaxe {
         jaxe.lastResult = dsp.getInput(index, dspOut, connOut);
         jaxe.dropWrapper(dspOut.val);
         if (jaxe.lastResult != jaxe.FMOD.OK || !connOut.val) return 0;
-        return jaxe.handleFindOrAlloc(connOut.val, jaxe.TYPE_DSPCONN);
+        return jaxe.handleOrMemory(connOut.val, jaxe.TYPE_DSPCONN);
     }
 
     static fmod_dspconn_set_mix(handle, mix) {
@@ -3343,7 +3356,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = group.addGroup(child, !!propagateDspClock, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_DSPCONN);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_DSPCONN);
     }
 
     static fmod_cg_get_num_groups(handle) {
@@ -3360,7 +3373,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = group.getGroup(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHANGROUP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
     }
 
     static fmod_cg_get_parent_group(handle) {
@@ -3372,7 +3385,7 @@ class jaxe {
         // The master group has no parent: the glue hands back a wrapper
         // around a null pointer, which is no group
         if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHANGROUP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
     }
 
     //// Core channel spatial and control extras
@@ -4089,7 +4102,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = jaxe.gSystemCore.getMasterSoundGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUNDGROUP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUNDGROUP);
     }
 
     static fmod_sg_release(handle) {
@@ -4347,7 +4360,7 @@ class jaxe {
         jaxe.lastResult = jaxe.gSystem.loadBankMemory(bytes, bytes.length,
             jaxe.FMOD.STUDIO_LOAD_MEMORY, flags >>> 0, bank);
         if (jaxe.lastResult != jaxe.FMOD.OK || !bank.val) return 0;
-        return jaxe.handleFindOrAlloc(bank.val, jaxe.TYPE_BANK);
+        return jaxe.handleOrMemory(bank.val, jaxe.TYPE_BANK);
     }
 
     //// Event instance core bridge
@@ -4358,7 +4371,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = inst.getChannelGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHANGROUP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
     }
 
     //// Command capture and replay
@@ -4512,7 +4525,7 @@ class jaxe {
         if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
         // Borrowed reference: releasing it would pull the sound out from
         // under its owner
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUND);
     }
 
     static fmod_chan_set_loop_points(handle, start, startType, end, endType) {
@@ -4574,7 +4587,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = ch.getDSP(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_DSP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_DSP);
     }
 
     //// Sound name, group getter, and loop count
@@ -4594,7 +4607,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = sound.getSoundGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUNDGROUP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUNDGROUP);
     }
 
     static fmod_sound_get_loop_count(handle) {
@@ -4699,7 +4712,7 @@ class jaxe {
         jaxe.lastResult = dsp.getOutput(index, dspOut, connOut);
         jaxe.dropWrapper(connOut.val);
         if (jaxe.lastResult != jaxe.FMOD.OK || !dspOut.val) return 0;
-        return jaxe.handleFindOrAlloc(dspOut.val, jaxe.TYPE_DSP);
+        return jaxe.handleOrMemory(dspOut.val, jaxe.TYPE_DSP);
     }
 
     static fmod_dsp_get_output_connection(handle, index) {
@@ -4710,7 +4723,7 @@ class jaxe {
         jaxe.lastResult = dsp.getOutput(index, dspOut, connOut);
         jaxe.dropWrapper(dspOut.val);
         if (jaxe.lastResult != jaxe.FMOD.OK || !connOut.val) return 0;
-        return jaxe.handleFindOrAlloc(connOut.val, jaxe.TYPE_DSPCONN);
+        return jaxe.handleOrMemory(connOut.val, jaxe.TYPE_DSPCONN);
     }
 
     static fmod_dspconn_get_input_dsp(handle) {
@@ -4719,7 +4732,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = conn.getInput(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_DSP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_DSP);
     }
 
     static fmod_dspconn_get_output_dsp(handle) {
@@ -4728,7 +4741,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = conn.getOutput(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_DSP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_DSP);
     }
 
     //// Reverb3D getters
@@ -5035,7 +5048,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = group.getChannel(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHAN);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHAN);
     }
 
     //// Distance filter, version, sound data, and recording
@@ -5318,7 +5331,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = ch.getChannelGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHANGROUP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
     }
 
     static fmod_cg_set_dsp_index(handle, dspHandle, index) {
@@ -5368,7 +5381,7 @@ class jaxe {
         jaxe.lastResult = group.getSound(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         // Borrowed reference, the group does not own the sound
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUND);
     }
 
     // The pool channel at this index. An idle channel answers every call
@@ -5378,7 +5391,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = jaxe.gSystemCore.getChannel(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHAN);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHAN);
     }
 
     static fmod_sys_get_output() {
@@ -5890,7 +5903,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = sound.getSubSound(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUND);
     }
 
     static fmod_core_sound_get_sub_sound_parent(handle) {
@@ -5901,7 +5914,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         // A top-level sound comes back as a wrapper around a null pointer
         if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUND);
     }
 
     // ibuf: [0]=numtagsupdated. Returns the tag count, -1 on failure
@@ -6274,7 +6287,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = group.getDSP(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_DSP);
+        return jaxe.handleOrMemory(out.val, jaxe.TYPE_DSP);
     }
 
     //// Init settings and system info: pre-create hooks, driver info, console ports

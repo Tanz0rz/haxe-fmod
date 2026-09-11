@@ -473,7 +473,7 @@
             if (injectAll() && haxeChosen()) {
                 choose(true);
                 apply(LANG);
-                // The site's selector initializes after render and may
+                // The site's selector initializes after render and can
                 // run later than this pass. Reapply once it has settled.
                 window.setTimeout(function () { apply(LANG); }, 50);
             }

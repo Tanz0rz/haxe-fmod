@@ -22,16 +22,30 @@ class FmodFlxUpdater {
     // function as equal, and flixel would dedupe them.
     static var handler:Void->Void = null;
     static var generation:Int = 0;
+    // A closure pushed during the dispatch runs in that same dispatch.
+    // This flag keeps FmodManager.Update at one run per frame, and the
+    // preUpdate hook clears it.
+    static var updated:Bool = false;
+    static var frameStart:Void->Void = null;
 
     static function tick(id:Int):Void {
         // A closure flixel has yet to remove can run once more in the
         // frame it was removed in
-        if (id != generation) return;
+        if (id != generation || updated) return;
+        updated = true;
         FmodManager.Update();
+    }
+
+    static function clearUpdated():Void {
+        updated = false;
     }
 
     /** Hooks the update once. Safe to call again, and from inside a callback. **/
     public static function init():Void {
+        if (frameStart == null) {
+            frameStart = clearUpdated;
+            FlxG.signals.preUpdate.add(frameStart);
+        }
         if (handler == null) {
             var id = ++generation;
             handler = () -> tick(id);

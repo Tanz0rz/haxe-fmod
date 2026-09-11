@@ -107,12 +107,11 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             faxe_cbq_lock();
             void* gameSound = ctx->psGameSound;
             int gameSubsound = ctx->psGameSubsound;
-            strncpy(key, ctx->psKey, FAXE_PS_KEY_MAX - 1);
-            key[FAXE_PS_KEY_MAX - 1] = '\0';
+            faxe_str_copy(key, ctx->psKey, FAXE_PS_KEY_MAX);
             if (props) faxe_instctx_ps_find_named(ctx, props->name, key);
             faxe_cbq_unlock();
             if (props && props->name) {
-                strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+                faxe_str_copy(ev.str, props->name, FAXE_CBQ_STR_MAX);
             }
             FMOD::Sound* shimSound = NULL;
             if (props && gameSound) {
@@ -167,7 +166,7 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES* props =
                 (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES*)parameters;
             if (props && props->name) {
-                strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+                faxe_str_copy(ev.str, props->name, FAXE_CBQ_STR_MAX);
             }
             // Only a sound this shim created is released. A game-owned one
             // stays with the game. The address in ev.ptr is only a lookup
@@ -191,7 +190,7 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 (const FMOD_STUDIO_TIMELINE_MARKER_PROPERTIES*)parameters;
             if (props) {
                 if (props->name) {
-                    strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+                    faxe_str_copy(ev.str, props->name, FAXE_CBQ_STR_MAX);
                 }
                 ev.i1 = props->position;
             }
@@ -230,7 +229,7 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 (const FMOD_STUDIO_PLUGIN_INSTANCE_PROPERTIES*)parameters;
             if (props) {
                 if (props->name) {
-                    strncpy(ev.str, props->name, FAXE_CBQ_STR_MAX - 1);
+                    faxe_str_copy(ev.str, props->name, FAXE_CBQ_STR_MAX);
                 }
                 ev.ptr = props->dsp;
             }
@@ -368,8 +367,7 @@ int fmod_ps_assign(int h, const ::String& key) {
         return (int)gLastResult;
     }
     faxe_cbq_lock();
-    strncpy(ctx->psKey, key.c_str(), FAXE_PS_KEY_MAX - 1);
-    ctx->psKey[FAXE_PS_KEY_MAX - 1] = '\0';
+    faxe_str_copy(ctx->psKey, key.c_str(), FAXE_PS_KEY_MAX);
     faxe_cbq_unlock();
     gLastResult = instance->setCallback(eventCallback, effectiveCallbackMask(ctx));
     return (int)gLastResult;
@@ -616,7 +614,9 @@ int fmod_core_release_sound(int h) {
     // so detach them while the sound is still alive.
     if (faxe_handle_get_aux(h)) sound->set3DCustomRolloff(NULL, 0);
     gLastResult = sound->release();
-    if (gLastResult == FMOD_OK) faxe_handle_free(h);
+    // INVALID_HANDLE means FMOD already freed the sound. The slot goes
+    // either way, since the cleanup above cannot be undone.
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
 }
 
@@ -2079,8 +2079,8 @@ static FMOD_RESULT F_CALLBACK lincSystemCallback(FMOD_SYSTEM* system, FMOD_SYSTE
         event.i1 = (int32_t)info->result;
         event.i2 = (int32_t)info->instancetype;
         event.ptr = info->instance;
-        if (info->functionname) strncpy(event.str, info->functionname, FAXE_CBQ_STR_MAX - 1);
-        if (info->functionparams) strncpy(event.str2, info->functionparams, FAXE_CBQ_STR2_MAX - 1);
+        if (info->functionname) faxe_str_copy(event.str, info->functionname, FAXE_CBQ_STR_MAX);
+        if (info->functionparams) faxe_str_copy(event.str2, info->functionparams, FAXE_CBQ_STR2_MAX);
     }
     faxe_cbq_push(&event);
     return FMOD_OK;
@@ -3329,8 +3329,7 @@ static inline FMOD_STUDIO_PARAMETER_ID makeParamId(int data1, int data2) {
 // Copies text into gStringBuf ("" for NULL) and returns it.
 static const char* copyToStringBuf(const char* text) {
     if (!text) { gStringBuf[0] = '\0'; return gStringBuf; }
-    strncpy(gStringBuf, text, sizeof(gStringBuf) - 1);
-    gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+    faxe_str_copy(gStringBuf, text, sizeof(gStringBuf));
     return gStringBuf;
 }
 
@@ -5847,8 +5846,7 @@ const char* fmod_core_sound_get_tag(int h, const ::String& name, int index, ::Ar
     if (tag.datatype == FMOD_TAGDATATYPE_INT && tag.datalen == 4 && tag.data) ibuf[4] = *(int*)tag.data;
     if (tag.datatype == FMOD_TAGDATATYPE_FLOAT && tag.datalen == 4 && tag.data) fbuf[0] = (Float)(*(float*)tag.data);
     if (tag.name) {
-        strncpy(gStringBuf, tag.name, sizeof(gStringBuf) - 1);
-        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+        faxe_str_copy(gStringBuf, tag.name, sizeof(gStringBuf));
     }
     return gStringBuf;
 }
@@ -5945,8 +5943,7 @@ const char* fmod_replay_get_command_info(int h, int index, ::Array<int> ibuf, ::
     fbuf[0] = (Float)info.frametime;
     // The name points into the replay's own memory, so it is copied out while the handle is still live.
     if (info.commandname) {
-        strncpy(gStringBuf, info.commandname, sizeof(gStringBuf) - 1);
-        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+        faxe_str_copy(gStringBuf, info.commandname, sizeof(gStringBuf));
     }
     return gStringBuf;
 }
@@ -6021,8 +6018,7 @@ const char* fmod_sys_get_sound_info(const ::String& key, ::Array<int> ibuf) {
     ibuf[5] = info.exinfo.numsubsounds;
     // For a bank loaded from memory name_or_data is the sample bytes themselves, which are no string.
     if (info.name_or_data && !(info.mode & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT))) {
-        strncpy(gStringBuf, info.name_or_data, sizeof(gStringBuf) - 1);
-        gStringBuf[sizeof(gStringBuf) - 1] = '\0';
+        faxe_str_copy(gStringBuf, info.name_or_data, sizeof(gStringBuf));
     }
     return gStringBuf;
 }

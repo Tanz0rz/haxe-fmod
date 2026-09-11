@@ -4,7 +4,7 @@
 
 ## Initialization
 
-`FmodRuntime.init(?settings)` creates the FMOD system. One system exists per process. The first `init` creates it, and it lives until the process exits. There is no shutdown or re-init call. The first `init` wins. Later calls return `FMOD_OK` and change nothing.
+`FmodRuntime.init(?settings)` creates the FMOD system. One system exists per process. The first `init` creates it, and it lives until the process exits. There is no shutdown or re-init call. The first `init` wins. Later calls return the result of the first and change nothing.
 
 ```haxe
 import haxefmod.runtime.FmodRuntime;

@@ -32,6 +32,18 @@
 #include <pthread.h>
 #endif
 
+/* Copies at most cap - 1 bytes of src into dst and terminates it. The
+ * cut lands on a codepoint boundary, so a multi-byte character is
+ * dropped whole and every shim hands Haxe the same text. */
+static inline void faxe_str_copy(char* dst, const char* src, size_t cap) {
+    size_t n = strlen(src);
+    if (n < cap) { memcpy(dst, src, n + 1); return; }
+    n = cap - 1;
+    while (n > 0 && (((unsigned char)src[n]) & 0xC0) == 0x80) n--;
+    memcpy(dst, src, n);
+    dst[n] = '\0';
+}
+
 #define FAXE_CBQ_CAPACITY 256
 #define FAXE_CBQ_STR_MAX 64
 #define FAXE_CBQ_STR2_MAX 128
@@ -223,8 +235,7 @@ static void faxe_bankpath_put(const void* bank, const char* path) {
         gBankPathHead = (gBankPathHead + 1) % FAXE_BANKPATH_CAPACITY;
     }
     gBankPaths[i].bank = bank;
-    strncpy(gBankPaths[i].path, path, FAXE_BANKPATH_STR_MAX - 1);
-    gBankPaths[i].path[FAXE_BANKPATH_STR_MAX - 1] = '\0';
+    faxe_str_copy(gBankPaths[i].path, path, FAXE_BANKPATH_STR_MAX);
     faxe_cbq_unlock();
 }
 
@@ -239,8 +250,7 @@ static int faxe_bankpath_take(const void* bank, char* out) {
     faxe_cbq_lock();
     for (i = 0; i < FAXE_BANKPATH_CAPACITY; i++) {
         if (gBankPaths[i].bank == bank) {
-            strncpy(out, gBankPaths[i].path, FAXE_CBQ_STR_MAX - 1);
-            out[FAXE_CBQ_STR_MAX - 1] = '\0';
+            faxe_str_copy(out, gBankPaths[i].path, FAXE_CBQ_STR_MAX);
             gBankPaths[i].bank = NULL;
             gBankPaths[i].path[0] = '\0';
             found = 1;

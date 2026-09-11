@@ -569,6 +569,8 @@ def run_job(j, text):
             {j.tmpx(f"*-{j.name}-manual.log")}
             {j.tmpx(f"*-{j.name}.log.raw")}
             {j.tmpx(f"*-{j.name}-console.log")}{crash_path}
+            ${{{{ runner.temp }}}}/state-*.wav
+            ${{{{ runner.temp }}}}/stress-smoke.wav
           if-no-files-found: ignore
           overwrite: true
 """

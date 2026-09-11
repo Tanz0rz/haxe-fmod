@@ -254,7 +254,7 @@ async function main() {
             if (counts.strips !== expectedStrips) fail(name + ': ' + counts.strips + ' added strips, expected ' + expectedStrips + (hasSelector ? ' (the site selector governs this page)' : ''));
             if (counts.footers !== counts.blocks) fail(name + ': every Haxe block carries one footer, ' + counts.footers + ' of ' + counts.blocks + ' do');
 
-            // No tab strip may stand over blocks that are all hidden,
+            // No tab strip stands over blocks that are all hidden,
             // whatever language is picked. Click through every tab
             // language the page offers, Haxe included.
             const langs = await page.evaluate(() => Array.from(new Set(

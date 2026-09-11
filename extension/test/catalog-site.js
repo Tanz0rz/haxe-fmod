@@ -15,7 +15,7 @@
 //
 // --from <dir> reads the pages from saved content fragments (one
 // <page>.html per file, as served by the docs content origin) instead
-// of crawling the live site, for machines where the site itself will
+// of crawling the live site, for machines where the site itself does
 // not render. The fragments carry the same markup the SPA injects.
 //
 // Needs the playwright package on NODE_PATH. Runs headless, no extension

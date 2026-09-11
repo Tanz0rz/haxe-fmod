@@ -20,8 +20,8 @@ import haxefmod.studio.native.NativeStudio;
 @:dox(hide)
 class CallbackDispatcher {
     /**
-     * Queue records with this bit set belong to core channel callbacks,
-     * not event instances (the shims reserve the namespace when encoding).
+     * Queue records with this bit set belong to core channel callbacks
+     * rather than event instances (the shims reserve the namespace when encoding).
      */
     public static inline var CHANNEL_TYPE_NAMESPACE:Int = 0x40000000;
 

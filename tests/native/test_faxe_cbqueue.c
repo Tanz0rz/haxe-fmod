@@ -300,6 +300,29 @@ int main(void) {
 
     test_concurrent_payload_delivery();
 
+    /* A cut string keeps whole codepoints: three-byte characters after
+     * a 61-byte ASCII run, so byte 63 lands inside one */
+    {
+        char text[128];
+        char out[FAXE_CBQ_STR_MAX];
+        int bank = 0;
+        memset(text, 'a', 61);
+        text[61] = '\0';
+        strcat(text, "\xe2\x82\xac\xe2\x82\xac");
+        faxe_str_copy(out, text, sizeof(out));
+        assert(strlen(out) == 61);
+        assert(out[61] == '\0');
+        faxe_str_copy(out, "short", sizeof(out));
+        assert(strcmp(out, "short") == 0);
+        text[60] = '\0';
+        strcat(text, "\xe2\x82\xac");
+        faxe_str_copy(out, text, sizeof(out));
+        assert(strlen(out) == 63);
+        faxe_bankpath_put(&bank, text);
+        assert(faxe_bankpath_take(&bank, out) == 1);
+        assert(strlen(out) == 63);
+    }
+
     printf("faxe_cbqueue: all assertions passed\n");
     return 0;
 }

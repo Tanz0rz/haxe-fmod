@@ -184,8 +184,8 @@ def primary_functions(native, fmod_names):
 def html5_limited():
     """Shim functions whose web path reports FMOD_ERR_UNSUPPORTED on
     purpose. A feature guard of the form `if (!obj.method) { ...
-    ERR_UNSUPPORTED ... }` is defensive code for a glue method that may be
-    missing in another SDK version and does not make the call limited, so
+    ERR_UNSUPPORTED ... }` is defensive code for a glue method that is
+    absent in another SDK version and does not make the call limited, so
     those lines are dropped before looking for the marker."""
     text = read(JAXE)
     limited = set()

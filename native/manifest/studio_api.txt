@@ -55,7 +55,7 @@ sys_set_studio_callback_mask i32 -> i32
 # - GUIDs cross the boundary as formatted strings "{8-4-4-4-12}" both ways.
 # - Parameter IDs cross as two i32 args (data1, data2).
 # - fbuf = caller-passed scratch double buffer, ibuf = scratch int buffer
-#   (see haxefmod/studio/native/Scratch.hx); layouts documented per function.
+#   (see haxefmod/studio/native/Scratch.hx). Layouts are documented per function.
 # - 3D attributes are 12 flattened doubles: pos xyz, vel xyz, forward xyz, up xyz.
 # - List getters fill ibuf with handles and return the count written, capped
 #   at FAXE_LIST_MAX (1024, lockstep with Scratch.CAPACITY); lastResult
@@ -806,7 +806,7 @@ sys_set_speaker_position i32 f32 f32 bool -> i32
 # fbuf out: [0]=x [1]=y [2]=active (1.0 or 0.0)
 sys_get_speaker_position i32 fbuf -> i32
 ## Plugins (native only, the web build has no plugin host)
-# Plugin handles are FMOD's own unsigned ids, not handle-table entries.
+# Plugin handles are FMOD's own unsigned ids rather than handle-table entries.
 sys_set_plugin_path str -> i32
 # 0 on failure
 sys_load_plugin str i32 -> i32

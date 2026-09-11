@@ -5943,7 +5943,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Memory_Free",
    "html5": false,
    "notes": [
-    "Cannot be bound. It frees a raw pointer from FMOD's heap, which has no meaning in Haxe, and Haxe code never receives one. Release handles with the release() method of the object that created them."
+    "Cannot be bound. It frees a raw pointer from FMOD's heap. Haxe code never receives one, so there is nothing to free. Release handles with the release() method of the object that created them."
    ]
   },
   "memory_getstats": {
@@ -7905,7 +7905,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::CommandReplay::getSystem",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod has one Studio system, and StudioSystem reaches it directly, so a replay never needs to hand it back."
+    "No Haxe declaration, another call plays this role. haxefmod has one Studio system, and StudioSystem reaches it directly. A replay never needs to hand it back."
    ]
   },
   "studio_commandreplay_getuserdata": {
@@ -8010,7 +8010,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::CommandReplay::setCreateInstanceCallback",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread."
+    "Cannot be bound. FMOD runs the callback on its update thread while the replay plays. No Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread."
    ]
   },
   "studio_commandreplay_setframecallback": {
@@ -8019,7 +8019,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::CommandReplay::setFrameCallback",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread."
+    "Cannot be bound. FMOD runs the callback on its update thread while the replay plays. No Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread."
    ]
   },
   "studio_commandreplay_setloadbankcallback": {
@@ -8028,7 +8028,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::CommandReplay::setLoadBankCallback",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread."
+    "Cannot be bound. FMOD runs the callback on its update thread while the replay plays. No Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread."
    ]
   },
   "studio_commandreplay_setpaused": {
@@ -8368,7 +8368,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::EventDescription::getUserProperty",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. EventDescription.getUserProperty(name) walks the properties FMOD reports by index and returns the one with that name, so the same FmodUserProperty comes back as from FMOD's lookup by name."
+    "No Haxe declaration, another call plays this role. EventDescription.getUserProperty(name) walks the properties FMOD reports by index and returns the one with that name. The same FmodUserProperty comes back as from FMOD's lookup by name."
    ]
   },
   "studio_eventdescription_getuserpropertybyindex": {
@@ -8553,7 +8553,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::EventDescription::setCallback",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod covers this with EventDescription.setCallback(handler, ?mask), which remembers a handler that createInstance installs on every instance made from the description from then on."
+    "No Haxe declaration, another call plays this role. haxefmod covers this with EventDescription.setCallback(handler, ?mask). It remembers a handler that createInstance installs on every later instance made from the description."
    ]
   },
   "studio_eventdescription_setuserdata": {
@@ -8863,7 +8863,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::EventInstance::getSystem",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod has one Studio system, and StudioSystem reaches it directly, so an instance never needs to hand it back."
+    "No Haxe declaration, another call plays this role. haxefmod has one Studio system, and StudioSystem reaches it directly. An instance never needs to hand it back."
    ]
   },
   "studio_eventinstance_gettimelineposition": {
@@ -10090,7 +10090,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::initialize",
    "html5": false,
    "notes": [
-    "No Haxe declaration, the library owns this choice. FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels, studioflags come from liveUpdate and memoryTracking, flags come from the core fields (for example rightHanded3D and profiling), and extradriverdata is never passed."
+    "No Haxe declaration, the library owns this choice. FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels, and studioflags come from liveUpdate and memoryTracking. The flags come from the core fields (for example rightHanded3D and profiling), and extradriverdata is never passed."
    ]
   },
   "studio_system_isvalid": {
@@ -10108,7 +10108,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::loadBankCustom",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD_STUDIO_BANK_INFO is declared as haxefmod.studio.Types.FmodStudioBankInfo (size, userData, userDataLength), but the load itself needs the four file callbacks the struct carries, and FMOD runs those on its streaming and loading threads, where no Haxe target can execute code. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
+    "Cannot be bound. FMOD_STUDIO_BANK_INFO is declared as haxefmod.studio.Types.FmodStudioBankInfo (size, userData, userDataLength). The load itself needs the four file callbacks the struct carries. FMOD runs those on its streaming and loading threads, where no Haxe target can execute code. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
    ]
   },
   "studio_system_loadbankfile": {
@@ -10205,7 +10205,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::registerPlugin",
    "html5": false,
    "notes": [
-    "Cannot be bound. It takes a DSP description struct whose callbacks FMOD runs on its mixer thread, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, which makes its effects available to Studio events."
+    "Cannot be bound. It takes a DSP description struct whose callbacks FMOD runs on its mixer thread. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, which makes its effects available to Studio events."
    ]
   },
   "studio_system_release": {
@@ -10233,7 +10233,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::release",
    "html5": false,
    "notes": [
-    "No Haxe declaration, the library owns this choice. There is no shutdown call. FmodManager.Initialize() creates the system once and FMOD is released when the process exits, so banks, instances, and handles need no teardown order at quit."
+    "No Haxe declaration, the library owns this choice. There is no shutdown call. FmodManager.Initialize() creates the system once, and FMOD is released when the process exits. Banks, instances, and handles need no teardown order at quit."
    ]
   },
   "studio_system_resetbufferusage": {
@@ -10582,7 +10582,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::unregisterPlugin",
    "html5": false,
    "notes": [
-    "Cannot be bound. It names a plugin registered from a description struct, and that registration cannot be bound because its callbacks would run on FMOD's mixer thread. A plugin loaded with StudioSystem.loadPlugin is unloaded with StudioSystem.unloadPlugin."
+    "Cannot be bound. It names a plugin registered from a description struct. That registration cannot be bound, since its callbacks run on FMOD's mixer thread. A plugin loaded with StudioSystem.loadPlugin is unloaded with StudioSystem.unloadPlugin."
    ]
   },
   "studio_system_update": {
@@ -10729,7 +10729,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::attachFileSystem",
    "html5": false,
    "notes": [
-    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
+    "Cannot be bound. A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
    ]
   },
   "system_close": {
@@ -10772,7 +10772,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::createDSP",
    "html5": false,
    "notes": [
-    "Cannot be bound. A DSP description is a struct of callbacks that FMOD runs on its mixer thread, and no Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type), and a unit from a loaded plugin with Dsp.createByPlugin(handle)."
+    "Cannot be bound. A DSP description is a struct of callbacks FMOD runs on its mixer thread. No Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type), and a unit from a loaded plugin with Dsp.createByPlugin(handle)."
    ]
   },
   "system_createdspbyplugin": {
@@ -11038,7 +11038,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::getCPUUsage",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod covers this with StudioSystem.getCpuUsage(), which returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update percentage."
+    "No Haxe declaration, another call plays this role. haxefmod covers this with StudioSystem.getCpuUsage(). It returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update percentage."
    ]
   },
   "system_getdefaultmixmatrix": {
@@ -11782,7 +11782,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerCodec",
    "html5": false,
    "notes": [
-    "Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
+    "Cannot be bound. A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
    ]
   },
   "system_registerdsp": {
@@ -11791,7 +11791,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerDSP",
    "html5": false,
    "notes": [
-    "Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
+    "Cannot be bound. A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
    ]
   },
   "system_registeroutput": {
@@ -11800,7 +11800,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerOutput",
    "html5": false,
    "notes": [
-    "Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
+    "Cannot be bound. A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
    ]
   },
   "system_release": {
@@ -11974,7 +11974,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::setFileSystem",
    "html5": false,
    "notes": [
-    "Cannot be bound. A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
+    "Cannot be bound. A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
    ]
   },
   "system_setgeometrysettings": {

@@ -57,6 +57,7 @@ SCANNED = [
     "ci/fmod_headers.py",
     "docs/guides/settings.md",
     "haxefmod/runtime/FmodRuntime.hx",
+    "ci/local-ci.sh",
 ]
 
 # FMOD versions are always major.minor(2).patch(2), e.g. 2.03.12. Other

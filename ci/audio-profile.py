@@ -127,8 +127,8 @@ def read_wav(path):
             if chunk_id == b"fmt " and size >= 16:
                 _, fmt_channels, fmt_rate, _, _, fmt_bits = struct.unpack(
                     "<HHIIHH", data[pos + 8:pos + 24])
-                # A zero channel count is the Windows WAVWRITER header bug;
-                # keep the CI-format defaults in that case
+                # A zero channel count is the Windows WAVWRITER header bug, so
+                # the CI-format defaults stay in that case
                 if fmt_channels > 0:
                     channels, rate, bits = fmt_channels, fmt_rate, fmt_bits
             elif chunk_id == b"data":

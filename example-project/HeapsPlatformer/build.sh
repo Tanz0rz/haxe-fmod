@@ -6,7 +6,8 @@
 # js: "$B"/html5/ served as a static site, open index.html?test=<state> for a test state
 set -e
 cd "$(dirname "$0")"
-TARGET="$1"; shift
+# No argument reaches the usage line below instead of a silent exit
+TARGET="${1-}"; shift || true
 # Output root, so a game build and a test build can run side by side
 B="${BUILD_ROOT:-build}"
 case "$TARGET" in

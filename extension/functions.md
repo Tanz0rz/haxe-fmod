@@ -34,7 +34,7 @@ verdict: cannot It returns a raw wasm heap address, which has no meaning in Haxe
 
 ## memory_free
 <!-- Memory_Free -->
-verdict: cannot It frees a raw pointer from FMOD's heap, which has no meaning in Haxe, and Haxe code never receives one. Release handles with the release() method of the object that created them.
+verdict: cannot It frees a raw pointer from FMOD's heap. Haxe code never receives one, so there is nothing to free. Release handles with the release() method of the object that created them.
 
 ## file_open
 <!-- file_open -->
@@ -74,7 +74,7 @@ verdict: covered haxefmod has one core system, and haxefmod.core.CoreSystem reac
 
 ## system_attachfilesystem
 <!-- System::attachFileSystem -->
-verdict: cannot A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
+verdict: cannot A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
 
 ## system_close
 <!-- System::close -->
@@ -86,7 +86,7 @@ verdict: covered haxefmod calls this for you.
 
 ## system_createdsp
 <!-- System::createDSP -->
-verdict: cannot A DSP description is a struct of callbacks that FMOD runs on its mixer thread, and no Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type), and a unit from a loaded plugin with Dsp.createByPlugin(handle).
+verdict: cannot A DSP description is a struct of callbacks FMOD runs on its mixer thread. No Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type), and a unit from a loaded plugin with Dsp.createByPlugin(handle).
 
 ## system_createdspconnection
 <!-- System::createDSPConnection -->
@@ -106,7 +106,7 @@ verdict: covered haxefmod covers this with StudioSystem.getNumListeners().
 
 ## system_getcpuusage
 <!-- System::getCPUUsage -->
-verdict: covered haxefmod covers this with StudioSystem.getCpuUsage(), which returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update percentage.
+verdict: covered haxefmod covers this with StudioSystem.getCpuUsage(). It returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update percentage.
 
 ## system_getoutputhandle
 <!-- System::getOutputHandle -->
@@ -118,15 +118,15 @@ verdict: covered haxefmod calls this for you.
 
 ## system_registercodec
 <!-- System::registerCodec -->
-verdict: cannot A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
+verdict: cannot A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
 
 ## system_registerdsp
 <!-- System::registerDSP -->
-verdict: cannot A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
+verdict: cannot A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
 
 ## system_registeroutput
 <!-- System::registerOutput -->
-verdict: cannot A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
+verdict: cannot A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
 
 ## system_release
 <!-- System::release -->
@@ -146,7 +146,7 @@ verdict: cannot FMOD runs the callback on its mixer thread, and no Haxe target c
 
 ## system_setfilesystem
 <!-- System::setFileSystem -->
-verdict: cannot A custom file system is a set of callbacks that FMOD runs on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
+verdict: cannot A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
 
 ## system_update
 <!-- System::update -->
@@ -154,19 +154,19 @@ verdict: covered haxefmod calls this for you.
 
 ## studio_commandreplay_getsystem
 <!-- Studio::CommandReplay::getSystem -->
-verdict: covered haxefmod has one Studio system, and StudioSystem reaches it directly, so a replay never needs to hand it back.
+verdict: covered haxefmod has one Studio system, and StudioSystem reaches it directly. A replay never needs to hand it back.
 
 ## studio_commandreplay_setcreateinstancecallback
 <!-- Studio::CommandReplay::setCreateInstanceCallback -->
-verdict: cannot FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
+verdict: cannot FMOD runs the callback on its update thread while the replay plays. No Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
 
 ## studio_commandreplay_setframecallback
 <!-- Studio::CommandReplay::setFrameCallback -->
-verdict: cannot FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
+verdict: cannot FMOD runs the callback on its update thread while the replay plays. No Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
 
 ## studio_commandreplay_setloadbankcallback
 <!-- Studio::CommandReplay::setLoadBankCallback -->
-verdict: cannot FMOD runs the callback on its update thread while the replay plays, and no Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
+verdict: cannot FMOD runs the callback on its update thread while the replay plays. No Haxe target can execute code there. CommandReplay.getCommandInfo, getCommandString, and getCommandAtTime read the same commands from the game thread.
 
 ## studio_parseid
 <!-- Studio::parseID -->
@@ -182,15 +182,15 @@ verdict: covered haxefmod covers this with EventDescription.getParameterLabelByI
 
 ## studio_eventdescription_getuserproperty
 <!-- Studio::EventDescription::getUserProperty -->
-verdict: covered EventDescription.getUserProperty(name) walks the properties FMOD reports by index and returns the one with that name, so the same FmodUserProperty comes back as from FMOD's lookup by name.
+verdict: covered EventDescription.getUserProperty(name) walks the properties FMOD reports by index and returns the one with that name. The same FmodUserProperty comes back as from FMOD's lookup by name.
 
 ## studio_eventdescription_setcallback
 <!-- Studio::EventDescription::setCallback -->
-verdict: covered haxefmod covers this with EventDescription.setCallback(handler, ?mask), which remembers a handler that createInstance installs on every instance made from the description from then on.
+verdict: covered haxefmod covers this with EventDescription.setCallback(handler, ?mask). It remembers a handler that createInstance installs on every later instance made from the description.
 
 ## studio_eventinstance_getsystem
 <!-- Studio::EventInstance::getSystem -->
-verdict: covered haxefmod has one Studio system, and StudioSystem reaches it directly, so an instance never needs to hand it back.
+verdict: covered haxefmod has one Studio system, and StudioSystem reaches it directly. An instance never needs to hand it back.
 
 ## studio_system_getparameterdescriptionbyid
 <!-- Studio::System::getParameterDescriptionByID -->
@@ -206,15 +206,15 @@ verdict: covered haxefmod covers this with FmodManager.IsInitialized(), which re
 
 ## studio_system_loadbankcustom
 <!-- Studio::System::loadBankCustom -->
-verdict: cannot FMOD_STUDIO_BANK_INFO is declared as haxefmod.studio.Types.FmodStudioBankInfo (size, userData, userDataLength), but the load itself needs the four file callbacks the struct carries, and FMOD runs those on its streaming and loading threads, where no Haxe target can execute code. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
+verdict: cannot FMOD_STUDIO_BANK_INFO is declared as haxefmod.studio.Types.FmodStudioBankInfo (size, userData, userDataLength). The load itself needs the four file callbacks the struct carries. FMOD runs those on its streaming and loading threads, where no Haxe target can execute code. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
 
 ## studio_system_registerplugin
 <!-- Studio::System::registerPlugin -->
-verdict: cannot It takes a DSP description struct whose callbacks FMOD runs on its mixer thread, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, which makes its effects available to Studio events.
+verdict: cannot It takes a DSP description struct whose callbacks FMOD runs on its mixer thread. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, which makes its effects available to Studio events.
 
 ## studio_system_unregisterplugin
 <!-- Studio::System::unregisterPlugin -->
-verdict: cannot It names a plugin registered from a description struct, and that registration cannot be bound because its callbacks would run on FMOD's mixer thread. A plugin loaded with StudioSystem.loadPlugin is unloaded with StudioSystem.unloadPlugin.
+verdict: cannot It names a plugin registered from a description struct. That registration cannot be bound, since its callbacks run on FMOD's mixer thread. A plugin loaded with StudioSystem.loadPlugin is unloaded with StudioSystem.unloadPlugin.
 
 ## fsbank_init
 <!-- FSBank_Init -->
@@ -254,8 +254,8 @@ verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate too
 
 ## studio_system_release
 <!-- Studio::System::release -->
-verdict: library There is no shutdown call. FmodManager.Initialize() creates the system once and FMOD is released when the process exits, so banks, instances, and handles need no teardown order at quit.
+verdict: library There is no shutdown call. FmodManager.Initialize() creates the system once, and FMOD is released when the process exits. Banks, instances, and handles need no teardown order at quit.
 
 ## studio_system_initialize
 <!-- Studio::System::initialize -->
-verdict: library FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels, studioflags come from liveUpdate and memoryTracking, flags come from the core fields (for example rightHanded3D and profiling), and extradriverdata is never passed.
+verdict: library FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels, and studioflags come from liveUpdate and memoryTracking. The flags come from the core fields (for example rightHanded3D and profiling), and extradriverdata is never passed.
