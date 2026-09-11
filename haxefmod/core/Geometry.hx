@@ -131,8 +131,11 @@ abstract Geometry(Int) from Int to Int {
     #else
     /** Frees the geometry and invalidates this handle (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
     public inline function release():FmodResult {
-        haxefmod.studio.UserData.clear(haxefmod.studio.UserData.UserDataKind.Geometry, this);
-        return NativeStudio.geo_release(this);
+        var result:FmodResult = NativeStudio.geo_release(this);
+        if (haxefmod.studio.UserData.releaseTookEffect(result)) {
+            haxefmod.studio.UserData.clear(haxefmod.studio.UserData.UserDataKind.Geometry, this);
+        }
+        return result;
     }
     #end
 

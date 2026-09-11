@@ -569,9 +569,12 @@ abstract ChannelGroup(Int) from Int to Int {
      * release the master group or a Studio bus's group.
      */
     public inline function release():FmodResult {
-        haxefmod.core.ChannelCallbacks.removeGroup(this);
-        UserData.clear(UserDataKind.ChannelGroup, this);
-        return NativeStudio.cg_release(this);
+        var result:FmodResult = NativeStudio.cg_release(this);
+        if (UserData.releaseTookEffect(result)) {
+            haxefmod.core.ChannelCallbacks.removeGroup(this);
+            UserData.clear(UserDataKind.ChannelGroup, this);
+        }
+        return result;
     }
 
     /**

@@ -842,9 +842,15 @@ class TestStudioSurface {
 		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, 0, 0, 0, 0, 0, 0.5, "");
 		assert(received.length == 2, "cg clearCallback stops delivery");
 		group.setCallback(function(e) received.push(e));
+		// The stub refuses the release, so the group and its handler stay
 		group.release();
 		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, 0, 0, 0, 0, 0, 0.5, "");
-		assert(received.length == 2, "cg release removes the handler");
+		assert(received.length == 3, "cg refused release keeps the handler");
+		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 0;
+		group.release();
+		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 68;
+		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, 0, 0, 0, 0, 0, 0.5, "");
+		assert(received.length == 3, "cg release removes the handler");
 		ChannelCallbacks.clearAll();
 	}
 

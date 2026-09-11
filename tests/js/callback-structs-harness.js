@@ -83,6 +83,15 @@ async function main() {
     jaxe.fmod_evi_set_callback_mask(music, 0x200 /* PLUGIN_CREATED */);
     check('plugin_created_mask_installs_destroyed', (jaxe.effectiveCallbackMask(music) & 0x400) !== 0,
         `mask=${jaxe.effectiveCallbackMask(music)}`);
+    // Once a plugin was created the destroyed bit stays, whatever mask
+    // the game sets, so the minted handle is freed with the effect
+    jaxe.pluginSeen[music] = true;
+    jaxe.fmod_evi_set_callback_mask(music, 0);
+    check('plugin_seen_keeps_destroyed', (jaxe.effectiveCallbackMask(music) & 0x400) !== 0,
+        `mask=${jaxe.effectiveCallbackMask(music)}`);
+    delete jaxe.pluginSeen[music];
+    check('plugin_flag_cleared_drops_destroyed', (jaxe.effectiveCallbackMask(music) & 0x400) === 0,
+        `mask=${jaxe.effectiveCallbackMask(music)}`);
     jaxe.fmod_evi_set_callback_mask(music, 0x1000 /* TIMELINE_BEAT */);
     check('start', jaxe.fmod_evi_start(music) === 0, '');
     await pump(100);
@@ -123,9 +132,17 @@ async function main() {
         // and the handle stays live
         check('create_record_release_refused', jaxe.fmod_core_release_sound(c.i1) === jaxe.ERR_INVALID_PARAM
             && jaxe.handleResolve(c.i1, jaxe.TYPE_SOUND) != null, `result=${jaxe.fmod_sys_last_result()}`);
+        check('create_record_sound_owned', jaxe.fmod_core_sound_is_owned(c.i1) === true, '');
         check('create_record_subsound', c.i2 >= 0 && c.i2 === (props.subsoundIndex | 0), `subsound=${c.i2}`);
         check('create_record_library_owned', c.i3 === 1, `i3=${c.i3}`);
         check('create_record_handle_counted', jaxe.liveCount === baseline + 1, `live=${jaxe.liveCount} baseline=${baseline}`);
+        // A subsound taken from the owned sound is owned too and dies with it
+        const subCount = jaxe.fmod_core_sound_get_num_sub_sounds(c.i1);
+        const sub = subCount > 0 ? jaxe.fmod_core_sound_get_sub_sound(c.i1, 0) : 0;
+        check('create_record_subsound_minted', subCount > 0 && sub > 0, `subsounds=${subCount} sub=${sub}`);
+        check('create_record_subsound_owned', jaxe.fmod_core_sound_is_owned(sub) === true, '');
+        check('create_record_subsound_release_refused', jaxe.fmod_core_release_sound(sub) === jaxe.ERR_INVALID_PARAM, '');
+        check('create_record_subsound_counted', jaxe.liveCount === baseline + 2, `live=${jaxe.liveCount}`);
         // The sound handle is usable from the game thread while it lives.
         // The table's FSB container reports 0 ms, and the subsound holds the
         // audio.
@@ -140,6 +157,7 @@ async function main() {
             check('destroy_record_name', destroyed[0].str === 'Line', `name=${destroyed[0].str}`);
         }
         check('destroy_frees_handle', jaxe.handleResolve(c.i1, jaxe.TYPE_SOUND) == null, '');
+        check('destroy_frees_subsound_handle', jaxe.handleResolve(sub, jaxe.TYPE_SOUND) == null, '');
         check('destroy_restores_count', jaxe.liveCount === baseline, `live=${jaxe.liveCount} baseline=${baseline}`);
     }
     // A key that matches nothing delivers a null sound and no handle

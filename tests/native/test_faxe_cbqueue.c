@@ -251,7 +251,8 @@ int main(void) {
         assert(parked[0] == 0x30001 && parked[1] == 0x30004);
         assert(faxe_cbq_take_dropped_handles(parked, FAXE_CBQ_DROPPED_MAX) == 0); /* cleared on take */
         while (faxe_cbq_pop(&out)) {}
-        /* the list caps rather than growing */
+        /* the list caps rather than growing: one more marked record than
+         * the list holds is dropped without a parked handle */
         for (int i = 0; i < FAXE_CBQ_DROPPED_MAX + 1; i++) {
             ev.freesI1 = 1;
             ev.i1 = 0x40000 + i;
@@ -259,7 +260,7 @@ int main(void) {
         }
         ev.freesI1 = 0;
         ev.i1 = 0;
-        for (int i = 0; i < FAXE_CBQ_CAPACITY; i++) faxe_cbq_push(&ev);
+        for (int i = 0; i < FAXE_CBQ_CAPACITY + 1; i++) faxe_cbq_push(&ev);
         assert(faxe_cbq_take_dropped_handles(parked, FAXE_CBQ_DROPPED_MAX) == FAXE_CBQ_DROPPED_MAX);
         assert(parked[0] == 0x40000 && parked[FAXE_CBQ_DROPPED_MAX - 1] == 0x40000 + FAXE_CBQ_DROPPED_MAX - 1);
         assert(faxe_cbq_take_overflow() == 1);

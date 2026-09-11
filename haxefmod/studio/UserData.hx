@@ -35,7 +35,9 @@ class UserDataKind {
  * here keyed by the handle int instead.
  *
  * The store drops an entry when the handle is released through the
- * abstract (release, stop, unload). It also drops the entry when the
+ * abstract (release, stop, unload) and FMOD accepted the release. A
+ * refused release keeps the object, so the entry stays with it. It also
+ * drops the entry when the
  * dispatcher delivers Destroyed for an event instance FMOD tore down on
  * its own. On HTML5 Destroyed never arrives, so the dispatcher drops the
  * entries of dead instance handles each update instead. The native handle
@@ -71,6 +73,15 @@ class UserData {
 
     public static function clear(kind:Int, handle:Int):Void {
         maps[kind].remove(handle);
+    }
+
+    /**
+     * True when a release result means the object is gone: FMOD accepted
+     * it, or the handle was dead already. A refused release, for example
+     * on a sound the library owns, keeps the object and its entry.
+     */
+    public static inline function releaseTookEffect(result:FmodResult):Bool {
+        return result.isOk() || result == FmodResult.FMOD_ERR_INVALID_HANDLE;
     }
 
     /** Drops every entry of one family. */

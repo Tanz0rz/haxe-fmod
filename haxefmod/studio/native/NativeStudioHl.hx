@@ -254,6 +254,7 @@ class NativeStudioHl {
     public static inline function core_create_sound_ex(path:String, mode:Int, dls:String, key:String, guid:String):Int return Raw.core_create_sound_ex(toBytes(path), mode, Scratch.intBuf(), toBytes(dls), toBytes(key), toBytes(guid));
     public static inline function core_create_sound_memory_ex(data:haxe.io.Bytes, len:Int, mode:Int, dls:String, key:String, guid:String):Int return Raw.core_create_sound_memory_ex(data.getData().bytes, len, mode, Scratch.intBuf(), toBytes(dls), toBytes(key), toBytes(guid));
     public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
+    public static inline function core_sound_is_owned(handle:Int):Bool return Raw.core_sound_is_owned(handle);
     public static inline function core_get_sound_length(handle:Int, unit:Int):Int return Raw.core_get_sound_length(handle, unit);
 
     // Core PCM streams
@@ -959,6 +960,7 @@ private extern class Raw {
     static function core_create_sound_ex(path:hl.Bytes, mode:Int, ibuf:hl.Bytes, dls:hl.Bytes, key:hl.Bytes, guid:hl.Bytes):Int;
     static function core_create_sound_memory_ex(data:hl.Bytes, len:Int, mode:Int, ibuf:hl.Bytes, dls:hl.Bytes, key:hl.Bytes, guid:hl.Bytes):Int;
     static function core_release_sound(handle:Int):Int;
+    static function core_sound_is_owned(handle:Int):Bool;
     static function core_get_sound_length(handle:Int, unit:Int):Int;
     static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int;
     static function core_pcm_write(handle:Int, data:hl.Bytes, len:Int):Int;

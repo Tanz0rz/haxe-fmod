@@ -10,6 +10,7 @@ import haxe.io.Path;
  * The manifest (native/manifest/studio_api.txt) is the source of truth for the
  * native surface. This checker scans:
  *   native/faxe/linc_faxe.cpp   for fmod_<name>(...) definitions
+ *   native/faxe/linc_faxe.h     for the extern declarations hxcpp links against
  *   native/hlaxe/hlaxe_fmod.c   for DEFINE_PRIM(<ret>, <name>, <args>) registrations
  *   native/jaxe/jaxe.js         for static fmod_<name>(...) methods
  * and reports any function that is missing, unexpected, or has mismatched arity.
@@ -29,10 +30,11 @@ class NativeManifestCheck {
     public static function run(libRoot:String):Int {
         var manifestPath = Path.join([libRoot, "native", "manifest", "studio_api.txt"]);
         var cppPath = Path.join([libRoot, "native", "faxe", "linc_faxe.cpp"]);
+        var cppHeaderPath = Path.join([libRoot, "native", "faxe", "linc_faxe.h"]);
         var hlPath = Path.join([libRoot, "native", "hlaxe", "hlaxe_fmod.c"]);
         var jsPath = Path.join([libRoot, "native", "jaxe", "jaxe.js"]);
 
-        for (path in [manifestPath, cppPath, hlPath, jsPath]) {
+        for (path in [manifestPath, cppPath, cppHeaderPath, hlPath, jsPath]) {
             if (!FileSystem.exists(path)) {
                 Sys.println('verify-native: file not found: $path');
                 return 1;
@@ -43,6 +45,9 @@ class NativeManifestCheck {
         var errors:Array<String> = [];
 
         diff("cpp (linc_faxe.cpp)", scanCpp(cppPath), manifest, errors);
+        // A definition without its declaration compiles the shim and fails
+        // the game link, so the header is held to the same lockstep
+        diff("cpp header (linc_faxe.h)", scanCppHeader(cppHeaderPath), manifest, errors);
         diff("hl (hlaxe_fmod.c)", scanHl(hlPath), manifest, errors);
         diff("js (jaxe.js)", scanJs(jsPath), manifest, errors);
         checkAbiLockstep(libRoot, manifestPath, errors);
@@ -89,6 +94,22 @@ class NativeManifestCheck {
             if (re.match(line)) {
                 found.set(re.matched(1), countCArgs(re.matched(2)));
             }
+        }
+        return found;
+    }
+
+    /**
+     * Matches declarations like: extern int fmod_bank_unload(int handle);
+     * A long parameter list wraps over several lines, so the file is
+     * scanned as one line.
+     */
+    static function scanCppHeader(path:String):Map<String, Int> {
+        var found = new Map<String, Int>();
+        var re = ~/extern\s+[A-Za-z_][\w:&<>\* ]*\bfmod_(\w+)\s*\(([^)]*)\)\s*;/;
+        var text = File.getContent(path).split("\n").join(" ");
+        while (re.match(text)) {
+            found.set(re.matched(1), countCArgs(re.matched(2)));
+            text = re.matchedRight();
         }
         return found;
     }

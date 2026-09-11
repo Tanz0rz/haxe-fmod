@@ -66,8 +66,11 @@ typedef struct {
     unsigned char alive;
     /* 1 when the library owns the object's lifetime: a programmer sound
      * it created, or a plugin instrument's DSP. The public release entry
-     * points refuse such a handle, since FMOD releases the object. */
+     * points refuse such a handle. The library releases the object. */
     unsigned char owned;
+    /* The handle of the owned sound this subsound was taken from, or 0.
+     * Such a child dies with its parent (see faxe_handles_free_children). */
+    int parent;
     int next_free;        /* free-list link, -1 = end of list */
 } FaxeSlot;
 
@@ -118,6 +121,7 @@ static int faxe_handle_alloc(void* ptr, unsigned char type) {
     s->type = type;
     s->alive = 1;
     s->owned = 0;
+    s->parent = 0;
     if (s->gen == 0) s->gen = 1; /* first use of this slot */
 
     gFaxeLiveCount++;
@@ -237,6 +241,7 @@ static void faxe_handle_free(int handle) {
 
     s->alive = 0;
     s->owned = 0;
+    s->parent = 0;
     s->ptr = NULL;
     if (s->aux) { free(s->aux); s->aux = NULL; }
     if (s->lock) { free(s->lock); s->lock = NULL; }
@@ -259,6 +264,25 @@ static int faxe_handle_is_owned(int handle) {
     unsigned short gen = (unsigned short)((handle >> 16) & FAXE_GEN_MAX);
     if (handle <= 0 || idx >= gFaxeSlotCap) return 0;
     return gFaxeSlots[idx].alive && gFaxeSlots[idx].gen == gen && gFaxeSlots[idx].owned;
+}
+
+/* Links a live subsound handle to its owned parent. The handle must
+ * resolve (callers check first). */
+static void faxe_handle_set_parent(int handle, int parent) {
+    gFaxeSlots[handle & 0xFFFF].parent = parent;
+}
+
+/* Frees every live slot linked to the parent handle. The parent's own
+ * slot is left to the caller. */
+static void faxe_handles_free_children(int parent) {
+    int i;
+    if (parent <= 0) return;
+    for (i = 0; i < gFaxeSlotCap; i++) {
+        FaxeSlot* s = &gFaxeSlots[i];
+        if (s->alive && s->parent == parent) {
+            faxe_handle_free(((int)s->gen << 16) | i);
+        }
+    }
 }
 
 /* Replaces the slot's owned memory, freeing the previous block. The handle

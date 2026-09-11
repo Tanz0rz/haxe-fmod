@@ -4,7 +4,8 @@
 # workflow uses.
 #
 # Not replayed: env-doctor, js-harness, api-docs, package-check,
-# package-check-cpp, linux-hl-compat, and the heaps-hl manual-update leg.
+# package-check-cpp, linux-hl-compat, and the heaps-hl and kha-linux
+# manual-update legs.
 # The Mac and Windows jobs have no local equivalent. Of docs.yml, the
 # unit-tests job replays the snippet compile, the review ledger, and the
 # line counts. The site build, the API reference, the extension test, and

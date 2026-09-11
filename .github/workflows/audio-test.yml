@@ -256,7 +256,25 @@ jobs:
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
+      - name: Check the pre-built hdll ABI
+        id: abi
+        run: |
+          # A binding ABI bump lands before update-hdlls can rebuild the
+          # shipped hdlls. The marker check and the hl steps wait for it
+          # on a branch. A tag keeps the hard failure: a release ships
+          # no stale hdll. An hdll with no marker at all counts as stale.
+          ABI=$(grep -o "abi-version: [0-9]*" native/manifest/studio_api.txt | grep -o "[0-9]*")
+          MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$" || true)
+          if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "::notice ::the pre-built hdll carries ABI '$MARKER' and the manifest says $ABI, the hl package steps wait for update-hdlls"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Doctor passes in a configured environment
+        # The doctor compares the hdll ABI the way the build does
+        if: steps.abi.outputs.stale != 'true'
         env:
           FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
         run: |
@@ -615,8 +633,8 @@ jobs:
         id: abi
         run: |
           # A binding ABI bump lands before update-hdlls can rebuild the
-          # shipped hdlls, so the marker check and the hl steps wait for
-          # it on a branch. A tag keeps the hard failure: a release ships
+          # shipped hdlls. The marker check and the hl steps wait for it
+          # on a branch. A tag keeps the hard failure: a release ships
           # no stale hdll. An hdll with no marker at all counts as stale.
           ABI=$(grep -o "abi-version: [0-9]*" native/manifest/studio_api.txt | grep -o "[0-9]*")
           MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$" || true)
@@ -822,10 +840,17 @@ jobs:
       - name: Run CLI commands from the installed package
         env:
           FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
+          STALE: ${{ steps.abi.outputs.stale }}
         run: |
           set -o pipefail
-          (cd example-project/EZPlatformer && haxelib run haxefmod check 2>&1) | tee /tmp/pkg-check.log
-          grep -q "All .* checks passed!" /tmp/pkg-check.log
+          # The doctor compares the hdll ABI the way the build does, so it
+          # waits with the hl steps on a branch
+          if [ "$STALE" = "true" ]; then
+            echo "::notice ::the doctor check waits for update-hdlls"
+          else
+            (cd example-project/EZPlatformer && haxelib run haxefmod check 2>&1) | tee /tmp/pkg-check.log
+            grep -q "All .* checks passed!" /tmp/pkg-check.log
+          fi
           haxelib run haxefmod generate --strings tests/fixtures/Master.strings.bank \
             --out /tmp/pkg-gen 2>&1 | tee /tmp/pkg-generate.log
           test -f /tmp/pkg-gen/FmodEvents.hx || {

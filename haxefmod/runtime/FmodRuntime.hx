@@ -58,7 +58,7 @@ class FmodRuntime {
     static var systemFailed:Bool = false;
 
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
-    public static inline var BINDING_ABI:Int = 11;
+    public static inline var BINDING_ABI:Int = 12;
 
     /**
      * Initializes FMOD with the given settings (see FmodSettings for the

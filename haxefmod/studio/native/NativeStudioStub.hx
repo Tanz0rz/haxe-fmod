@@ -305,7 +305,12 @@ class NativeStudioStub {
         return 0;
     }
     public static var testLastPlayGroup:Int = -1;
-    public static function core_release_sound(handle:Int):Int return ERR_UNSUPPORTED;
+    /** The result every core release below reports. Tests toggle it. */
+    public static var testReleaseResult:Int = ERR_UNSUPPORTED;
+    public static function core_release_sound(handle:Int):Int return testReleaseResult;
+    /** Handles the stub reports as library-owned. Tests fill it. */
+    public static var testOwnedHandles:Array<Int> = [];
+    public static function core_sound_is_owned(handle:Int):Bool return testOwnedHandles.contains(handle);
     public static function core_get_sound_length(handle:Int, unit:Int):Int return -1;
 
     // Core PCM streams
@@ -337,7 +342,7 @@ class NativeStudioStub {
 
     // Core DSP effects
     public static function dsp_create_by_type(type:Int):Int return 0;
-    public static function dsp_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function dsp_release(handle:Int):Int return testReleaseResult;
     public static function dsp_set_param_float(handle:Int, index:Int, value:Float):Int return ERR_UNSUPPORTED;
     public static function dsp_get_param_float(handle:Int, index:Int):Float return 0.0;
     public static function dsp_set_param_int(handle:Int, index:Int, value:Int):Int return ERR_UNSUPPORTED;
@@ -358,7 +363,7 @@ class NativeStudioStub {
     // Core channel groups
     public static function cg_get_master():Int return 0;
     public static function cg_create(name:String):Int return 0;
-    public static function cg_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function cg_release(handle:Int):Int return testReleaseResult;
     public static function cg_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
     public static function cg_get_volume(handle:Int):Float return 0.0;
     public static function cg_set_pitch(handle:Int, pitch:Float):Int return ERR_UNSUPPORTED;
@@ -437,7 +442,7 @@ class NativeStudioStub {
     public static function cg_set_fade_point_ramp(handle:Int, clock:Float, volume:Float):Int return ERR_UNSUPPORTED;
     public static function cg_remove_fade_points(handle:Int, startClock:Float, endClock:Float):Int return ERR_UNSUPPORTED;
     public static function sys_create_reverb3d():Int return 0;
-    public static function r3d_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function r3d_release(handle:Int):Int return testReleaseResult;
     public static function r3d_set_3d_attributes(handle:Int, x:Float, y:Float, z:Float, minDist:Float, maxDist:Float):Int return ERR_UNSUPPORTED;
     public static function r3d_set_properties(handle:Int):Int return ERR_UNSUPPORTED;
     public static function r3d_get_properties(handle:Int):Int return ERR_UNSUPPORTED;
@@ -488,7 +493,7 @@ class NativeStudioStub {
     // Sound groups
     public static function sys_create_sound_group(name:String):Int return 0;
     public static function sys_get_master_sound_group():Int return 0;
-    public static function sg_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function sg_release(handle:Int):Int return testReleaseResult;
     public static function sg_set_max_audible(handle:Int, maxAudible:Int):Int return ERR_UNSUPPORTED;
     public static function sg_get_max_audible(handle:Int):Int return 0;
     public static function sg_set_max_audible_behavior(handle:Int, behavior:Int):Int return ERR_UNSUPPORTED;
@@ -680,7 +685,7 @@ class NativeStudioStub {
     public static function sys_get_geometry_settings():Float return 0;
     public static function sys_get_geometry_occlusion(lx:Float, ly:Float, lz:Float, sx:Float, sy:Float, sz:Float):Int return ERR_UNSUPPORTED;
     public static function sys_load_geometry(data:haxe.io.Bytes, len:Int):Int return 0;
-    public static function geo_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function geo_release(handle:Int):Int return testReleaseResult;
     public static function geo_add_polygon(handle:Int, direct:Float, reverb:Float, doubleSided:Bool, vertices:haxe.io.Bytes, count:Int):Int return -1;
     public static function geo_get_num_polygons(handle:Int):Int return -1;
     public static function geo_get_max_polygons(handle:Int):Int return ERR_UNSUPPORTED;

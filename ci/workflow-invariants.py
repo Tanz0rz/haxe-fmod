@@ -174,14 +174,15 @@ for other in sorted(os.listdir(os.path.dirname(PATH))):
     other_pins = re.search(r"HAXELIB_PINS: (\S+)", other_text)
     if other_pins and other_pins.group(1) != pins:
         fail(f"{other} carries HAXELIB_PINS {other_pins.group(1)}, this workflow carries {pins}")
-    elif other_pins:
-        other_installs = set(re.findall(r"haxelib install ([a-z]+) ([0-9][0-9.]*)", other_text))
-        other_missing = sorted(f"{lib}{ver}" for lib, ver in other_installs if f"{lib}{ver}" not in pins.split("-"))
-        other_keys = re.findall(r"key: haxelib-[^\n]*", other_text)
-        if other_missing or any("env.HAXELIB_PINS" not in k for k in other_keys):
-            fail(f"{other} HAXELIB_PINS out of step: missing {other_missing}, keys {other_keys}")
-        else:
-            ok(f"{other} pins {len(other_installs)} installs inside HAXELIB_PINS")
+    # A workflow without the variable still installs pinned versions,
+    # which must be the ones the pins name
+    other_installs = set(re.findall(r"haxelib install ([a-z]+) ([0-9][0-9.]*)", other_text))
+    other_missing = sorted(f"{lib}{ver}" for lib, ver in other_installs if f"{lib}{ver}" not in pins.split("-"))
+    other_keys = re.findall(r"key: haxelib-[^\n]*", other_text) if other_pins else []
+    if other_missing or any("env.HAXELIB_PINS" not in k for k in other_keys):
+        fail(f"{other} installs out of step with HAXELIB_PINS: missing {other_missing}, keys {other_keys}")
+    elif other_installs:
+        ok(f"{other} installs {len(other_installs)} pinned versions the pins name")
 
 # 8. Every portability loop over the shared header tests names the same
 # tests, so a header added to one compiler pass reaches the others
@@ -313,6 +314,7 @@ REQUIRED_STEPS = {
         "Run Core dynamic-audio prototype against the real wasm",
     ],
     "env-doctor": [
+        "Check the pre-built hdll ABI",
         "Doctor passes in a configured environment",
         "Doctor rejects a missing FMOD_SDK (negative test)",
         "Build blocks without FMOD_SDK (hl)",
@@ -322,6 +324,7 @@ REQUIRED_STEPS = {
         "Postbuild rejects an SDK missing platform libraries",
     ],
     "package-check": [
+        "Check the pre-built hdll ABI",
         "Test DSP type translation against this SDK's headers",
         "Refuse to package without the pre-built hdlls",
         "Build the haxelib package",

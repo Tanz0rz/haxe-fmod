@@ -445,8 +445,9 @@ abstract Dsp(Int) from Int to Int {
      * since its event owns it.
      */
     public inline function release():FmodResult {
-        UserData.clear(UserDataKind.Dsp, this);
-        return NativeStudio.dsp_release(this);
+        var result:FmodResult = NativeStudio.dsp_release(this);
+        if (UserData.releaseTookEffect(result)) UserData.clear(UserDataKind.Dsp, this);
+        return result;
     }
 
     /**

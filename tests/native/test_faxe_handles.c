@@ -210,6 +210,29 @@ int main(void) {
         assert(faxe_live_handle_count() == 0);
     }
 
+    /* children linked to an owned parent go with it, other slots stay */
+    {
+        int parent = faxe_handle_alloc(&dummy1, FAXE_TYPE_SOUND);
+        int childA = faxe_handle_alloc(&dummy2, FAXE_TYPE_SOUND);
+        int childB = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);
+        int other = faxe_handle_alloc(&dummy1, FAXE_TYPE_DSP);
+        int idx = childA & 0xFFFF;
+        assert(gFaxeSlots[idx].parent == 0); /* a fresh slot has no parent */
+        faxe_handle_set_parent(childA, parent);
+        faxe_handle_set_parent(childB, parent);
+        faxe_handles_free_children(0); /* no parent frees nothing */
+        assert(faxe_live_handle_count() == 4);
+        faxe_handles_free_children(parent);
+        assert(faxe_handle_resolve(childA, FAXE_TYPE_SOUND) == NULL);
+        assert(faxe_handle_resolve(childB, FAXE_TYPE_SOUND) == NULL);
+        assert(faxe_handle_resolve(parent, FAXE_TYPE_SOUND) == &dummy1);
+        assert(faxe_handle_resolve(other, FAXE_TYPE_DSP) == &dummy1);
+        assert(gFaxeSlots[idx].parent == 0); /* the link goes with the slot */
+        faxe_handle_free(other);
+        faxe_handle_free(parent); /* last, so the free list head is where it was */
+        assert(faxe_live_handle_count() == 0);
+    }
+
     /* the lock record is a second owned block with the same lifetime */
     {
         int hl = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);

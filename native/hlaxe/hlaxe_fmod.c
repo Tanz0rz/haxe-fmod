@@ -59,7 +59,7 @@ static void* gListBuf[FAXE_LIST_MAX];
 // the unreferenced string from the binary, erasing the marker the scan
 // depends on. Volatile reads cannot be folded, so the string survives any
 // optimization level.
-static const volatile char gAbiMarker[] = "hlaxe_fmod_abi=11";
+static const volatile char gAbiMarker[] = "hlaxe_fmod_abi=12";
 
 /* The hash of the shim sources this hdll was built from, passed in by
  * build-hdll (ci/hlaxe-src-hash.py computes the same one). The package
@@ -269,8 +269,7 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 /* The DSP is recorded on the instance at creation. The
                  * destroyed record then carries the handle the drain
                  * minted in i1, since FMOD frees the address right after this.
-                 * i3 = 0 on a full table: the drain mints a handle its
-                 * destroyed record finds by address instead. */
+                 * i3 = 0 on a full table: the record then carries no handle. */
                 faxe_cbq_lock();
                 if (type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) {
                     ev.i3 = faxe_instctx_plugin_add(ctx, props->dsp);
@@ -342,12 +341,13 @@ static FMOD_STUDIO_EVENT_CALLBACK_TYPE effective_callback_mask(FaxeInstCtx* ctx)
     if (faxe_instctx_ps_sound_pending(ctx)) {
         mask |= FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND;
     }
-    faxe_cbq_unlock();
     /* A created plugin record mints a handle its destroyed record frees,
-     * so the pair is installed together */
-    if (mask & FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) {
+     * so the pair is installed together. The destroyed bit stays on once
+     * a plugin was created, whatever mask the game sets later. */
+    if ((mask & FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) || faxe_instctx_plugin_pending(ctx)) {
         mask |= FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED;
     }
+    faxe_cbq_unlock();
     return (FMOD_STUDIO_EVENT_CALLBACK_TYPE)mask;
 }
 
@@ -3679,7 +3679,10 @@ static void free_destroyed_ctx(FaxeInstCtx* ctx) {
     for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
         void* sound = ctx->psSounds[i];
         if (!sound) continue;
-        if (ctx->psSoundHandles[i]) faxe_handle_free(ctx->psSoundHandles[i]);
+        if (ctx->psSoundHandles[i]) {
+            faxe_handles_free_children(ctx->psSoundHandles[i]);
+            faxe_handle_free(ctx->psSoundHandles[i]);
+        }
         FMOD_Sound_Release((FMOD_SOUND*)sound);
         ctx->psSounds[i] = NULL;
         ctx->psSoundHandles[i] = 0;
@@ -3701,12 +3704,20 @@ static FaxeInstCtx* ctx_for_handle(int handle) {
 
 /* Mints the handle a create record hands the game and records it on the
  * instance. A record whose object is gone already (the destroy ran
- * first) gets no fresh handle: the address can belong to a new object. */
+ * first) gets no fresh handle: the address can belong to a new object.
+ * An owned handle already at the address belongs to a dead object whose
+ * destroy record was dropped, so it goes before the fresh mint. */
 static int hlaxe_mint_recorded(int instanceHandle, void* ptr, unsigned char type, int isPlugin) {
     int existing = faxe_handle_find(ptr, type);
-    int handle = existing ? existing : faxe_handle_alloc(ptr, type);
+    int handle;
     FaxeInstCtx* ctx;
     int recorded = 0;
+    if (existing && faxe_handle_is_owned(existing)) {
+        faxe_handles_free_children(existing);
+        faxe_handle_free(existing);
+        existing = 0;
+    }
+    handle = existing ? existing : faxe_handle_alloc(ptr, type);
     if (!handle) return 0;
     ctx = ctx_for_handle(instanceHandle);
     if (ctx) {
@@ -3719,20 +3730,21 @@ static int hlaxe_mint_recorded(int instanceHandle, void* ptr, unsigned char type
         faxe_handle_free(handle);
         return 0;
     }
-    /* FMOD releases the object, so a game release is refused */
+    /* The library releases the object, so a game release is refused */
     faxe_handle_set_owned(handle, 1);
     return handle;
 }
 
-/* A DSP the full plugin table left unrecorded still gets an owned
- * handle, which its destroyed record finds by address */
-static int hlaxe_mint_unrecorded(void* ptr, unsigned char type) {
-    int handle = faxe_handle_find_or_alloc(ptr, type);
-    if (handle) faxe_handle_set_owned(handle, 1);
-    return handle;
-}
-
 HL_PRIM bool HL_NAME(cb_next)() {
+    /* The handles of destroy records the overflow dropped go first. Their
+     * objects died before the record was pushed, and a create record
+     * behind them could otherwise find the stale slot at a reused address. */
+    {
+        int dropped[FAXE_CBQ_DROPPED_MAX];
+        int n = faxe_cbq_take_dropped_handles(dropped, FAXE_CBQ_DROPPED_MAX);
+        int i;
+        for (i = 0; i < n; i++) faxe_handle_free(dropped[i]);
+    }
     if (faxe_cbq_pop(&gCbCurrent) != 1) {
         /* Drain end: dispose of contexts whose DESTROYED events were
          * dropped by the ring's overflow policy. */
@@ -3741,13 +3753,6 @@ HL_PRIM bool HL_NAME(cb_next)() {
             FaxeInstCtx* next = (FaxeInstCtx*)orphan->qnext;
             free_destroyed_ctx(orphan);
             orphan = next;
-        }
-        /* The handles of destroy records the overflow dropped go too */
-        {
-            int dropped[FAXE_CBQ_DROPPED_MAX];
-            int n = faxe_cbq_take_dropped_handles(dropped, FAXE_CBQ_DROPPED_MAX);
-            int i;
-            for (i = 0; i < n; i++) faxe_handle_free(dropped[i]);
         }
         return false;
     }
@@ -3760,19 +3765,12 @@ HL_PRIM bool HL_NAME(cb_next)() {
      * handle back, since its address died with the object. The freed
      * handle value still reaches the handler for identity. */
     if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) {
+        /* A DSP the full table left unrecorded (i3 = 0) gets no handle,
+         * so nothing is left to free when it dies */
         gCbCurrent.i1 = gCbCurrent.i3
-            ? hlaxe_mint_recorded(gCbCurrent.handle, gCbCurrent.ptr, FAXE_TYPE_DSP, 1)
-            : hlaxe_mint_unrecorded(gCbCurrent.ptr, FAXE_TYPE_DSP);
+            ? hlaxe_mint_recorded(gCbCurrent.handle, gCbCurrent.ptr, FAXE_TYPE_DSP, 1) : 0;
     } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED) {
-        /* An unrecorded DSP (i3 = 0) is found by its address, and only an
-         * owned slot goes: a game DSP at a reused address keeps its handle */
         if (gCbCurrent.i1) faxe_handle_free(gCbCurrent.i1);
-        else if (!gCbCurrent.i3) {
-            int found = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_DSP);
-            int owned = found && faxe_handle_is_owned(found);
-            if (owned) faxe_handle_free(found);
-            gCbCurrent.i1 = owned ? found : 0;
-        }
     } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND) {
         /* A sound the game handed over finds its existing handle, one this
          * shim created gets a fresh one that its destroy record carries */
@@ -3784,7 +3782,11 @@ HL_PRIM bool HL_NAME(cb_next)() {
          * recorded handle ends here. A game-owned sound is alive and keeps
          * its handle, which the address still finds. */
         if (gCbCurrent.i3) {
-            if (gCbCurrent.i1) faxe_handle_free(gCbCurrent.i1);
+            /* The subsound handles taken from the sound go with it */
+            if (gCbCurrent.i1) {
+                faxe_handles_free_children(gCbCurrent.i1);
+                faxe_handle_free(gCbCurrent.i1);
+            }
         } else {
             gCbCurrent.i1 = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_SOUND);
         }
@@ -7028,12 +7030,25 @@ DEFINE_PRIM(_I32, core_sound_get_num_sub_sounds, _I32);
 HL_PRIM int HL_NAME(core_sound_get_sub_sound)(int h, int index) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     FMOD_SOUND* sub = NULL;
+    int child;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Sound_GetSubSound(sound, index, &sub);
     if (gLastResult != FMOD_OK || !sub) return 0;
-    return hlaxe_handle_or_memory(sub, FAXE_TYPE_SOUND);
+    child = hlaxe_handle_or_memory(sub, FAXE_TYPE_SOUND);
+    /* A subsound of a sound this shim owns is owned too, and its handle
+     * dies with the parent's */
+    if (child && faxe_handle_is_owned(h)) {
+        faxe_handle_set_owned(child, 1);
+        faxe_handle_set_parent(child, h);
+    }
+    return child;
 }
 DEFINE_PRIM(_I32, core_sound_get_sub_sound, _I32 _I32);
+
+HL_PRIM bool HL_NAME(core_sound_is_owned)(int h) {
+    return resolve_core_sound(h) != NULL && faxe_handle_is_owned(h);
+}
+DEFINE_PRIM(_BOOL, core_sound_is_owned, _I32);
 
 HL_PRIM int HL_NAME(core_sound_get_sub_sound_parent)(int h) {
     FMOD_SOUND* sound = resolve_core_sound(h);

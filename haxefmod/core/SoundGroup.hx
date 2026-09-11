@@ -141,8 +141,9 @@ abstract SoundGroup(Int) from Int to Int {
      * sounds move back to the master group. Do not release the master.
      */
     public inline function release():FmodResult {
-        UserData.clear(UserDataKind.SoundGroup, this);
-        return NativeStudio.sg_release(this);
+        var result:FmodResult = NativeStudio.sg_release(this);
+        if (UserData.releaseTookEffect(result)) UserData.clear(UserDataKind.SoundGroup, this);
+        return result;
     }
 
     /**

@@ -201,6 +201,7 @@ extern int fmod_core_create_sound_memory(::Array<unsigned char> data, int len, i
 extern int fmod_core_create_sound_ex(const ::String& path, int mode, ::Array<int> ibuf, const ::String& dls, const ::String& key, const ::String& guidText);
 extern int fmod_core_create_sound_memory_ex(::Array<unsigned char> data, int len, int mode, ::Array<int> ibuf, const ::String& dls, const ::String& key, const ::String& guidText);
 extern int fmod_core_release_sound(int handle);
+extern bool fmod_core_sound_is_owned(int handle);
 extern int fmod_core_get_sound_length(int handle, int unit);
 
 //// Core PCM streams

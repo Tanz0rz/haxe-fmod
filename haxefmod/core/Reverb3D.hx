@@ -89,8 +89,9 @@ abstract Reverb3D(Int) from Int to Int {
 
     /** Frees the zone and invalidates this handle. */
     public inline function release():FmodResult {
-        UserData.clear(UserDataKind.Reverb3D, this);
-        return NativeStudio.r3d_release(this);
+        var result:FmodResult = NativeStudio.r3d_release(this);
+        if (UserData.releaseTookEffect(result)) UserData.clear(UserDataKind.Reverb3D, this);
+        return result;
     }
 
     /**

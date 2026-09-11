@@ -149,35 +149,62 @@ class TestUserData {
 		assert("instance cleared on release", inst.getUserData() == null);
 		assert("stub saw the release", NativeStudioStub.testReleasedHandles.contains(inst));
 
-		// The other release paths clear even though the stub rejects the
-		// native call, so the entry never depends on the native result
+		// The core release paths clear once FMOD accepted the release, or
+		// reported the handle dead already. A refused release keeps the
+		// object, so the entry stays with it.
 		var sound:Sound = 301;
-		sound.setUserData(1); sound.release();
-		assert("sound cleared on release", sound.getUserData() == null);
+		var group:ChannelGroup = 303;
+		var dsp:Dsp = 304;
+		var sg:SoundGroup = 305;
+		var r3d:Reverb3D = 306;
+		var geo:Geometry = 310;
 		var chan:Channel = 302;
 		chan.setUserData(1); chan.stop();
 		assert("channel cleared on stop", chan.getUserData() == null);
-		var group:ChannelGroup = 303;
+		NativeStudioStub.testReleaseResult = 31; // FMOD_ERR_INVALID_PARAM
+		sound.setUserData(1); assert("refused sound release reports the result", sound.release() == 31);
+		assert("refused sound release keeps the entry", sound.getUserData() == 1);
+		// A library-owned sound is refused before the native release runs
+		NativeStudioStub.testReleaseResult = 0;
+		NativeStudioStub.testOwnedHandles = [sound];
+		assert("owned sound release is refused", sound.release() == 31);
+		assert("owned sound release keeps the entry", sound.getUserData() == 1);
+		NativeStudioStub.testOwnedHandles = [];
+		NativeStudioStub.testReleaseResult = 31;
 		group.setUserData(1); group.release();
-		assert("group cleared on release", group.getUserData() == null);
-		var dsp:Dsp = 304;
+		assert("refused group release keeps the entry", group.getUserData() == 1);
 		dsp.setUserData(1); dsp.release();
-		assert("dsp cleared on release", dsp.getUserData() == null);
-		var sg:SoundGroup = 305;
+		assert("refused dsp release keeps the entry", dsp.getUserData() == 1);
 		sg.setUserData(1); sg.release();
-		assert("sound group cleared on release", sg.getUserData() == null);
-		var r3d:Reverb3D = 306;
+		assert("refused sound group release keeps the entry", sg.getUserData() == 1);
 		r3d.setUserData(1); r3d.release();
+		assert("refused reverb3d release keeps the entry", r3d.getUserData() == 1);
+		geo.setUserData(1); geo.release();
+		assert("refused geometry release keeps the entry", geo.getUserData() == 1);
+		NativeStudioStub.testReleaseResult = 0;
+		sound.release();
+		assert("sound cleared on release", sound.getUserData() == null);
+		group.release();
+		assert("group cleared on release", group.getUserData() == null);
+		dsp.release();
+		assert("dsp cleared on release", dsp.getUserData() == null);
+		sg.release();
+		assert("sound group cleared on release", sg.getUserData() == null);
+		r3d.release();
 		assert("reverb3d cleared on release", r3d.getUserData() == null);
+		geo.release();
+		assert("geometry cleared on release", geo.getUserData() == null);
+		// A dead handle drops the entry too, since the object is gone
+		NativeStudioStub.testReleaseResult = 30; // FMOD_ERR_INVALID_HANDLE
+		dsp.setUserData(1); dsp.release();
+		assert("dead dsp handle drops the entry", dsp.getUserData() == null);
+		NativeStudioStub.testReleaseResult = 68;
 		var pcm:PcmStream = 307;
 		// A refused release keeps the stream, so the stub accepts this one
 		haxefmod.studio.native.NativeStudioStub.testPcmReleaseResult = 0;
 		pcm.setUserData(1); pcm.release();
 		haxefmod.studio.native.NativeStudioStub.testPcmReleaseResult = 68;
 		assert("pcm cleared on release", pcm.getUserData() == null);
-		var geo:Geometry = 310;
-		geo.setUserData(1); geo.release();
-		assert("geometry cleared on release", geo.getUserData() == null);
 		var bank:Bank = 308;
 		bank.setUserData(1); bank.unload();
 		assert("bank cleared on unload", bank.getUserData() == null);

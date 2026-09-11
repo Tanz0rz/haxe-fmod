@@ -46,7 +46,7 @@
 #define FAXE_PS_NAME_MAX 64
 /* Name-to-key entries one instance can hold. */
 #define FAXE_PS_NAMED_MAX 8
-#define FAXE_PLUGIN_MAX 16 /* cap on the live plugin instruments one instance records */
+#define FAXE_PLUGIN_MAX 64 /* cap on the live plugin instruments one instance records */
 
 typedef struct {
     char name[FAXE_PS_NAME_MAX];
@@ -63,6 +63,7 @@ typedef struct {
     int psSoundHandles[FAXE_PS_NAMED_MAX]; /* the handle the create drain minted per slot, 0 until then */
     void* pluginDsps[FAXE_PLUGIN_MAX]; /* FMOD_DSP* of the live plugin instruments, by address */
     int pluginHandles[FAXE_PLUGIN_MAX]; /* the handle the created drain minted per slot, 0 until then */
+    int pluginSeen;           /* 1 once a plugin created callback ran, never cleared */
     void* psGameSound;        /* FMOD_SOUND* the game owns and keeps alive, never released here */
     int psGameSubsound;       /* subsound index handed over with psGameSound, -1 for the sound itself */
     FaxePsNamed* psNamed;     /* name-to-key entries, allocated on first use */
@@ -99,6 +100,14 @@ static int faxe_instctx_ps_sound_pending(const FaxeInstCtx* ctx) {
         if (ctx->psSounds[i] != NULL) return 1;
     }
     return 0;
+}
+
+/* True once a plugin instrument was created on the instance. The
+ * installed mask keeps PLUGIN_DESTROYED from then on, whatever mask the
+ * game sets later, so every handle the created drain minted is freed.
+ * Caller holds the callback-queue lock. */
+static int faxe_instctx_plugin_pending(const FaxeInstCtx* ctx) {
+    return ctx->pluginSeen;
 }
 
 /* Records a sound the shim created for an instrument. Several
@@ -172,6 +181,7 @@ static int faxe_instctx_ps_sound_take(FaxeInstCtx* ctx, const void* sound) {
 static int faxe_instctx_plugin_add(FaxeInstCtx* ctx, void* dsp) {
     int i;
     if (!dsp) return 0;
+    ctx->pluginSeen = 1;
     for (i = 0; i < FAXE_PLUGIN_MAX; i++) {
         if (ctx->pluginDsps[i] == NULL) {
             ctx->pluginDsps[i] = dsp;

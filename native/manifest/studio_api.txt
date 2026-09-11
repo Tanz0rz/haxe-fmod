@@ -11,7 +11,7 @@
 # Types are logical (exact FFI types differ per backend, e.g. f32 vs f64).
 # The checker verifies presence and arity rather than exact types.
 #
-# abi-version: 11
+# abi-version: 12
 # The binding ABI version covers the shape of the native surface. Bump it in
 # lockstep with the "hlaxe_fmod_abi=" marker in hlaxe_fmod.c, the constants in
 # the other two shims, and FmodRuntime.BINDING_ABI whenever functions are
@@ -310,6 +310,7 @@ core_create_sound_memory bytes i32 i32 -> i32
 core_create_sound_ex str i32 ibuf str str str -> i32
 core_create_sound_memory_ex bytes i32 i32 ibuf str str str -> i32
 core_release_sound i32 -> i32
+core_sound_is_owned i32 -> bool
 # length in milliseconds (-1 on failure)
 core_get_sound_length i32 i32 -> i32
 

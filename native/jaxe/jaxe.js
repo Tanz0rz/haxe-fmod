@@ -83,7 +83,7 @@ class jaxe {
         } else {
             idx = jaxe.slots.length;
             if (idx >= 0x10000) return 0;
-            jaxe.slots.push({ ptr: null, raw: 0, gen: 0, type: 0, alive: false, owned: false });
+            jaxe.slots.push({ ptr: null, raw: 0, gen: 0, type: 0, alive: false, owned: false, parent: 0 });
         }
         var s = jaxe.slots[idx];
         s.ptr = ptr;
@@ -91,6 +91,7 @@ class jaxe {
         s.type = type;
         s.alive = true;
         s.owned = false;
+        s.parent = 0;
         if (s.gen == 0) s.gen = 1; // first use of this slot
         jaxe.liveCount++;
         return (s.gen << 16) | idx;
@@ -248,6 +249,16 @@ class jaxe {
         return !!(s && s.alive && s.gen == ((handle >> 16) & 0x7FFF) && s.owned);
     }
 
+    // Frees every live slot linked to an owned parent sound. The
+    // parent's own slot is the caller's.
+    static freeChildren(parent) {
+        if (parent <= 0) return;
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (s.alive && s.parent == parent) jaxe.handleFree((s.gen << 16) | i);
+        }
+    }
+
     static handleFree(handle) {
         if (handle <= 0) return;
         var idx = handle & 0xFFFF;
@@ -256,6 +267,7 @@ class jaxe {
         if (!s || !s.alive || s.gen != gen) return;
         s.alive = false;
         s.owned = false;
+        s.parent = 0;
         // The embind wrapper holds a record in the wasm heap that only
         // delete() frees. The FMOD object behind it is untouched.
         if (s.ptr && typeof s.ptr.delete === "function") {
@@ -305,6 +317,7 @@ class jaxe {
     // are safe where cpp/hl need the userdata context struct.
     static cbMasks = {};
     static psKeys = {};
+    static pluginSeen = {}; // handles whose plugin created callback ran
     // The channel group handle each instance handed out, keyed by the
     // instance handle. The group dies with the instance, outside every
     // sweep trigger, so its slot is freed with the instance. Mirrors
@@ -363,8 +376,9 @@ class jaxe {
             mask |= 0x80 /* CREATE_PROGRAMMER_SOUND */ | 0x100 /* DESTROY_PROGRAMMER_SOUND */;
         }
         // A created plugin record mints a handle its destroyed record
-        // frees, so the pair is installed together
-        if (mask & 0x200 /* PLUGIN_CREATED */) mask |= 0x400 /* PLUGIN_DESTROYED */;
+        // frees, so the pair is installed together. The destroyed bit
+        // stays on once a plugin was created, whatever mask comes later.
+        if ((mask & 0x200 /* PLUGIN_CREATED */) || jaxe.pluginSeen[handle]) mask |= 0x400 /* PLUGIN_DESTROYED */;
         return mask >>> 0;
     }
 
@@ -382,6 +396,7 @@ class jaxe {
         if (inst) inst.setCallback(null, 0);
         delete jaxe.cbMasks[handle];
         delete jaxe.psKeys[handle];
+        delete jaxe.pluginSeen[handle];
     }
 
     // Uninstalls callbacks on every tracked instance (or only those whose
@@ -395,6 +410,7 @@ class jaxe {
             if (!inst) {
                 delete jaxe.cbMasks[handle];
                 delete jaxe.psKeys[handle];
+                delete jaxe.pluginSeen[handle];
                 continue;
             }
             if (descPtrs != null) {
@@ -522,7 +538,10 @@ class jaxe {
                 ev.i1 = type == 0x00000200
                     ? jaxe.handleFindOrAlloc(parameters.dsp, jaxe.TYPE_DSP)
                     : jaxe.releaseRecordedObject(parameters.dsp, jaxe.TYPE_DSP, false);
-                if (type == 0x00000200) jaxe.markOwned(ev.i1);
+                if (type == 0x00000200) {
+                    jaxe.markOwned(ev.i1);
+                    jaxe.pluginSeen[handle] = true;
+                }
             }
         }
 
@@ -534,6 +553,7 @@ class jaxe {
         if (type == 0x02 /* DESTROYED */) {
             delete jaxe.cbMasks[handle];
             delete jaxe.psKeys[handle];
+            delete jaxe.pluginSeen[handle];
             return jaxe.FMOD.OK;
         }
 
@@ -554,7 +574,8 @@ class jaxe {
         var h = jaxe.handleFind(wrapper, type);
         var slotWrapper = h ? jaxe.slots[h & 0xFFFF].ptr : null;
         if (release && wrapper.release) wrapper.release();
-        if (h) jaxe.handleFree(h);
+        // The subsound handles taken from a sound go with it
+        if (h) { jaxe.freeChildren(h); jaxe.handleFree(h); }
         if (slotWrapper !== wrapper) jaxe.dropWrapper(wrapper);
         return h;
     }
@@ -5622,7 +5643,7 @@ class jaxe {
 
     static fmod_binding_abi_version() {
         // Keep in lockstep with the manifest header "# abi-version:"
-        return 11;
+        return 12;
     }
 
     //// Initialization (Emscripten-specific, must stay here)
@@ -6041,7 +6062,18 @@ class jaxe {
         var out = {};
         jaxe.lastResult = sound.getSubSound(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUND);
+        var child = jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUND);
+        // A subsound of a sound this shim owns is owned too, and its
+        // handle dies with the parent's
+        if (child && jaxe.isOwned(handle)) {
+            jaxe.markOwned(child);
+            jaxe.slots[child & 0xFFFF].parent = handle;
+        }
+        return child;
+    }
+
+    static fmod_core_sound_is_owned(handle) {
+        return jaxe.resolveCoreSound(handle) != null && jaxe.isOwned(handle);
     }
 
     static fmod_core_sound_get_sub_sound_parent(handle) {

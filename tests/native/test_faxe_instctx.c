@@ -91,11 +91,15 @@ int main(void) {
         assert(!faxe_instctx_ps_sound_pending(ctx));
     }
 
-    /* the plugin table works the same way and fills up */
+    /* the plugin table works the same way and fills up. The first add
+     * sets the sticky flag that keeps PLUGIN_DESTROYED installed */
     {
         static int dsps[FAXE_PLUGIN_MAX + 1];
         int i, handle = -1;
+        assert(!faxe_instctx_plugin_pending(ctx));
+        assert(!faxe_instctx_plugin_add(ctx, NULL) && !faxe_instctx_plugin_pending(ctx));
         for (i = 0; i < FAXE_PLUGIN_MAX; i++) assert(faxe_instctx_plugin_add(ctx, (void*)&dsps[i]));
+        assert(faxe_instctx_plugin_pending(ctx));
         assert(!faxe_instctx_plugin_add(ctx, (void*)&dsps[FAXE_PLUGIN_MAX]));
         assert(faxe_instctx_plugin_set_handle(ctx, (void*)&dsps[3], 0x20003) == 1);
         assert(faxe_instctx_plugin_set_handle(ctx, (void*)&dsps[FAXE_PLUGIN_MAX], 9) == 0);
@@ -103,6 +107,7 @@ int main(void) {
         assert(faxe_instctx_plugin_take(ctx, (void*)&dsps[3], &handle) == 1 && handle == 0x20003);
         assert(faxe_instctx_plugin_take(ctx, (void*)&dsps[3], &handle) == 0 && handle == 0);
         for (i = 0; i < FAXE_PLUGIN_MAX; i++) if (i != 3) assert(faxe_instctx_plugin_take(ctx, (void*)&dsps[i], NULL) == 1);
+        assert(faxe_instctx_plugin_pending(ctx)); /* an empty table keeps the flag */
     }
 
     /* the name table allocates on first use, replaces by name, and fills up */

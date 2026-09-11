@@ -83,8 +83,10 @@ static inline void faxe_str_copy(char* dst, const char* src, size_t cap) {
  * Haxe thread, where the handle table is safe to touch.
  *
  * freesI1 marks a record whose i1 handle the drain frees. A dropped record
- * of that kind parks the handle in a small list the drain frees later
- * (see faxe_cbq_take_dropped_handles), so an overflow leaks no slot.
+ * of that kind parks the handle in a list the drain frees before its next
+ * pop (see faxe_cbq_take_dropped_handles). The list holds as many handles
+ * as the ring holds records, so a slot leaks only once a single drain
+ * interval drops more marked records than the ring can hold.
  * jaxe.js frees such handles in the callback itself and needs no mark.
  */
 typedef struct {
@@ -109,7 +111,7 @@ static int gCbqCount = 0;        /* number of queued events */
 static int gCbqOverflow = 0;     /* set when an event was dropped */
 static int gCbqInitialized = 0;
 static void* gCbqOrphans = NULL; /* payloads of dropped events, linked by qnext */
-#define FAXE_CBQ_DROPPED_MAX 64
+#define FAXE_CBQ_DROPPED_MAX FAXE_CBQ_CAPACITY
 static int gCbqDroppedHandles[FAXE_CBQ_DROPPED_MAX]; /* handles of dropped freesI1 records */
 static int gCbqDroppedCount = 0;
 
@@ -162,9 +164,8 @@ static void faxe_cbq_push(const FaxeCbEvent* event) {
         *(void**)dropped = gCbqOrphans;
         gCbqOrphans = dropped;
     }
-    /* The handle of a dropped destroy record waits for the drain. The
-     * list holds far more than one frame drops, and a full list leaks
-     * the slot rather than blocking the FMOD thread. */
+    /* The handle of a dropped destroy record waits for the drain. A full
+     * list leaks the slot rather than blocking the FMOD thread. */
     if (gCbqCount == FAXE_CBQ_CAPACITY && gCbqRing[gCbqHead].freesI1 && gCbqRing[gCbqHead].i1
             && gCbqDroppedCount < FAXE_CBQ_DROPPED_MAX) {
         gCbqDroppedHandles[gCbqDroppedCount++] = gCbqRing[gCbqHead].i1;

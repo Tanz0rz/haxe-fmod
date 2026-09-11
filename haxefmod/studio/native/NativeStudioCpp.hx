@@ -255,6 +255,7 @@ class NativeStudioCpp {
     public static inline function core_create_sound_ex(path:String, mode:Int, dls:String, key:String, guid:String):Int return Raw.core_create_sound_ex(path, mode, Scratch.intBuf(), dls, key, guid);
     public static inline function core_create_sound_memory_ex(data:haxe.io.Bytes, len:Int, mode:Int, dls:String, key:String, guid:String):Int return Raw.core_create_sound_memory_ex(data.getData(), len, mode, Scratch.intBuf(), dls, key, guid);
     public static inline function core_release_sound(handle:Int):Int return Raw.core_release_sound(handle);
+    public static inline function core_sound_is_owned(handle:Int):Bool return Raw.core_sound_is_owned(handle);
     public static inline function core_get_sound_length(handle:Int, unit:Int):Int return Raw.core_get_sound_length(handle, unit);
 
     // Core PCM streams
@@ -1271,6 +1272,8 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_core_release_sound")
     static function core_release_sound(handle:Int):Int;
+    @:native("linc::faxe::fmod_core_sound_is_owned")
+    static function core_sound_is_owned(handle:Int):Bool;
 
     @:native("linc::faxe::fmod_core_get_sound_length")
     static function core_get_sound_length(handle:Int, unit:Int):Int;

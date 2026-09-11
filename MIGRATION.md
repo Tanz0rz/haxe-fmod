@@ -70,7 +70,7 @@ Each returned `null` or `FMOD_ERR_UNSUPPORTED` in a 2.0 browser build. Remove th
 
 ## HashLink
 
-The binding ABI is 11. The build refuses a prebuilt `hlaxe_fmod.hdll` from 2.0 and prints instructions. Run `haxelib run haxefmod build-hdll` once, or use the hdlls shipped in the 3.0 package.
+The binding ABI is 12. The build refuses a prebuilt `hlaxe_fmod.hdll` from 2.0 and prints instructions. Run `haxelib run haxefmod build-hdll` once, or use the hdlls shipped in the 3.0 package.
 
 # Migrating from haxefmod 1.x to 2.0
 
