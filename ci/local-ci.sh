@@ -315,7 +315,8 @@ job_unit_tests() {
   step "Check binding coverage against the manifest" python3 ci/binding-coverage.py
   step "Test define-driven settings (haxefmod_* and -debug)" bash -eo pipefail -c '
     haxe tests/build-defines.hxml && haxe tests/build-debug-defaults.hxml'
-  step "Test the default bank failure path" haxe tests/build-preload-failure.hxml
+  step "Test the default bank failure path" bash -eo pipefail -c '
+    haxe tests/build-preload-failure.hxml && haxe tests/build-init-refused.hxml'
   step "Run native tests under AddressSanitizer and UBSan" bash -eo pipefail -c '
     for t in handles cbqueue guid pcmring; do
       gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \

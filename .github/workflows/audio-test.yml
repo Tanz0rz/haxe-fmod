@@ -168,9 +168,11 @@ jobs:
           haxe tests/build-defines.hxml
           haxe tests/build-debug-defaults.hxml
 
-      # One init per process: the failure path gets its own suite
+      # One init per process: the failure paths get their own suites
       - name: Test the default bank failure path
-        run: haxe tests/build-preload-failure.hxml
+        run: |
+          haxe tests/build-preload-failure.hxml
+          haxe tests/build-init-refused.hxml
 
       # The shared headers own the cross-thread lifetime contracts.
       # ASan/UBSan cover the single-threaded invariants (including the

@@ -781,9 +781,11 @@ class NativeStudioStub {
     public static function cg_get_dsp(handle:Int, index:Int):Int return 0;
 
     //// Init settings and system info
+    /** When set, the output type is refused the way a backend refuses one it lacks. */
+    public static var testRefuseFormat:Bool = false;
     public static function sys_set_init_format(outputType:Int, resamplerMethod:Int, rawSpeakers:Int):Int {
         testPreInitCalls.push('format:$outputType,$resamplerMethod,$rawSpeakers');
-        return 0;
+        return testRefuseFormat ? ERR_UNSUPPORTED : 0;
     }
     public static function sys_memory_initialize(poolSize:Int):Int {
         testPreInitCalls.push('memory:$poolSize');

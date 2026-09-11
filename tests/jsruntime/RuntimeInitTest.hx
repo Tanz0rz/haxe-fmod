@@ -46,8 +46,11 @@ class RuntimeInitTest {
 		var readyFired = false;
 		var pairReady = false;
 		var pairFailed = 0;
-		FmodRuntime.onceReady(() -> readyFired = true);
-		FmodRuntime.onceReady(() -> pairReady = true, () -> pairFailed++);
+		// Every handler records whether the module was up when it ran
+		var ranBeforeReady = false;
+		var note = function() if (!FmodRuntime.isInitialized()) ranBeforeReady = true;
+		FmodRuntime.onceReady(() -> { note(); readyFired = true; });
+		FmodRuntime.onceReady(() -> { note(); pairReady = true; }, () -> { note(); pairFailed++; });
 		FmodRuntime.init({
 			bankFolder: folder,
 			autoLoadBanks: ["Master.bank", "Master.strings.bank"],
@@ -65,6 +68,7 @@ class RuntimeInitTest {
 					check("initialized_once_banks_usable", true, 'polls=$polls');
 					check("once_ready_fired", readyFired && pairReady, "");
 					check("once_ready_not_failed", pairFailed == 0 && !FmodRuntime.initFailed(), "");
+					check("handlers_ran_after_ready", !ranBeforeReady, "");
 					check("banks_loaded", FmodRuntime.banks.isLoaded(FmodRuntime.bankPath("Master.bank")), "");
 					finish();
 				} else if (polls > 300) {
@@ -81,6 +85,7 @@ class RuntimeInitTest {
 					check("missing_banks_report_failure", FmodRuntime.initFailed(), "");
 					check("pair_runs_on_failed", !pairReady && pairFailed == 1, 'failed=$pairFailed');
 					check("plain_handler_runs_anyway", readyFired, "");
+					check("handlers_ran_after_ready", !ranBeforeReady, "");
 					// Counted before the state read below, which is a registry call
 					// that warns on its own
 					var warns = traces.filter(t -> t.indexOf("failed to load") >= 0);

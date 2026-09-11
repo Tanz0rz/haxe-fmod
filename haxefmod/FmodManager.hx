@@ -87,6 +87,7 @@ class FmodManager {
      * engine preloaders check this first and report it.
      */
     public static function InitializeFailed():Bool {
+        ensureInitialized();
         return FmodRuntime.initFailed();
     }
 
@@ -96,6 +97,7 @@ class FmodManager {
      * initialize. A loading scene starts the game on this.
      */
     public static function InitializeSettled():Bool {
+        ensureInitialized();
         return FmodRuntime.initSettled();
     }
 

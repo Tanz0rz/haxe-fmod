@@ -17,7 +17,7 @@ import openfl.utils.Assets;
 
     The preloader initializes FMOD while lime loads the assets. The
     default banks come from the loaded assets, so the runtime fetches
-    none of them. The preloader completes once FMOD reports initialized,
+    none of them. The preloader completes once initialization settled,
     and the first state plays events at once. Native targets initialize
     synchronously, so the preloader completes as soon as the assets do.
     It installs FmodFlxUpdater, so FmodManager.Update() runs every frame
