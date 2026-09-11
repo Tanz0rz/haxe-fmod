@@ -229,8 +229,9 @@ def is_type_definition(code):
 
 def is_fmod_type_definition(entry):
     """An FMOD type shown under its own heading on an API reference page.
-    A guide example that opens with a helper struct of its own (a context
-    the sample threads through a callback) is an example rather than a type."""
+    A guide example that opens with a helper struct of its own is an
+    example rather than a type. A context the sample threads through a
+    callback is one such struct."""
     if not re.search(r"\b(?:FMOD|FSBANK)_[A-Z0-9_]+\b", entry["heading"]):
         return False
     return is_type_definition(native_snippet(entry))
@@ -304,11 +305,11 @@ BODYLESS = re.compile(r"^(typedef|interface)\b")
 
 def shown_declaration(code, member_name=None):
     """The declaration the way the tab shows it. The doc comments inside
-    it stay out (the other language tabs carry none), and a class,
+    it stay out, since the other language tabs carry none. A class,
     abstract, or enum abstract shows its values and public fields only.
     Functions are haxefmod's helpers on the type rather than the FMOD
-    declaration, so they never show, and neither do private members or
-    the metadata that decorates one. With member_name (a Type: line that
+    declaration, so they never show. Private members and the metadata
+    that decorates one stay out too. With member_name (a Type: line that
     names one constant of a class) only that member shows."""
     text = re.sub(r"[ \t]*/\*\*.*?\*/[ \t]*\n?", "", code, flags=re.S)
     lines = text.split("\n")
@@ -336,9 +337,9 @@ def shown_declaration(code, member_name=None):
             out.append(line)
             i += 1
             continue
-        # The member runs to the line that closes it: a balanced ';' for
-        # a var or an expression-bodied function, the matching '}' for
-        # a braced function body.
+        # The member runs to the line that closes it. That is a balanced
+        # ';' for a var or an expression-bodied function, and the
+        # matching '}' for a braced function body.
         depth = 0
         j = i
         braced = False

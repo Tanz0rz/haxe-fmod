@@ -312,7 +312,7 @@ class ProbeChannelControl {
         var rStop = _channel.stop();
         // Core commands cross to the mixer asynchronously. The stop is
         // applied at the start of a mix block, so wait until the channel
-        // reports stopped (bounded), then a lock and unlock pair waits out
+        // reports stopped (bounded). A lock and unlock pair then waits out
         // the block in flight. The stream, group, and geometry are then
         // safe from a teardown under a live mix that reads them.
         for (i in 0...100) {

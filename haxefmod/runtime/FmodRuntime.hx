@@ -449,8 +449,8 @@ class FmodRuntime {
 
     /**
      * Sets FMOD's log level on the FmodSettings.logLevel scale. On HTML5
-     * the level is applied when the module is ready, so a call before
-     * initialization completes is not lost.
+     * the call waits for the module, and the 2.03.12 web package then
+     * reports it unsupported, since it exports no logger.
      */
     public static function setDebugLevel(level:Int):Void {
         debugLevel = level;

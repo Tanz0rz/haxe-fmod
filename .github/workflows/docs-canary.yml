@@ -66,7 +66,13 @@ jobs:
           Review each flagged entry (python3 ci/example-ledger.py --next), fix or stamp, until --status --require-all passes."
           PAYLOAD=$(jq -n --arg from "$ALERT_FROM" --arg to "$ALERT_TO" --arg subject "$SUBJECT" --arg text "$TEXT" \
             '{from: $from, to: [$to], subject: $subject, text: $text}')
-          curl -sS -X POST https://api.resend.com/emails \
+          CODE=$(curl -sS -o /tmp/resend-response.json -w "%{http_code}" -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer $RESEND_API_KEY" \
             -H "Content-Type: application/json" \
-            -d "$PAYLOAD"
+            -d "$PAYLOAD")
+          if [ "$CODE" != "200" ]; then
+            echo "Resend refused the alert (HTTP $CODE)"
+            cat /tmp/resend-response.json
+            exit 1
+          fi
+          echo "Alert sent"

@@ -114,6 +114,9 @@ runs:
           sleep 1
         done
         kill -9 $GAME_PID 2>/dev/null || true
+        # The Windows launcher is cmd.exe, and a signal to it leaves the
+        # game behind. The game is the only hl.exe on the runner.
+        case "$EXE" in ./run.cmd) taskkill //F //T //IM hl.exe >/dev/null 2>&1 || true;; esac
         wait $GAME_PID 2>/dev/null || true
 
         grep "$GATE:" "$LOG_FILE" || true

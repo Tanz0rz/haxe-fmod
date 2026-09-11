@@ -26,7 +26,7 @@ function check(label, cond, detail) {
     if (!cond) fails++;
 }
 
-// --- update before init must be a no-op, not a TypeError, matching the
+// --- update before init must be a no-op rather than a TypeError, matching the
 // native shims' not-yet-initialized guard (init is ALWAYS async on html5) ---
 let updateThrew = false;
 try {

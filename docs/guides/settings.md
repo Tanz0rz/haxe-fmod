@@ -55,7 +55,7 @@ FmodRuntime.onceReady(() -> {
 | `profiling` | | false | Turns on FMOD profiling. `Bus`, `EventInstance`, and `Dsp` report `getCpuUsage()` only with this on. The FMOD Profiler can then connect to the game. |
 | `distanceFilter` | | false | Turns on the per-channel distance lowpass. 3D core channels then muffle with distance. `Channel.set3DDistanceFilter` tunes the filter. |
 | `liveUpdate` | `haxefmod_live_update`, `haxefmod_no_live_update` | true in `-debug` builds | Opens the Live Update connection on TCP port 9264. Native only. |
-| `logLevel` | `haxefmod_log_level` | 1 | FMOD debug logging. 0 none, 1 errors, 2 warnings, 3 everything. |
+| `logLevel` | `haxefmod_log_level` | 1 | FMOD debug logging. 0 none, 1 errors, 2 warnings, 3 everything. Native only, the web package exports no logger. |
 | `bankFolder` | `haxefmod_bank_folder` | `assets/fmod/Desktop` | Folder that bank file names resolve against. |
 | `autoLoadBanks` | | `["Master.bank", "Master.strings.bank"]` | Banks that init loads. Pass `[]` to manage all loading yourself. |
 | `banksProvided` | | false | The engine's loader delivers the default banks through `FmodRuntime.provideBank`, so init fetches none. HTML5 waits for them, a native target needs them before `init`. The [engine preloaders](components.md#setup) set this. |
@@ -64,8 +64,8 @@ FmodRuntime.onceReady(() -> {
 | `maxMPEGCodecs`, `maxVorbisCodecs`, `maxFADPCMCodecs` | | 0 | Codec pool sizes. 0 keeps FMOD's default for each. |
 | `vol0VirtualVol` | | 0 | Volume below which a voice goes virtual. 0 keeps FMOD's default. |
 | `defaultDecodeBufferSize`, `profilePort`, `geometryMaxFadeTime`, `distanceFilterCenterFreq`, `randomSeed` | | 0 | The remaining core advanced settings. The library passes them through as given. 0 keeps FMOD's default. |
-| `commandQueueSize`, `handleInitialSize`, `studioUpdatePeriod`, `idleSampleDataPoolSize`, `streamingScheduleDelay` | | 0 | The Studio advanced settings. 0 keeps FMOD's default. |
-| `encryptionKey` | | none | The key for banks built with encryption in FMOD Studio. |
+| `commandQueueSize`, `handleInitialSize`, `studioUpdatePeriod`, `idleSampleDataPoolSize`, `streamingScheduleDelay` | | 0 | The Studio advanced settings. 0 keeps FMOD's default. `streamingScheduleDelay` has no effect on HTML5. |
+| `encryptionKey` | | none | The key for banks built with encryption in FMOD Studio. No effect on HTML5. |
 | `maxAttachedVelocity` | | 0 | Caps the velocity magnitude pushed for attached instances and the engine listeners. The unit is game units per second. 0 means no cap. See [3D and listeners](3d.md#doppler-and-velocity). |
 
 === "HaxeFlixel"
@@ -105,7 +105,7 @@ FmodRuntime.onceReady(() -> {
 | `setAutoUpdate(enabled)` / `isAutoUpdate()` | The background auto-update. `FmodManager.SetAutoUpdate` and `IsAutoUpdate` call these. |
 | `isFocusMuted()` | Whether the focus mute is holding the master output down right now. |
 | `maxAttachedVelocity()` | The velocity cap applied to attached instances and the engine listeners, 0 for none. |
-| `setDebugLevel(level)` | FMOD's log level on the `logLevel` scale. The level reaches FMOD at once on native targets. On HTML5 it is applied once the module is ready, so a call before initialization completes is not lost. |
+| `setDebugLevel(level)` | FMOD's log level on the `logLevel` scale. The level reaches FMOD at once on native targets. On HTML5 the call waits for the module, and the 2.03.12 web package then reports it unsupported (see [Limitations](../limitations.md#html5)). |
 | `initFailed()` | Whether a default bank failed to load or was never provided, or the system refused to initialize. A missing bank leaves the system running without it, so `isInitialized()` turns true too. `FmodManager.InitializeFailed()` reports the same. |
 | `initSettled()` | Whether initialization has run its course: ready, or the system refused. The pending `onceReady` handlers run then. `FmodManager.InitializeSettled()` reports the same. |
 | `provideBank(fileName, bytes)` / `provideBankFailed(fileName, reason)` | The default banks as bytes from the engine's loader, or a bank the loader cannot deliver. |

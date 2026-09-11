@@ -3276,7 +3276,7 @@ bool fmod_cb_take_overflow() {
 
 //// Studio System
 
-// Shared helpers for the 2.0 bindings.
+// Shared helpers for the bindings.
 
 static inline FMOD_STUDIO_PARAMETER_ID makeParamId(int data1, int data2) {
     FMOD_STUDIO_PARAMETER_ID id;

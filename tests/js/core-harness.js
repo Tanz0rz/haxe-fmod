@@ -208,7 +208,7 @@ function testChannelControl(studio) {
     check('channel_stop', ch.stop() === FMOD.OK);
     pump(studio, 5);
 
-    // A stopped channel handle must fail with a channel error, not throw
+    // A stopped channel handle must fail with a channel error rather than throw
     let stale;
     try {
         stale = ch.setVolume(1.0);
@@ -340,7 +340,7 @@ function testDspParamsMeteringFft(studio) {
 
     const d = {};
     const dr = fft.getParameterData(4 /* SPECTRUMDATA */, d, null, null);
-    // The struct lands as flat keys on the out object, not on .val
+    // The struct lands as flat keys on the out object rather than on .val
     check('fft_spectrumdata', dr === FMOD.OK && typeof d.length === 'number'
         && d.spectrum && d.spectrum[0] && d.spectrum[0].length > 0,
         `result=${dr} length=${d.length} ch=${d.numchannels}`);

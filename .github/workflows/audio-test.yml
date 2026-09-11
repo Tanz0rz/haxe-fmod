@@ -572,8 +572,15 @@ jobs:
           cp package.sh "$STAGE/repo/"
           cp -r templates "$STAGE/repo/templates"
           rm "$STAGE/repo/templates/bin/hl/Linux64/hlaxe_fmod.hdll"
-          if (cd "$STAGE/repo" && ./package.sh); then
+          # The exit code alone could come from another guard, so the
+          # message has to name the hdll
+          if OUT=$(cd "$STAGE/repo" && ./package.sh 2>&1); then
             echo "ERROR: package.sh built a zip without the Linux hdll"
+            exit 1
+          fi
+          if ! echo "$OUT" | grep -q "missing templates/bin/hl/Linux64/hlaxe_fmod.hdll"; then
+            echo "ERROR: package.sh failed for a reason other than the missing hdll:"
+            echo "$OUT"
             exit 1
           fi
           echo "Verified: package.sh refuses to build without an hdll"
@@ -1109,7 +1116,7 @@ jobs:
           sudo ldconfig
           hl --version || echo "HashLink installed"
 
-      - name: Verify environment
+      - name: Report environment
         run: |
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
@@ -1704,13 +1711,14 @@ jobs:
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
-      - name: Verify environment
+      - name: Report environment
         run: |
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
 
       - name: Build HashLink target (pre-built hdll)
         run: |
+          set -o pipefail
           # A binding ABI bump lands before update-hdlls can rebuild the
           # shipped hdlls, so a stale marker skips this verification and
           # the fresh hdll from build-hdll carries the rest of the job.
@@ -1742,6 +1750,7 @@ jobs:
 
       - name: Rebuild HashLink target (custom hdll)
         run: |
+          set -o pipefail
           rm -rf example-project/EZPlatformer/export/hl
           cd example-project/EZPlatformer
           haxelib run lime build hl -Daudio_test 2>&1 | tee /tmp/build-custom.log
@@ -1978,13 +1987,14 @@ jobs:
           echo "C:\hashlink" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo "HASHLINK_DIR=C:\hashlink" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Verify environment
+      - name: Report environment
         run: |
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
 
       - name: Build HashLink target (pre-built hdll)
         run: |
+          set -o pipefail
           # A binding ABI bump lands before update-hdlls can rebuild the
           # shipped hdlls, so a stale marker skips this verification and
           # the fresh hdll from build-hdll carries the rest of the job.
@@ -2025,6 +2035,7 @@ jobs:
 
       - name: Rebuild HashLink target (custom hdll)
         run: |
+          set -o pipefail
           rm -rf example-project/EZPlatformer/export/hl
           cd example-project/EZPlatformer
           haxelib run lime build hl -Daudio_test 2>&1 | tee /tmp/build-custom.log
@@ -2119,7 +2130,7 @@ jobs:
           sudo ldconfig
           hl --version || echo "HashLink installed"
 
-      - name: Verify environment
+      - name: Report environment
         run: |
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
@@ -2158,6 +2169,7 @@ jobs:
 
       - name: Rebuild HashLink target (custom hdll)
         run: |
+          set -o pipefail
           rm -rf example-project/EZPlatformer/export/hl
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-custom.log
@@ -2166,6 +2178,7 @@ jobs:
 
       - name: Verify FMOD libraries have no executable stack
         run: |
+          set -o pipefail
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
           FOUND=0
           for lib in "$BIN_DIR"/libfmod*.so*; do
@@ -2359,7 +2372,7 @@ jobs:
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
-      - name: Verify environment
+      - name: Report environment
         run: |
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
@@ -2385,6 +2398,7 @@ jobs:
 
       - name: Rebuild HashLink target (custom hdll)
         run: |
+          set -o pipefail
           rm -rf example-project/EZPlatformer/export/hl
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-custom.log
@@ -2565,7 +2579,7 @@ jobs:
           echo "C:\hashlink" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           echo "HASHLINK_DIR=C:\hashlink" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Verify environment
+      - name: Report environment
         run: |
           cd example-project/EZPlatformer
           haxelib run haxefmod check || true
@@ -2593,6 +2607,7 @@ jobs:
 
       - name: Verify custom hdll created
         run: |
+          set -o pipefail
           echo "=== .haxefmod/ contents ==="
           ls -la example-project/EZPlatformer/.haxefmod/
           cat example-project/EZPlatformer/.haxefmod/hlaxe_fmod.version
@@ -2600,6 +2615,7 @@ jobs:
 
       - name: Rebuild HashLink target (custom hdll)
         run: |
+          set -o pipefail
           rm -rf example-project/EZPlatformer/export/hl
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-custom.log

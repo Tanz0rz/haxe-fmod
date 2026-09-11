@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 """Compares the line count of every fmod.com snippet with the Haxe tab.
 
-For every example unit in extension/catalog (the site's code blocks
-under their keys) with a Haxe fence or a Type: declaration in
-extension/haxe, this counts the lines of the site's C# block and the
-lines the Haxe tab shows (imports stripped, notes on top, the way
-content.js renders them). A unit without a C# block is counted against
-the C++ block, then C/C++, then C, then whatever the site has (guide
-pages mark their C++ samples as text), and the report names the
-language. Three layout differences stay out of the count on both
-sides: a line that holds only an opening brace joins the line before
-it, a line that holds only a C# attribute ([Flags]) is metadata, and
-the package header a declaration shows is not counted.
+The units are the example blocks in extension/catalog, keyed the way
+the site keys them. Every unit with a Haxe fence or a Type: declaration
+in extension/haxe is counted. The count on the site side is the lines
+of the C# block. The count on the Haxe side is the lines the tab shows,
+the way content.js renders them: imports stripped, notes on top. A unit
+without a C# block is counted against the C++ block. The fallbacks are
+C/C++, then C, then whatever the site has. Guide pages mark their C++
+samples as text. The report names the language it counted. Three
+layout differences stay out of the count on both sides. A line that
+holds only an opening brace joins the line before it. A line that
+holds only a C# attribute ([Flags]) is metadata. The package header a
+declaration shows is not counted.
 
 A different count is not wrong by itself. Haxe folds an out parameter
-into a return value, drops the result check the C# sample spells out,
-or needs a helper the C# sample gets from the integration. Every
+into a return value. It drops the result check the C# sample spells
+out. It sometimes needs a helper the C# sample gets from the
+integration. Every
 mismatch is reviewed by hand once. The ones that are right are recorded
 in extension/test/line-count-waivers.md with the two counts and the
 reason, one table row per unit. The report then lists only:
@@ -64,12 +66,12 @@ spec.loader.exec_module(hc)
 
 def counted_lines(code):
     """The lines that carry content. A line holding only an opening
-    brace joins the line before it: C# samples put the brace on its own
+    brace joins the line before it. C# samples put the brace on its own
     line where the Haxe declarations open on the same line, and that is
-    layout, not information. A line holding only a C# attribute
+    layout rather than information. A line holding only a C# attribute
     ([Flags], [StructLayout]) is metadata Haxe has no spelling for. The
     package line a declaration shows (with the blank under it) is the
-    tab's own header, not part of the snippet, so it stays out too."""
+    tab's own header rather than part of the snippet, so it stays out."""
     lines = code.rstrip("\n").split("\n") if code.strip() else []
     if lines and lines[0].startswith("package "):
         lines = lines[1:]

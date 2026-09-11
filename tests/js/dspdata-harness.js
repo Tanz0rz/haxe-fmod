@@ -107,7 +107,7 @@ async function main() {
         && ibuf[0] === 0 && ibuf[3] === 0, `result=${jaxe.fmod_sys_last_result()}`);
 
     // metering, both sides: a stereo mix reports two channels with real
-    // levels on both, not the 32 slots the glue fills
+    // levels on both rather than the 32 slots the glue fills
     const outCh = jaxe.fmod_dsp_get_metering_info(fft, false, fbuf, ibuf);
     check('dsp_get_metering_info_output', outCh > 0 && outCh < 32 && ibuf[1] === outCh && ibuf[0] > 0 && fbuf[0] > 0.1
         && fbuf[outCh - 1] > 0.1 && fbuf[outCh] > 0.05,

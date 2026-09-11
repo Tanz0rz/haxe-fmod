@@ -57,7 +57,7 @@ async function main() {
 
     // --- Core micro subset: the html5 Studio build ships FSB-only codecs,
     // so loose wav/ogg files fail with FMOD_ERR_FORMAT (19). The binding must
-    // return 0 + lastResult, not throw. Native targets load
+    // return 0 + lastResult rather than throw. Native targets load
     // these files fine. That path is CI-validated by ProgrammerSoundTestState.
     const snd = jaxe.fmod_core_create_sound('Jump.wav', 0, -1);
     check('core_create_sound_format_limit', snd === 0 && jaxe.fmod_sys_last_result() === 19,

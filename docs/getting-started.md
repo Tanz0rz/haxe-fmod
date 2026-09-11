@@ -37,7 +37,7 @@ The library is tested on HaxeFlixel and other `lime` and `openfl` games, on Heap
 
 **Haxe**: the library is built and tested against 4.3.6. The weekly canary covers 4.3.7. Haxe 5 is not tested yet.
 
-**FMOD Engine SDK** - Download version 2.03.12 from [fmod.com/download](https://www.fmod.com/download). Step 3 below covers the setup.
+**FMOD Engine SDK**: Download version 2.03.12 from [fmod.com/download](https://www.fmod.com/download). Step 3 below covers the setup.
 
 === "HaxeFlixel"
 
@@ -55,7 +55,7 @@ The library is tested on HaxeFlixel and other `lime` and `openfl` games, on Heap
 
     **Node.js and a Kha checkout**: builds run through khamake (`node make.js` from a [Kha](https://github.com/Kode/Kha) checkout). Kha brings its own Haxe.
 
-    **A C++ compiler** - Kha's native targets always compile C++ through Kore, so the platform toolchain is required. Install Xcode Command Line Tools on macOS, Visual Studio 2022 on Windows, and `gcc` and `g++` on Linux.
+    **A C++ compiler**: Kha's native targets always compile C++ through Kore, so the platform toolchain is required. Install Xcode Command Line Tools on macOS, Visual Studio 2022 on Windows, and `gcc` and `g++` on Linux.
 
 ## 1. Add the library to your project
 
@@ -107,7 +107,7 @@ To use another FMOD Engine version, see [Other FMOD Engine versions](platforms.m
 ```bash
 # For Linux/macOS
 # in ~/.bashrc or ~/.zshrc
-export FMOD_SDK="$HOME/fmod/fmodstudioapi20312" # (use $HOME, not ~)
+export FMOD_SDK="$HOME/fmod/fmodstudioapi20312" # (use $HOME rather than ~)
 
 # For Windows
 # in the Environment Variables UI
@@ -119,7 +119,7 @@ export FMOD_SDK="$HOME/fmod/fmodstudioapi20312" # (use $HOME, not ~)
 ```bash
 # For Linux/macOS
 # in ~/.bashrc or ~/.zshrc
-export FMOD_SDK_WEB="$HOME/fmod/fmodstudioapi20312html5" # (use $HOME, not ~)
+export FMOD_SDK_WEB="$HOME/fmod/fmodstudioapi20312html5" # (use $HOME rather than ~)
 
 # For Windows
 # in the Environment Variables UI

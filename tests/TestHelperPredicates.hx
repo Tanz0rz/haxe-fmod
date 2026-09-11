@@ -7,7 +7,7 @@ import haxefmod.studio.native.NativeStudioStub;
 /**
  * Playback-state predicates and the ready hook, against the stub backend's
  * test hooks. FMOD starts and stops instances asynchronously, so "playing"
- * must cover STARTING, SUSTAINING, and STOPPING, not just PLAYING.
+ * must cover STARTING, SUSTAINING, and STOPPING as well as PLAYING.
  */
 class TestHelperPredicates {
 	static var passed = 0;
