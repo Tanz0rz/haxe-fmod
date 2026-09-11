@@ -235,11 +235,14 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
 
 `FmodEvents` is one of the [generated constants classes](guides/constants.md). The string paths work too, for example `FmodManager.PlaySong("event:/Music/MainLevel")`.
 
-The setup import belongs in the entry point alone. `FmodManager` is used from every file that plays a sound, so an `import.hx` next to your `Main.hx` imports it once for the whole source tree. Wrap it in `#if !macro`, because the FMOD classes use build macros. The example games and the [constants guide](guides/constants.md#auto-imports) use this file.
+### One import for every file
+
+The setup import belongs in the entry point alone. `FmodManager` and the generated constants are used from every file that plays a sound. An `import.hx` at the root of your source path imports them once for every module under it. This is a Haxe compiler feature, so it works the same on every engine and target. Wrap the imports in `#if !macro`, because the FMOD classes use build macros, and an import inside the macro context breaks compilation. The three example games carry this file.
 
 ```haxe
 #if !macro
 import haxefmod.FmodManager;
+import FmodEvents;
 #end
 ```
 

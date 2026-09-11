@@ -53,12 +53,5 @@ The generator derives an identifier from a path in four steps:
 
 ## Auto-imports
 
-An `import.hx` next to your `Main.hx` makes the generated classes and the library available everywhere without per-file imports. Wrap the imports in `#if !macro`. The FMOD classes use build macros, and an import inside the macro context breaks compilation.
-
-```haxe
-#if !macro
-import haxefmod.FmodManager;
-import FmodEvents;
-#end
-```
+An `import.hx` at the root of your source path imports the generated classes once for every file. [Getting started](../getting-started.md#one-import-for-every-file) shows the file and the `#if !macro` guard it needs.
 
