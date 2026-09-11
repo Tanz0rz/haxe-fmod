@@ -48,13 +48,14 @@ class FlxTestHost implements TestHost {
         FlxG.signals.postUpdate.dispatch();
         check("hardening_setup_reinit_inside_dispatch", updaterHooks() == 1 && FmodFlxUpdater.isInstalled(),
             'hooks=${updaterHooks()} installed=${FmodFlxUpdater.isInstalled()}');
-        // A removeHook then init inside one dispatch keeps the hook too.
-        // Flixel defers the removal to the end of the dispatch, so the
-        // init has to register a closure the deferred removal misses.
-        FlxG.signals.postUpdate.addOnce(function() {
+        // A removeHook then init from inside the updater's own tick keeps
+        // the hook too. Flixel defers the removal to the end of the
+        // dispatch, so the updater must not hand it a removal there.
+        haxefmod.studio.CallbackDispatcher.frameHook = function() {
+            haxefmod.studio.CallbackDispatcher.frameHook = null;
             FmodFlxUpdater.removeHook();
             FmodFlxUpdater.init();
-        });
+        };
         FlxG.signals.postUpdate.dispatch();
         check("hardening_setup_remove_reinit_inside_dispatch", updaterHooks() == 1 && FmodFlxUpdater.isInstalled(),
             'hooks=${updaterHooks()} installed=${FmodFlxUpdater.isInstalled()}');
