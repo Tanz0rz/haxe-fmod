@@ -394,6 +394,9 @@ class jaxe {
                         parameters.sound = soundOut.val;
                         parameters.subsoundIndex = info.subsoundindex | 0;
                     }
+                    // The group wrapper served the exinfo only, so it goes
+                    // once the sound is made
+                    jaxe.dropWrapper(masterSg.val);
                 } else if (jaxe.gSystemCore.createSound("/" + key, jaxe.FMOD.DEFAULT, null, soundOut) == jaxe.FMOD.OK) {
                     // Plain file path fallback (relative to the MEMFS root)
                     parameters.sound = soundOut.val;
