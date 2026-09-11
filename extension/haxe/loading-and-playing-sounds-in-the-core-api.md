@@ -76,14 +76,21 @@ verdict: covered there is no point-to-memory mode. Sound.fromMemory and Sound.fr
 ## 4.3.2 Creating a Sound from PCM data
 verdict: bound
 ```haxe
+import haxefmod.core.ChannelMode;
 import haxefmod.core.Sound;
+import haxefmod.studio.Types;
 
 var sound:Sound;
-var raw = sys.io.File.getBytes("./Your/File/Path/Here.raw");
+var exinfo:FmodCreateSoundExInfo;
 
-sound = Sound.fromPcm(raw,
-    44100,   // Playback rate of sound
-    2);      // Number of channels in the sound
+// Create extended sound info struct
+exinfo = {
+    numChannels: 2,                      // Number of channels in the sound
+    defaultFrequency: 44100,             // Default playback rate of sound
+    format: FmodSoundFormat.PCM16        // Data format of sound
+};
+
+sound = Sound.create("./Your/File/Path/Here.raw", false, false, ChannelMode.OPENRAW, -1, exinfo);
 ```
 
 ## 4.3.3 Creating a Sound by manually providing sample data

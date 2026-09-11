@@ -47,6 +47,13 @@ python3 ci/example-ledger.py --next 5
 python3 ci/example-ledger.py --stamp <page> "<key>"
 ```
 
+`ci/example-line-counts.py` counts the lines of the site's C# snippet (the C++ one where a page has no C#) against the lines the Haxe tab shows for the same unit. A difference is reviewed once and recorded with its reason in `test/line-count-waivers.md`. The script reports a unit again when either count moves and asks for the row to go when the counts match. `--show <page> "<key>"` prints both snippets side by side, and `--fetch <dir>` downloads the page fragments from the docs content origin and rebuilds the catalog from them.
+
+```bash
+python3 ci/example-line-counts.py
+python3 ci/example-line-counts.py --show <page> "<key>"
+```
+
 Clicking the toolbar icon opens the FMOD API reference. The extension asks for no permissions beyond running on fmod.com documentation pages and makes no network requests. The data ships inside the package.
 
 ## Test

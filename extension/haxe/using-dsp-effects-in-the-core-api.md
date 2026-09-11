@@ -163,12 +163,10 @@ var count = StudioSystem.getNestedPluginCount(baseHandle);
 for (index in 0...count) {
     var handle = StudioSystem.getNestedPlugin(baseHandle, index);
     var info = StudioSystem.getPluginInfo(handle);
-    if (info == null) {
-        trace('getPluginInfo failed: ${StudioSystem.lastResult()}');
-        continue;
+    if (info != null) {
+        var type = info.type;
+        // We have an output plug-in, a DSP plug-in, or a codec plug-in here.
     }
-    var type = info.type;
-    // We have an output plug-in, a DSP plug-in, or a codec plug-in here.
 }
 ```
 

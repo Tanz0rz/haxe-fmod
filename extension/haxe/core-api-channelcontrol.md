@@ -4,12 +4,9 @@
 verdict: bound
 ```haxe
 // Example. Ramp from full volume to half volume over the next 4096 samples
-var clocks = channel.getDspClock();
-if (clocks != null) {
-    var parentclock = clocks.parent;
-    channel.addFadePoint(parentclock,        1.0);
-    channel.addFadePoint(parentclock + 4096, 0.5);
-}
+var parentclock = channel.getDspClock().parent;
+channel.addFadePoint(parentclock,        1.0);
+channel.addFadePoint(parentclock + 4096, 0.5);
 ```
 
 ## FMOD_CHANNELCONTROL_CALLBACK

@@ -64,6 +64,9 @@ jobs:
       - name: Check every docs-tab entry is reviewed
         run: python3 ci/example-ledger.py --status --require-all
 
+      - name: Check every line-count difference against the site is waived
+        run: python3 ci/example-line-counts.py
+
       - name: Compile the guide examples
         run: python3 ci/check-readme-snippets.py docs extension/haxe extension/functions.md
 

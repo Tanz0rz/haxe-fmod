@@ -59,7 +59,9 @@ The checks fail when:
   - a type definition on the site (struct, enum, define, callback) has a
     hand-written fence, note lines, a Shape: line, or a library or
     covered verdict (the tab shows the declaration alone, like the C#
-    tab shows the struct),
+    tab shows the struct: doc comments left out, and a class or
+    abstract reduced to its public values, fields, and function
+    signatures),
   - a bound Haxe declaration lacks a member the site's snippet declares
     (unless native/manifest/types.txt lists it after skip:),
   - a bound Haxe fence steps outside the site's snippet: a string
@@ -295,6 +297,83 @@ def declaration_of(path):
     return None
 
 
+MEMBER = re.compile(r"^(?:@:\w+(?:\([^)]*\))?\s+)*(?:(?:public|private|static|inline|override|dynamic|extern|final|macro)\s+)*(var|function)\b")
+BODYLESS = re.compile(r"^(typedef|interface)\b")
+
+
+def shown_declaration(code):
+    """The declaration the way the tab shows it. The doc comments inside
+    it stay out (the other language tabs carry none), and a class,
+    abstract, or enum abstract shows its public surface: values, public
+    fields, and the signature of every public function. Private members,
+    function bodies, and metadata that only decorates a private member
+    are implementation, not declaration."""
+    text = re.sub(r"[ \t]*/\*\*.*?\*/[ \t]*\n?", "", code, flags=re.S)
+    lines = text.split("\n")
+    head = re.sub(r"^(?:@:\w+(?:\([^)]*\))?\s*)*", "", lines[0].strip())
+    if BODYLESS.match(head) or "{" not in lines[0]:
+        return "\n".join(line for line in lines if line.strip() or True).rstrip()
+    values_public = head.startswith("enum abstract")
+    out = [lines[0]]
+    meta = []
+    i = 1
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if stripped == "}" and i == len(lines) - 1:
+            break
+        if not stripped:
+            i += 1
+            continue
+        if stripped.startswith("@:") and not MEMBER.match(stripped):
+            meta.append(line)
+            i += 1
+            continue
+        match = MEMBER.match(stripped)
+        if not match:
+            out.append(line)
+            i += 1
+            continue
+        # The member runs to the line that closes it: a balanced ';' for
+        # a var or an expression-bodied function, the matching '}' for
+        # a braced function body.
+        depth = 0
+        j = i
+        braced = False
+        while j < len(lines):
+            body = re.sub(r'"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'', "", lines[j])
+            body = re.sub(r"//.*", "", body)
+            opened = depth
+            depth += body.count("{") + body.count("(") + body.count("[")
+            depth -= body.count("}") + body.count(")") + body.count("]")
+            if "{" in body and match.group(1) == "function" and not braced:
+                braced = True
+            if depth <= 0 and (braced or body.rstrip().endswith(";")):
+                break
+            j += 1
+        member = lines[i:j + 1]
+        public = " public " in " " + stripped or (values_public and match.group(1) == "var" and not re.search(r"\b(static|private)\b", stripped))
+        if public:
+            if match.group(1) == "function":
+                joined = "\n".join(member)
+                cut = joined.find("{")
+                if cut < 0:
+                    cut = re.search(r"\)\s*(?::[^=;{]*?)?\s+((?:return|this)\b|\w+\s*=)", joined)
+                    cut = cut.start(1) if cut else -1
+                signature = (joined[:cut] if cut >= 0 else joined).rstrip()
+                if signature.endswith(":") or not signature.endswith(";"):
+                    signature = signature.rstrip(": ") + ";"
+                out.extend(meta)
+                out.append(signature)
+            else:
+                out.extend(meta)
+                out.extend(member)
+        meta = []
+        i = j + 1
+    out.append(lines[-1])
+    return "\n".join(out)
+
+
 def parse_sections(text):
     """key -> {heading, verdict, reason, notes, code, type, shape}"""
     sections = {}
@@ -431,7 +510,7 @@ def strip_imports(record):
         # itself is an import detail the guides cover.
         package = ".".join(record["type"].split(".")[:2])
         shown = dict(record)
-        shown["code"] = "package " + package + ";\n\n" + "\n".join(lines)
+        shown["code"] = "package " + package + ";\n\n" + shown_declaration("\n".join(lines))
         shown["type"] = None
         return shown
     types = []
