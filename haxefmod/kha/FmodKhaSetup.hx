@@ -53,17 +53,19 @@ class FmodKhaSetup {
                 continue;
             }
             #if sys
-            // The stage command put the bank folder next to the executable
+            // The stage command put the bank folder next to the executable.
+            // The working directory is tried first, then the executable's
+            // own directory, since a launcher can start the game elsewhere.
             var path = FmodRuntime.bankPath(fileName, resolved.bankFolder);
-            try {
-                FmodRuntime.provideBank(fileName, sys.io.File.getBytes(path));
-                continue;
-            } catch (e:Dynamic) {
-                trace('Error: FMOD - the default bank $fileName is not among the Kha assets (blob ${blobName(fileName)})'
-                    + ' and could not be read from $path: $e');
-                failed = true;
+            var bytes = readBankFile(path);
+            if (bytes != null) {
+                FmodRuntime.provideBank(fileName, bytes);
                 continue;
             }
+            trace('Error: FMOD - the default bank $fileName is not among the Kha assets (blob ${blobName(fileName)})'
+                + ' and $path is not next to the executable or in the working directory.');
+            failed = true;
+            continue;
             #end
             trace('Error: FMOD - the default bank $fileName is not among the Kha assets (blob ${blobName(fileName)}).'
                 + ' Add the bank folder to the khafile assets.');
@@ -80,6 +82,24 @@ class FmodKhaSetup {
             if (onFailed != null) onFailed();
         });
     }
+
+    #if sys
+    static function readBankFile(path:String):Null<haxe.io.Bytes> {
+        var candidates = [path];
+        if (!haxe.io.Path.isAbsolute(path)) {
+            var exeDir = haxe.io.Path.directory(Sys.programPath());
+            candidates.push(haxe.io.Path.join([exeDir, path]));
+            // A macOS bundle keeps its files under Contents/Resources
+            candidates.push(haxe.io.Path.join([exeDir, "..", "Resources", path]));
+        }
+        for (candidate in candidates) {
+            if (sys.FileSystem.exists(candidate)) {
+                try return sys.io.File.getBytes(candidate) catch (e:Dynamic) {}
+            }
+        }
+        return null;
+    }
+    #end
 
     /** The Kha asset name of a bank file: khamake turns dots, dashes, spaces, and slashes into underscores. **/
     public static function blobName(fileName:String):String {

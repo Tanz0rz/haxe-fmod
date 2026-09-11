@@ -46,11 +46,6 @@ case "$TARGET" in
     fi
     [ -n "$EXE" ] || { echo "no executable found under $B/$TARGET-build"; exit 1; }
     cp "$EXE" "$OUT/KhaPlatformer$( [ "$PLATFORM" = windows ] && echo .exe )"
-    # Kha's loader reads the bank assets by bare name through
-    # kinc_file_contents, next to the executable on Linux and Windows.
-    # macOS resolves them elsewhere, and FmodKhaSetup.preload reads the
-    # bank folder below instead.
-    cp ../EZPlatformer/assets/fmod/Desktop/*.bank "$OUT/"
     haxelib run haxefmod stage "$PLATFORM" cpp "$OUT"
     rm -rf "$OUT/assets"
     mkdir -p "$OUT/assets/fmod"

@@ -73,7 +73,7 @@
     FmodKhaSetup.init({liveUpdate: true});
     ```
 
-    `FmodKhaSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. Add the bank folder to the khafile assets, so `kha.Assets.loadEverything` loads the banks with everything else. Then call `preload` from its callback. It takes each bank in `autoLoadBanks` from `kha.Assets.blobs` (a bank named `Master.bank` is the blob `Master_bank`, the way khamake names assets), hands it to the runtime, and calls `onReady` once FMOD is usable. On a native target a bank missing from the blobs is read from the bank folder on disk, which the stage command fills. `onFailed` runs instead when a bank is not available either way, and the console names it.
+    `FmodKhaSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. Add the bank folder to the khafile assets, so `kha.Assets.loadEverything` loads the banks with everything else. Then call `preload` from its callback. It takes each bank in `autoLoadBanks` from `kha.Assets.blobs` (a bank named `Master.bank` is the blob `Master_bank`, the way khamake names assets), hands it to the runtime, and calls `onReady` once FMOD is usable. On a native target a bank missing from the blobs is read from the bank folder on disk, which the stage command fills, so the assets entry is needed for HTML5 only. `onFailed` runs instead when a bank is not available either way, and the console names it.
 
     ```js
     project.addAssets('assets/fmod/Desktop/*.bank');

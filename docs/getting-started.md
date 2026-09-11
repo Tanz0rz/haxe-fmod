@@ -202,10 +202,10 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
 
 === "Kha"
 
-    Add the bank folder to the khafile assets, so `kha.Assets.loadEverything` loads the banks with everything else. Then call `FmodKhaSetup.preload()` from its callback. It initializes FMOD from those assets and calls back once FMOD is ready. The first scene then plays at once, on HTML5 too. See [Engine components](guides/components.md#setup).
+    Add the bank folder to the khafile assets for the browser, so `kha.Assets.loadEverything` loads the banks with everything else. Then call `FmodKhaSetup.preload()` from its callback. It initializes FMOD from those assets, or from the bank folder on a native target, and calls back once FMOD is ready. The first scene then plays at once, on HTML5 too. See [Engine components](guides/components.md#setup).
 
     ```js
-    project.addAssets('assets/fmod/Desktop/*.bank');
+    if (platform === 'html5') project.addAssets('assets/fmod/Desktop/*.bank');
     ```
 
     ```haxe
