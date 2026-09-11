@@ -257,8 +257,8 @@ def run_for(j, seconds, log, wav_env):
           cd {j.bindir}
 {run_game_function(seconds, log).replace('{launch}', j.launch)}
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp {log} {log}.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp {log} "$(dirname {log})/first-attempt-$(basename {log})"
             run_game || true
           fi
           cd -
@@ -267,10 +267,10 @@ def run_for(j, seconds, log, wav_env):
 
 def run_game_function(seconds, log):
     """A shell function that runs the game to its exit or the timeout.
-    It returns 0 when the game died on its own within five seconds, a
-    crash at startup rather than a result: the window can come up with
-    no size on a fresh runner and the preloader faults before the state
-    starts. The caller launches once more then."""
+    It returns 0 when the game died on its own within five seconds with
+    no state output, a crash at startup rather than a result. The window
+    can come up with no size on a fresh runner and the preloader faults
+    before the state starts. The caller launches once more then."""
     return f"""          run_game() {{
             {{launch}} > {log} 2>&1 &
             GAME_PID=$!
@@ -290,7 +290,7 @@ def run_game_function(seconds, log):
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" {log}
           }}"""
 
 
@@ -365,8 +365,8 @@ def native_steps(j):
           cd {j.bindir}
 {run_game_function(90, '"$LOG"').replace('{launch}', j.launch)}
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -

@@ -101,8 +101,8 @@ runs:
         echo "Running state ${{ inputs.state }} via $EXE"
 
         # Runs the game to its exit or the timeout. Returns 0 when the
-        # game died on its own within five seconds with no state output,
-        # which is a crash at startup rather than a test result.
+        # game died on its own within five seconds with no state output.
+        # That is a crash at startup rather than a test result.
         run_game() {
           "$EXE" > "$LOG_FILE" 2>&1 &
           GAME_PID=$!
@@ -131,7 +131,7 @@ runs:
           # the preloader faults before the state starts. One more launch
           # separates that from a real failure.
           echo "The game exited within five seconds with no state output. Launching once more."
-          cp "$LOG_FILE" "$LOG_FILE.first-attempt"
+          cp "$LOG_FILE" "$(dirname "$LOG_FILE")/first-attempt-$(basename "$LOG_FILE")"
           run_game || true
         fi
         cd - > /dev/null

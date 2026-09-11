@@ -64,8 +64,8 @@ class FmodFlxPreloader extends FlxPreloader {
 
     // A native window can report a zero-sized stage on its first frame.
     // FlxPreloader draws bitmaps at the stage size, and a zero-sized
-    // bitmap faults on the native targets, so the drawing waits for a
-    // size and runs from update() until then.
+    // bitmap faults on the native targets. The drawing waits for a size
+    // and runs from update() until then.
     function createVisuals():Void {
         if (visualsCreated) return;
         var stage = openfl.Lib.current.stage;

@@ -167,7 +167,7 @@ abstract PcmStream(Int) from Int to Int {
      * Attaches a Haxe value to this handle. The value lives on the Haxe
      * side keyed by the handle and is dropped when the handle is released.
      * A recycled native slot gets a new generation and therefore a new
-     * handle int, so a stale entry does not show up on the next handle
+     * handle int. Thus a stale entry does not show up on the next handle
      * in that slot.
      */
     public inline function setUserData(value:Dynamic):Void {

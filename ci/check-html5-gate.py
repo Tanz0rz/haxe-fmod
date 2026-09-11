@@ -291,7 +291,7 @@ def source_gates():
 def main():
     failures = []
     # A gate the table does not list gets neither the compile proof nor
-    # the doc check, so the table must name every gate in the source
+    # the doc check. The table must name every gate in the source.
     listed = {(row[0], row[1]) for row in GATED}
     for type_name, method in sorted(source_gates() - listed):
         failures.append("%s.%s is gated in the source but missing from GATED in this script" % (type_name, method))

@@ -1132,7 +1132,8 @@ jobs:
           ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
           STALE=0
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
-            MARK=$(grep -a -o -m 1 "hlaxe_fmod_abi=[0-9]*" "$HDLL" | sed 's/.*=//')
+            # BSD grep finds nothing inside a Mach-O file, so the marker is read in python
+            MARK=$(python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_abi=([0-9]+)", open(sys.argv[1], "rb").read()); print(m.group(1).decode() if m else "")' "$HDLL")
             echo "$HDLL marker abi=$MARK (library abi=$ABI)"
             if [ "$MARK" != "$ABI" ]; then STALE=1; fi
           done
@@ -1629,7 +1630,7 @@ jobs:
 
       - name: Validate build output
         run: |
-          APP_BUNDLE=$(find example-project/EZPlatformer/export -name "*.app" -path "*mac*" 2>/dev/null | head -1)
+          APP_BUNDLE=$(find example-project/EZPlatformer/export -name "*.app" -path "*mac*" -print -quit 2>/dev/null)
           echo "APP_BUNDLE=$APP_BUNDLE" >> "$GITHUB_ENV"
           ./ci/validate-build.sh "$APP_BUNDLE/Contents/MacOS" cpp
 
@@ -1727,7 +1728,8 @@ jobs:
           ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
           STALE=0
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
-            MARK=$(grep -a -o -m 1 "hlaxe_fmod_abi=[0-9]*" "$HDLL" | sed 's/.*=//')
+            # BSD grep finds nothing inside a Mach-O file, so the marker is read in python
+            MARK=$(python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_abi=([0-9]+)", open(sys.argv[1], "rb").read()); print(m.group(1).decode() if m else "")' "$HDLL")
             echo "$HDLL marker abi=$MARK (library abi=$ABI)"
             if [ "$MARK" != "$ABI" ]; then STALE=1; fi
           done
@@ -1767,7 +1769,7 @@ jobs:
 
       - name: Validate build output
         run: |
-          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
+          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" -print -quit 2>/dev/null)
           echo "APP_BUNDLE=$APP_BUNDLE" >> "$GITHUB_ENV"
           ./ci/validate-build.sh "$APP_BUNDLE/Contents/MacOS" hl
 
@@ -1872,7 +1874,7 @@ jobs:
 
       - name: Validate build output
         run: |
-          BIN_DIR=$(find example-project/EZPlatformer/export -type d -name "bin" -path "*windows*" | head -1)
+          BIN_DIR=$(find example-project/EZPlatformer/export -type d -name "bin" -path "*windows*" -print -quit)
           echo "BIN_DIR=$BIN_DIR" >> "$GITHUB_ENV"
           ./ci/validate-build.sh "$BIN_DIR" cpp
 
@@ -2003,7 +2005,8 @@ jobs:
           ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | sed 's/.*: *//')
           STALE=0
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
-            MARK=$(grep -a -o -m 1 "hlaxe_fmod_abi=[0-9]*" "$HDLL" | sed 's/.*=//')
+            # BSD grep finds nothing inside a Mach-O file, so the marker is read in python
+            MARK=$(python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_abi=([0-9]+)", open(sys.argv[1], "rb").read()); print(m.group(1).decode() if m else "")' "$HDLL")
             echo "$HDLL marker abi=$MARK (library abi=$ABI)"
             if [ "$MARK" != "$ABI" ]; then STALE=1; fi
           done
@@ -2407,7 +2410,7 @@ jobs:
 
       - name: Validate build output
         run: |
-          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
+          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" -print -quit 2>/dev/null)
           echo "APP_BUNDLE=$APP_BUNDLE" >> "$GITHUB_ENV"
           ./ci/validate-build.sh "$APP_BUNDLE/Contents/MacOS" hl
 
@@ -2459,7 +2462,7 @@ jobs:
       - name: Record volume test
         run: |
           export HAXEFMOD_TEST_STATE=volume
-          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" 2>/dev/null | head -1)
+          APP_BUNDLE=$(find example-project/EZPlatformer/export/hl -name "*.app" -print -quit 2>/dev/null)
 
           export FMOD_WAVWRITER=/tmp/volume-test-mac-hl-compat.wav
 
@@ -2630,7 +2633,7 @@ jobs:
 
       - name: Record audio via FMOD wavwriter
         run: |
-          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" | head -1)
+          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" -print -quit)
           echo "Found exe: $EXE"
 
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-hl-compat.wav"
@@ -2687,7 +2690,7 @@ jobs:
       - name: Record volume test
         run: |
           export HAXEFMOD_TEST_STATE=volume
-          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" | head -1)
+          EXE=$(find "$BIN_DIR" -maxdepth 1 -name "*.exe" -print -quit)
 
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-windows-hl-compat.wav"
 
@@ -3838,11 +3841,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-linux-cpp.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/volume-test-linux-cpp.log /tmp/volume-test-linux-cpp.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/volume-test-linux-cpp.log "$(dirname /tmp/volume-test-linux-cpp.log)/first-attempt-$(basename /tmp/volume-test-linux-cpp.log)"
             run_game || true
           fi
           cd -
@@ -3915,11 +3918,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -4041,11 +4044,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-linux-hl.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/volume-test-linux-hl.log /tmp/volume-test-linux-hl.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/volume-test-linux-hl.log "$(dirname /tmp/volume-test-linux-hl.log)/first-attempt-$(basename /tmp/volume-test-linux-hl.log)"
             run_game || true
           fi
           cd -
@@ -4107,11 +4110,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -4403,11 +4406,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/game-mac-cpp.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/game-mac-cpp.log /tmp/game-mac-cpp.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/game-mac-cpp.log "$(dirname /tmp/game-mac-cpp.log)/first-attempt-$(basename /tmp/game-mac-cpp.log)"
             run_game || true
           fi
           cd -
@@ -4441,11 +4444,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-mac-cpp.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/volume-test-mac-cpp.log /tmp/volume-test-mac-cpp.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/volume-test-mac-cpp.log "$(dirname /tmp/volume-test-mac-cpp.log)/first-attempt-$(basename /tmp/volume-test-mac-cpp.log)"
             run_game || true
           fi
           cd -
@@ -4507,11 +4510,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -4607,11 +4610,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/game-mac-hl.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/game-mac-hl.log /tmp/game-mac-hl.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/game-mac-hl.log "$(dirname /tmp/game-mac-hl.log)/first-attempt-$(basename /tmp/game-mac-hl.log)"
             run_game || true
           fi
           cd -
@@ -4645,11 +4648,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-mac-hl.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/volume-test-mac-hl.log /tmp/volume-test-mac-hl.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/volume-test-mac-hl.log "$(dirname /tmp/volume-test-mac-hl.log)/first-attempt-$(basename /tmp/volume-test-mac-hl.log)"
             run_game || true
           fi
           cd -
@@ -4711,11 +4714,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -4896,11 +4899,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -5073,11 +5076,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -5237,11 +5240,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-heaps-hl.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/volume-test-heaps-hl.log /tmp/volume-test-heaps-hl.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/volume-test-heaps-hl.log "$(dirname /tmp/volume-test-heaps-hl.log)/first-attempt-$(basename /tmp/volume-test-heaps-hl.log)"
             run_game || true
           fi
           cd -
@@ -5314,11 +5317,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -5610,11 +5613,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/game-heaps-mac-hl.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/game-heaps-mac-hl.log /tmp/game-heaps-mac-hl.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/game-heaps-mac-hl.log "$(dirname /tmp/game-heaps-mac-hl.log)/first-attempt-$(basename /tmp/game-heaps-mac-hl.log)"
             run_game || true
           fi
           cd -
@@ -5648,11 +5651,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-heaps-mac-hl.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/volume-test-heaps-mac-hl.log /tmp/volume-test-heaps-mac-hl.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/volume-test-heaps-mac-hl.log "$(dirname /tmp/volume-test-heaps-mac-hl.log)/first-attempt-$(basename /tmp/volume-test-heaps-mac-hl.log)"
             run_game || true
           fi
           cd -
@@ -5714,11 +5717,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -5899,11 +5902,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -6034,11 +6037,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-kha-linux.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/volume-test-kha-linux.log /tmp/volume-test-kha-linux.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/volume-test-kha-linux.log "$(dirname /tmp/volume-test-kha-linux.log)/first-attempt-$(basename /tmp/volume-test-kha-linux.log)"
             run_game || true
           fi
           cd -
@@ -6111,11 +6114,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -6237,11 +6240,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-kha-hl.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/volume-test-kha-hl.log /tmp/volume-test-kha-hl.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/volume-test-kha-hl.log "$(dirname /tmp/volume-test-kha-hl.log)/first-attempt-$(basename /tmp/volume-test-kha-hl.log)"
             run_game || true
           fi
           cd -
@@ -6303,11 +6306,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -6599,11 +6602,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/game-kha-mac.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/game-kha-mac.log /tmp/game-kha-mac.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/game-kha-mac.log "$(dirname /tmp/game-kha-mac.log)/first-attempt-$(basename /tmp/game-kha-mac.log)"
             run_game || true
           fi
           cd -
@@ -6637,11 +6640,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-kha-mac.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/volume-test-kha-mac.log /tmp/volume-test-kha-mac.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/volume-test-kha-mac.log "$(dirname /tmp/volume-test-kha-mac.log)/first-attempt-$(basename /tmp/volume-test-kha-mac.log)"
             run_game || true
           fi
           cd -
@@ -6703,11 +6706,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -6803,11 +6806,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/game-kha-mac-hl.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/game-kha-mac-hl.log /tmp/game-kha-mac-hl.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/game-kha-mac-hl.log "$(dirname /tmp/game-kha-mac-hl.log)/first-attempt-$(basename /tmp/game-kha-mac-hl.log)"
             run_game || true
           fi
           cd -
@@ -6841,11 +6844,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-kha-mac-hl.log
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp /tmp/volume-test-kha-mac-hl.log /tmp/volume-test-kha-mac-hl.log.first-attempt
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp /tmp/volume-test-kha-mac-hl.log "$(dirname /tmp/volume-test-kha-mac-hl.log)/first-attempt-$(basename /tmp/volume-test-kha-mac-hl.log)"
             run_game || true
           fi
           cd -
@@ -6907,11 +6910,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -7092,11 +7095,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -
@@ -7269,11 +7272,11 @@ jobs:
             done
             kill -9 $GAME_PID 2>/dev/null || true
             wait $GAME_PID 2>/dev/null || true
-            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ]
+            [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
-            echo "The game exited within five seconds. Launching once more."
-            cp "$LOG" "$LOG.first-attempt"
+            echo "The game exited within five seconds with no state output. Launching once more."
+            cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"
             run_game || true
           fi
           cd -

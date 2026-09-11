@@ -39,8 +39,8 @@ class UserDataKind {
  * dispatcher delivers Destroyed for an event instance FMOD tore down on
  * its own. On HTML5 Destroyed never arrives, so the dispatcher drops the
  * entries of dead instance handles each update instead. The native handle
- * table recycles a slot with a new generation, so a reused slot produces
- * a different handle int, so a stale entry does not show up on the next
+ * table recycles a slot with a new generation. A reused slot produces a
+ * different handle int, so a stale entry does not show up on the next
  * handle in that slot. Entries for handles that die without passing through one
  * of those paths (a channel that ends by itself) linger until clearAll.
  */

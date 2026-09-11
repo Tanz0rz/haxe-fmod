@@ -69,18 +69,6 @@ class FmodRuntime {
     public static function init(?settings:FmodSettings):FmodResult {
         if (initStarted) return initResult;
         initStarted = true;
-        initResult = initOnce(settings);
-        return initResult;
-    }
-
-    // The result of the first init, returned by every later call
-    static var initResult:FmodResult = FmodResult.FMOD_OK;
-
-    static function initOnce(settings:FmodSettings):FmodResult {
-        resolved = FmodSettingsResolver.resolve(settings);
-        muteWhenUnfocused = resolved.muteWhenUnfocused;
-        attached.maxVelocity = resolved.maxAttachedVelocity;
-
         #if hl
         // A stale hdll usually dies at load with a missing-prim fatal, and
         // PostBuild refuses it even earlier. Lazy prim resolution can let a
@@ -90,9 +78,14 @@ class FmodRuntime {
                 + NativeStudio.binding_abi_version() + " does not match this haxefmod ("
                 + BINDING_ABI + "). Run: haxelib run haxefmod build-hdll");
             systemFailed = true;
-            return FmodResult.FMOD_ERR_VERSION;
+            initResult = FmodResult.FMOD_ERR_VERSION;
+            return initResult;
         }
         #end
+        resolved = FmodSettingsResolver.resolve(settings);
+        muteWhenUnfocused = resolved.muteWhenUnfocused;
+        attached.maxVelocity = resolved.maxAttachedVelocity;
+
 
         // The settings FMOD only takes before the system exists: the log
         // target, the memory pool, and the thread attributes. Native only,
@@ -142,7 +135,7 @@ class FmodRuntime {
             if (!formatResult.isOk()) {
                 trace("Error: FMOD - output type " + (resolved.output : Int) + " refused: " + formatResult.toString());
                 systemFailed = true;
-                return formatResult;
+                return initResult = formatResult;
             }
         }
         var initFlags = (resolved.profiling ? 1 : 0) | (resolved.distanceFilter ? 2 : 0);
@@ -161,7 +154,7 @@ class FmodRuntime {
         #if (cpp || hl)
         if (!result.isOk()) {
             systemFailed = true;
-            return result;
+            return initResult = result;
         }
         #end
         dropUnexpectedProvided();
@@ -180,8 +173,11 @@ class FmodRuntime {
         // HTML5: init completes asynchronously. The default banks load
         // through the registry once the system is ready, and
         // isInitialized() reports true only when they are usable.
-        return result;
+        return initResult = result;
     }
+
+    // The result of the first init, returned by every later call
+    static var initResult:FmodResult = FmodResult.FMOD_OK;
 
     /**
      * True once FMOD is usable: the system is initialized AND every bank
