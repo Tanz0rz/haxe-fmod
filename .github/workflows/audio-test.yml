@@ -664,6 +664,19 @@ jobs:
             }
           done
           echo "All packaged hdlls carry ABI marker $ABI"
+          # On a release tag the hdlls must come from the tagged shim
+          # sources, which the source marker build-hdll stamps proves
+          case "$GITHUB_REF" in refs/tags/*)
+            SRC=$(python3 ci/hlaxe-src-hash.py)
+            for platform in Linux64 Mac64 Windows64; do
+              unzip -p haxefmod.zip "templates/bin/hl/$platform/hlaxe_fmod.hdll" \
+                | grep -aq "hlaxe_fmod_src=$SRC" || {
+                echo "FAIL: $platform hdll in the zip was not built from the tagged shim sources (no hlaxe_fmod_src=$SRC marker). Wait for the update-hdlls auto-commit and tag that tip."
+                exit 1
+              }
+            done
+            echo "All packaged hdlls carry source marker $SRC" ;;
+          esac
 
       # Every tracked file must either be in the zip or sit under a path
       # that is deliberately not shipped. Otherwise the packager quietly

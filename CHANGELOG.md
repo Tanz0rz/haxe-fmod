@@ -71,7 +71,7 @@
 - Heaps support: the `haxefmod.heaps` package (`FmodHeapsSetup.init()` one-call setup with per-frame update and focus-driven muting, `FmodHeapsEmitter`, `FmodHeapsListener`, `FmodHeapsBankLoader`, `FmodHeapsParameterTrigger`, `FmodHeapsUtilities.PlayOneShotAttached`) on HashLink and in the browser. `example-project/HeapsPlatformer` is the working recipe. It has hxml builds, the `stage` command for the runtime files, and a page script-tagging `fmodstudio.js`, `jaxe.js` and the game.
 - Engine-free component cores in `haxefmod.runtime` (`EmitterTracker`, `ListenerTracker`, `DerivedVelocityProvider`, `ZoneTrigger`, `BankLoadTracker`) for adapting haxefmod to any engine with a position source and a frame hook. The flixel, Heaps, and Kha components are thin wrappers over them.
 - `FmodRuntime.isAttachedProvider(provider)` reports whether an attached instance still follows a position provider.
-- `haxelib run haxefmod stage <platform> <target> <outdir>` copies the FMOD runtime files into any build output directory. Those are the shared libraries, `hlaxe_fmod.hdll`, or the HTML5 engine scripts plus `jaxe.js`. That serves projects that lime does not build (Heaps, Kha, plain hxml). The same SDK, version and hdll checks as the lime postbuild apply. A Linux HashLink bytecode build gets a `run.sh` that launches it through `hl` with the library path set.
+- `haxelib run haxefmod stage <platform> <target> <outdir>` copies the FMOD runtime files into any build output directory. Those are the shared libraries, `hlaxe_fmod.hdll`, or the HTML5 engine scripts plus `jaxe.js`. That serves projects that lime does not build (Heaps, Kha, plain hxml). The same SDK, version and hdll checks as the lime postbuild apply. A HashLink bytecode build gets a launcher that runs it through `hl` with the library path set: `run.sh` on Linux and macOS, `run.cmd` on Windows.
 - The compile-time SDK check runs for Heaps and Kha builds, and any hxml build can opt in with `--macro haxefmod.tools.BuildCheck.verify()`.
 - `FmodEvent.isPaused()`, `getTimelinePosition()`, `setTimelinePosition(ms)`, `onceEvent(handler, ?mask)`, and `setPosition2D(x, y, velocityX = 0, velocityY = 0)`. `onceEvent` fires for the first delivered event and then removes itself, like `FmodManager.OnceSongEvent`.
 - `FmodManager.SetSongTimelinePosition(ms)` moves the song's timeline, the setter for `GetSongTimelinePosition()`.
@@ -154,6 +154,10 @@
 - `setTarget(null)` on the Heaps and Kha listeners, and `setScene(null)` on the Heaps one, leave the listener idle.
 - A direct `FlxG.sound.muted` assignment reaches the FMOD master bus on the next frame. Only the signal path did before.
 - A dead HTML5 instance found by the list lookup takes its cached channel group handle along.
+- A `Channel` handle whose channel ended on its own is reclaimed with the end callback, or by the next channel play or lookup. It held its slot for the process before.
+- `CoreSystem.getChannel` and `ChannelGroup.getChannel` reclaim the handle of an earlier pool generation on the next lookup.
+- The HTML5 shim names a refused Studio initialize in the console, and the bank failure trace points there.
+- `build-hdll` stamps the hash of the shim sources into the hdll. The package check reads it on a release tag.
 - `ChannelGroup.getParentGroup` on the master group and `Channel.getCurrentSound` on a channel from `playDSP` report no object on HTML5. They minted a handle around a null pointer before.
 - The HTML5 shim drops the wrappers it reads for their pointers only. That covers a bank unload, the callback uninstall, the sub sound parent lookups, and a released `PcmStream`.
 - A null string argument on HashLink reaches the shim as an empty one, which FMOD refuses with an error. It faulted in the string conversion before.

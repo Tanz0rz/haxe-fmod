@@ -186,6 +186,19 @@ class jaxe {
     // native shims, and sweeps instance slots on top of that. The native
     // shims reclaim those when the DESTROYED event drains, which this
     // target never receives.
+    // A channel that ended on its own keeps its slot, and FMOD answers
+    // INVALID_HANDLE on it from then on. The sweep runs before a channel
+    // handle is minted, so the dead ones go first.
+    static reclaimDeadChannels() {
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (!s.alive || s.type !== jaxe.TYPE_CHAN) continue;
+            var r;
+            try { r = s.ptr.isPlaying({}); } catch (e) { r = jaxe.ERR_INVALID_HANDLE; }
+            if (r === jaxe.ERR_INVALID_HANDLE || r === jaxe.ERR_CHANNEL_STOLEN) jaxe.handleFree((s.gen << 16) | i);
+        }
+    }
+
     static sweepDeadLookups() {
         if (jaxe.gSystem) jaxe.gSystem.flushCommands();
         for (var i = 0; i < jaxe.slots.length; i++) {
@@ -519,6 +532,10 @@ class jaxe {
         } else if (cur.type == 0x100 /* DESTROY_PROGRAMMER_SOUND */) {
             cur.i1 = jaxe.handleFind(cur.ptr, jaxe.TYPE_SOUND);
             if (cur.i1 && cur.i3) jaxe.handleFree(cur.i1);
+        } else if (cur.type == jaxe.CB_CHAN_END) {
+            // An ended channel's slot goes with the record. The handle
+            // value still reaches the handler for identity.
+            jaxe.handleFree(cur.handle);
         } else if (cur.type == (jaxe.CB_SYS_NAMESPACE | 0x80) /* core ERROR */) {
             // The failing object's handle when the table knows it, never a
             // fresh one: a sound FMOD rejected can already be gone.
@@ -570,6 +587,7 @@ class jaxe {
 
     static lastResult = 0;
     static ERR_INVALID_HANDLE = 30;
+    static ERR_CHANNEL_STOLEN = 3;
     static ERR_INVALID_PARAM = 31;
     static ERR_UNSUPPORTED = 68;
     static ERR_MEMORY = 38;         // handle table exhausted, the code the C shims report
@@ -2716,6 +2734,7 @@ class jaxe {
         var chOut = {};
         jaxe.lastResult = jaxe.gSystemCore.playSound(ps.sound, cg, !!paused, chOut);
         if (jaxe.lastResult != jaxe.FMOD.OK || !chOut.val) return 0;
+        jaxe.reclaimDeadChannels();
         var ch = jaxe.handleAlloc(chOut.val, jaxe.TYPE_CHAN);
         if (ch == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
@@ -3255,6 +3274,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = jaxe.gSystemCore.playDSP(dsp, cg, !!startPaused, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        jaxe.reclaimDeadChannels();
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_CHAN);
         if (handle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
@@ -3721,6 +3741,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = jaxe.gSystemCore.playSound(sound, cg, !!startPaused, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        jaxe.reclaimDeadChannels();
         var chHandle = jaxe.handleAlloc(out.val, jaxe.TYPE_CHAN);
         if (chHandle == 0) {
             jaxe.lastResult = jaxe.ERR_MEMORY; // handle table exhausted
@@ -5117,6 +5138,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = group.getChannel(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        jaxe.reclaimDeadChannels();
         return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHAN);
     }
 
@@ -5460,6 +5482,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = jaxe.gSystemCore.getChannel(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        jaxe.reclaimDeadChannels();
         return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHAN);
     }
 
@@ -5707,7 +5730,14 @@ class jaxe {
 
         // 128 matches the native shims' fallback for a missing channel count
         var numChannels = (init && init.numChannels > 0) ? init.numChannels : 128;
-        jaxe.gSystem.initialize(numChannels, jaxe.studioInitFlags(init), jaxe.coreInitFlags(init), null);
+        var initResult = jaxe.gSystem.initialize(numChannels, jaxe.studioInitFlags(init), jaxe.coreInitFlags(init), null);
+        if (initResult != jaxe.FMOD.OK) {
+            // The game goes on without audio, like a refused native init.
+            // Every later call reports on its own, so the cause is named
+            // here once.
+            jaxe.lastResult = initResult;
+            console.error("haxefmod: FMOD Studio initialize failed with result " + initResult + ". Every later FMOD call fails.");
+        }
 
         // A gesture that arrived while the wasm was still loading counts.
         // The listeners were installed at script load (installGestureGate),

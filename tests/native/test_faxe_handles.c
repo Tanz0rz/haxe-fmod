@@ -17,6 +17,12 @@ static int sweep_all_valid(void* ptr, unsigned char type) {
     return 1;
 }
 
+static void* gRejected = NULL;
+static int sweep_reject_one(void* ptr, unsigned char type) {
+    (void)type;
+    return ptr != gRejected;
+}
+
 static int sweep_all_dead(void* ptr, unsigned char type) {
     (void)ptr; (void)type;
     return 0;
@@ -303,6 +309,23 @@ int main(void) {
     }
 
     test_fuzz_against_model();
+
+    /* a typed sweep frees the rejected slots of that type only */
+    {
+        int objA = 1, objB = 2, objC = 3;
+        int c1 = faxe_handle_alloc(&objA, FAXE_TYPE_CHAN);
+        int c2 = faxe_handle_alloc(&objB, FAXE_TYPE_CHAN);
+        int other = faxe_handle_alloc(&objC, FAXE_TYPE_SOUND);
+        gRejected = &objA;
+        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one);
+        assert(faxe_handle_resolve(c1, FAXE_TYPE_CHAN) == NULL);
+        assert(faxe_handle_resolve(c2, FAXE_TYPE_CHAN) == &objB);
+        gRejected = &objC;
+        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one);
+        assert(faxe_handle_resolve(other, FAXE_TYPE_SOUND) == &objC);
+        faxe_handle_free(c2);
+        faxe_handle_free(other);
+    }
 
     printf("faxe_handles: all assertions passed\n");
     return 0;

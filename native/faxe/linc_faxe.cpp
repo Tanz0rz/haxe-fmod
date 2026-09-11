@@ -38,6 +38,9 @@
 namespace linc {
 namespace faxe {
 
+// Declared early: the channel play paths above the sweep call it
+static void lincReclaimDeadChannels();
+
 // Global state
 static FMOD::Studio::System* gStudioSystem = NULL;
 static FMOD::System* gCoreSystem = NULL;
@@ -771,6 +774,7 @@ int fmod_core_pcm_play(int h, int group, bool paused) {
     FMOD::Channel* channel = NULL;
     gLastResult = gCoreSystem->playSound(ps->sound, cg, paused, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
+    lincReclaimDeadChannels();
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
         gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
@@ -1324,6 +1328,7 @@ int fmod_sys_play_dsp(int dspHandle, int group, bool startPaused) {
     if (!resolvePlayGroup(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = gCoreSystem->playDSP(dsp, cg, startPaused, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
+    lincReclaimDeadChannels();
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
         gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
@@ -1828,6 +1833,7 @@ int fmod_core_play_sound(int h, int group, bool startPaused) {
     if (!resolvePlayGroup(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = gCoreSystem->playSound(sound, cg, startPaused, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
+    lincReclaimDeadChannels();
     int handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
         gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
@@ -3208,6 +3214,7 @@ int fmod_cg_get_channel(int h, int index) {
     FMOD::Channel* ch = NULL;
     gLastResult = group->getChannel(index, &ch);
     if (gLastResult != FMOD_OK || !ch) return 0;
+    lincReclaimDeadChannels();
     return lincHandleOrMemory(ch, FAXE_TYPE_CHAN);
 }
 
@@ -3270,6 +3277,10 @@ bool fmod_cb_next() {
         // i3 marks a shim-created sound, released in the callback, whose
         // handle ends here. A game-owned sound keeps its handle.
         if (gCbCurrent.i1 && gCbCurrent.i3) faxe_handle_free(gCbCurrent.i1);
+    } else if (gCbCurrent.type == FAXE_CB_CHAN_END) {
+        // An ended channel's slot goes with the record. The handle value
+        // still reaches the handler for identity.
+        faxe_handle_free(gCbCurrent.handle);
     } else if (gCbCurrent.type == (FAXE_CB_SYS_NAMESPACE | (uint32_t)FMOD_SYSTEM_CALLBACK_ERROR)) {
         // The failing object's handle when the table knows it, never a
         // fresh one: a sound FMOD rejected can already be gone.
@@ -3844,6 +3855,20 @@ static void lincReclaimDeadLookups() {
     // objects observable to isValid before the sweep.
     if (gStudioSystem) gStudioSystem->flushCommands();
     faxe_handles_sweep_lookups(lincLookupSlotValid);
+}
+
+// A channel that ended on its own keeps its slot, and FMOD answers
+// INVALID_HANDLE on it from then on. The sweep runs before a channel
+// handle is minted, so the dead ones go first.
+static int lincChannelSlotValid(void* ptr, unsigned char type) {
+    (void)type;
+    bool playing = false;
+    FMOD_RESULT r = ((FMOD::Channel*)ptr)->isPlaying(&playing);
+    return r != FMOD_ERR_INVALID_HANDLE && r != FMOD_ERR_CHANNEL_STOLEN;
+}
+
+static void lincReclaimDeadChannels() {
+    faxe_handles_sweep_type(FAXE_TYPE_CHAN, lincChannelSlotValid);
 }
 
 int fmod_sys_unload_all() {
@@ -5616,6 +5641,7 @@ int fmod_sys_get_channel(int index) {
     FMOD::Channel* ch = NULL;
     gLastResult = gCoreSystem->getChannel(index, &ch);
     if (gLastResult != FMOD_OK || !ch) return 0;
+    lincReclaimDeadChannels();
     return lincHandleOrMemory(ch, FAXE_TYPE_CHAN);
 }
 

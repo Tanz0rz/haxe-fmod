@@ -15,6 +15,7 @@ class TestPostBuild {
 
 		testRunShContent();
 		testCustomHdllMarkerCheck();
+		testSourceHashParity();
 		testClearExecstack();
 		testSdkPackageDetection();
 		testStage();
@@ -114,6 +115,15 @@ class TestPostBuild {
 	 * must fall back to the pre-built hdll instead of shipping next to
 	 * mismatched runtime libraries.
 	 */
+	// build-hdll and the package check must compute one hash
+	static function testSourceHashParity():Void {
+		var process = new sys.io.Process("python3", ["ci/hlaxe-src-hash.py", "."]);
+		var scripted = StringTools.trim(process.stdout.readAll().toString());
+		process.close();
+		var built = haxefmod.tools.BuildHdll.sourceHash(".");
+		assert(scripted.length == 40 && scripted == built, 'source hash parity: script=$scripted tool=$built');
+	}
+
 	static function testCustomHdllMarkerCheck():Void {
 		var base = "tests/fixtures/tmp-hdll-marker";
 		var projectDir = '$base/project';

@@ -22,7 +22,7 @@
 #
 # Handles FMOD WAVWRITER quirks. An unfinalized data chunk (size 0) is read
 # to end of file. A malformed fmt chunk (0 channels, from Sys.exit on
-# Windows) keeps its rate and bit depth, and the channel count falls back
+# Windows) keeps its rate and bit depth. The channel count falls back
 # to the CI format's stereo.
 # Prints measurements and a one-char-per-second profile strip either way.
 # --no-gate reports without failing (used for the volume test, whose muted

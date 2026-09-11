@@ -163,8 +163,9 @@ class CoreSystem {
     /**
      * The pool channel at index (see Channel.getIndex). FMOD hands back a reference to the pool slot rather
      * than to the sound playing in it. This is a separate handle from the one play returned, shared by every
-     * call for the same index. The channel can be idle, and every call on an idle channel reports
-     * FMOD_ERR_INVALID_HANDLE until FMOD reuses the slot. Stop the handle when done with it to release it.
+     * call for the same index while the slot holds the same channel. The channel can be idle, and every call
+     * on an idle channel reports FMOD_ERR_INVALID_HANDLE until FMOD reuses the slot. A handle whose channel
+     * is gone is reclaimed by the next channel play or lookup.
      * Channel.NULL on failure. StudioSystem.lastResult() holds the reason for a failure.
      */
     public static inline function getChannel(index:Int):Channel {

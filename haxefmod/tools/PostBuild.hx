@@ -93,7 +93,7 @@ class PostBuild {
 	/**
 	 * Copies into destDir, which already exists. standalone marks a
 	 * stage() call, where the web files include jaxe.js (lime bundles
-	 * that one itself) and a Linux HashLink VM build gets a launcher.
+	 * that one itself) and a HashLink VM build gets a launcher.
 	 */
 	public static function stageInto(platform:String, target:String, sdkPath:String, libRoot:String,
 			projectDir:String, destDir:String, standalone:Bool):Void {

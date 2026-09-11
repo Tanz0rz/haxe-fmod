@@ -44,7 +44,7 @@ FmodRuntime.onceReady(() -> {
 | `output` | | `AUTODETECT` | `FmodOutputType` applied before init. `NOSOUND` and `NOSOUND_NRT` mix without a device. `WAVWRITER` writes the mix to a file. The platform values pick a driver. The `FMOD_WAVWRITER` environment variable still forces `WAVWRITER` into the file it names. HTML5 has only `WEBAUDIO`, `AUDIOWORKLET`, `NOSOUND`, and `NOSOUND_NRT`. Any other value there makes init fail with `FMOD_ERR_UNSUPPORTED`. |
 | `resamplerMethod` | | `DEFAULT` | `FmodDspResampler` for sounds that play at another rate than the mixer. `DEFAULT` is FMOD's choice, `LINEAR`. |
 | `dspBufferSize` | `haxefmod_dsp_buffer_size` | 0 | Mixer block size in samples. Smaller buffers cut latency and cost CPU. 0 leaves FMOD's default of 1024 on desktop. The web build then sets 2048, the size FMOD recommends there. |
-| `dspNumBuffers` | | 0 | Mixer blocks queued ahead. 0 leaves FMOD's default of 4 on desktop when `dspBufferSize` is 0 too. Otherwise 2 blocks are used. |
+| `dspNumBuffers` | | 0 | Mixer blocks queued ahead. It applies with a set `dspBufferSize` only, and 0 then means 2 blocks. With `dspBufferSize` at 0 FMOD's default of 4 stands on desktop. |
 | `memoryPoolSize` | | 0 | Bytes of a fixed pool FMOD allocates from instead of the heap. The pool never grows. An exhausted pool fails later calls with `FMOD_ERR_MEMORY`. The size is rounded up to a multiple of 512. Native only. The web build allocates from the wasm heap. |
 | `memoryTracking` | | false | Tracks memory per object. `getMemoryUsage` on `StudioSystem`, `Bus`, and `EventInstance` then reports real numbers. Only the logging FMOD libraries (`libfmodstudioL`) count. The release libraries report zero. Tracking costs a little CPU per allocation. |
 | `threadAttributes` | | `[]` | One `{type, priority, stackSize, affinity}` per FMOD worker thread to change. The library applies them before it creates the system. An unset field keeps FMOD's default for that thread. `affinity` is a 32-bit core mask (`FmodThreadAffinity`). The 64-bit group values stay FMOD's. Native only. The web build has no threads to place. |
@@ -54,7 +54,7 @@ FmodRuntime.onceReady(() -> {
 | `streamBufferSize` | | 0 | File buffer size in bytes for streamed sounds. 0 uses FMOD's default of 16384. |
 | `profiling` | | false | Turns on FMOD profiling. `Bus`, `EventInstance`, and `Dsp` report `getCpuUsage()` only with this on. The FMOD Profiler can then connect to the game. |
 | `distanceFilter` | | false | Turns on the per-channel distance lowpass. 3D core channels then muffle with distance. `Channel.set3DDistanceFilter` tunes the filter. |
-| `liveUpdate` | `haxefmod_live_update`, `haxefmod_no_live_update` | true in `-debug` builds | Opens the Live Update connection on TCP port 9264. Native only. |
+| `liveUpdate` | `haxefmod_live_update`, `haxefmod_no_live_update` | true in `-debug` builds | Opens the Live Update connection on TCP port 9264, or the `profilePort` setting. Native only. |
 | `logLevel` | `haxefmod_log_level` | 1 | FMOD debug logging. 0 none, 1 errors, 2 warnings, 3 everything. Native only, the web package exports no logger. |
 | `bankFolder` | `haxefmod_bank_folder` | `assets/fmod/Desktop` | Folder that bank file names resolve against. |
 | `autoLoadBanks` | | `["Master.bank", "Master.strings.bank"]` | Banks that init loads. Pass `[]` to manage all loading yourself. |

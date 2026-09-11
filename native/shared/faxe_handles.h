@@ -167,6 +167,20 @@ static void faxe_handles_sweep_lookups(FaxeLookupValidator is_valid) {
     }
 }
 
+/* Frees every live slot of one type whose object the validator rejects.
+ * Core channels use this: a channel that ended on its own keeps its slot
+ * until the next channel play or lookup sweeps it. */
+static void faxe_handles_sweep_type(unsigned char type, FaxeLookupValidator is_valid) {
+    int i;
+    for (i = 0; i < gFaxeSlotCap; i++) {
+        FaxeSlot* s = &gFaxeSlots[i];
+        if (!s->alive || s->type != type) continue;
+        if (!is_valid(s->ptr, s->type)) {
+            faxe_handle_free(((int)s->gen << 16) | i);
+        }
+    }
+}
+
 /* Frees every live slot of one type. DSP connections use this: FMOD defers
  * graph mutations to the mixer, so pointer validation after a disconnect is
  * timing-dependent. Graph-changing calls instead invalidate every connection

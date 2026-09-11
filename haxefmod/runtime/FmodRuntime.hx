@@ -410,6 +410,7 @@ class FmodRuntime {
                 defaultBankFailed = true;
                 trace('Error: FMOD - default bank failed to load: $path.'
                     + ' The browser fetches it relative to the page, from the bank folder setting.'
+                    + ' A refused FMOD initialize fails every load too, and the console names that.'
                     + ' Check the path in the network tab. The game runs without it.');
                 continue;
             }

@@ -205,6 +205,27 @@ async function main() {
         `ends=${endEvents.length}`);
     check('chan_map_cleared_on_natural_end', jaxe.chanCallbackHandles.size === 0,
         `size=${jaxe.chanCallbackHandles.size}`);
+    check('ended_channel_slot_freed_with_end_record', jaxe.handleResolve(chan2, jaxe.TYPE_CHAN) == null, '');
+
+    // --- channels that end without a callback are reclaimed by the next play ---
+    const liveBefore = jaxe.liveCount;
+    for (let i = 0; i < 5; i++) {
+        check(`cycle_${i}_plays`, jaxe.fmod_core_play_sound(sndFinite, 0, false) > 0, '');
+        await pump(30);
+    }
+    const chanLast = jaxe.fmod_core_play_sound(sndFinite, 0, false);
+    check('ended_channels_reclaimed_on_play', chanLast > 0 && jaxe.liveCount === liveBefore + 1,
+        `live=${jaxe.liveCount} before=${liveBefore}`);
+    await pump(30);
+    // --- the pool lookup reclaims the slots of earlier pool generations ---
+    const livePool = jaxe.liveCount;
+    for (let i = 0; i < 3; i++) {
+        jaxe.fmod_core_play_sound(sndFinite, 0, false);
+        await pump(30);
+        jaxe.fmod_sys_get_channel(0);
+    }
+    check('pool_lookup_reclaims_generations', jaxe.liveCount <= livePool + 2,
+        `live=${jaxe.liveCount} before=${livePool}`);
     jaxe.fmod_core_release_sound(sndFinite);
 
     // --- the channel group handle an instance handed out goes with it ---

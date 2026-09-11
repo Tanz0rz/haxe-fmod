@@ -37,7 +37,7 @@ function info(label, detail) {
 const FMOD = {};
 FMOD['onRuntimeInitialized'] = main;
 // A module that never calls back would end the process with no check run
-// and exit code 0, so the run fails on its own after a minute
+// and exit code 0. The run fails on its own after a minute instead.
 const watchdog = setTimeout(() => { console.log('CORE_TEST: INIT TIMEOUT'); process.exit(1); }, 60000);
 const bootstrap = FMODModule(FMOD);
 if (bootstrap && typeof bootstrap.catch === 'function') {

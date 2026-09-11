@@ -108,7 +108,8 @@ class BuildHdll {
 		Sys.println("");
 		info("Compiling hlaxe_fmod.hdll...");
 
-		var args = buildCompilerArgs(platform, sourceFile, outputFile, fmodSdk, coreInc, studioInc, hlInclude);
+		var args = buildCompilerArgs(platform, sourceFile, outputFile, fmodSdk, coreInc, studioInc, hlInclude,
+			sourceHash(libRoot));
 		info('Running: $compiler ${args.join(" ")}');
 		Sys.println("");
 
@@ -255,14 +256,35 @@ class BuildHdll {
 		return arch == null || arch == "" ? "x86_64" : arch;
 	}
 
+	/**
+	 * The hash of the shim sources, carried by the hdll as its
+	 * hlaxe_fmod_src marker. ci/hlaxe-src-hash.py computes the same one:
+	 * SHA-1 over the shim source, every shared header, and the manifest in
+	 * sorted path order, each as its path, a newline, its bytes, and a newline.
+	 */
+	public static function sourceHash(libRoot:String):String {
+		var files = ["native/hlaxe/hlaxe_fmod.c"];
+		var shared = [for (f in FileSystem.readDirectory(Path.join([libRoot, "native", "shared"]))) if (StringTools.endsWith(f, ".h")) f];
+		shared.sort(Reflect.compare);
+		for (f in shared) files.push("native/shared/" + f);
+		files.push("native/manifest/studio_api.txt");
+		var buffer = new haxe.io.BytesBuffer();
+		for (rel in files) {
+			buffer.addString(rel + "\n");
+			buffer.add(File.getBytes(Path.join([libRoot, rel])));
+			buffer.addString("\n");
+		}
+		return haxe.crypto.Sha1.make(buffer.getBytes()).toHex();
+	}
+
 	static function buildCompilerArgs(platform:String, source:String, output:String, fmodSdk:String, coreInc:String,
-			studioInc:String, hlInclude:String):Array<String> {
+			studioInc:String, hlInclude:String, srcHash:String):Array<String> {
 		return switch (platform) {
 			case "linux":
 				var coreLib = Path.join([fmodSdk, "api", "core", "lib", "x86_64"]);
 				var studioLib = Path.join([fmodSdk, "api", "studio", "lib", "x86_64"]);
 				[
-					"-shared", "-fPIC", "-O2",
+					"-shared", "-fPIC", "-O2", '-DHLAXE_SRC_HASH=$srcHash',
 					"-Wl,-rpath,$ORIGIN",
 					"-o", output,
 					source,
@@ -277,7 +299,7 @@ class BuildHdll {
 				var coreLib = Path.join([fmodSdk, "api", "core", "lib"]);
 				var studioLib = Path.join([fmodSdk, "api", "studio", "lib"]);
 				[
-					"-dynamiclib", "-O2",
+					"-dynamiclib", "-O2", '-DHLAXE_SRC_HASH=$srcHash',
 					// x86_64 matches lime's bundled HashLink VM. An arm64 HashLink
 					// (Homebrew's libhl, HL/C builds) needs HAXEFMOD_HDLL_ARCH=arm64.
 					"-arch", macArch(),
@@ -297,7 +319,7 @@ class BuildHdll {
 				// Find libhl.lib
 				var hlLib = findHashlinkLib(hlInclude);
 				var args = [
-					"/LD", "/O2", "/DWIN32",
+					"/LD", "/O2", "/DWIN32", '/DHLAXE_SRC_HASH=$srcHash',
 					source,
 					// cl writes the .obj into the process cwd by default,
 					// which under haxelib run is the installed library

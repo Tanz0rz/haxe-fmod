@@ -42,7 +42,7 @@ instance.start();
 instance.release();
 ```
 
-`Channel` handles end on their own when playback stops. Call `stop()` when you are done with one either way. That always frees the handle slot.
+`Channel` handles end on their own when playback stops. The slot is reclaimed with the end callback, or by the next channel play or lookup. Call `stop()` to free it earlier.
 
 A handle that is never released holds a slot in the native table for the life of the process. `StudioSystem.liveHandleCount()` reports the number of live handles. Tests use it to catch leaks.
 

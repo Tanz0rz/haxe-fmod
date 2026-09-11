@@ -507,11 +507,17 @@ class PanTestScenario implements TestScenario {
         camera.viewportWidth = savedViewportWidth;
         camera.x = savedX;
         camera.y = savedY;
-        // No scene leaves the listener idle: a tick pushes nothing and
-        // faults nowhere
+        // No scene leaves the listener idle: a tick pushes nothing, so
+        // the listener stays where the last tick put it although the
+        // camera moved since
+        var before = StudioSystem.getListenerAttributes(0);
         cameraListener.setScene(null);
         cameraListener.tick(0.5);
-        check("camera_listener_null_scene_idle", true, "");
+        var after = StudioSystem.getListenerAttributes(0);
+        check("camera_listener_null_scene_idle",
+            before != null && after != null
+                && approx(after.position.x, before.position.x) && approx(after.position.y, before.position.y),
+            after == null ? "unreadable" : 'position=(${after.position.x}, ${after.position.y})');
         cameraListener.dispose();
     }
 

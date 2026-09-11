@@ -20,6 +20,9 @@
 #include "../shared/faxe_dsptype.h"
 #include "../shared/faxe_guid.h"
 #include "../shared/faxe_cbqueue.h"
+
+// Declared early: the channel play paths above the sweep call it
+static void hlaxe_reclaim_dead_channels(void);
 #include "../shared/faxe_instctx.h"
 #include "../shared/faxe_dspdata.h"
 
@@ -56,6 +59,18 @@ static void* gListBuf[FAXE_LIST_MAX];
 // depends on. Volatile reads cannot be folded, so the string survives any
 // optimization level.
 static const volatile char gAbiMarker[] = "hlaxe_fmod_abi=11";
+
+/* The hash of the shim sources this hdll was built from, passed in by
+ * build-hdll (ci/hlaxe-src-hash.py computes the same one). The package
+ * check reads it on a release tag, so the shipped hdlls match the tagged
+ * sources. Read through a volatile reference below so it survives. */
+#define HLAXE_STR2(x) #x
+#define HLAXE_STR(x) HLAXE_STR2(x)
+#ifdef HLAXE_SRC_HASH
+static const volatile char gSrcMarker[] = "hlaxe_fmod_src=" HLAXE_STR(HLAXE_SRC_HASH);
+#else
+static const volatile char gSrcMarker[] = "hlaxe_fmod_src=unknown";
+#endif
 
 // Auto-update thread state
 static volatile int gAutoUpdateRunning = 0;
@@ -845,6 +860,7 @@ HL_PRIM int HL_NAME(core_pcm_play)(int h, int group, bool paused) {
     if (!resolve_play_group(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_System_PlaySound(gCoreSystem, ps->sound, cg, paused ? 1 : 0, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
+    hlaxe_reclaim_dead_channels();
     handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
         gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
@@ -1467,6 +1483,7 @@ HL_PRIM int HL_NAME(sys_play_dsp)(int dspHandle, int group, bool startPaused) {
     if (!resolve_play_group(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_System_PlayDSP(gCoreSystem, dsp, cg, startPaused ? 1 : 0, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
+    hlaxe_reclaim_dead_channels();
     handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
         gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
@@ -2045,6 +2062,7 @@ HL_PRIM int HL_NAME(core_play_sound)(int h, int group, bool startPaused) {
     if (!resolve_play_group(group, &cg)) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_System_PlaySound(gCoreSystem, sound, cg, startPaused ? 1 : 0, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
+    hlaxe_reclaim_dead_channels();
     handle = faxe_handle_alloc(channel, FAXE_TYPE_CHAN);
     if (handle == 0) {
         gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
@@ -3605,6 +3623,7 @@ HL_PRIM int HL_NAME(cg_get_channel)(int h, int index) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetChannel(group, index, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
+    hlaxe_reclaim_dead_channels();
     return hlaxe_handle_or_memory(channel, FAXE_TYPE_CHAN);
 }
 DEFINE_PRIM(_I32, cg_get_channel, _I32 _I32);
@@ -3670,6 +3689,10 @@ HL_PRIM bool HL_NAME(cb_next)() {
         /* i3 marks a shim-created sound, released in the callback, whose
          * handle ends here. A game-owned sound keeps its handle. */
         if (gCbCurrent.i1 && gCbCurrent.i3) faxe_handle_free(gCbCurrent.i1);
+    } else if (gCbCurrent.type == FAXE_CB_CHAN_END) {
+        /* An ended channel's slot goes with the record. The handle value
+         * still reaches the handler for identity. */
+        faxe_handle_free(gCbCurrent.handle);
     } else if (gCbCurrent.type == (FAXE_CB_SYS_NAMESPACE | (uint32_t)FMOD_SYSTEM_CALLBACK_ERROR)) {
         /* The failing object's handle when the table knows it, never a
          * fresh one: a sound FMOD rejected can already be gone. */
@@ -4303,6 +4326,21 @@ static int hlaxe_lookup_slot_valid(void* ptr, unsigned char type) {
         }
         default: return 1;
     }
+}
+
+/* A channel that ended on its own keeps its slot, and FMOD answers
+ * INVALID_HANDLE on it from then on. The sweep runs before a channel
+ * handle is minted, so the dead ones go first. */
+static int hlaxe_channel_slot_valid(void* ptr, unsigned char type) {
+    FMOD_BOOL playing = 0;
+    FMOD_RESULT r;
+    (void)type;
+    r = FMOD_Channel_IsPlaying((FMOD_CHANNEL*)ptr, &playing);
+    return r != FMOD_ERR_INVALID_HANDLE && r != FMOD_ERR_CHANNEL_STOLEN;
+}
+
+static void hlaxe_reclaim_dead_channels(void) {
+    faxe_handles_sweep_type(FAXE_TYPE_CHAN, hlaxe_channel_slot_valid);
 }
 
 static void hlaxe_reclaim_dead_lookups(void) {
@@ -6332,6 +6370,7 @@ HL_PRIM int HL_NAME(sys_get_channel)(int index) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_GetChannel(gCoreSystem, index, &channel);
     if (gLastResult != FMOD_OK || !channel) return 0;
+    hlaxe_reclaim_dead_channels();
     return hlaxe_handle_or_memory(channel, FAXE_TYPE_CHAN);
 }
 DEFINE_PRIM(_I32, sys_get_channel, _I32);
@@ -6484,6 +6523,8 @@ DEFINE_PRIM(_I32, debug_live_handle_count, _NO_ARG);
 HL_PRIM int HL_NAME(binding_abi_version)() {
     char digits[8];
     int i = 0;
+    /* The source marker is kept the same way, through a volatile read */
+    if (gSrcMarker[0] == '\0') return -1;
     while (i < 7 && gAbiMarker[15 + i] != '\0') {
         digits[i] = gAbiMarker[15 + i];
         i++;

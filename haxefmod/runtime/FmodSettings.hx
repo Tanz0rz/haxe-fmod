@@ -62,9 +62,9 @@ typedef FmodSettings = {
     @:optional var dspBufferSize:Int;
 
     /**
-     * Number of mixer blocks queued ahead. Default 0. That leaves FMOD's
-     * default of 4 on desktop when dspBufferSize is 0 too, and uses 2
-     * blocks otherwise.
+     * Number of mixer blocks queued ahead. It applies with a set
+     * dspBufferSize only, and 0 then means 2 blocks. With dspBufferSize
+     * at 0 FMOD's default of 4 stands on desktop.
      */
     @:optional var dspNumBuffers:Int;
 

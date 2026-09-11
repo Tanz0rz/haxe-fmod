@@ -50,7 +50,45 @@ def package_files(manifest):
         add(name)
     for name in manifest.get("icons", {}).values():
         add(name)
+    action = manifest.get("action", {})
+    if action.get("default_popup"):
+        add(action["default_popup"])
+    icon = action.get("default_icon")
+    if isinstance(icon, str):
+        add(icon)
+    elif isinstance(icon, dict):
+        for name in icon.values():
+            add(name)
+    if manifest.get("options_page"):
+        add(manifest["options_page"])
+    if manifest.get("options_ui", {}).get("page"):
+        add(manifest["options_ui"]["page"])
+    for entry in manifest.get("web_accessible_resources", []):
+        for name in entry.get("resources", []):
+            if "*" not in name:
+                add(name)
+    # A key this walk does not know that still names a file would ship
+    # a broken package, so it is an error rather than a silent gap
+    known = {"content_scripts", "background", "icons", "action", "options_page",
+             "options_ui", "web_accessible_resources"}
+    for key, value in manifest.items():
+        if key in known:
+            continue
+        for text in strings_in(value):
+            if text.rsplit(".", 1)[-1] in ("js", "css", "html", "png", "svg", "json"):
+                raise SystemExit(f"package.py: manifest key {key!r} names {text!r}, which this packager does not collect")
     return names
+
+
+def strings_in(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from strings_in(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from strings_in(item)
 
 
 def missing(names):

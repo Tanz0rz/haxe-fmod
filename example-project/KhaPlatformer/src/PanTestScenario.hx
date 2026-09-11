@@ -488,11 +488,17 @@ class PanTestScenario implements TestScenario {
             attributes != null && approx(attributes.velocity.x, 0),
             attributes == null ? "unreadable" : 'velocity=(${attributes.velocity.x})');
         cameraX = 100;
-        // No target leaves the listener idle: a tick pushes nothing and
-        // faults nowhere
+        // No target leaves the listener idle: a tick pushes nothing, so
+        // the listener stays where the last tick put it although the
+        // camera moved since
+        var before = StudioSystem.getListenerAttributes(0);
         cameraListener.setTarget(null);
         cameraListener.tick(0.5);
-        check("camera_listener_null_target_idle", true, "");
+        var after = StudioSystem.getListenerAttributes(0);
+        check("camera_listener_null_target_idle",
+            before != null && after != null
+                && approx(after.position.x, before.position.x) && approx(after.position.y, before.position.y),
+            after == null ? "unreadable" : 'position=(${after.position.x}, ${after.position.y})');
         cameraListener.dispose();
     }
 

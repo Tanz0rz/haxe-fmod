@@ -111,8 +111,8 @@ def write_ledger(ledger):
 
 
 def checks_pass():
-    _, problems, _ = hc.build()
-    stale = hc.render(hc.build()[0]) != hc.read(hc.DATA_JS) if os.path.exists(hc.DATA_JS) else True
+    pages, problems, _ = hc.build()
+    stale = hc.render(pages) != hc.read(hc.DATA_JS) if os.path.exists(hc.DATA_JS) else True
     return not problems and not stale
 
 
