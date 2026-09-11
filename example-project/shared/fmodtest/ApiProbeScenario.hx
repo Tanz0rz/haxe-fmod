@@ -859,9 +859,12 @@ class ApiProbeScenario implements TestScenario {
         check("helper_song_param_path_form", Math.abs(FmodManager.GetSongParameter(FmodParameters.Surface)) < 0.001
             && Math.abs(FmodManager.GetSongParameter("Surface")) < 0.001, 'value=${FmodManager.GetSongParameter("Surface")}');
         FmodManager.SetSongTimelinePosition(0);
-        // The seek lands on the next Studio update
+        // The seek lands on the next Studio update, and the song keeps
+        // playing after it, so the read is a little past zero. A seek
+        // that never landed reads the seconds the song already played.
         StudioSystem.flushCommands();
-        check("helper_song_timeline_set", FmodManager.GetSongTimelinePosition() == 0, 'position=${FmodManager.GetSongTimelinePosition()}');
+        var seeked = FmodManager.GetSongTimelinePosition();
+        check("helper_song_timeline_set", seeked >= 0 && seeked < 500, 'position=$seeked');
         FmodManager.StopSongImmediately();
         StudioSystem.flushCommands();
 

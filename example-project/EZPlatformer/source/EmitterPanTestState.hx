@@ -266,9 +266,10 @@ class EmitterPanTestState extends FlxState {
                 }
             case "oneshot_plays_out":
                 if (cullState() == FmodPlaybackState.STOPPED || timedOut) {
-                    // A cull stop lands within a few frames. A natural end
-                    // comes after the jump sound played out.
-                    check("cull_oneshot_played_out", !timedOut && _phaseFrames > 10, 'frames=$_phaseFrames');
+                    // A cull stop lands on the first check, one or two
+                    // frames in. A natural end takes the jump sound's
+                    // length, which is several frames at any frame rate.
+                    check("cull_oneshot_played_out", !timedOut && _phaseFrames > 3, 'frames=$_phaseFrames');
                     // Re-entering range must not replay a finished one-shot
                     _cullSprite.x = _listenerSprite.x;
                     _cullSprite.y = _listenerSprite.y;
