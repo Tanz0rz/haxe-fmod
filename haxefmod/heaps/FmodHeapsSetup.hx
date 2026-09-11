@@ -23,10 +23,10 @@ import hxd.Event;
 
     Calling init() again is safe and keeps a single focus wiring.
 
-    preload() does the same and also loads the default banks, through
-    hxd.net.BinaryLoader in the browser and from disk on HashLink, then
-    calls back once FMOD is ready. The first scene can then play events
-    at once, on HTML5 too.
+    preload() does the same and also loads the default banks. They come
+    through hxd.net.BinaryLoader in the browser and from disk on
+    HashLink. It calls back once FMOD is ready. The first scene can then
+    play events at once, on HTML5 too.
 **/
 class FmodHeapsSetup {
     /**

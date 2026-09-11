@@ -24,7 +24,7 @@ function update():Void {
 }
 ```
 
-`FmodManager.InitializeFailed()` reports that a default bank failed to load, or that FMOD refused to initialize. A missing bank leaves the system running without it. A loading scene checks it beside `IsInitialized()`, shows a message, and starts the game anyway. `FmodFlxPreloader` does this for you. `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` run the `onFailed` callback the game passed, or `onReady` anyway when there is none. `AnyBankFailed()` reports the same for a bank loaded later.
+`FmodManager.InitializeFailed()` reports that a default bank failed to load, or that FMOD refused to initialize. A missing bank leaves the system running without it. `InitializeSettled()` turns true once every default bank is loaded or has failed, or FMOD refused. A loading scene shows a message and starts the game on that. `FmodFlxPreloader` does this for you. `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` run the `onFailed` callback the game passed, or `onReady` anyway when there is none. `AnyBankFailed()` reports the same for a bank loaded later.
 
 ```haxe
 var audioWarned = false;
@@ -34,7 +34,7 @@ function updateLoadingScene():Void {
         audioWarned = true;
         trace("Audio did not fully start, the console names the cause");
     }
-    if (FmodManager.IsInitialized() || FmodManager.InitializeFailed()) startGame();
+    if (FmodManager.InitializeSettled()) startGame();
 }
 ```
 

@@ -306,6 +306,7 @@ class FmodRuntime {
         var path = bankPath(fileName);
         if (bytes == null || banks.loadMemory(path, bytes).isNull()) {
             failedBanks.set(name, true);
+            providedNames.remove(name);
             defaultBankFailed = true;
             trace('Error: FMOD - default bank $path failed to load from the bytes the preloader provided'
                 + ' (${StudioSystem.lastResult()}). The game runs without it.');
@@ -376,37 +377,46 @@ class FmodRuntime {
      * asynchronous HTML5 init finishes. Values pushed to FMOD before that
      * point land on objects that do not exist yet. Wiring that applies
      * state at setup time replays it through this hook. The optional
-     * onFailed runs instead when a default bank failed to load
-     * (initFailed), at once when the failure is already known and
-     * otherwise from update(). A handler with no onFailed runs once
-     * FMOD is ready, with or without every bank. A game that waits for
-     * FMOD on HTML5 calls update() every frame.
+     * onFailed runs instead when a default bank failed to load or the
+     * system refused (initFailed). Both run once initialization settled
+     * (initSettled), at once when it already has and otherwise from
+     * update(). A handler with no onFailed runs either way, with or
+     * without audio. A game that waits for FMOD on HTML5 calls update()
+     * every frame.
      */
     public static function onceReady(handler:Void->Void, ?onFailed:Void->Void):Void {
-        // A failed default bank wins over readiness on every target
-        if (onFailed != null && initFailed()) {
-            onFailed();
-            return;
-        }
-        if (focusMuteSynced || isInitialized()) {
-            handler();
+        // The readiness poll runs first. On HTML5 it is what discovers a
+        // failed bank, so the failure check reads a settled state.
+        var ready = focusMuteSynced || isInitialized();
+        if (ready || systemFailed) {
+            if (onFailed != null && initFailed()) onFailed();
+            else handler();
             return;
         }
         pendingHandlers.push({ready: handler, failed: onFailed});
     }
 
-    // Runs the onFailed side of every pending pair that has one. The
-    // pairs without one keep waiting for readiness.
-    static function dispatchFailed():Void {
-        if (!initFailed() || pendingHandlers.length == 0) return;
-        var kept = [];
-        var failed = [];
-        for (pair in pendingHandlers) {
-            if (pair.failed != null) failed.push(pair.failed);
-            else kept.push(pair);
+    /**
+     * True once initialization has run its course. Either the system is
+     * up and every default bank is loaded or has failed, or the system
+     * refused to initialize. The pending onceReady handlers run then.
+     */
+    public static function initSettled():Bool {
+        return systemFailed || isInitialized();
+    }
+
+    // Runs every pending handler once initialization settled. A pair
+    // runs its onFailed when a default bank failed, the ready side
+    // otherwise. A handler with no onFailed runs either way.
+    static function dispatchPending():Void {
+        if (pendingHandlers.length == 0) return;
+        var pending = pendingHandlers;
+        pendingHandlers = [];
+        var failed = initFailed();
+        for (pair in pending) {
+            if (failed && pair.failed != null) pair.failed();
+            else pair.ready();
         }
-        pendingHandlers = kept;
-        for (handler in failed) handler();
     }
 
     /** The resolved settings init ran with (null before init). */
@@ -467,10 +477,14 @@ class FmodRuntime {
      */
     public static function update():Void {
         // On HTML5 the readiness poll is what discovers a failed bank, so
-        // the failure dispatch comes after it and before the ready one
+        // it runs before the pending handlers are dispatched
         var ready = isInitialized();
-        dispatchFailed();
-        if (!ready) return;
+        if (!ready) {
+            // A refused system never gets ready. The handlers run now, so
+            // a game gated on them starts without audio.
+            if (systemFailed) dispatchPending();
+            return;
+        }
         if (!focusMuteSynced) {
             // HTML5 initialization completes asynchronously, so the first
             // serviced frame applies state reported during init. Native
@@ -484,10 +498,8 @@ class FmodRuntime {
             if (resolved != null) NativeStudio.sys_set_auto_update(resolved.autoUpdate);
             if (debugLevel >= 0) NativeStudio.sys_set_debug_level(debugLevel);
             #end
-            var pending = pendingHandlers;
-            pendingHandlers = [];
-            for (pair in pending) pair.ready();
         }
+        dispatchPending();
         // Manual mode ticks FMOD here on every backend. On HTML5 the shim's
         // timer is the only other caller, and it is off in manual mode.
         if (resolved == null || !resolved.autoUpdate) NativeStudio.sys_update();

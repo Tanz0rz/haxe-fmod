@@ -90,6 +90,15 @@ class FmodManager {
         return FmodRuntime.initFailed();
     }
 
+    /**
+     * True once initialization has run its course: FMOD is up and every
+     * default bank is loaded or has failed, or FMOD refused to
+     * initialize. A loading scene starts the game on this.
+     */
+    public static function InitializeSettled():Bool {
+        return FmodRuntime.initSettled();
+    }
+
     /** True while the background auto-update is on. */
     public static function IsAutoUpdate():Bool {
         return FmodRuntime.isAutoUpdate();

@@ -872,7 +872,9 @@ class PostBuild {
 	public static function runShContent(exeName:String, viaHl:Bool = false, mac:Bool = false):String {
 		var launch = viaHl ? 'hl "./${exeName}"' : '"./${exeName}"';
 		var libPath = mac ? "DYLD_LIBRARY_PATH" : "LD_LIBRARY_PATH";
-		return '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport ${libPath}="$$(pwd):$$${libPath}"\n${launch} "$$@"\n';
+		// exec makes the launcher's pid the game's, so a signal to the
+		// launcher reaches the game
+		return '#!/bin/bash\ncd "$$(dirname "$$0")"\nexport ${libPath}="$$(pwd):$$${libPath}"\nexec ${launch} "$$@"\n';
 	}
 
 	/** The Windows launcher for a HashLink bytecode build. Public for unit tests. */

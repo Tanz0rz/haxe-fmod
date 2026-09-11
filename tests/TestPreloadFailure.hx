@@ -54,10 +54,14 @@ class TestPreloadFailure {
 		stub.testBankMemoryLoads = [];
 		FmodRuntime.init({autoLoadBanks: ["Master.bank", "Master.strings.bank"], banksProvided: true});
 
-		// The stub never reports the system initialized, so the runtime's
-		// own half of isInitialized is read directly
+		// The stub reports the system up only when told, so the handlers
+		// stay pending until then
 		assert(@:privateAccess FmodRuntime.defaultBanksLoaded, "the default banks are settled without the failed bank");
 		assert(FmodRuntime.initFailed(), "initFailed stays true after init");
+		FmodRuntime.update();
+		assert(!readyRan && failedRan == 0 && plainRan == 0 && !FmodRuntime.initSettled(), "nothing runs before the system is up");
+		stub.testInitialized = true;
+		assert(FmodRuntime.isInitialized() && FmodRuntime.initSettled(), "initialized without the failed bank once the system is up");
 		assert(FmodRuntime.providedBankCount() == 1 && stub.testBankMemoryLoads.length == 1 && stub.testBankMemoryLoads[0] == 24,
 			"the provided bank still loads from memory");
 		assert(FmodRuntime.banks.isRegistered("assets/fmod/Desktop/Master.strings.bank"), "the loaded bank is registered");
@@ -77,15 +81,15 @@ class TestPreloadFailure {
 		// The failure wins over readiness, before and after init
 		FmodRuntime.update();
 		assert(!readyRan && failedRan == 1, "update runs onFailed instead of the ready handler");
+		assert(plainRan == 1, "a handler with no onFailed runs anyway");
 		var lateReady = false;
 		FmodRuntime.onceReady(() -> lateReady = true, () -> failedRan++);
 		assert(!lateReady && failedRan == 2, "onceReady after init runs onFailed at once");
+		FmodRuntime.onceReady(() -> plainRan++);
+		assert(plainRan == 2, "a late handler with no onFailed runs at once");
 		FmodRuntime.update();
-		assert(failedRan == 2, "a failed handler runs once");
-		// The stub never reports the system up, so a handler with no
-		// onFailed keeps waiting instead of running
-		assert(plainRan == 0 && @:privateAccess FmodRuntime.pendingHandlers.length == 1,
-			"a handler with no onFailed waits for readiness");
+		assert(failedRan == 2 && plainRan == 2 && @:privateAccess FmodRuntime.pendingHandlers.length == 0,
+			"every handler runs once");
 
 		// Bytes for a bank the runtime already handled are dropped
 		FmodRuntime.provideBank("Master.strings.bank", haxe.io.Bytes.alloc(24));

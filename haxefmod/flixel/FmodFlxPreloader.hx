@@ -29,10 +29,10 @@ import openfl.utils.Assets;
     later are ignored. Override create() and update() for custom visuals
     the way FlxPreloader allows.
 
-    When a default bank is missing from the assets or fails to load, or
-    FMOD refuses to initialize, the preloader shows the failure for
-    failureDisplayTime seconds, then completes. The game then runs
-    without that bank, and the console names it.
+    When a default bank is missing or fails to load, or FMOD refuses to
+    initialize, the preloader shows the failure for failureDisplayTime
+    seconds, then completes. The game then runs without that bank, and
+    the console names it.
 **/
 class FmodFlxPreloader extends FlxPreloader {
     /** How long the failure message stays before the game starts anyway, in seconds. **/
@@ -139,17 +139,19 @@ class FmodFlxPreloader extends FlxPreloader {
         // bytes go in first. HTML5 is initialized from create().
         initialize();
         FmodManager.Update();
-        if (FmodManager.InitializeFailed()) {
-            var now = haxe.Timer.stamp();
-            if (failedAt < 0) {
-                failedAt = now;
-                showFailure();
-            } else if (now - failedAt >= failureDisplayTime) {
-                complete();
-            }
+        // Every default bank has loaded or failed, or FMOD refused
+        if (!FmodRuntime.initSettled()) return;
+        if (!FmodManager.InitializeFailed()) {
+            complete();
             return;
         }
-        if (FmodManager.IsInitialized()) complete();
+        var now = haxe.Timer.stamp();
+        if (failedAt < 0) {
+            failedAt = now;
+            showFailure();
+        } else if (now - failedAt >= failureDisplayTime) {
+            complete();
+        }
     }
 
     // The game runs FMOD from here on, with or without every bank

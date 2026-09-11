@@ -160,6 +160,7 @@ REQUIRED_STEPS = {
         "Run native tests under AddressSanitizer and UBSan",
         "Run threaded native tests under ThreadSanitizer",
         "Test define-driven settings (haxefmod_* and -debug)",
+        "Test the default bank failure path",
         "Check FMOD version literal lockstep",
         "Check hxcpp depend lockstep",
         "Compile the README examples",

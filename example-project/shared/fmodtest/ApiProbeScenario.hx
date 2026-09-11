@@ -93,9 +93,9 @@ class ApiProbeScenario implements TestScenario {
 
         log("API_PROBE: Starting");
 
-        // Installed here (instead of the preloader) because the
-        // per-frame updater it adds would drain the callback queue every
-        // frame and defeat cb-test's overflow phase
+        // The host wiring (updater, focus, volume) goes in here. The
+        // preloader installed the updater already, and CallbackScenario
+        // removes it for its overflow phase.
         host.setupInit();
 
         var handlesBefore = StudioSystem.liveHandleCount();

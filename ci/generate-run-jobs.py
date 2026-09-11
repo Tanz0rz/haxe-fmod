@@ -218,6 +218,9 @@ def setup_steps(j):
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
+          # The step ends with the last exit code, so a reboot pending
+          # code would fail it here
+          $global:LASTEXITCODE = 0
 
       - name: Add ffmpeg to PATH
         run: |

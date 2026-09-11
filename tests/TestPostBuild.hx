@@ -180,6 +180,7 @@ class TestPostBuild {
 		assert(script.indexOf("export LD_LIBRARY_PATH=\"$(pwd):$LD_LIBRARY_PATH\"") >= 0, "run.sh library path");
 		// The exe invocation is quoted, so a name with spaces launches
 		assert(script.indexOf("\"./My Game\" \"$@\"") >= 0, "run.sh quoted exe invocation");
+		assert(script.indexOf("\nexec \"./My Game\"") >= 0, "run.sh execs the game so the launcher pid is the game");
 		assert(script.indexOf("cd \"$(dirname \"$0\")\"") >= 0, "run.sh cd to script dir");
 
 		var mac = PostBuild.runShContent("game.hl", true, true);
