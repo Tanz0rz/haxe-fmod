@@ -55,6 +55,9 @@ class TestUserData {
 		NativeStudioStub.testSyntheticHandles = false;
 		NativeStudioStub.testCallbackMaskResult = 68;
 		NativeStudioStub.testReleasedHandles = [];
+		NativeStudioStub.testReleaseResult = 68;
+		NativeStudioStub.testOwnedHandles = [];
+		NativeStudioStub.testPcmReleaseResult = 68;
 	}
 
 	static function testSetGetClearPerKind():Void {

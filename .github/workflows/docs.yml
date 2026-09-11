@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v2
+        uses: ./.github/actions/setup-haxe
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 

@@ -716,6 +716,15 @@ static void release_subsound_handles(FMOD_SOUND* parent) {
     }
 }
 
+/* Closes what the game left open on a sound this shim is about to
+ * release: the sample lock and the custom rolloff points FMOD reads.
+ * Runs on live sounds only, from the game thread. */
+static void hlaxe_owned_sound_teardown(void* ptr, int handle) {
+    FMOD_SOUND* sound = (FMOD_SOUND*)ptr;
+    sound_lock_close(handle, sound);
+    if (faxe_handle_get_aux(handle)) FMOD_Sound_Set3DCustomRolloff(sound, NULL, 0);
+}
+
 HL_PRIM int HL_NAME(core_release_sound)(int h) {
     FMOD_SOUND* sound = resolve_sound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
@@ -917,8 +926,10 @@ HL_PRIM int HL_NAME(core_pcm_release)(int h) {
      * its silence path instead of touching the ring. */
     FMOD_Sound_SetUserData(ps->sound, NULL);
     gLastResult = FMOD_Sound_Release(ps->sound);
-    if (gLastResult != FMOD_OK) {
-        /* The stream stays alive, so the ring goes back to its callback */
+    /* INVALID_HANDLE means FMOD freed the sound already, so the stream
+     * goes with the slot. Any other refusal keeps the stream alive, and
+     * the ring goes back to its callback. */
+    if (gLastResult != FMOD_OK && gLastResult != FMOD_ERR_INVALID_HANDLE) {
         FMOD_Sound_SetUserData(ps->sound, ps->ring);
         return (int)gLastResult;
     }
@@ -3694,8 +3705,11 @@ static void free_destroyed_ctx(FaxeInstCtx* ctx) {
     for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
         void* sound = ctx->psSounds[i];
         if (!sound) continue;
+        /* The sound and its subsounds are alive here, so a lock the
+         * game opened is closed and the rolloff detached before the release */
         if (ctx->psSoundHandles[i]) {
-            faxe_handles_free_children(ctx->psSoundHandles[i]);
+            faxe_handles_free_children(ctx->psSoundHandles[i], hlaxe_owned_sound_teardown);
+            hlaxe_owned_sound_teardown(sound, ctx->psSoundHandles[i]);
             faxe_handle_free(ctx->psSoundHandles[i]);
         }
         FMOD_Sound_Release((FMOD_SOUND*)sound);
@@ -3728,7 +3742,7 @@ static int hlaxe_mint_recorded(int instanceHandle, void* ptr, unsigned char type
     FaxeInstCtx* ctx;
     int recorded = 0;
     if (existing && faxe_handle_is_owned(existing)) {
-        faxe_handles_free_children(existing);
+        faxe_handles_free_children(existing, NULL);
         faxe_handle_free(existing);
         existing = 0;
     }
@@ -3758,7 +3772,7 @@ HL_PRIM bool HL_NAME(cb_next)() {
         int dropped[FAXE_CBQ_DROPPED_MAX];
         int n = faxe_cbq_take_dropped_handles(dropped, FAXE_CBQ_DROPPED_MAX);
         int i;
-        for (i = 0; i < n; i++) { faxe_handles_free_children(dropped[i]); faxe_handle_free(dropped[i]); }
+        for (i = 0; i < n; i++) { faxe_handles_free_children(dropped[i], NULL); faxe_handle_free(dropped[i]); }
     }
     if (faxe_cbq_pop(&gCbCurrent) != 1) {
         /* Drain end: dispose of contexts whose DESTROYED events were
@@ -3799,7 +3813,7 @@ HL_PRIM bool HL_NAME(cb_next)() {
         if (gCbCurrent.i3) {
             /* The subsound handles taken from the sound go with it */
             if (gCbCurrent.i1) {
-                faxe_handles_free_children(gCbCurrent.i1);
+                faxe_handles_free_children(gCbCurrent.i1, NULL);
                 faxe_handle_free(gCbCurrent.i1);
             }
         } else {

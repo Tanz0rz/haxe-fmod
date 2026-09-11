@@ -306,7 +306,7 @@ class NativeStudioStub {
         return 0;
     }
     public static var testLastPlayGroup:Int = -1;
-    /** The result the core releases below report, apart from the PCM stream's own hook. */
+    /** The result the object releases and the bank unload report. The PCM stream has its own hook. */
     public static var testReleaseResult:Int = ERR_UNSUPPORTED;
     /** Handles the stub reports as library-owned, whose release is refused. Tests fill it. */
     public static var testOwnedHandles:Array<Int> = [];

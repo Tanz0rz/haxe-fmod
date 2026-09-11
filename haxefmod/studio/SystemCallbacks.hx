@@ -44,7 +44,7 @@ class SystemCallbacks {
     /** Records in this namespace belong to the system callbacks. */
     public static inline var TYPE_NAMESPACE:Int = 0x20000000;
 
-    /** Set on the studio types so they cannot collide with the core types. */
+    /** Set on the studio types. The core types the decoder handles all sit below it. */
     public static inline var STUDIO_BIT:Int = 0x100;
 
     /** Core System callback mask bits (FMOD_SYSTEM_CALLBACK_*). */

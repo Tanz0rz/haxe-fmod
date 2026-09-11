@@ -44,7 +44,7 @@ jobs:
           token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v2
+        uses: ./.github/actions/setup-haxe
         with:
           # krdlab/setup-haxe only accepts exact versions (no "latest"), so
           # this pins the newest 4.3.x release. bump it manually as new Haxe
@@ -99,7 +99,7 @@ jobs:
           token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v2
+        uses: ./.github/actions/setup-haxe
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
@@ -260,7 +260,7 @@ jobs:
           token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v2
+        uses: ./.github/actions/setup-haxe
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 

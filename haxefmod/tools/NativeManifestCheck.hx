@@ -8,7 +8,8 @@ import haxe.io.Path;
  * Verifies that the three native shims stay in lockstep with the FFI manifest.
  *
  * The manifest (native/manifest/studio_api.txt) is the source of truth for the
- * native surface. This checker scans:
+ * native surface. Comments are blanked before every scan, so a definition
+ * or declaration inside one counts for nothing. This checker scans:
  *   native/faxe/linc_faxe.cpp   for fmod_<name>(...) definitions
  *   native/faxe/linc_faxe.h     for the extern declarations hxcpp links against
  *   native/hlaxe/hlaxe_fmod.c   for DEFINE_PRIM(<ret>, <name>, <args>) registrations
@@ -86,11 +87,25 @@ class NativeManifestCheck {
         return entries;
     }
 
+    /**
+     * Blanks every comment while keeping each line in place. The
+     * line-based scans then count no definition inside a comment, and
+     * the lines behind a block comment keep their numbers.
+     */
+    static function stripComments(text:String):String {
+        var blocks = ~/\/\*[\s\S]*?\*\//g;
+        var kept = blocks.map(text, function(re) {
+            var lines = re.matched(0).split("\n").length;
+            return [for (_ in 1...lines) "\n"].join("") + " ";
+        });
+        return [for (line in kept.split("\n")) ~/\/\/.*$/.replace(line, "")].join("\n");
+    }
+
     /** Matches single-line C++ definitions like: int fmod_bank_unload(int handle) { */
     static function scanCpp(path:String):Map<String, Int> {
         var found = new Map<String, Int>();
         var re = ~/^\s*[A-Za-z_][\w:&<>\* ]*\bfmod_(\w+)\s*\(([^)]*)\)\s*\{/;
-        for (line in File.getContent(path).split("\n")) {
+        for (line in stripComments(File.getContent(path)).split("\n")) {
             if (re.match(line)) {
                 found.set(re.matched(1), countCArgs(re.matched(2)));
             }
@@ -107,8 +122,7 @@ class NativeManifestCheck {
     static function scanCppHeader(path:String):Map<String, Int> {
         var found = new Map<String, Int>();
         var re = ~/extern\s+[A-Za-z_][\w:&<>\* ]*\bfmod_(\w+)\s*\(([^)]*)\)\s*;/;
-        var raw = ~/\/\*[\s\S]*?\*\//g.replace(File.getContent(path), " ");
-        var text = [for (line in raw.split("\n")) ~/\/\/.*$/.replace(line, "")].join(" ");
+        var text = stripComments(File.getContent(path)).split("\n").join(" ");
         while (re.match(text)) {
             found.set(re.matched(1), countCArgs(re.matched(2)));
             text = re.matchedRight();
@@ -120,7 +134,7 @@ class NativeManifestCheck {
     static function scanHl(path:String):Map<String, Int> {
         var found = new Map<String, Int>();
         var re = ~/DEFINE_PRIM\s*\(\s*_\w+\s*,\s*(\w+)\s*,\s*([^)]*)\)/;
-        for (line in File.getContent(path).split("\n")) {
+        for (line in stripComments(File.getContent(path)).split("\n")) {
             if (re.match(line)) {
                 var args = StringTools.trim(re.matched(2));
                 var arity = (args == "" || args == "_NO_ARG") ? 0 : splitTokens(args).length;
@@ -134,7 +148,7 @@ class NativeManifestCheck {
     static function scanJs(path:String):Map<String, Int> {
         var found = new Map<String, Int>();
         var re = ~/static\s+fmod_(\w+)\s*\(([^)]*)\)/;
-        for (line in File.getContent(path).split("\n")) {
+        for (line in stripComments(File.getContent(path)).split("\n")) {
             if (re.match(line)) {
                 found.set(re.matched(1), countCArgs(re.matched(2)));
             }
@@ -202,7 +216,7 @@ class NativeManifestCheck {
                 errors.push('abi: file not found: ${check.path}');
                 continue;
             }
-            var content = File.getContent(check.path);
+            var content = stripComments(File.getContent(check.path));
             if (!check.pattern.match(content)) {
                 errors.push('abi: ${check.label} declares no version');
             } else if (Std.parseInt(check.pattern.matched(1)) != expected) {

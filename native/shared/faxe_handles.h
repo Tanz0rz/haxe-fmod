@@ -274,15 +274,19 @@ static void faxe_handle_set_parent(int handle, int parent) {
 }
 
 /* Frees every live slot linked to the parent handle, and the slots
- * linked to those in turn. The parent's own slot is left to the caller. */
-static void faxe_handles_free_children(int parent) {
+ * linked to those in turn. The parent's own slot is left to the caller.
+ * before_free, when given, runs on each child while it still resolves,
+ * so a caller whose objects are alive can close a lock first. */
+static void faxe_handles_free_children(int parent, FaxeSlotHook before_free) {
     int i;
     if (parent <= 0) return;
     for (i = 0; i < gFaxeSlotCap; i++) {
         FaxeSlot* s = &gFaxeSlots[i];
         if (s->alive && s->parent == parent) {
             int child = ((int)s->gen << 16) | i;
-            faxe_handles_free_children(child);
+            if (child == parent) continue; /* a slot never parents itself */
+            faxe_handles_free_children(child, before_free);
+            if (before_free) before_free(s->ptr, child);
             faxe_handle_free(child);
         }
     }

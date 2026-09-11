@@ -1,0 +1,33 @@
+name: Setup Haxe
+description: Installs Haxe through krdlab/setup-haxe, and once more after a failed download
+
+# The Haxe release download comes from GitHub releases, which answers
+# with a server error now and then. One failed attempt costs the whole
+# job otherwise, so a second attempt runs after a pause.
+inputs:
+  haxe-version:
+    description: The exact Haxe version to install
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install Haxe
+      id: first
+      continue-on-error: true
+      uses: krdlab/setup-haxe@v2
+      with:
+        haxe-version: ${{ inputs.haxe-version }}
+
+    - name: Pause before the second attempt
+      if: steps.first.outcome == 'failure'
+      shell: bash
+      run: |
+        echo "::notice ::the Haxe download failed once, trying again in thirty seconds"
+        sleep 30
+
+    - name: Install Haxe (second attempt)
+      if: steps.first.outcome == 'failure'
+      uses: krdlab/setup-haxe@v2
+      with:
+        haxe-version: ${{ inputs.haxe-version }}

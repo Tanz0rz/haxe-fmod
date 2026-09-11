@@ -32,6 +32,10 @@ leans on:
   11. Every other workflow that repeats HASHLINK_COMMIT or HAXELIB_PINS
      carries the same value, and every other workflow's pinned installs
      are in the pins, with or without the variable.
+  12. Every manifest ABI parse in the workflow is the same line, and a
+     guard that refuses a non-number follows each one.
+  13. Every Haxe install in every workflow goes through the local
+     setup-haxe action, which retries a failed download.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -186,6 +190,30 @@ for other in sorted(os.listdir(os.path.dirname(PATH))):
         fail(f"{other} installs out of step with HAXELIB_PINS: missing {other_missing}, keys {other_keys}, pins declared {bool(other_pins)}")
     elif other_installs:
         ok(f"{other} installs {len(other_installs)} pinned versions the pins name")
+
+# 12. The six ABI parses of the manifest header are one line each, and a
+# numeric guard follows each. None of them can fail open again.
+abi_lines = re.findall(r"\n( *)(ABI=\$\([^\n]*)\n( *[^\n]*)", text)
+abi_parse = 'ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1)'
+abi_bad = [l for _, l, _ in abi_lines if l != abi_parse]
+abi_unguarded = [l for _, l, nxt in abi_lines if not nxt.strip().startswith('case "$ABI" in \'\'|*[!0-9]*)')]
+if not abi_lines or abi_bad or abi_unguarded:
+    fail(f"ABI parses out of step: {len(abi_lines)} found, differing {abi_bad}, unguarded {abi_unguarded}")
+else:
+    ok(f"{len(abi_lines)} ABI parses match and carry the numeric guard")
+
+# 13. Every Haxe install goes through the local action with the retry
+direct = []
+for wf in sorted(os.listdir(os.path.dirname(PATH))):
+    if not wf.endswith(".yml"):
+        continue
+    with open(os.path.join(os.path.dirname(PATH), wf)) as fh:
+        if re.search(r"uses: krdlab/setup-haxe", fh.read()):
+            direct.append(wf)
+if direct:
+    fail(f"a workflow installs Haxe without the retrying action: {direct}")
+else:
+    ok("every Haxe install goes through .github/actions/setup-haxe")
 
 # 8. Every portability loop over the shared header tests names the same
 # tests, so a header added to one compiler pass reaches the others

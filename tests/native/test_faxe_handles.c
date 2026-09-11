@@ -25,9 +25,11 @@ static int sweep_reject_one(void* ptr, unsigned char type) {
 
 static void* gHookPtr = NULL;
 static int gHookHandle = 0;
+static int gHookCalls = 0;
 static void sweep_note_free(void* ptr, int handle) {
     gHookPtr = ptr;
     gHookHandle = handle;
+    gHookCalls++;
 }
 
 static int sweep_all_dead(void* ptr, unsigned char type) {
@@ -222,12 +224,24 @@ int main(void) {
         faxe_handle_set_parent(childB, parent);
         int grandchild = faxe_handle_alloc(&dummy2, FAXE_TYPE_SOUND);
         faxe_handle_set_parent(grandchild, childA);
-        faxe_handles_free_children(0); /* no parent frees nothing */
+        faxe_handles_free_children(0, NULL); /* no parent frees nothing */
         assert(faxe_live_handle_count() == 5);
-        faxe_handles_free_children(parent); /* the walk reaches the grandchild */
+        gHookCalls = 0;
+        gHookPtr = NULL;
+        faxe_handles_free_children(parent, sweep_note_free); /* the walk reaches the grandchild */
         assert(faxe_handle_resolve(childA, FAXE_TYPE_SOUND) == NULL);
         assert(faxe_handle_resolve(childB, FAXE_TYPE_SOUND) == NULL);
         assert(faxe_handle_resolve(grandchild, FAXE_TYPE_SOUND) == NULL);
+        /* the hook saw each of the three while it still resolved */
+        assert(gHookCalls == 3 && gHookPtr != NULL);
+        /* a slot that names itself as parent is skipped rather than looped */
+        {
+            int loop = faxe_handle_alloc(&dummy2, FAXE_TYPE_SOUND);
+            faxe_handle_set_parent(loop, loop);
+            faxe_handles_free_children(loop, NULL);
+            assert(faxe_handle_resolve(loop, FAXE_TYPE_SOUND) == &dummy2);
+            faxe_handle_free(loop);
+        }
         assert(faxe_handle_resolve(parent, FAXE_TYPE_SOUND) == &dummy1);
         assert(faxe_handle_resolve(other, FAXE_TYPE_DSP) == &dummy1);
         assert(gFaxeSlots[idx].parent == 0); /* the link goes with the slot */

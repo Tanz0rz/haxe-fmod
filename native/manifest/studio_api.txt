@@ -945,8 +945,8 @@ sys_get_dsp_buffer_size ibuf -> i32
 sys_get_stream_buffer_size ibuf -> i32
 
 ## Sample data locks and the disk busy flag
-# core_sound_lock copies both halves of the locked range (FMOD hands back
-# two pointers because the range can wrap) into bytes and keeps the lock
+# core_sound_lock copies both halves of the locked range into bytes, since
+# FMOD hands back two pointers where the range wraps. The lock stays
 # open on the handle. Returns the locked byte count or the negated FMOD
 # error. core_sound_unlock copies bytes back over the range and closes it.
 # A second lock, an unlock with no lock open, or a length that differs

@@ -159,7 +159,7 @@ abstract PcmStream(Int) from Int to Int {
     /** Stops playback, frees the stream, and invalidates this handle. A refused release leaves the stream as it was. */
     public function release():FmodResult {
         var result:FmodResult = NativeStudio.core_pcm_release(this);
-        if (result.isOk()) {
+        if (UserData.releaseTookEffect(result)) {
             clearReadCallback();
             UserData.clear(UserDataKind.PcmStream, this);
         }

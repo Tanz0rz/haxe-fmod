@@ -112,8 +112,8 @@ class jaxe {
                 // FMOD can hand a recycled address to a new object after an
                 // unload. A match on a dead cached wrapper must not alias it.
                 if (!jaxe.lookupSlotUsable(s)) {
-                    // A dead instance takes its cached group handle along
-                    if (s.type == jaxe.TYPE_EVI) jaxe.freeInstanceGroup((s.gen << 16) | i);
+                    // A dead instance takes its per-handle state along
+                    if (s.type == jaxe.TYPE_EVI) jaxe.forgetInstance((s.gen << 16) | i);
                     jaxe.handleFree((s.gen << 16) | i);
                     continue;
                 }
@@ -201,6 +201,16 @@ class jaxe {
     // native shims, and sweeps instance slots on top of that. The native
     // shims reclaim those when the DESTROYED event drains, which this
     // target never receives.
+    // Drops what a dead instance handle still owns on this side: the
+    // cached group handle and the per-handle callback state. Both dead
+    // slot sweeps call it, so the two cannot drift apart.
+    static forgetInstance(handle) {
+        jaxe.freeInstanceGroup(handle);
+        delete jaxe.cbMasks[handle];
+        delete jaxe.psKeys[handle];
+        delete jaxe.pluginSeen[handle];
+    }
+
     static sweepDeadLookups() {
         if (jaxe.gSystem) jaxe.gSystem.flushCommands();
         for (var i = 0; i < jaxe.slots.length; i++) {
@@ -212,14 +222,7 @@ class jaxe {
             // fetch lands. It is not a wrapper and stays.
             if (s.type == jaxe.TYPE_BANK && s.ptr && s.ptr.pendingBankPath !== undefined) continue;
             if (jaxe.lookupSlotUsable(s)) continue;
-            if (s.type == jaxe.TYPE_EVI) {
-                var dead = (s.gen << 16) | i;
-                jaxe.freeInstanceGroup(dead);
-                // The per-handle callback state ends with the instance
-                delete jaxe.cbMasks[dead];
-                delete jaxe.psKeys[dead];
-                delete jaxe.pluginSeen[dead];
-            }
+            if (s.type == jaxe.TYPE_EVI) jaxe.forgetInstance((s.gen << 16) | i);
             jaxe.handleFree((s.gen << 16) | i);
         }
     }
@@ -265,6 +268,7 @@ class jaxe {
             var s = jaxe.slots[i];
             if (s.alive && s.parent == parent) {
                 var child = (s.gen << 16) | i;
+                if (child == parent) continue; // a slot never parents itself
                 jaxe.freeChildren(child);
                 jaxe.handleFree(child);
             }
@@ -2829,7 +2833,9 @@ class jaxe {
         var ps = jaxe.handleResolve(handle, jaxe.TYPE_PCM);
         if (!ps) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = ps.sound.release();
-        if (jaxe.lastResult != jaxe.FMOD.OK) return jaxe.lastResult;
+        // INVALID_HANDLE means FMOD freed the sound already, so the
+        // stream goes with the slot. Any other refusal keeps it alive.
+        if (jaxe.lastResult != jaxe.FMOD.OK && jaxe.lastResult != jaxe.ERR_INVALID_HANDLE) return jaxe.lastResult;
         ps.ring = null;
         // The slot holds a composite, so handleFree cannot delete the
         // sound wrapper inside it
