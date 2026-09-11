@@ -22,8 +22,13 @@ class ProbeCsharpAudit {
         // Desktop reports FMOD_ERR_UNSUPPORTED on the setter and NONE on
         // the getter, which is the shape the binding carries through
         var master = StudioSystem.getBus(FmodBuses.Root);
-        @:privateAccess state.check("audit_bus_port_index_none", master.getPortIndex() == FmodPortIndex.NONE,
-            'index=${(master.getPortIndex() : Int)} result=${StudioSystem.lastResult().toString()}');
+        // A console answers OK, a desktop answers unsupported. A dead
+        // handle would answer invalid handle with the same index.
+        var portIndex:Int = master.getPortIndex();
+        var portResult = StudioSystem.lastResult();
+        @:privateAccess state.check("audit_bus_port_index_none", portIndex == (FmodPortIndex.NONE : Int)
+            && (portResult.isOk() || portResult == FmodResult.FMOD_ERR_UNSUPPORTED),
+            'index=$portIndex result=${portResult.toString()}');
         var setPort:FmodResult = master.setPortIndex(3);
         @:privateAccess state.check("audit_bus_set_port_index", setPort.isOk() || setPort == FmodResult.FMOD_ERR_UNSUPPORTED,
             'result=${setPort.toString()}');
@@ -88,8 +93,8 @@ class ProbeCsharpAudit {
             && music.getUserPropertyByIndex(99) == null, "");
 
         // Parameter batch by ID on an instance, read back by name
-        if (count > 0) {
-            var p = music.getParameterDescriptionByIndex(0);
+        var p = count > 0 ? music.getParameterDescriptionByIndex(0) : null;
+        if (p != null) {
             var instance = music.createInstance();
             var batch:FmodResult = instance.setParametersByIDs([p.id], [p.maximum]);
             @:privateAccess state.check("audit_evi_set_parameters_by_ids", batch.isOk(), 'result=${batch.toString()}');

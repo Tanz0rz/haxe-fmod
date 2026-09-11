@@ -147,12 +147,15 @@ async function main() {
     const pluginHandle = jaxe.fmod_cb_int(0);
     check('plugin_created_handle_resolves', jaxe.rawPtr(jaxe.handleResolve(pluginHandle, jaxe.TYPE_DSP)) === dspRaw
         && jaxe.fmod_debug_live_handle_count() === handlesBefore + 1, '');
+    // FMOD owns a plugin DSP and destroys it before the destroyed
+    // callback. The harness made this one itself, so it releases the
+    // DSP first: freeing the slot deletes the wrapper the slot holds.
+    dspOut.val.release();
     jaxe.callbackHandler(0x400, fakeEvent, { name: 'fmod_gain', dsp: dspOut.val });
     check('plugin_destroyed_drained', jaxe.fmod_cb_next() && jaxe.fmod_cb_type() === 0x400
         && jaxe.fmod_cb_int(0) === pluginHandle && jaxe.fmod_cb_string() === 'fmod_gain', '');
     check('plugin_destroyed_slot_freed', jaxe.handleResolve(pluginHandle, jaxe.TYPE_DSP) === null
         && jaxe.fmod_debug_live_handle_count() === handlesBefore, '');
-    dspOut.val.release();
     const nestedGuid = { Data1: 0x0225c47b, Data2: 0xe69f, Data3: 0x4785, Data4: [0xb8, 0x9c, 0xfd, 0x32, 0x13, 0x87, 0x93, 0x4a] };
     jaxe.callbackHandler(0x40000, fakeEvent, { bar: 1, beat: 2, position: 500, tempo: 120, timesignatureupper: 4, timesignaturelower: 4, eventid: nestedGuid });
     check('nested_beat_event_id', jaxe.fmod_cb_next() && jaxe.fmod_cb_type() === 0x40000

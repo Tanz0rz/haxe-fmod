@@ -131,7 +131,8 @@ class ProbeDspData {
             input == null ? 'null result=${StudioSystem.lastResult().toString()}'
             : 'channels=${input.numChannels} samples=${input.numSamples} peak=${input.peakLevel[0]}');
         var inputAgain = fft.getMetering(true);
-        @:privateAccess state.check("dsp_get_metering_input_flag", inputAgain != null && inputAgain.numChannels == input.numChannels, "");
+        @:privateAccess state.check("dsp_get_metering_input_flag", inputAgain != null && input != null
+            && inputAgain.numChannels == input.numChannels, "");
 
         // The FFT fills after the mixer has run a block through it. A
         // loaded runner can reach this line first, so poll (bounded) until

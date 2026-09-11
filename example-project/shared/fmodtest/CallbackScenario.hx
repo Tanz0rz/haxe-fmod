@@ -42,6 +42,9 @@ class CallbackScenario implements TestScenario {
     static inline var OVERFLOW_INSTANCES:Int = 100;
     // ~5 seconds at 60fps for the overflow flag to trip
     static inline var OVERFLOW_WAIT_FRAMES:Int = 300;
+    // The song plays three seconds, then stops with its fade
+    static inline var SONG_WAIT_FRAMES:Int = 900;
+    var _songFrames:Int = 0;
     // ~10 seconds at 60fps for the recovery Stopped to arrive
     static inline var RECOVERY_WAIT_FRAMES:Int = 600;
 
@@ -128,6 +131,14 @@ class CallbackScenario implements TestScenario {
         // Drain the callback queue - typed callbacks are only delivered
         // from FmodManager.Update(), the same way games consume them
         FmodManager.Update();
+        // A missing Stopped delivery fails the check instead of holding
+        // the job until its wall clock
+        _songFrames++;
+        if (!_stoppedReceived && _songFrames > SONG_WAIT_FRAMES) {
+            check("song_stopped_delivered", false, 'frames=$_songFrames stopRequested=$_stopRequested');
+            startNestedPhase();
+            return;
+        }
 
         // Let the song play for 3 seconds of audio time, then soft-stop it
         if (!_stopRequested && FmodManager.GetSongTimelinePosition() >= 3000) {

@@ -251,7 +251,9 @@ class PanTestScenario implements TestScenario {
                 }
             case "oneshot_plays_out":
                 if (cullState() == FmodPlaybackState.STOPPED || timedOut) {
-                    check("cull_oneshot_played_out", !timedOut, 'frames=$_phaseFrames');
+                    // A cull stop lands within a few frames. A natural end
+                    // comes after the jump sound played out.
+                    check("cull_oneshot_played_out", !timedOut && _phaseFrames > 10, 'frames=$_phaseFrames');
                     // Re-entering range must not replay a finished one-shot
                     _cullSprite.x = _listenerSprite.x;
                     _cullSprite.y = _listenerSprite.y;

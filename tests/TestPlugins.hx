@@ -9,7 +9,7 @@ import haxefmod.studio.native.NativeStudio;
 /**
  * The plugin surface against the stub backend. Every wrapper routes to
  * its binding. The stub reports UNSUPPORTED or the failure value of the
- * binding's shape. Null paths never reach the shim.
+ * binding's shape. Null paths reach the shim as empty strings.
  */
 class TestPlugins {
 	static var passed = 0;
@@ -33,10 +33,13 @@ class TestPlugins {
 		assert(NativeStudio.dsp_get_info_by_plugin(1) == "", "dsp_get_info_by_plugin stub empty");
 
 		assert(StudioSystem.setPluginPath("plugins") == FmodResult.FMOD_ERR_UNSUPPORTED, "setPluginPath routes");
-		assert(StudioSystem.setPluginPath(null) == FmodResult.FMOD_ERR_UNSUPPORTED, "setPluginPath null path is safe");
-		assert(StudioSystem.loadPlugin("gain.so") == 0, "loadPlugin default priority");
-		assert(StudioSystem.loadPlugin("gain.so", 5) == 0, "loadPlugin with priority");
-		assert(StudioSystem.loadPlugin(null) == 0, "loadPlugin null path is safe");
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		assert(StudioSystem.setPluginPath(null) == FmodResult.FMOD_ERR_UNSUPPORTED && stub.testLastPluginPath == "",
+			"setPluginPath null path reaches the shim as empty");
+		assert(StudioSystem.loadPlugin("gain.so") == 0 && stub.testLastPluginPath == "gain.so" && stub.testLastPluginPriority == 0,
+			"loadPlugin default priority");
+		assert(StudioSystem.loadPlugin("gain.so", 5) == 0 && stub.testLastPluginPriority == 5, "loadPlugin with priority");
+		assert(StudioSystem.loadPlugin(null) == 0 && stub.testLastPluginPath == "", "loadPlugin null path reaches the shim as empty");
 		assert(StudioSystem.unloadPlugin(1) == FmodResult.FMOD_ERR_UNSUPPORTED, "unloadPlugin routes");
 		assert(StudioSystem.getPluginCount(FmodPluginType.DSP) == -1, "getPluginCount default");
 		assert(StudioSystem.getPluginHandle(FmodPluginType.DSP, 0) == 0, "getPluginHandle default");

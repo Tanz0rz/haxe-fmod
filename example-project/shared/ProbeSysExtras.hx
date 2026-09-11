@@ -57,7 +57,8 @@ class ProbeSysExtras {
         @:privateAccess state.check("replay_get_command_count_stale", replay.getCommandCount() == -1
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
         @:privateAccess state.check("replay_seek_to_command_stale", replay.seekToCommand(0) == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
-        @:privateAccess state.check("replay_get_playback_state_stale", replay.getPlaybackState() == FmodPlaybackState.STOPPED, "");
+        @:privateAccess state.check("replay_get_playback_state_stale", replay.getPlaybackState() == FmodPlaybackState.STOPPED
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, 'result=${StudioSystem.lastResult().toString()}');
 
         // The DSP lock around a pair of graph edits
         var lowpass = Dsp.create(DspType.LOWPASS_SIMPLE);

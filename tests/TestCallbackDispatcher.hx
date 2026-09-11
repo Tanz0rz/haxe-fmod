@@ -313,8 +313,13 @@ class TestCallbackDispatcher {
 			&& SC.TYPE_POSTUPDATE != SC.TYPE_DEVICELOST);
 		// A throwing handler is contained
 		haxefmod.studio.StudioSystem.setSystemCallback(function(e) throw "boom");
-		CallbackDispatcher.deliver(0, SC.TYPE_PREUPDATE, 0, 0, 0, 0, 0, 0.0, "");
-		assert("system handler fault contained", true);
+		var systemThrew = false;
+		try {
+			CallbackDispatcher.deliver(0, SC.TYPE_PREUPDATE, 0, 0, 0, 0, 0, 0.0, "");
+		} catch (e:Dynamic) {
+			systemThrew = true;
+		}
+		assert("system handler fault contained", !systemThrew);
 		// The helper class clear removes the system handler as well
 		var after = 0;
 		haxefmod.studio.StudioSystem.setSystemCallback(function(e) after++);

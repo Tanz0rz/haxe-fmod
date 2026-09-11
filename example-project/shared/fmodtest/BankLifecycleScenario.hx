@@ -150,14 +150,15 @@ class BankLifecycleScenario implements TestScenario {
         // the engine's bank loader surfaces both outcomes through callbacks.
         _errBaseline = StudioSystem.liveHandleCount();
         _asyncMissing = FmodRuntime.banks.loadAsync(MISSING_PATH);
+        // Read before the next loads overwrite it
+        var missingResult = StudioSystem.lastResult();
         var concurrentA = FmodRuntime.banks.loadAsync(ALSO_MISSING_PATH);
         var concurrentB = FmodRuntime.banks.loadAsync(ALSO_MISSING_PATH);
         _asyncConcurrent = concurrentA;
         if (_asyncMissing.isNull()) {
             // Some backends reject the missing file synchronously: that is
             // an acceptable error surface too, with nothing left behind
-            check("missing_bank_fails_fast", !StudioSystem.lastResult().isOk(),
-                'result=${StudioSystem.lastResult().toString()}');
+            check("missing_bank_fails_fast", !missingResult.isOk(), 'result=${missingResult.toString()}');
         }
         check("async_concurrent_shared",
             _asyncConcurrent.isNull() || (concurrentA : Int) == (concurrentB : Int),

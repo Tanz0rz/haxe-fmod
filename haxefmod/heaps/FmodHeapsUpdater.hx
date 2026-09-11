@@ -76,7 +76,14 @@ class FmodHeapsUpdater {
     #if js
     static function browserFrame(_:Float):Void {
         inFrame = true;
-        frame();
+        try {
+            frame();
+        } catch (e:Dynamic) {
+            // A throwing ticker must not leave the frame flag set, or
+            // no later init could arm the loop again
+            inFrame = false;
+            throw e;
+        }
         inFrame = false;
         // A removeHook from inside frame() cancels a request that is
         // already being serviced, so the loop ends here instead. An init

@@ -311,9 +311,11 @@ class FmodManager {
         // frame is not visible in the state yet, so the stop list
         // remembers it.
         var instances = description.getInstanceList();
+        // The queued stop is consumed either way: an instance that
+        // already died with its fade leaves nothing to restart
+        var stopQueued = snapshotStopsQueued.exists(snapshotPath);
+        snapshotStopsQueued.remove(snapshotPath);
         if (instances.length > 0) {
-            var stopQueued = snapshotStopsQueued.exists(snapshotPath);
-            snapshotStopsQueued.remove(snapshotPath);
             for (existing in instances) {
                 if (stopQueued || existing.getPlaybackState() == FmodPlaybackState.STOPPING) existing.start();
             }
@@ -348,6 +350,7 @@ class FmodManager {
     /** Removes a snapshot immediately, without its authored fade. */
     public static function StopSnapshotImmediately(snapshotPath:String):Void {
         ensureInitialized();
+        snapshotStopsQueued.remove(snapshotPath);
         var description = StudioSystem.getEvent(snapshotPath);
         if (description.isNull()) return;
         // FMOD's own stop-and-release of every instance. On HTML5 this is
@@ -400,7 +403,9 @@ class FmodManager {
         // A direct play supersedes any pending transition.
         NextSong = null;
 
-        if (songPath == CurrentSong && !songInstance.isNull()) {
+        // A song whose instance died with its bank is played afresh, so
+        // the stale handle does not wedge the slot
+        if (songPath == CurrentSong && !songInstance.isNull() && songInstance.isValid()) {
             if (needsRestart(songInstance)) {
                 songInstance.start();
             }
@@ -438,7 +443,7 @@ class FmodManager {
         // transition's fade is still armed.
         NextSong = null;
 
-        if (songPath == CurrentSong && !songInstance.isNull()) {
+        if (songPath == CurrentSong && !songInstance.isNull() && songInstance.isValid()) {
             if (needsRestart(songInstance)) {
                 songInstance.start();
             }

@@ -112,9 +112,10 @@ class ProbeStudioParity {
         var jumpDesc = StudioSystem.getEvent(FmodEvents.SFXJump);
         var surface = jumpDesc.getParameterDescriptionByName("Surface");
         var surfaceIndexed = jumpDesc.getParameterDescriptionCount() > 0 ? jumpDesc.getParameterDescriptionByIndex(0) : null;
+        var surfaceById = surface == null ? null : jumpDesc.getParameterDescriptionByID(surface.id);
         @:privateAccess state.check("parity_event_param_guid", surface != null && (surface.guid : String).length == 38
             && surfaceIndexed != null && (surfaceIndexed.guid : String).length == 38
-            && jumpDesc.getParameterDescriptionByID(surface.id).guid == surface.guid,
+            && surfaceById != null && surfaceById.guid == surface.guid,
             'guid=${surface == null ? "null" : surface.guid}');
 
         // Sound info for an audio table key: the sample sits inside the bank

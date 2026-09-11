@@ -7066,10 +7066,15 @@ HL_PRIM vbyte* HL_NAME(sys_get_dsp_info_by_type)(int type, vbyte* out) {
     const FMOD_DSP_DESCRIPTION* desc = NULL;
     int* outInts = (int*)out;
     size_t i;
+    FMOD_DSP_TYPE dspType;
     gStringBuf[0] = '\0';
     for (i = 0; i < 4; i++) outInts[i] = 0;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
-    gLastResult = FMOD_System_GetDSPInfoByType(gCoreSystem, (FMOD_DSP_TYPE)type, &desc);
+    /* Symbolic translation, the same as dsp_create_by_type: FMOD
+     * renumbers this enum between releases */
+    dspType = faxe_dsp_type_from_binding(type);
+    if (dspType == FAXE_DSP_TYPE_UNSUPPORTED) { gLastResult = FMOD_ERR_INVALID_PARAM; return (vbyte*)gStringBuf; }
+    gLastResult = FMOD_System_GetDSPInfoByType(gCoreSystem, dspType, &desc);
     if (gLastResult == FMOD_OK && !desc) gLastResult = FMOD_ERR_INVALID_PARAM;
     if (gLastResult != FMOD_OK) return (vbyte*)gStringBuf;
     /* The description name is a fixed 32 byte field with no terminator guarantee */

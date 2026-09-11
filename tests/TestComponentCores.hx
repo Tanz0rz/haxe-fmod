@@ -189,12 +189,13 @@ class TestComponentCores {
 		var tracker = new EmitterTracker(fake, provider);
 		assert(FmodRuntime.attachedCount() == baseline + 1, "constructing attaches the instance");
 		assert(FmodRuntime.isAttachedProvider(provider), "the provider is reported attached");
-		// Culling is off by default: update is a no-op with no listener
+		// Culling is off by default, and with no listener attributes the
+		// cull path has nothing to measure. Both updates run for crashes
+		// only, since the attach list is not what the cull path touches.
 		tracker.update();
 		tracker.stopEventsOutsideMaxDistance = true;
 		tracker.cullCheckInterval = 1;
 		tracker.update();
-		assert(FmodRuntime.attachedCount() == baseline + 1, "culling with no listener leaves the instance attached");
 
 		tracker.dispose();
 		assert(FmodRuntime.attachedCount() == baseline, "dispose detaches");

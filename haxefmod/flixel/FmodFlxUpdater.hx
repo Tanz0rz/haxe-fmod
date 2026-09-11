@@ -13,25 +13,30 @@ import flixel.FlxG;
     so it pushes the positions of the frame before.
 **/
 class FmodFlxUpdater {
-    static var handler:Void->Void = () -> FmodManager.Update();
+    // A fresh closure per install. Flixel defers a removal that runs
+    // inside the postUpdate dispatch to the end of that dispatch. add()
+    // would then find the old closure still present and keep it. An
+    // init after a removeHook in the same dispatch therefore registers
+    // a distinct closure, which survives the deferred removal.
+    static var handler:Void->Void = null;
 
     /** Hooks the update once. Safe to call again, and from inside a callback. **/
     public static function init():Void {
+        if (handler == null) handler = () -> FmodManager.Update();
         // add() keeps a single hook: a listener already registered is
-        // returned as is. A remove first would drop the hook when init
-        // runs inside the postUpdate dispatch. Flixel defers that removal
-        // to the end of the dispatch, and add() sees the listener still
-        // present until then.
+        // returned as is
         FlxG.signals.postUpdate.add(handler);
     }
 
     /** True while the per-frame hook is installed. **/
     public static function isInstalled():Bool {
-        return FlxG.signals.postUpdate.has(handler);
+        return handler != null && FlxG.signals.postUpdate.has(handler);
     }
 
     /** Removes the hook. FmodManager.Update() then runs only when the game calls it. **/
     public static function removeHook():Void {
+        if (handler == null) return;
         FlxG.signals.postUpdate.remove(handler);
+        handler = null;
     }
 }

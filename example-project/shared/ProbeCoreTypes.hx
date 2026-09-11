@@ -51,15 +51,21 @@ class ProbeCoreTypes {
         @:privateAccess state.check("types_syncpoint_add_indices", a.index() == 0 && b.index() == 0 && c.index() == 1,
             'a=${a.index()} b=${b.index()} c=${c.index()}');
         @:privateAccess state.check("types_syncpoint_count", sound.getNumSyncPoints() == 3 && sound.getSyncPointCount() == 3, 'count=${sound.getNumSyncPoints()}');
-        var names = [for (i in 0...3) sound.getSyncPointInfo(sound.getSyncPoint(i)).name];
+        // A missing point reads as null, which the count check above reports
+        var names = [for (i in 0...3) {
+            var info = sound.getSyncPointInfo(sound.getSyncPoint(i));
+            info == null ? "null" : info.name;
+        }];
         @:privateAccess state.check("types_syncpoint_sorted_names", names.join(",") == "b,c,a", 'names=${names.join(",")}');
         var second = sound.getSyncPointInfo(sound.getSyncPoint(1), FmodTimeUnit.PCM);
         @:privateAccess state.check("types_syncpoint_info_unit", second != null && second.offset == 960 && second.name == "c",
             second == null ? "null" : 'offset=${second.offset}');
         @:privateAccess state.check("types_syncpoint_out_of_range", sound.getSyncPoint(3).isNull() && sound.getSyncPointInfo(FmodSyncPoint.NULL) == null
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM, 'result=${StudioSystem.lastResult().toString()}');
-        @:privateAccess state.check("types_syncpoint_delete", sound.deleteSyncPoint(sound.getSyncPoint(0)).isOk() && sound.getNumSyncPoints() == 2
-            && sound.getSyncPointInfo(sound.getSyncPoint(0)).name == "c", 'count=${sound.getNumSyncPoints()}');
+        var deleted:FmodResult = sound.deleteSyncPoint(sound.getSyncPoint(0));
+        var firstAfter = sound.getSyncPointInfo(sound.getSyncPoint(0));
+        @:privateAccess state.check("types_syncpoint_delete", deleted.isOk() && sound.getNumSyncPoints() == 2
+            && firstAfter != null && firstAfter.name == "c", 'count=${sound.getNumSyncPoints()}');
         @:privateAccess state.check("types_syncpoint_delete_stale", !sound.deleteSyncPoint(5).isOk(), "");
 
         // Loop points with a unit per end

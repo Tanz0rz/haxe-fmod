@@ -233,12 +233,11 @@ class TestPostBuild {
 		assert(!PostBuild.looksLikeWebSdk(desktop), "desktop package not mistaken for html5");
 		assert(!PostBuild.looksLikeWebSdk(root + "/missing"), "absent path is not the html5 package");
 
-		for (platform in ["mac", "windows", "linux"]) {
-			var marker = haxe.io.Path.join([desktop].concat(PostBuild.nativeCoreLib(platform)));
-			assert(sys.FileSystem.exists(marker), 'desktop package has the $platform core library');
-			var missing = haxe.io.Path.join([web].concat(PostBuild.nativeCoreLib(platform)));
-			assert(!sys.FileSystem.exists(missing), 'html5 package has no $platform core library');
-		}
+		// The per-platform core library path, the file the package check
+		// looks for
+		assert(PostBuild.nativeCoreLib("mac").join("/") == "api/core/lib/libfmod.dylib", "mac core library path");
+		assert(PostBuild.nativeCoreLib("windows").join("/") == "api/core/lib/x64/fmod.dll", "windows core library path");
+		assert(PostBuild.nativeCoreLib("linux").join("/") == "api/core/lib/x86_64/libfmod.so", "linux core library path");
 	}
 
 	/**

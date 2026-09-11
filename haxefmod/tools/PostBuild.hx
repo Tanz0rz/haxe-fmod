@@ -517,13 +517,9 @@ class PostBuild {
 		// A HashLink VM build (Heaps, plain haxe -hl) has no executable of
 		// its own. The launcher runs the bytecode through hl with the
 		// library path set, since the hl binary carries no rpath to here.
-		if (standalone && target == "hl" && !FileSystem.exists(Path.join([dest, "run.sh"]))) {
+		if (standalone && target == "hl") {
 			var bytecode = findBytecodeName(dest);
-			if (bytecode != null) {
-				var runSh = Path.join([dest, "run.sh"]);
-				File.saveContent(runSh, runShContent(bytecode, true, true));
-				Sys.command("chmod", ["+x", runSh]);
-			}
+			if (bytecode != null) writeLauncher(Path.join([dest, "run.sh"]), runShContent(bytecode, true, true), true);
 		}
 
 		log("Done - copied libfmod.dylib and libfmodstudio.dylib");
@@ -549,26 +545,21 @@ class PostBuild {
 		// plain lime test linux works with no extra tooling installed.
 		clearExecstack(binDir);
 
-		// Create run.sh wrapper if it does not exist.
+		// The run.sh wrapper. It is rewritten when its content changed,
+		// so a fix to the script reaches an existing build directory.
 		var runSh = Path.join([binDir, "run.sh"]);
-		if (!FileSystem.exists(runSh)) {
-			// .dat excluded: HL builds ship hlboot.dat next to the exe and
-			// run.sh must never point at it. .hl excluded for the same
-			// reason, a VM build's bytecode is launched through hl below.
-			var exeName = findExecutableName(binDir, [".so", ".hdll", ".ndll", ".dat", ".hl"]);
-			if (exeName != null) {
-				File.saveContent(runSh, runShContent(exeName));
-				Sys.command("chmod", ["+x", runSh]);
-			} else if (standalone && target == "hl") {
-				// A HashLink VM build (Heaps, plain haxe -hl) has no
-				// executable of its own. The launcher runs the bytecode
-				// through hl with the library path set.
-				var bytecode = findBytecodeName(binDir);
-				if (bytecode != null) {
-					File.saveContent(runSh, runShContent(bytecode, true));
-					Sys.command("chmod", ["+x", runSh]);
-				}
-			}
+		// .dat excluded: HL builds ship hlboot.dat next to the exe and
+		// run.sh must never point at it. .hl excluded for the same
+		// reason, a VM build's bytecode is launched through hl below.
+		var exeName = findExecutableName(binDir, [".so", ".hdll", ".ndll", ".dat", ".hl"]);
+		if (exeName != null) {
+			writeLauncher(runSh, runShContent(exeName), true);
+		} else if (standalone && target == "hl") {
+			// A HashLink VM build (Heaps, plain haxe -hl) has no
+			// executable of its own. The launcher runs the bytecode
+			// through hl with the library path set.
+			var bytecode = findBytecodeName(binDir);
+			if (bytecode != null) writeLauncher(runSh, runShContent(bytecode, true), true);
 		}
 
 		log("Done - copied FMOD .so files");
@@ -656,11 +647,9 @@ class PostBuild {
 
 		// Launcher for a HashLink VM build: hl.exe on PATH, DLLs and hdll
 		// next to the bytecode.
-		if (standalone && target == "hl" && !FileSystem.exists(Path.join([binDir, "run.cmd"]))) {
+		if (standalone && target == "hl") {
 			var bytecode = findBytecodeName(binDir);
-			if (bytecode != null) {
-				File.saveContent(Path.join([binDir, "run.cmd"]), runCmdContent(bytecode));
-			}
+			if (bytecode != null) writeLauncher(Path.join([binDir, "run.cmd"]), runCmdContent(bytecode), false);
 		}
 
 		log("Done - copied fmod.dll and fmodstudio.dll");
@@ -869,6 +858,16 @@ class PostBuild {
 	 * The generated Linux launcher script. The exe invocation is quoted so
 	 * a name with spaces still launches. Public for unit tests.
 	 */
+	/**
+	 * Writes a launcher when it is missing or its content changed, and
+	 * makes it executable. An unchanged file is left alone, so its
+	 * timestamp does not move on every build.
+	 */
+	static function writeLauncher(path:String, content:String, executable:Bool):Void {
+		if (!FileSystem.exists(path) || File.getContent(path) != content) File.saveContent(path, content);
+		if (executable) Sys.command("chmod", ["+x", path]);
+	}
+
 	public static function runShContent(exeName:String, viaHl:Bool = false, mac:Bool = false):String {
 		var launch = viaHl ? 'hl "./${exeName}"' : '"./${exeName}"';
 		var libPath = mac ? "DYLD_LIBRARY_PATH" : "LD_LIBRARY_PATH";

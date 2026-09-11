@@ -409,7 +409,7 @@ class NativeStudioJs {
     public static inline function sound_set_mode(handle:Int, mode:Int):Int return Raw.fmod_sound_set_mode(handle, mode);
     public static inline function sound_get_mode(handle:Int):Int return Raw.fmod_sound_get_mode(handle);
 
-    /** Fills Scratch int buffer: [0]=channels [1]=bits */
+    /** Fills Scratch int buffer: [0]=sound type [1]=sound format [2]=channels [3]=bits */
     public static inline function sound_get_format(handle:Int):Int return Raw.fmod_sound_get_format(handle, Scratch.intBuf());
 
     public static inline function sound_get_open_state(handle:Int):Int return Raw.fmod_sound_get_open_state(handle);
@@ -518,7 +518,7 @@ class NativeStudioJs {
     /** Borrowed reference: do not release a sound obtained this way. */
     public static inline function chan_get_current_sound(handle:Int):Int return Raw.fmod_chan_get_current_sound(handle);
     public static inline function chan_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int return Raw.fmod_chan_set_loop_points(handle, start, startType, end, endType);
-    /** Fills Scratch int buffer: [0]=loop start ms [1]=loop end ms */
+    /** Fills Scratch int buffer: [0]=loop start [1]=loop end, each in the unit passed for it */
     public static inline function chan_get_loop_points(handle:Int, startType:Int, endType:Int):Int return Raw.fmod_chan_get_loop_points(handle, startType, endType, Scratch.intBuf());
     public static inline function chan_get_reverb_wet(handle:Int, instance:Int):Float return Raw.fmod_chan_get_reverb_wet(handle, instance);
     public static inline function chan_get_index(handle:Int):Int return Raw.fmod_chan_get_index(handle);

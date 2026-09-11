@@ -140,7 +140,8 @@ class TestStringsBankParser {
 			seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF;
 			return seed;
 		}
-		var completed = 0;
+		var returned = 0;
+		var threw = 0;
 		for (i in 0...300) {
 			var mutated = haxe.io.Bytes.alloc(fixtureBytes.length);
 			mutated.blit(0, fixtureBytes, 0, fixtureBytes.length);
@@ -162,9 +163,9 @@ class TestStringsBankParser {
 			}
 			try {
 				StringsBankParser.parse(mutated, 'fuzz-$i.bank');
-				completed++;
+				returned++;
 			} catch (e:haxe.Exception) {
-				completed++;
+				threw++;
 			}
 		}
 		for (i in 0...100) {
@@ -172,12 +173,16 @@ class TestStringsBankParser {
 			for (at in 0...noise.length) noise.set(at, nextRand() % 256);
 			try {
 				StringsBankParser.parse(noise, 'noise-$i.bank');
-				completed++;
+				returned++;
 			} catch (e:haxe.Exception) {
-				completed++;
+				threw++;
 			}
 		}
-		assert("hostile corpus: every input returned or threw", completed == 400);
+		assert("hostile corpus: every input returned or threw", returned + threw == 400);
+		// A parser that threw on every input would hide a crash behind
+		// the catch, so some corrupt banks must come back as a result
+		Sys.println('  hostile corpus: returned=$returned threw=$threw');
+		assert("hostile corpus: some inputs return a result", returned > 0);
 	}
 
 	//// identifier mangling

@@ -859,7 +859,9 @@ class ApiProbeScenario implements TestScenario {
         check("helper_song_param_path_form", Math.abs(FmodManager.GetSongParameter(FmodParameters.Surface)) < 0.001
             && Math.abs(FmodManager.GetSongParameter("Surface")) < 0.001, 'value=${FmodManager.GetSongParameter("Surface")}');
         FmodManager.SetSongTimelinePosition(0);
-        check("helper_song_timeline_set", FmodManager.GetSongTimelinePosition() >= 0, 'position=${FmodManager.GetSongTimelinePosition()}');
+        // The seek lands on the next Studio update
+        StudioSystem.flushCommands();
+        check("helper_song_timeline_set", FmodManager.GetSongTimelinePosition() == 0, 'position=${FmodManager.GetSongTimelinePosition()}');
         FmodManager.StopSongImmediately();
         StudioSystem.flushCommands();
 
@@ -1147,7 +1149,7 @@ class ApiProbeScenario implements TestScenario {
             && Math.abs(floatProp.floatValue - 1.5) < 0.001,
             floatProp == null ? "" : 'type=${(floatProp.type : Int)} value=${floatProp.floatValue}');
         // String values read as "" on every non-string property
-        check("evd_user_property_string_default", intProp.stringValue == "", "");
+        check("evd_user_property_string_default", intProp != null && intProp.stringValue == "", "");
         #end
         check("evd_user_property_string", boolProp != null
             && boolProp.type == FmodUserPropertyType.STRING && boolProp.stringValue == "true",
@@ -1319,8 +1321,10 @@ class ApiProbeScenario implements TestScenario {
             && group.getVolumeRamp(), "");
         check("cg_name", group.getName() == "probe-audit-cg", 'name=${group.getName()}');
         info("cg_audibility", Std.string(group.getAudibility()));
-        check("cg_channel_introspection", group.getChannelCount() == 0
-            && group.getChannel(0).isNull(), "");
+        var channelCount = group.getChannelCount();
+        var countResult = StudioSystem.lastResult();
+        check("cg_channel_introspection", channelCount == 0 && countResult.isOk()
+            && group.getChannel(0).isNull(), 'count=$channelCount result=${countResult.toString()}');
         group.release();
 
         // Command capture round-trip with replay lifecycle
@@ -1463,7 +1467,9 @@ class ApiProbeScenario implements TestScenario {
 
         // Description metadata with nothing authored behind it
         var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
-        check("evd_sound_size", desc.getSoundSize() >= 0, 'value=${desc.getSoundSize()}');
+        var soundSize = desc.getSoundSize();
+        check("evd_sound_size", soundSize >= 0 && StudioSystem.lastResult().isOk(),
+            'value=$soundSize result=${StudioSystem.lastResult().toString()}');
         check("evd_min_max_distance", desc.getMinMaxDistance() != null, "");
         check("evd_doppler", !desc.isDopplerEnabled(), "");
         check("evd_sustain", !desc.hasSustainPoint(), "");

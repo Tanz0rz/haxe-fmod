@@ -80,6 +80,9 @@ class SynthScenario implements TestScenario {
     var _complete:Bool = false;
     var _failed:Bool = false;
     var _framesWaited:Int = 0;
+    // Frames spent waiting for the mixer to drain a segment
+    var _drainFrames:Int = 0;
+    static inline var DRAIN_WAIT_FRAMES:Int = 900;
 
     static inline function log(message:String):Void {
         #if js
@@ -106,6 +109,7 @@ class SynthScenario implements TestScenario {
     }
 
     function startSegment(index:Int):Void {
+        _drainFrames = 0;
         _segment = index;
         var seg = SEGMENTS[index];
         var samples = RATE * SEGMENT_SECONDS;
@@ -196,7 +200,13 @@ class SynthScenario implements TestScenario {
         // The segment is done once the mixer has drained the whole ring.
         // Underruns after that are the ring reporting the drained state and
         // carry no signal, so they are not checked.
-        if (_stream.space() == _capacity) {
+        var drained = _stream.space() == _capacity;
+        _drainFrames++;
+        if (!drained && _drainFrames <= DRAIN_WAIT_FRAMES) return;
+        // A ring that never drains fails the segment instead of holding
+        // the job until its wall clock
+        if (!drained) check('segment${_segment + 1}_drained', false, 'frames=$_drainFrames');
+        {
             if (!_lowpass.isNull()) {
                 _channel.removeDsp(_lowpass);
                 _lowpass.release();

@@ -300,9 +300,15 @@ void fmod_sys_update() {
 
 void fmod_sys_set_auto_update(bool enabled) {
     if (enabled && !gAutoUpdateRunning.load()) {
-        // Start auto-update thread
+        // Start auto-update thread. A thread that cannot start leaves
+        // the flag off, so update() ticks FMOD from the game thread.
         gAutoUpdateRunning.store(true);
-        gUpdateThread = new std::thread(autoUpdateLoop);
+        try {
+            gUpdateThread = new std::thread(autoUpdateLoop);
+        } catch (...) {
+            gAutoUpdateRunning.store(false);
+            gUpdateThread = NULL;
+        }
     } else if (!enabled && gAutoUpdateRunning.load()) {
         // Stop auto-update thread
         gAutoUpdateRunning.store(false);
@@ -1048,6 +1054,7 @@ int fmod_dsp_fft_get_spectrum(int h, ::Array<Float> fbuf, int maxBins) {
     gLastResult = dsp->getParameterData(FMOD_DSP_FFT_SPECTRUMDATA, (void**)&fft, &len, NULL, 0);
     if (gLastResult != FMOD_OK || !fft || fft->numchannels < 1) return 0;
     int count = fft->length < maxBins ? fft->length : maxBins;
+    if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (int i = 0; i < count; i++) fbuf[i] = (double)fft->spectrum[0][i];
     return count;
 }
@@ -6259,7 +6266,11 @@ const char* fmod_sys_get_dsp_info_by_type(int type, ::Array<int> ibuf) {
     gStringBuf[0] = '\0';
     for (int i = 0; i < 4; i++) ibuf[i] = 0;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
-    gLastResult = gCoreSystem->getDSPInfoByType((FMOD_DSP_TYPE)type, &desc);
+    // Symbolic translation, the same as dsp_create_by_type: FMOD
+    // renumbers this enum between releases
+    FMOD_DSP_TYPE dspType = faxe_dsp_type_from_binding(type);
+    if (dspType == FAXE_DSP_TYPE_UNSUPPORTED) { gLastResult = FMOD_ERR_INVALID_PARAM; return gStringBuf; }
+    gLastResult = gCoreSystem->getDSPInfoByType(dspType, &desc);
     if (gLastResult == FMOD_OK && !desc) gLastResult = FMOD_ERR_INVALID_PARAM;
     if (gLastResult != FMOD_OK) return gStringBuf;
     // The description name is a fixed 32 byte field with no terminator guarantee

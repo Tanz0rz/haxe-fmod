@@ -105,6 +105,10 @@ class EmitterPanTestState extends FlxState {
                 approx(attributes.velocity.x, 40) && approx(attributes.velocity.y, -20),
                 'velocity=(${attributes.velocity.x}, ${attributes.velocity.y})');
         }
+        // The velocity served that check only. A listener follows this
+        // sprite later, and a constant velocity would add Doppler there.
+        sprite.velocity.x = 0;
+        sprite.velocity.y = 0;
 
         check("attached_count_one", FmodRuntime.attachedCount() == 1,
             'count=${FmodRuntime.attachedCount()}');
@@ -262,7 +266,9 @@ class EmitterPanTestState extends FlxState {
                 }
             case "oneshot_plays_out":
                 if (cullState() == FmodPlaybackState.STOPPED || timedOut) {
-                    check("cull_oneshot_played_out", !timedOut, 'frames=$_phaseFrames');
+                    // A cull stop lands within a few frames. A natural end
+                    // comes after the jump sound played out.
+                    check("cull_oneshot_played_out", !timedOut && _phaseFrames > 10, 'frames=$_phaseFrames');
                     // Re-entering range must not replay a finished one-shot
                     _cullSprite.x = _listenerSprite.x;
                     _cullSprite.y = _listenerSprite.y;

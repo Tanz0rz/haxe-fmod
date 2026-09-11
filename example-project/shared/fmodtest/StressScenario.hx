@@ -247,22 +247,22 @@ class StressScenario implements TestScenario {
             // and cleared on a live stream channel
             var parent = ChannelGroup.create("churn-parent");
             var child = ChannelGroup.create("churn-child");
-            if (!parent.isNull() && !child.isNull()) {
-                parent.addGroup(child);
-                child.release();
-                parent.release();
-            }
+            if (!parent.isNull() && !child.isNull()) parent.addGroup(child);
+            // Released outside the guard, so a single failed create leaks
+            // nothing. A null handle releases harmlessly.
+            child.release();
+            parent.release();
             var soundGroup = SoundGroup.create("churn-sg");
             var pcmSound = Sound.fromPcm(_pcmChunk, 48000, 1);
             if (!soundGroup.isNull() && !pcmSound.isNull()) {
                 soundGroup.setMaxAudible(1);
                 pcmSound.setSoundGroup(soundGroup);
-                // Releasing the sound leaves the group, so no reassignment
-                // to the master group (whose cached lookup handle would
-                // move the flat-count baseline)
-                pcmSound.release();
-                soundGroup.release();
             }
+            // Releasing the sound leaves the group, so no reassignment
+            // to the master group (whose cached lookup handle would
+            // move the flat-count baseline)
+            pcmSound.release();
+            soundGroup.release();
             var cbStream = PcmStream.create(48000, 1, 4800);
             if (!cbStream.isNull()) {
                 var cbChannel = cbStream.play(true);

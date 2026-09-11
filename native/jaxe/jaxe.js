@@ -113,6 +113,9 @@ class jaxe {
                     jaxe.handleFree((s.gen << 16) | i);
                     continue;
                 }
+                // The slot keeps its own wrapper. The one handed in is a
+                // duplicate of the same object and only holds heap.
+                if (s.ptr !== ptr) jaxe.dropWrapper(ptr);
                 return (s.gen << 16) | i;
             }
         }
@@ -1053,7 +1056,9 @@ class jaxe {
     // fetch and frees the handle. The pendingBankCancelled flag keeps
     // a fetch that settles after that from ever reaching FMOD.
     static fmod_sys_load_bank_async(path) {
-        if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
+        // An empty path would make a placeholder the truthiness guards
+        // miss, and FMOD has no file to load anyway
+        if (typeof path !== "string" || path === "") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var placeholder = { pendingBankPath: path };
         var handle = jaxe.handleAlloc(placeholder, jaxe.TYPE_BANK);
@@ -1774,10 +1779,12 @@ class jaxe {
             // Stamp the handle whenever userdata disagrees, so re-minted
             // and alias-recycled instances route callbacks to the live
             // handle. (A liveCount delta cannot detect the alias path:
-            // its free and alloc cancel out.)
+            // its free and alloc cancel out.) The slot's own wrapper is
+            // used, since a cache hit dropped the one from the list.
+            var live = jaxe.handleResolve(eviHandle, jaxe.TYPE_EVI);
             var ud = {};
-            if (list.val[i].getUserData(ud) != jaxe.FMOD.OK || ud.val !== eviHandle) {
-                list.val[i].setUserData(eviHandle);
+            if (live && (live.getUserData(ud) != jaxe.FMOD.OK || ud.val !== eviHandle)) {
+                live.setUserData(eviHandle);
             }
             ibuf[written++] = eviHandle;
         }
@@ -2913,6 +2920,7 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.spectrum || !out.spectrum[0]) return 0;
         var spec = out.spectrum[0];
         var count = spec.length < maxBins ? spec.length : maxBins;
+        if (count > jaxe.LIST_MAX) count = jaxe.LIST_MAX;
         for (var i = 0; i < count; i++) fbuf[i] = spec[i];
         return count;
     }
