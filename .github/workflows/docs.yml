@@ -3,9 +3,9 @@ name: Docs
 # Builds the documentation site (guides from docs/ plus the dox API
 # reference under /api/) on every push to the default branch, the 3.0.0
 # branch, and release tags, and publishes it to
-# https://tanz0rz.com/haxe-fmod/. The site is rsynced from the self-hosted runner
+# https://www.tanz0rz.com/haxe-fmod/. The site is rsynced from the self-hosted runner
 # to the docs host and swapped in atomically. GitHub Pages keeps serving a
-# redirect to tanz0rz.com for links made before the move.
+# redirect to www.tanz0rz.com for links made before the move.
 
 # A paths filter under push covers the tag entry too, and a release tag
 # whose commit touched nothing under docs/ would then skip the build. The
@@ -115,7 +115,7 @@ jobs:
           DOCS_ANALYTICS=custom python3 ci/docs-analytics.py site/api
           python3 ci/check-site-links.py site
 
-      - name: Ship the site to tanz0rz.com
+      - name: Ship the site to www.tanz0rz.com
         # The self-hosted runner holds the SSH config and key for the docs
         # host. The release lands under a fresh directory and goes live
         # with one symlink swap.
@@ -129,8 +129,8 @@ jobs:
             site/ "deploy-target:/var/www/releases/$RELEASE/haxe-fmod/"
           scp -F "$SSH_CONFIG" ci/docs-release-swap.sh "deploy-target:/var/www/releases/release-swap.sh"
           ssh -F "$SSH_CONFIG" deploy-target "bash /var/www/releases/release-swap.sh /var/www/releases/$RELEASE"
-          curl -fsS -o /dev/null https://tanz0rz.com/haxe-fmod/
-          curl -fsS -o /dev/null https://tanz0rz.com/haxe-fmod/api/
+          curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/
+          curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/api/
 
       - name: Upload the GitHub Pages redirect
         uses: actions/upload-pages-artifact@v4
@@ -138,7 +138,7 @@ jobs:
           path: ci/pages-redirect
 
   deploy:
-    # Keeps the GitHub Pages address alive as a redirect to tanz0rz.com
+    # Keeps the GitHub Pages address alive as a redirect to www.tanz0rz.com
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10

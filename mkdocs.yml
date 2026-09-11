@@ -1,6 +1,6 @@
 site_name: haxefmod
 site_description: FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS
-site_url: https://tanz0rz.com/haxe-fmod/
+site_url: https://www.tanz0rz.com/haxe-fmod/
 repo_url: https://github.com/Tanz0rz/haxe-fmod
 repo_name: Tanz0rz/haxe-fmod
 # The docs workflow sets the edit link to the branch it builds from.
