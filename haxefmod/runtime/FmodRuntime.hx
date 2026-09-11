@@ -277,12 +277,14 @@ class FmodRuntime {
      * frame.
      */
     public static function onceReady(handler:Void->Void, ?onFailed:Void->Void):Void {
-        if (focusMuteSynced || isInitialized()) {
-            handler();
-            return;
-        }
+        // The failure check comes first: a native target reports
+        // initialized even when a default bank failed inside init
         if (initFailed()) {
             if (onFailed != null) onFailed();
+            return;
+        }
+        if (focusMuteSynced || isInitialized()) {
+            handler();
             return;
         }
         readyHandlers.push(handler);

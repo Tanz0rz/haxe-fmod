@@ -134,11 +134,12 @@ class FmodFlxPreloader extends FlxPreloader {
         // bytes go in first. HTML5 initialized in create()
         initialize();
         FmodManager.Update();
-        if (FmodManager.IsInitialized()) {
-            _loaded = true;
+        // The failure check comes first: a native target reports
+        // initialized even when a default bank failed inside Initialize
+        if (!FmodManager.InitializeFailed()) {
+            if (FmodManager.IsInitialized()) _loaded = true;
             return;
         }
-        if (!FmodManager.InitializeFailed()) return;
         var now = haxe.Timer.stamp();
         if (failedAt < 0) {
             failedAt = now;
