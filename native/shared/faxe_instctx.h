@@ -20,7 +20,8 @@
  * on FMOD threads (handle) or the game thread only (cgHandle). The
  * programmer-sound fields (psKey, psGameSound, psGameSubsound, psNamed)
  * are written from the Haxe thread and read from FMOD threads. psSounds
- * is written from the FMOD thread and read from the Haxe thread. Every
+ * and pluginDsps are written from the FMOD thread and read from the Haxe
+ * thread, their handle twins the other way round. Every
  * writer and every cross-thread reader of handle and those fields must
  * hold the callback-queue mutex (see faxe_cbqueue.h) around access.
  *
@@ -43,6 +44,7 @@
 #define FAXE_PS_NAME_MAX 64
 /* Name-to-key entries one instance can hold. */
 #define FAXE_PS_NAMED_MAX 8
+#define FAXE_PLUGIN_MAX 16 /* plugin instruments live at once on one instance */
 
 typedef struct {
     char name[FAXE_PS_NAME_MAX];
@@ -56,6 +58,9 @@ typedef struct {
     unsigned int cbMask;      /* callback mask requested via evi_set_callback_mask */
     char psKey[FAXE_PS_KEY_MAX]; /* programmer-sound key or file path. "" = none */
     void* psSounds[FAXE_PS_NAMED_MAX]; /* FMOD_SOUND* the shim created per live instrument, released on destroy */
+    int psSoundHandles[FAXE_PS_NAMED_MAX]; /* the handle the create drain minted per slot, 0 until then */
+    void* pluginDsps[FAXE_PLUGIN_MAX]; /* FMOD_DSP* of the live plugin instruments, by address */
+    int pluginHandles[FAXE_PLUGIN_MAX]; /* the handle the created drain minted per slot, 0 until then */
     void* psGameSound;        /* FMOD_SOUND* the game owns and keeps alive, never released here */
     int psGameSubsound;       /* subsound index handed over with psGameSound, -1 for the sound itself */
     FaxePsNamed* psNamed;     /* name-to-key entries, allocated on first use */
@@ -104,6 +109,22 @@ static int faxe_instctx_ps_sound_add(FaxeInstCtx* ctx, void* sound) {
     for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
         if (ctx->psSounds[i] == NULL) {
             ctx->psSounds[i] = sound;
+            ctx->psSoundHandles[i] = 0;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Records the handle the create drain minted for a recorded sound, so
+ * the destroy record carries it back instead of an address a later
+ * sound can reuse. Returns 0 when the sound is no longer recorded, so
+ * the caller drops a handle it just minted. Caller holds the lock. */
+static int faxe_instctx_ps_sound_set_handle(FaxeInstCtx* ctx, const void* sound, int handle) {
+    int i;
+    for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
+        if (ctx->psSounds[i] == sound) {
+            ctx->psSoundHandles[i] = handle;
             return 1;
         }
     }
@@ -122,12 +143,62 @@ static int faxe_instctx_ps_take_count(const FaxeInstCtx* ctx) {
 /* Forgets a recorded sound. Returns 1 when the shim owned it, so the
  * caller releases it, 0 for a game-owned or unknown sound. Caller holds
  * the callback-queue lock. */
-static int faxe_instctx_ps_sound_take(FaxeInstCtx* ctx, const void* sound) {
+static int faxe_instctx_ps_sound_take_handle(FaxeInstCtx* ctx, const void* sound, int* handle) {
     int i;
+    if (handle) *handle = 0;
     if (!sound) return 0;
     for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
         if (ctx->psSounds[i] == sound) {
+            if (handle) *handle = ctx->psSoundHandles[i];
             ctx->psSounds[i] = NULL;
+            ctx->psSoundHandles[i] = 0;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int faxe_instctx_ps_sound_take(FaxeInstCtx* ctx, const void* sound) {
+    return faxe_instctx_ps_sound_take_handle(ctx, sound, NULL);
+}
+
+/* The plugin instrument table works the same way. The created callback
+ * records the DSP address, the created drain records the handle it
+ * minted, and the destroyed callback hands the handle to its record.
+ * Caller holds the lock. */
+static int faxe_instctx_plugin_add(FaxeInstCtx* ctx, void* dsp) {
+    int i;
+    if (!dsp) return 0;
+    for (i = 0; i < FAXE_PLUGIN_MAX; i++) {
+        if (ctx->pluginDsps[i] == NULL) {
+            ctx->pluginDsps[i] = dsp;
+            ctx->pluginHandles[i] = 0;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int faxe_instctx_plugin_set_handle(FaxeInstCtx* ctx, const void* dsp, int handle) {
+    int i;
+    for (i = 0; i < FAXE_PLUGIN_MAX; i++) {
+        if (ctx->pluginDsps[i] == dsp) {
+            ctx->pluginHandles[i] = handle;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int faxe_instctx_plugin_take(FaxeInstCtx* ctx, const void* dsp, int* handle) {
+    int i;
+    if (handle) *handle = 0;
+    if (!dsp) return 0;
+    for (i = 0; i < FAXE_PLUGIN_MAX; i++) {
+        if (ctx->pluginDsps[i] == dsp) {
+            if (handle) *handle = ctx->pluginHandles[i];
+            ctx->pluginDsps[i] = NULL;
+            ctx->pluginHandles[i] = 0;
             return 1;
         }
     }

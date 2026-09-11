@@ -102,8 +102,16 @@ if found_expected == 0:
         f"no file states the expected version {expected} at all - "
         "the scan list or the regex is broken")
 
+# The library version reaches three files. The tag gate compares them
+# late, this compares them on every push.
+import json
+lib_version = json.load(open(os.path.join(ROOT, "haxelib.json")))["version"]
+manifest_version = json.load(open(os.path.join(ROOT, "extension", "manifest.json")))["version"]
+if manifest_version != lib_version:
+    failures.append(f"extension/manifest.json version {manifest_version} differs from haxelib.json {lib_version}")
+
 print(f"version-lockstep: expected {expected} (from fmod_expected_version), "
-      f"compat {COMPAT_VERSION}, {found_expected} expected-version literals")
+      f"compat {COMPAT_VERSION}, {found_expected} expected-version literals, library {lib_version}")
 if failures:
     for failure in failures:
         print(f"FAIL: {failure}")

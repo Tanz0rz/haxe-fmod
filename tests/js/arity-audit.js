@@ -39,10 +39,20 @@ jaxe.onRuntimeInitialized = function () {
 };
 
 let failures = 0;
-function check(label, fn) {
-    try { const r = fn(); console.log(`OK   ${label} -> ${r}`); return r; }
+// A call that throws is the arity error this file exists for. A call
+// that returns an FMOD error code is a failure too: a wrong argument
+// order reaches FMOD as a refused call rather than a throw.
+function check(label, fn, ok) {
+    try {
+        const r = fn();
+        if (ok !== undefined && !ok(r)) { console.log(`FAIL ${label} -> ${r}`); failures++; return r; }
+        console.log(`OK   ${label} -> ${r}`);
+        return r;
+    }
     catch (e) { console.log(`FAIL ${label} -> ${e.constructor.name}: ${e.message}`); failures++; return null; }
 }
+const isOk = r => r === 0;
+const isHandle = r => typeof r === 'number' && r > 0;
 
 async function main() {
     jaxe.FMOD['preRun'] = jaxe.preRun;
@@ -54,20 +64,21 @@ async function main() {
     const SONG = 'event:/Music/MainLevel';
 
     // System basics through the raw layer
-    check('fmod_sys_is_initialized', () => jaxe.fmod_sys_is_initialized());
+    check('fmod_sys_is_initialized', () => jaxe.fmod_sys_is_initialized(), r => r === true);
     check('fmod_sys_update', () => { jaxe.fmod_sys_update(); return 'ok'; });
     // Instance lifecycle goes through the domain-prefixed API
-    const evd = check('fmod_sys_get_event', () => jaxe.fmod_sys_get_event(SONG));
-    const h = check('fmod_evd_create_instance', () => jaxe.fmod_evd_create_instance(evd));
-    check('fmod_evi_start', () => jaxe.fmod_evi_start(h));
+    const evd = check('fmod_sys_get_event', () => jaxe.fmod_sys_get_event(SONG), isHandle);
+    const h = check('fmod_evd_create_instance', () => jaxe.fmod_evd_create_instance(evd), isHandle);
+    check('fmod_evi_start', () => jaxe.fmod_evi_start(h), isOk);
     for (let i = 0; i < 10; i++) { jaxe.fmod_sys_update(); await new Promise(r => setTimeout(r, 10)); }
-    check('fmod_evi_get_playback_state', () => jaxe.fmod_evi_get_playback_state(h));
-    check('fmod_evi_get_timeline_position', () => jaxe.fmod_evi_get_timeline_position(h));
-    check('fmod_evi_set_param_by_name', () => jaxe.fmod_evi_set_param_by_name(h, 'AreaOneUnderWater', 0.5, false));
-    check('fmod_evi_get_param_by_name', () => jaxe.fmod_evi_get_param_by_name(h, 'AreaOneUnderWater'));
-    check('fmod_evi_set_paused(true)', () => jaxe.fmod_evi_set_paused(h, true));
-    check('fmod_evi_set_paused(false)', () => jaxe.fmod_evi_set_paused(h, false));
-    check('fmod_evi_set_callback_mask', () => jaxe.fmod_evi_set_callback_mask(h, 0x7FFFF));
+    check('fmod_evi_get_playback_state', () => jaxe.fmod_evi_get_playback_state(h), r => r >= 0 && r <= 4);
+    check('fmod_evi_get_timeline_position', () => jaxe.fmod_evi_get_timeline_position(h), r => r >= 0);
+    // HighPass is a parameter the example's music event carries
+    check('fmod_evi_set_param_by_name', () => jaxe.fmod_evi_set_param_by_name(h, 'HighPass', 0.5, false), isOk);
+    check('fmod_evi_get_param_by_name', () => jaxe.fmod_evi_get_param_by_name(h, 'HighPass'), r => typeof r === 'number');
+    check('fmod_evi_set_paused(true)', () => jaxe.fmod_evi_set_paused(h, true), isOk);
+    check('fmod_evi_set_paused(false)', () => jaxe.fmod_evi_set_paused(h, false), isOk);
+    check('fmod_evi_set_callback_mask', () => jaxe.fmod_evi_set_callback_mask(h, 0x7FFFF), isOk);
     check('fmod_evi_stop soft', () => jaxe.fmod_evi_stop(h, 0));
     let saw = false;
     for (let i = 0; i < 300 && !saw; i++) {

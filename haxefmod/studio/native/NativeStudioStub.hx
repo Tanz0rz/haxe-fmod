@@ -322,7 +322,8 @@ class NativeStudioStub {
         testLastPlayGroup = group;
         return 0;
     }
-    public static function core_pcm_release(handle:Int):Int return ERR_UNSUPPORTED;
+    public static var testPcmReleaseResult:Int = ERR_UNSUPPORTED;
+    public static function core_pcm_release(handle:Int):Int return testPcmReleaseResult;
 
     // Core channels
     public static function chan_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;

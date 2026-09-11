@@ -161,6 +161,8 @@
 - A refused Studio initialize on HTML5 turns `initFailed` on once the module is up, and the `onFailed` handlers run.
 - A `PcmStream` release FMOD refused keeps the ring attached, so the stream still reads.
 - The Linux `stage` launcher runs the bytecode even when the destination holds a stale build.
+- A programmer sound or plugin instrument's handle rides with its instance from creation to destruction. The destroy record frees that handle rather than one found by an address a new object can hold.
+- A refused `PcmStream.release` keeps the read callback and the user data, like the stream itself.
 - `ChannelGroup.getParentGroup` on the master group and `Channel.getCurrentSound` on a channel from `playDSP` report no object on HTML5. They minted a handle around a null pointer before.
 - The HTML5 shim drops the wrappers it reads for their pointers only. That covers a bank unload, the callback uninstall, the sub sound parent lookups, and a released `PcmStream`.
 - A null string argument on HashLink reaches the shim as an empty one, which FMOD refuses with an error. It faulted in the string conversion before.

@@ -1352,7 +1352,12 @@ class TestStudioSurface {
 		stream.setReadCallback(function(s, data, len) throw "boom");
 		PcmStream.pump();
 		assert(stream.hasReadCallback(), "a throwing read callback is contained");
+		// A refused release keeps the stream as it was
 		stream.release();
+		assert(stream.hasReadCallback(), "a refused release keeps the read callback");
+		stub.testPcmReleaseResult = 0;
+		stream.release();
+		stub.testPcmReleaseResult = 68;
 		assert(!stream.hasReadCallback(), "release drops the read callback");
 		PcmStream.NULL.setReadCallback(function(s, data, len) return FmodResult.FMOD_OK);
 		assert(!PcmStream.NULL.hasReadCallback(), "null stream takes no read callback");

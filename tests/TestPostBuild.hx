@@ -122,20 +122,25 @@ class TestPostBuild {
 			'source hash parity: exit=$code script=$scripted tool=$built stderr=$err');
 
 		// A Windows checkout carries CRLF, and both sides must hash it the same
-		var crlfRoot = "tests/fixtures/tmp-crlf-root";
+		// Gitignored scratch space, like every other temporary tree here
+		var crlfRoot = "tests/.tmp/crlf-root";
 		for (rel in ["native/hlaxe/hlaxe_fmod.c", "native/manifest/studio_api.txt"].concat(
 				[for (f in sys.FileSystem.readDirectory("native/shared")) if (StringTools.endsWith(f, ".h")) "native/shared/" + f])) {
 			var target = '$crlfRoot/$rel';
 			var dir = haxe.io.Path.directory(target);
 			if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
-			sys.io.File.saveContent(target, StringTools.replace(sys.io.File.getContent(rel), "\n", "\r\n"));
+			// A working tree that already holds CRLF is folded first
+			var content = StringTools.replace(sys.io.File.getContent(rel), "\r\n", "\n");
+			sys.io.File.saveContent(target, StringTools.replace(content, "\n", "\r\n"));
 		}
 		var crlfBuilt = haxefmod.tools.BuildHdll.sourceHash(crlfRoot);
 		var crlfProcess = new sys.io.Process("python3", ["ci/hlaxe-src-hash.py", crlfRoot]);
 		var crlfScripted = StringTools.trim(crlfProcess.stdout.readAll().toString());
+		var crlfErr = StringTools.trim(crlfProcess.stderr.readAll().toString());
+		var crlfCode = crlfProcess.exitCode();
 		crlfProcess.close();
-		assert(crlfBuilt == built && crlfScripted == built,
-			'source hash ignores line endings: tool=$crlfBuilt script=$crlfScripted lf=$built');
+		assert(crlfCode == 0 && crlfBuilt == built && crlfScripted == built,
+			'source hash ignores line endings: exit=$crlfCode tool=$crlfBuilt script=$crlfScripted lf=$built stderr=$crlfErr');
 		removeTree(crlfRoot);
 	}
 
@@ -349,6 +354,15 @@ class TestPostBuild {
 		var runSh = '$out/run.sh';
 		check("stage writes an hl launcher for a bytecode build", sys.FileSystem.exists(runSh)
 			&& sys.io.File.getContent(runSh).indexOf('hl "./main.hl"') != -1);
+		// A stale native build and a Windows launcher in the same directory
+		// never displace the bytecode
+		write('$out/game', "stale native build");
+		Sys.command("chmod", ["+x", '$out/game']);
+		write('$out/run.cmd', "@echo off");
+		sys.FileSystem.deleteFile(runSh);
+		PostBuild.stage("linux", "hl", libRoot, projectDir, out);
+		check("stage keeps the bytecode launcher over a stale executable", sys.FileSystem.exists(runSh)
+			&& sys.io.File.getContent(runSh).indexOf('hl "./main.hl"') != -1);
 
 		// A project-local custom hdll wins when its marker matches the SDK
 		write('$projectDir/.haxefmod/hlaxe_fmod.hdll', "custom hdll");
@@ -364,6 +378,15 @@ class TestPostBuild {
 		check("stage cpp copies libfmod.so", sys.FileSystem.exists('$cppOut/libfmod.so'));
 		check("stage cpp skips the hdll", !sys.FileSystem.exists('$cppOut/hlaxe_fmod.hdll'));
 		check("stage cpp writes no launcher without an executable", !sys.FileSystem.exists('$cppOut/run.sh'));
+		// A data file without the executable bit is never taken for the game
+		write('$cppOut/notes', "a data file");
+		PostBuild.stage("linux", "cpp", libRoot, projectDir, cppOut);
+		check("stage cpp skips a file without the executable bit", !sys.FileSystem.exists('$cppOut/run.sh'));
+		write('$cppOut/game', "native build");
+		Sys.command("chmod", ["+x", '$cppOut/game']);
+		PostBuild.stage("linux", "cpp", libRoot, projectDir, cppOut);
+		check("stage cpp launches the executable", sys.FileSystem.exists('$cppOut/run.sh')
+			&& sys.io.File.getContent('$cppOut/run.sh').indexOf('"./game"') != -1);
 
 		// Web SDK: the engine pair plus jaxe.js land side by side
 		var web = '$base/web';

@@ -819,8 +819,9 @@ class PostBuild {
 	/**
 	 * Finds the executable in a build directory by excluding the library
 	 * extensions. A versioned library such as libfmod.so.14 is excluded
-	 * too. Several candidates are reported, and the first in sorted order
-	 * is returned.
+	 * too, and so are the launchers and, outside Windows, any file without
+	 * the executable bit. A candidate without an extension wins. Several
+	 * candidates are reported, and the first in sorted order is returned.
 	 */
 	static function findExecutable(dir:String, excludeExts:Array<String>):Null<String> {
 		if (!FileSystem.exists(dir)) return null;

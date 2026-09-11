@@ -200,16 +200,18 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 faxe_str_copy(ev.str, props->name, FAXE_CBQ_STR_MAX);
             }
             // Only a sound this shim created is released. A game-owned one
-            // stays with the game. The address in ev.ptr is only a lookup
-            // key for the drain, which never dereferences it.
+            // stays with the game. The record carries the handle the create
+            // drain recorded in i1, since the address dies with the release.
             int owned = 0;
+            int soundHandle = 0;
             if (props && props->sound) {
                 faxe_cbq_lock();
-                owned = faxe_instctx_ps_sound_take(ctx, props->sound);
+                owned = faxe_instctx_ps_sound_take_handle(ctx, props->sound, &soundHandle);
                 faxe_cbq_unlock();
             }
             if (props) {
                 ev.ptr = props->sound;
+                ev.i1 = soundHandle;
                 ev.i2 = props->subsoundIndex;
                 ev.i3 = owned;
             }
@@ -263,6 +265,18 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                     faxe_str_copy(ev.str, props->name, FAXE_CBQ_STR_MAX);
                 }
                 ev.ptr = props->dsp;
+                /* The DSP is recorded on the instance at creation, so the
+                 * destroyed record carries the handle the drain minted in
+                 * i1 instead of an address FMOD frees right after this */
+                faxe_cbq_lock();
+                if (type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) {
+                    faxe_instctx_plugin_add(ctx, props->dsp);
+                } else {
+                    int dspHandle = 0;
+                    faxe_instctx_plugin_take(ctx, props->dsp, &dspHandle);
+                    ev.i1 = dspHandle;
+                }
+                faxe_cbq_unlock();
             }
             break;
         }
@@ -3651,14 +3665,48 @@ static void free_destroyed_ctx(FaxeInstCtx* ctx) {
     int i;
     for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
         void* sound = ctx->psSounds[i];
-        int soundHandle;
         if (!sound) continue;
-        soundHandle = faxe_handle_find(sound, FAXE_TYPE_SOUND);
-        if (soundHandle) faxe_handle_free(soundHandle);
+        if (ctx->psSoundHandles[i]) faxe_handle_free(ctx->psSoundHandles[i]);
         FMOD_Sound_Release((FMOD_SOUND*)sound);
         ctx->psSounds[i] = NULL;
+        ctx->psSoundHandles[i] = 0;
+    }
+    /* Plugin DSPs die with the instance, and so do their handles */
+    for (i = 0; i < FAXE_PLUGIN_MAX; i++) {
+        if (ctx->pluginHandles[i]) faxe_handle_free(ctx->pluginHandles[i]);
+        ctx->pluginDsps[i] = NULL;
+        ctx->pluginHandles[i] = 0;
     }
     faxe_instctx_destroy(ctx);
+}
+
+/* The context of a live instance handle, NULL once the instance is gone */
+static FaxeInstCtx* ctx_for_handle(int handle) {
+    FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(handle);
+    return instance ? instance_ctx(instance) : NULL;
+}
+
+/* Mints the handle a create record hands the game and records it on the
+ * instance. A record whose object is gone already (the destroy ran
+ * first) gets no fresh handle: the address can belong to a new object. */
+static int hlaxe_mint_recorded(int instanceHandle, void* ptr, unsigned char type, int isPlugin) {
+    int existing = faxe_handle_find(ptr, type);
+    int handle = existing ? existing : faxe_handle_alloc(ptr, type);
+    FaxeInstCtx* ctx;
+    int recorded = 0;
+    if (!handle) return 0;
+    ctx = ctx_for_handle(instanceHandle);
+    if (ctx) {
+        faxe_cbq_lock();
+        recorded = isPlugin ? faxe_instctx_plugin_set_handle(ctx, ptr, handle)
+                            : faxe_instctx_ps_sound_set_handle(ctx, ptr, handle);
+        faxe_cbq_unlock();
+    }
+    if (!recorded && !existing) {
+        faxe_handle_free(handle);
+        return 0;
+    }
+    return handle;
 }
 
 HL_PRIM bool HL_NAME(cb_next)() {
@@ -3677,23 +3725,29 @@ HL_PRIM bool HL_NAME(cb_next)() {
         free_destroyed_ctx((FaxeInstCtx*)gCbCurrent.opaque);
         gCbCurrent.opaque = NULL;
     }
-    /* Plugin records carry the DSP address. Turn it into a handle here on
-     * the Haxe thread, in i1. A destroyed plugin's slot is freed right
-     * away, the handle value still reaches the handler for identity. */
+    /* A created record mints the handle here on the Haxe thread, in i1,
+     * and records it on the instance. The destroyed record carries that
+     * handle back, since its address died with the object. The freed
+     * handle value still reaches the handler for identity. */
     if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_CREATED) {
-        gCbCurrent.i1 = faxe_handle_find_or_alloc(gCbCurrent.ptr, FAXE_TYPE_DSP);
+        gCbCurrent.i1 = hlaxe_mint_recorded(gCbCurrent.handle, gCbCurrent.ptr, FAXE_TYPE_DSP, 1);
     } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_PLUGIN_DESTROYED) {
-        gCbCurrent.i1 = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_DSP);
         if (gCbCurrent.i1) faxe_handle_free(gCbCurrent.i1);
     } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_CREATE_PROGRAMMER_SOUND) {
-        /* Same for the programmer sound: a sound the game handed over finds
-         * its existing handle, one this shim created gets a fresh one */
-        gCbCurrent.i1 = faxe_handle_find_or_alloc(gCbCurrent.ptr, FAXE_TYPE_SOUND);
+        /* A sound the game handed over finds its existing handle, one this
+         * shim created gets a fresh one that its destroy record carries */
+        gCbCurrent.i1 = gCbCurrent.i3
+            ? hlaxe_mint_recorded(gCbCurrent.handle, gCbCurrent.ptr, FAXE_TYPE_SOUND, 0)
+            : faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_SOUND);
     } else if (gCbCurrent.type == FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND) {
-        gCbCurrent.i1 = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_SOUND);
         /* i3 marks a shim-created sound, released in the callback, whose
-         * handle ends here. A game-owned sound keeps its handle. */
-        if (gCbCurrent.i1 && gCbCurrent.i3) faxe_handle_free(gCbCurrent.i1);
+         * recorded handle ends here. A game-owned sound is alive and keeps
+         * its handle, which the address still finds. */
+        if (gCbCurrent.i3) {
+            if (gCbCurrent.i1) faxe_handle_free(gCbCurrent.i1);
+        } else {
+            gCbCurrent.i1 = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_SOUND);
+        }
     } else if (gCbCurrent.type == FAXE_CB_CHAN_END) {
         /* An ended channel's slot goes with the record. The handle value
          * still reaches the handler for identity. The typed resolve keeps

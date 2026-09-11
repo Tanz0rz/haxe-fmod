@@ -19,6 +19,10 @@ concurrency:
 # Tag pushes always run the full suite and never run update-hdlls
 
 env:
+  # The pinned libraries, part of every haxelib cache key so a bump rotates it
+  HAXELIB_PINS: lime8.3.0-openfl9.5.0-flixel6.1.2-heaps2.1.0-hxcpp4.3.2-hashlink1.15.0-hlsdl1.15.0-hldx1.15.0
+  # The pre-SDL3 HashLink commit every job builds, named once
+  HASHLINK_COMMIT: 781960a5daca32ad6d5cea87b255fe8b5872551e
   HAXE_VERSION: 4.3.6
   # Kode/Kha main as of 2026-08-28 (commit of 2026-08-20), the checkout the
   # first Kha jobs ran on. Its Kore links a macOS executable the stage
@@ -48,7 +52,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-unit-${{ runner.os }}-${{ env.HAXE_VERSION }}-flixel-heaps
+          key: haxelib-unit-${{ runner.os }}-${{ env.HAXE_VERSION }}-flixel-heaps-${{ env.HAXELIB_PINS }}
 
       - name: Install the engine libraries
         # The deprecated engine utility aliases compile against their
@@ -237,7 +241,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-doctor-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-doctor-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -469,7 +473,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-docs-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-docs-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install dox
         run: |
@@ -558,7 +562,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Test DSP type translation against this SDK's headers
         run: |
@@ -742,7 +746,7 @@ jobs:
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          git checkout "$HASHLINK_COMMIT"
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
             echo "=== MAKE FAILED - retrying single-threaded ==="
             make 2>&1 | tee -a /tmp/hashlink-build.log
@@ -752,7 +756,23 @@ jobs:
           sudo ldconfig
           hl --version || echo "HashLink installed"
 
+      - name: Check the pre-built hdll ABI
+        id: abi
+        run: |
+          # A binding ABI bump lands before update-hdlls can rebuild the
+          # shipped hdlls, so the hl steps below wait for it on a branch.
+          # A tag keeps the hard failure: a release ships no stale hdll.
+          ABI=$(grep -o "abi-version: [0-9]*" native/manifest/studio_api.txt | grep -o "[0-9]*")
+          MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$")
+          if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
+            echo "stale=true" >> "$GITHUB_OUTPUT"
+            echo "::notice ::the pre-built hdll carries ABI $MARKER and the manifest says $ABI, the hl package build waits for update-hdlls"
+          else
+            echo "stale=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build HashLink target from the installed package
+        if: steps.abi.outputs.stale != 'true'
         run: |
           set -o pipefail
           cd example-project/EZPlatformer
@@ -761,6 +781,7 @@ jobs:
           echo "Verified: pre-built hdll resolved from the installed package"
 
       - name: Validate build output
+        if: steps.abi.outputs.stale != 'true'
         run: |
           ./ci/validate-build.sh example-project/EZPlatformer/export/hl/bin hl
 
@@ -834,7 +855,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-package-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       # 'pkg' keeps this clear of the platform jobs' 'app' cache. This job
       # builds from the installed haxelib package, and it finishes early
@@ -907,7 +928,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -1019,7 +1040,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -1111,7 +1132,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -1137,7 +1158,7 @@ jobs:
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          git checkout "$HASHLINK_COMMIT"
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
             echo "=== MAKE FAILED - retrying single-threaded ==="
             make 2>&1 | tee -a /tmp/hashlink-build.log
@@ -1330,7 +1351,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-html5-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-html5-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -1452,7 +1473,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-html5-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-html5-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -1495,7 +1516,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/pw"
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright > /dev/null
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright@1.63.0 > /dev/null
           export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
           npx playwright install --with-deps firefox
 
@@ -1629,7 +1650,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-cpp-${{ runner.os }}-${{ env.MAC_HAXE_VERSION }}
+          key: haxelib-cpp-${{ runner.os }}-${{ env.MAC_HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -1739,7 +1760,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-hl-${{ runner.os }}-${{ env.MAC_HAXE_VERSION }}
+          key: haxelib-hl-${{ runner.os }}-${{ env.MAC_HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -1878,7 +1899,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-cpp-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -2006,7 +2027,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -2136,7 +2157,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -2162,7 +2183,7 @@ jobs:
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          git checkout "$HASHLINK_COMMIT"
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
             echo "=== MAKE FAILED - retrying single-threaded ==="
             make 2>&1 | tee -a /tmp/hashlink-build.log
@@ -2408,7 +2429,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-hl-${{ runner.os }}-${{ env.MAC_HAXE_VERSION }}
+          key: haxelib-hl-${{ runner.os }}-${{ env.MAC_HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -2606,7 +2627,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}
+          key: haxelib-hl-${{ runner.os }}-${{ env.HAXE_VERSION }}-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -2832,7 +2853,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: /tmp/hashlink-src
-          key: hashlink-781960a5-${{ runner.os }}-${{ env.RUNNER_IMAGE }}
+          key: hashlink-${{ env.HASHLINK_COMMIT }}-${{ runner.os }}-${{ env.RUNNER_IMAGE }}
 
       - name: Build HashLink
         if: steps.hl-cache.outputs.cache-hit != 'true'
@@ -2840,7 +2861,7 @@ jobs:
           # Same pin as linux-hl: the commit before the SDL3 port
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          git checkout "$HASHLINK_COMMIT"
           make -j$(nproc)
 
       - name: Install HashLink
@@ -2927,7 +2948,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: /tmp/hashlink-src
-          key: hashlink-781960a5-${{ runner.os }}-${{ env.RUNNER_IMAGE }}
+          key: hashlink-${{ env.HASHLINK_COMMIT }}-${{ runner.os }}-${{ env.RUNNER_IMAGE }}
 
       - name: Build HashLink
         if: steps.hl-cache.outputs.cache-hit != 'true'
@@ -2935,7 +2956,7 @@ jobs:
           # Same pin as linux-hl: the commit before the SDL3 port
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          git checkout "$HASHLINK_COMMIT"
           make -j$(nproc)
 
       - name: Install HashLink
@@ -5273,7 +5294,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: /tmp/hashlink-src
-          key: hashlink-781960a5-${{ runner.os }}-${{ env.RUNNER_IMAGE }}
+          key: hashlink-${{ env.HASHLINK_COMMIT }}-${{ runner.os }}-${{ env.RUNNER_IMAGE }}
 
       - name: Build HashLink
         if: steps.hl-cache.outputs.cache-hit != 'true'
@@ -5281,7 +5302,7 @@ jobs:
           # Same pin as linux-hl: the commit before the SDL3 port
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          git checkout "$HASHLINK_COMMIT"
           make -j$(nproc)
 
       - name: Install HashLink

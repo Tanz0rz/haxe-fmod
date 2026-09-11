@@ -18,15 +18,19 @@ on:
   workflow_dispatch:
 
 env:
+  # The pinned libraries, part of every haxelib cache key so a bump rotates it
+  HAXELIB_PINS: lime8.3.0-openfl9.5.0-flixel6.1.2-heaps2.1.0-hxcpp4.3.2-hashlink1.15.0-hlsdl1.15.0-hldx1.15.0
   HAXE_VERSION: 4.3.6
 
 # The build job reads only. The deploy job raises its own grant for Pages.
 permissions:
   contents: read
 
+# Every ref publishes the same site, so the deploys serialize in push
+# order rather than racing the symlink swap
 concurrency:
-  group: docs-${{ github.ref }}
-  cancel-in-progress: true
+  group: docs-deploy
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -44,7 +48,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/haxelib
-          key: haxelib-docs-${{ runner.os }}-${{ env.HAXE_VERSION }}-flixel-heaps
+          key: haxelib-docs-${{ runner.os }}-${{ env.HAXE_VERSION }}-flixel-heaps-${{ env.HAXELIB_PINS }}
 
       - name: Install Haxe libraries
         run: |
@@ -71,7 +75,7 @@ jobs:
 
       - name: Drive the extension over the fixture matrix
         run: |
-          npm install playwright > /dev/null
+          npm install playwright@1.63.0 > /dev/null
           # The runner has chromium's system libraries preinstalled, and
           # --with-deps would need apt and root
           npx playwright install chromium

@@ -120,7 +120,7 @@ LINUX_HASHLINK = """
         uses: actions/cache@v5
         with:
           path: /tmp/hashlink-src
-          key: hashlink-781960a5-${{ runner.os }}-${{ env.RUNNER_IMAGE }}
+          key: hashlink-${{ env.HASHLINK_COMMIT }}-${{ runner.os }}-${{ env.RUNNER_IMAGE }}
 
       - name: Build HashLink
         if: steps.hl-cache.outputs.cache-hit != 'true'
@@ -128,7 +128,7 @@ LINUX_HASHLINK = """
           # Same pin as linux-hl: the commit before the SDL3 port
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          git checkout "$HASHLINK_COMMIT"
           make -j$(nproc)
 
       - name: Install HashLink

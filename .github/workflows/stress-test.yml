@@ -21,6 +21,8 @@ on:
         default: "300"
 
 env:
+  # The pre-SDL3 HashLink commit every job builds, named once
+  HASHLINK_COMMIT: 781960a5daca32ad6d5cea87b255fe8b5872551e
   HAXE_VERSION: 4.3.6
   FMOD_SDK: ${{ github.workspace }}/fmod-sdk
 
@@ -68,7 +70,7 @@ jobs:
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
           git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          git checkout "$HASHLINK_COMMIT"
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
             echo "=== MAKE FAILED - retrying single-threaded ==="
             make 2>&1 | tee -a /tmp/hashlink-build.log

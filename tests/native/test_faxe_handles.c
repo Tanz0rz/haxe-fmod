@@ -330,8 +330,12 @@ int main(void) {
         /* the hook saw the rejected slot while it still resolved */
         assert(gHookPtr == &objA && gHookHandle == c1);
         gRejected = &objC;
+        gHookPtr = NULL;
+        gHookHandle = 0;
         faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one, NULL);
         assert(faxe_handle_resolve(other, FAXE_TYPE_SOUND) == &objC);
+        /* a sweep of another type touches nothing, and a NULL hook runs nothing */
+        assert(gHookPtr == NULL && gHookHandle == 0);
         faxe_handle_free(c2);
         faxe_handle_free(other);
     }

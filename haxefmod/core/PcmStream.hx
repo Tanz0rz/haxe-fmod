@@ -156,11 +156,14 @@ abstract PcmStream(Int) from Int to Int {
         return NativeStudio.core_pcm_play(this, group == null ? 0 : (group : Int), startPaused);
     }
 
-    /** Stops playback, frees the stream, and invalidates this handle. */
-    public inline function release():FmodResult {
-        clearReadCallback();
-        UserData.clear(UserDataKind.PcmStream, this);
-        return NativeStudio.core_pcm_release(this);
+    /** Stops playback, frees the stream, and invalidates this handle. A refused release leaves the stream as it was. */
+    public function release():FmodResult {
+        var result:FmodResult = NativeStudio.core_pcm_release(this);
+        if (result.isOk()) {
+            clearReadCallback();
+            UserData.clear(UserDataKind.PcmStream, this);
+        }
+        return result;
     }
 
     /**

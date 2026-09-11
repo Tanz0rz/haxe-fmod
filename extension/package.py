@@ -108,7 +108,10 @@ def missing(names):
 
 def firefox_manifest(manifest):
     firefox = json.loads(json.dumps(manifest))
-    firefox["background"] = {"scripts": [manifest["background"]["service_worker"]]}
+    background = manifest.get("background", {})
+    if background.get("service_worker"):
+        firefox["background"] = {"scripts": [background["service_worker"]]}
+    # A scripts list or a page already runs on Firefox as written
     firefox["browser_specific_settings"] = {"gecko": {"id": GECKO_ID, "strict_min_version": "109.0"}}
     return firefox
 
@@ -145,7 +148,9 @@ def main():
         shutil.rmtree(unpacked, ignore_errors=True)
         os.makedirs(unpacked)
         for name in names:
-            shutil.copy(os.path.join(HERE, name), unpacked)
+            target = os.path.join(unpacked, name)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        shutil.copy(os.path.join(HERE, name), target)
         with open(os.path.join(unpacked, "manifest.json"), "w", encoding="utf-8") as fh:
             json.dump(firefox_manifest(manifest), fh, indent=2)
             fh.write("\n")

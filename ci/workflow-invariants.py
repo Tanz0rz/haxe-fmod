@@ -25,6 +25,10 @@ leans on:
      workflow.
   8. Every portability loop over the shared header tests names the
      same tests, so a test wired into one compiler pass reaches all.
+  9. The HashLink commit is named once, in HASHLINK_COMMIT, and every
+     checkout and cache key reads it there.
+  10. HAXELIB_PINS names every pinned haxelib install and every haxelib
+     cache key carries it, so a bump rotates the caches.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -124,6 +128,30 @@ if text.count('grep -q "FMOD SDK version mismatch"') < 3:
     fail("compat jobs do not grep for the mismatch banner")
 else:
     ok("compat jobs verify the mismatch banner text")
+
+# 9. The HashLink commit is named once in the workflow environment, and
+# every checkout and cache key reads it there
+if re.search(r"git checkout [0-9a-f]{40}", text):
+    fail("a HashLink checkout names the commit literally instead of HASHLINK_COMMIT")
+else:
+    ok("every HashLink checkout reads HASHLINK_COMMIT")
+hl_keys = re.findall(r"key: hashlink-[^\n]*", text)
+if not hl_keys or any("env.HASHLINK_COMMIT" not in k for k in hl_keys):
+    fail(f"a HashLink cache key lacks HASHLINK_COMMIT: {hl_keys}")
+else:
+    ok(f"{len(hl_keys)} HashLink cache keys read HASHLINK_COMMIT")
+
+# 10. Every pinned haxelib install appears in HAXELIB_PINS, and every
+# haxelib cache key carries the pins, so a bump rotates the caches
+pins_match = re.search(r"HAXELIB_PINS: (\S+)", text)
+pins = pins_match.group(1) if pins_match else ""
+installs = set(re.findall(r"haxelib install ([a-z]+) ([0-9][0-9.]*)", text))
+missing_pins = sorted(f"{lib}{ver}" for lib, ver in installs if f"{lib}{ver}" not in pins.split("-"))
+haxelib_keys = re.findall(r"key: haxelib-[^\n]*", text)
+if missing_pins or not haxelib_keys or any("env.HAXELIB_PINS" not in k for k in haxelib_keys):
+    fail(f"HAXELIB_PINS out of step: missing {missing_pins}, keys {haxelib_keys}")
+else:
+    ok(f"HAXELIB_PINS covers {len(installs)} pinned installs across {len(haxelib_keys)} cache keys")
 
 # 8. Every portability loop over the shared header tests names the same
 # tests, so a header added to one compiler pass reaches the others

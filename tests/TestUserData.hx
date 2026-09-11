@@ -170,7 +170,10 @@ class TestUserData {
 		r3d.setUserData(1); r3d.release();
 		assert("reverb3d cleared on release", r3d.getUserData() == null);
 		var pcm:PcmStream = 307;
+		// A refused release keeps the stream, so the stub accepts this one
+		haxefmod.studio.native.NativeStudioStub.testPcmReleaseResult = 0;
 		pcm.setUserData(1); pcm.release();
+		haxefmod.studio.native.NativeStudioStub.testPcmReleaseResult = 68;
 		assert("pcm cleared on release", pcm.getUserData() == null);
 		var geo:Geometry = 310;
 		geo.setUserData(1); geo.release();

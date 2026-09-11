@@ -279,14 +279,15 @@ class jaxe {
         }
     }
 
+    // The result of a refused Studio initialize, 0 while it succeeded.
+    // FmodRuntime reads it on HTML5 once the module reports ready.
+    static gInitFailure = 0;
+
     //// Callbacks
 
     // Per-instance callback masks and programmer-sound keys, keyed by handle.
     // JS is single-threaded (callbacks run on the main thread), so plain maps
     // are safe where cpp/hl need the userdata context struct.
-    // The result of a refused Studio initialize, 0 while it succeeded.
-    // FmodRuntime reads it on HTML5 once the module reports ready.
-    static gInitFailure = 0;
     static cbMasks = {};
     static psKeys = {};
     // The channel group handle each instance handed out, keyed by the
@@ -448,21 +449,24 @@ class jaxe {
                     parameters.subsoundIndex = -1;
                 }
             }
-        } else if (type == 0x100 /* DESTROY_PROGRAMMER_SOUND */ && parameters) {
-            if (parameters.sound && parameters.sound.release) {
-                parameters.sound.release();
-            }
         }
 
         var ev = { handle: handle, type: type, i1: 0, i2: 0, i3: 0, i4: 0, i5: 0, f1: 0.0, str: "", ptr: null };
 
         if ((type == 0x80 || type == 0x100) && parameters) {
             if (typeof parameters.name === "string") ev.str = parameters.name;
-            // The sound the instrument got becomes a handle when the record
-            // drains. Every sound on this target is one this shim created,
-            // since assignProgrammerSoundFrom is native only. i3 marks it
-            // for release of the handle on the destroy record.
-            if (parameters.sound) ev.ptr = parameters.sound;
+            // The callback runs on the main thread, so the sound's handle is
+            // minted here and rides in i1, and the destroy record frees it
+            // before the release, while the object is still the same one.
+            // Every sound on this target is one this shim created, since
+            // assignProgrammerSoundFrom is native only. i3 marks it.
+            if (parameters.sound) {
+                if (type == 0x80) {
+                    ev.i1 = jaxe.handleFindOrAlloc(parameters.sound, jaxe.TYPE_SOUND);
+                } else {
+                    ev.i1 = jaxe.releaseRecordedObject(parameters.sound, jaxe.TYPE_SOUND, true);
+                }
+            }
             ev.i2 = typeof parameters.subsoundIndex === "number" ? parameters.subsoundIndex | 0 : -1;
             ev.i3 = parameters.sound ? 1 : 0;
         }
@@ -493,8 +497,13 @@ class jaxe {
             if (parameters.eventid) ev.str = jaxe.formatGuid(parameters.eventid);
         } else if ((type == 0x00000200 /* PLUGIN_CREATED */ || type == 0x00000400 /* PLUGIN_DESTROYED */) && parameters) {
             if (typeof parameters.name === "string") ev.str = parameters.name;
-            // The DSP wrapper becomes a handle when the record drains
-            if (parameters.dsp) ev.ptr = parameters.dsp;
+            // The DSP wrapper becomes a handle here, while the object is
+            // alive, and the destroyed record frees it before FMOD does
+            if (parameters.dsp) {
+                ev.i1 = type == 0x00000200
+                    ? jaxe.handleFindOrAlloc(parameters.dsp, jaxe.TYPE_DSP)
+                    : jaxe.releaseRecordedObject(parameters.dsp, jaxe.TYPE_DSP, false);
+            }
         }
 
         // Destroyed events are documented as never delivered on this
@@ -517,25 +526,26 @@ class jaxe {
         return jaxe.FMOD.OK;
     }
 
+    // Frees the handle of an object a callback reports destroyed, while
+    // the wrapper still names it. The handle value goes into the record
+    // for identity. The wrapper is released (a sound) and dropped unless
+    // the slot owned that same wrapper, which the free deletes.
+    static releaseRecordedObject(wrapper, type, release) {
+        var h = jaxe.handleFind(wrapper, type);
+        var slotWrapper = h ? jaxe.slots[h & 0xFFFF].ptr : null;
+        if (release && wrapper.release) wrapper.release();
+        if (h) jaxe.handleFree(h);
+        if (slotWrapper !== wrapper) jaxe.dropWrapper(wrapper);
+        return h;
+    }
+
     static fmod_cb_next() {
         if (jaxe.cbQueue.length == 0) return false;
         jaxe.cbCurrent = jaxe.cbQueue.shift();
-        // Plugin records carry the DSP wrapper. Turn it into a handle in i1,
-        // mirroring the drain in the native shims. A destroyed plugin's
-        // slot is freed right away, the handle value still reaches the
-        // handler for identity.
+        // The programmer sound and plugin records carry their handle in i1
+        // from the callback, which runs on the main thread here
         var cur = jaxe.cbCurrent;
-        if (cur.type == 0x00000200 /* PLUGIN_CREATED */) {
-            cur.i1 = jaxe.handleFindOrAlloc(cur.ptr, jaxe.TYPE_DSP);
-        } else if (cur.type == 0x00000400 /* PLUGIN_DESTROYED */) {
-            cur.i1 = jaxe.handleFind(cur.ptr, jaxe.TYPE_DSP);
-            if (cur.i1) jaxe.handleFree(cur.i1);
-        } else if (cur.type == 0x80 /* CREATE_PROGRAMMER_SOUND */) {
-            cur.i1 = jaxe.handleFindOrAlloc(cur.ptr, jaxe.TYPE_SOUND);
-        } else if (cur.type == 0x100 /* DESTROY_PROGRAMMER_SOUND */) {
-            cur.i1 = jaxe.handleFind(cur.ptr, jaxe.TYPE_SOUND);
-            if (cur.i1 && cur.i3) jaxe.handleFree(cur.i1);
-        } else if (cur.type == jaxe.CB_CHAN_END) {
+        if (cur.type == jaxe.CB_CHAN_END) {
             // An ended channel's slot goes with the record. The handle
             // value still reaches the handler for identity. The typed
             // resolve keeps a group's slot out of it.
