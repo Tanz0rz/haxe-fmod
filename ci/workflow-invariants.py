@@ -23,6 +23,8 @@ leans on:
      commit.
   7. Every Node harness in tests/js/ is invoked somewhere in the
      workflow.
+  8. Every portability loop over the shared header tests names the
+     same tests, so a test wired into one compiler pass reaches all.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -123,9 +125,9 @@ if text.count('grep -q "FMOD SDK version mismatch"') < 3:
 else:
     ok("compat jobs verify the mismatch banner text")
 
-# 4b. Every portability loop over the shared header tests names the same
+# 8. Every portability loop over the shared header tests names the same
 # tests, so a header added to one compiler pass reaches the others
-loops = re.findall(r"for (?:%%t|t) in \(?((?:handles|cbqueue|guid|instctx|pcmring| )+)\)?", text)
+loops = re.findall(r"for (?:%%t|t) in \(?([a-z0-9_ ]+?)\)?(?:;| do)", text)
 # The ThreadSanitizer loops run the threaded tests only, so they are apart
 loops = [l for l in loops if "handles" in l]
 loop_sets = {tuple(sorted(l.split())) for l in loops}

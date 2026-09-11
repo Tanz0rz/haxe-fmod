@@ -28,7 +28,7 @@ if (FmodRuntime.banks.isLoaded(FmodRuntime.bankPath("Vehicles.bank"))) {
 
 A path that settles in `ERROR` is not deduplicated. A second load replaces the dead entry, so a game can retry a failed fetch.
 
-Two spellings of one file share one refcount, because `BankRegistry.normalizePath` collapses separators and `.` segments. Windows backslashes are accepted.
+Two spellings of one file share one refcount, because `BankRegistry.normalizePath` collapses separators and `.` segments. Windows backslashes are accepted. Two paths FMOD reports as one bank share an entry too, so the last unload of either unloads it.
 
 ## Loading outside the registry
 

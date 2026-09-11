@@ -5,7 +5,7 @@ name: Canary
 # early-warning signal to investigate upstream changes. It does NOT mean
 # main is broken, and it is no broken-main page.
 
-# Every job reads only. update-hdlls raises its own grant to push.
+# Every job reads only.
 permissions:
   contents: read
 

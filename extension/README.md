@@ -84,7 +84,7 @@ python3 ci/haxe-catalog.py
 python3 ci/example-ledger.py --status
 ```
 
-Functions haxefmod does not expose carry their reasons in `functions.md`. The Haxe tab shows the reason in place of a signature. Adding a binding means removing its section there, at which point the generator picks the new method up from the sources.
+Functions haxefmod does not expose carry their reasons in `functions.md`. The Haxe tab shows the reason in place of a signature. Adding a binding means removing its section there. The generator then picks the new method up from the sources.
 
 ## Package for the stores
 

@@ -7,6 +7,9 @@ name: Docs canary
 # or drop one. A red run here means fmod.com changed and the
 # extension data needs a look, see extension/README.md.
 
+permissions:
+  contents: read
+
 on:
   schedule:
     - cron: "0 7 * * 1"

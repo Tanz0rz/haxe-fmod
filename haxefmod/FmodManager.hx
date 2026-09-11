@@ -315,12 +315,19 @@ class FmodManager {
         // already died with its fade leaves nothing to restart
         var stopQueued = snapshotStopsQueued.exists(snapshotPath);
         snapshotStopsQueued.remove(snapshotPath);
-        if (instances.length > 0) {
-            for (existing in instances) {
-                if (stopQueued || existing.getPlaybackState() == FmodPlaybackState.STOPPING) existing.start();
+        // An instance that stopped and awaits its release keeps nothing
+        // applied, so a fresh one is made when no other qualifies
+        var applied = false;
+        for (existing in instances) {
+            var state = existing.getPlaybackState();
+            if (stopQueued || state == FmodPlaybackState.STOPPING) {
+                existing.start();
+                applied = true;
+            } else if (state != FmodPlaybackState.STOPPED) {
+                applied = true;
             }
-            return;
         }
+        if (applied) return;
         var instance = description.createInstance();
         if (instance.isNull()) {
             warnMissing("StartSnapshot", snapshotPath);

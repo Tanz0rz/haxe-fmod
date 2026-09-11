@@ -621,7 +621,8 @@ class FmodRuntime {
      */
     public static function bankPath(fileName:String, ?folder:String):String {
         if (folder == null) folder = resolved != null ? resolved.bankFolder : "assets/fmod/Desktop";
-        if (fileName.indexOf("/") >= 0) return fileName; // already a path
+        // Already a path, with either separator
+        if (fileName.indexOf("/") >= 0 || fileName.indexOf("\\") >= 0) return fileName;
         return '$folder/$fileName';
     }
 

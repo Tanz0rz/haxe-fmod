@@ -92,7 +92,7 @@
 
 ## Bank loader
 
-The bank loader loads a set of banks through the refcounted registry and reports when all of them are ready. File names resolve against the configured bank folder. The loader calls `onLoaded` exactly once when every bank is loaded. It calls `onError` exactly once if any bank settles in an error state. A missing file or a failed fetch on HTML5 causes that. The `loaded` property mirrors `onLoaded`. Loading is asynchronous by default, and `async = false` loads synchronously on native targets.
+The bank loader loads a set of banks through the refcounted registry and reports when all of them are ready. File names resolve against the configured bank folder. The loader calls `onLoaded` exactly once when every bank is loaded. It calls `onError` exactly once if any bank settles in an error state. A missing file or a failed fetch on HTML5 causes that. It also calls `onError` once when FMOD refused to initialize, since the banks never load then. The `loaded` property mirrors `onLoaded`. Loading is asynchronous by default, and `async = false` loads synchronously on native targets.
 
 === "HaxeFlixel"
 

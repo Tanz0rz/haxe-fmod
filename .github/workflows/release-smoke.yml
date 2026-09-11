@@ -4,7 +4,7 @@ name: Release Smoke Test
 # from the checkout) and builds the example project with it. That proves
 # what users actually download works end to end.
 
-# Every job reads only. update-hdlls raises its own grant to push.
+# Every job reads only.
 permissions:
   contents: read
 

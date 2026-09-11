@@ -6,7 +6,7 @@ name: Stress Test
 # rare races), so this runs on a weekly schedule and on demand instead of
 # gating every push.
 
-# Every job reads only. update-hdlls raises its own grant to push.
+# Every job reads only.
 permissions:
   contents: read
 

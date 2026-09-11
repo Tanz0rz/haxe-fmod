@@ -17,7 +17,10 @@ class BankLoadTracker {
     public var loaded(default, null):Bool = false;
 
     var disposed:Bool = false;
-    var paths:Array<String>;
+    // The file names as given. They resolve against the bank folder once
+    // FMOD is ready, since init sets the folder.
+    var files:Array<String>;
+    var paths:Array<String> = [];
     var onLoaded:Void->Void;
     var onError:Void->Void;
     var errored:Bool = false;
@@ -33,8 +36,9 @@ class BankLoadTracker {
         @param bankFiles Bank file names, resolved through FmodRuntime.bankPath.
         @param onLoaded Called exactly once, when all banks are loaded.
         @param onError Called exactly once, when any bank settles in an
-        error state (a missing file or a failed fetch on HTML5). Without
-        it, a failed load is only visible through loadingState polling.
+        error state (a missing file or a failed fetch on HTML5), or when
+        FMOD refused to initialize. Without it, a failed load is only
+        visible through loadingState polling.
         @param async Loads in the background (default). Pass false to load
         synchronously on native targets.
     */
@@ -42,7 +46,7 @@ class BankLoadTracker {
         this.onLoaded = onLoaded;
         this.onError = onError;
         this.async = async;
-        paths = [for (file in bankFiles) FmodRuntime.bankPath(file)];
+        files = bankFiles;
     }
 
     // Loads start on the first serviced frame after FMOD is ready. A
@@ -50,6 +54,7 @@ class BankLoadTracker {
     // of failing outright.
     function startLoads():Void {
         started = true;
+        paths = [for (file in files) FmodRuntime.bankPath(file)];
         for (path in paths) {
             var bank = async ? FmodRuntime.banks.loadAsync(path) : FmodRuntime.banks.load(path);
             if (!bank.isNull()) owned.push(path);

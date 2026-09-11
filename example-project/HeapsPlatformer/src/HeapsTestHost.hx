@@ -47,7 +47,7 @@ class HeapsTestHost implements TestHost {
         // A removeHook then init from inside the updater's own frame keeps
         // the hook. The frame hook runs inside FmodManager.Update and
         // counts its runs. In the browser the frame is driven through
-        // browserFrame, and the animation frame requests are counted: the
+        // browserFrame, and the animation frame requests are counted. The
         // reinstall leaves the re-arm to the running frame, so one request
         // stands after it. On HashLink the re-arm waits for the next loop
         // turn, which the installed flag covers.
@@ -61,22 +61,46 @@ class HeapsTestHost implements TestHost {
             }
         };
         #if js
+        // This check runs inside a live frame on HTML5 (create() is
+        // reached from the updater's own tick). The loop state is saved,
+        // the driven frame runs as its own, and the request it armed is
+        // handed back so the outer frame arms the one request that stays.
         var arms = 0;
         var window:Dynamic = js.Browser.window;
         var realRequest:Dynamic = window.requestAnimationFrame;
+        var savedInFrame = @:privateAccess FmodHeapsUpdater.inFrame;
+        var savedRequest = @:privateAccess FmodHeapsUpdater.frameRequest;
         window.requestAnimationFrame = function(cb:Dynamic):Int {
             arms++;
             return realRequest.call(window, cb);
         };
-        @:privateAccess FmodHeapsUpdater.browserFrame(0.0);
+        @:privateAccess FmodHeapsUpdater.inFrame = false;
+        var thrown:Dynamic = null;
+        try {
+            @:privateAccess FmodHeapsUpdater.browserFrame(0.0);
+        } catch (e:Dynamic) {
+            thrown = e;
+        }
         window.requestAnimationFrame = realRequest;
         haxefmod.studio.CallbackDispatcher.frameHook = previousHook;
+        if (savedInFrame) {
+            js.Browser.window.cancelAnimationFrame(@:privateAccess FmodHeapsUpdater.frameRequest);
+            @:privateAccess FmodHeapsUpdater.frameRequest = savedRequest;
+            @:privateAccess FmodHeapsUpdater.inFrame = true;
+        }
+        if (thrown != null) throw thrown;
         check("hardening_setup_remove_reinit_inside_tick",
             runs == 1 && arms == 1 && FmodHeapsUpdater.isInstalled(),
             'runs=$runs arms=$arms installed=${FmodHeapsUpdater.isInstalled()}');
         #else
-        @:privateAccess FmodHeapsUpdater.frame();
+        var thrown:Dynamic = null;
+        try {
+            @:privateAccess FmodHeapsUpdater.frame();
+        } catch (e:Dynamic) {
+            thrown = e;
+        }
         haxefmod.studio.CallbackDispatcher.frameHook = previousHook;
+        if (thrown != null) throw thrown;
         check("hardening_setup_remove_reinit_inside_tick", runs == 1 && FmodHeapsUpdater.isInstalled(),
             'runs=$runs installed=${FmodHeapsUpdater.isInstalled()}');
         #end

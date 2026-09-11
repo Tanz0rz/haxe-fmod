@@ -81,6 +81,7 @@ function tabbedPages() {
 
 const TABBED_PAGES = tabbedPages();
 const markupDrift = [];
+let skipped = 0;
 
 async function crawl() {
     const launch = { args: ['--no-sandbox'] };
@@ -118,6 +119,7 @@ async function crawl() {
             await page.waitForSelector('div.manual-content', { state: 'attached', timeout: 30000 });
         } catch (e) {
             console.error('skip ' + name + ': ' + e.message.split('\n')[0]);
+            skipped++;
             continue;
         }
         if (!fromDir) {
@@ -200,6 +202,8 @@ async function main() {
     const total = Object.values(pages).reduce((n, u) => n + u.length, 0);
     console.log('crawled ' + Object.keys(pages).length + ' pages, ' + total + ' code locations');
     const drift = markupDrift.slice();
+    // A skipped page was not compared, so the check is incomplete
+    if (skipped && mode !== 'update') drift.push(skipped + ' page(s) could not be crawled');
     const names = Object.keys(pages).sort();
     for (const name of names) {
         const file = path.join(CATALOG, name + '.md');
@@ -226,10 +230,16 @@ async function main() {
         }
     }
     if (mode === 'update') {
-        for (const existing of fs.readdirSync(CATALOG)) {
-            if (existing.endsWith('.md') && !pages[existing.slice(0, -3)]) {
-                fs.unlinkSync(path.join(CATALOG, existing));
-                console.log('removed ' + existing + ' (page gone)');
+        // A page that did not load is unknown rather than gone, so its
+        // file stays until a crawl reaches it
+        if (skipped) {
+            console.log(skipped + ' page(s) were skipped, so no catalog file is removed. Run again once they load.');
+        } else {
+            for (const existing of fs.readdirSync(CATALOG)) {
+                if (existing.endsWith('.md') && !pages[existing.slice(0, -3)]) {
+                    fs.unlinkSync(path.join(CATALOG, existing));
+                    console.log('removed ' + existing + ' (page gone)');
+                }
             }
         }
         console.log('wrote ' + names.length + ' files under extension/catalog/');

@@ -43,6 +43,9 @@ class FmodFlxPreloader extends FlxPreloader {
     var provided:Bool = false;
     var pendingLoads:Int = 0;
     var failedAt:Float = -1;
+    // showFailure ran. A subclass override owns its own display, so the
+    // latch lives here rather than in failureText.
+    var failureShown:Bool = false;
     var failureText:TextField;
     var fmodSettings:FmodSettings;
     var resolved:haxefmod.runtime.ResolvedFmodSettings;
@@ -161,15 +164,14 @@ class FmodFlxPreloader extends FlxPreloader {
             return;
         }
         var now = haxe.Timer.stamp();
-        if (failedAt < 0) {
-            failedAt = now;
-            // The failure text needs the sized stage the visuals wait for.
-            // The clock runs either way, so the game starts regardless.
-            if (visualsCreated) showFailure();
-        } else {
-            if (failureText == null && visualsCreated) showFailure();
-            if (now - failedAt >= failureDisplayTime) complete();
+        if (failedAt < 0) failedAt = now;
+        // The failure text needs the sized stage the visuals wait for.
+        // The clock runs either way, so the game starts regardless.
+        if (!failureShown && visualsCreated) {
+            failureShown = true;
+            showFailure();
         }
+        if (now - failedAt >= failureDisplayTime) complete();
     }
 
     // The game runs FMOD from here on, with or without every bank

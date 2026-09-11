@@ -515,6 +515,12 @@ jobs:
             echo "FAIL: extension/manifest.json version $EXT does not match haxelib.json version $VERSION"
             exit 1
           fi
+          # The userscript managers update on this number alone
+          SCRIPT=$(grep -m1 '^// @version' extension/haxefmod-fmod-docs.user.js | awk '{print $3}')
+          if [ "$SCRIPT" != "$VERSION" ]; then
+            echo "FAIL: userscript @version $SCRIPT does not match haxelib.json version $VERSION"
+            exit 1
+          fi
           HEADING=$(grep -m1 "^## $VERSION" CHANGELOG.md || true)
           if [ -z "$HEADING" ]; then
             echo "FAIL: CHANGELOG.md has no '## $VERSION' section"
