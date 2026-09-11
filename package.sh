@@ -17,7 +17,7 @@ for platform in Linux64 Mac64 Windows64; do
   fi
 done
 
-# zip -r packages whatever is on disk: a dirty, untracked, or gitignored
+# zip -r packages whatever is on disk. A dirty, untracked, or gitignored
 # file inside a packaged directory would ship to lib.haxe.org exactly as it
 # sits in the working tree. Refuse to package anything git does not know
 # about, allowing only the patterns the zip itself excludes below.

@@ -256,7 +256,7 @@ class ProgrammerSoundScenario implements TestScenario {
                     #if !js
                     if (_atMode != "game" && !properties.sound.isNull()) {
                         // A lock on a sound the library owns is refused, since
-                        // the library releases the sound on FMOD's thread
+                        // the drain releases the sound along with its handle
                         check("at_owned_lock_refused", properties.sound.lock(0, 64) == null
                             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,
                             'result=${StudioSystem.lastResult().toString()}');

@@ -1365,6 +1365,20 @@ class TestStudioSurface {
 		stream.release();
 		stub.testPcmReleaseResult = 68;
 		assert(!stream.hasReadCallback(), "release drops the read callback");
+		assert(CallbackDispatcher.frameHook == null, "the last read callback takes the frame hook with it");
+		// Two streams: the hook stays while one still reads
+		var second:PcmStream = 78;
+		stream.setReadCallback(function(s, data, len) return FmodResult.FMOD_OK);
+		second.setReadCallback(function(s, data, len) return FmodResult.FMOD_OK);
+		stream.clearReadCallback();
+		assert(second.hasReadCallback() && CallbackDispatcher.frameHook != null,
+			"a cleared read callback leaves the hook for the other stream");
+		second.clearReadCallback();
+		assert(CallbackDispatcher.frameHook == null, "the last cleared read callback drops the hook");
+		stream.setReadCallback(function(s, data, len) return FmodResult.FMOD_OK);
+		PcmStream.clearAllReadCallbacks();
+		assert(!stream.hasReadCallback() && CallbackDispatcher.frameHook == null,
+			"clearing every read callback drops the hook");
 		PcmStream.NULL.setReadCallback(function(s, data, len) return FmodResult.FMOD_OK);
 		assert(!PcmStream.NULL.hasReadCallback(), "null stream takes no read callback");
 		stub.testPcmSpace = 0;

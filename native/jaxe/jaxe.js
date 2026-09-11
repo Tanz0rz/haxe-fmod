@@ -415,9 +415,6 @@ class jaxe {
         delete jaxe.pluginSeen[handle];
     }
 
-    // Uninstalls callbacks on every tracked instance (or only those whose
-    // description raw pointer is in descPtrs when given). Used before
-    // bulk-destroy operations: releaseAllInstances, bank unload, unloadAll.
     // The per-handle callback state before a bulk destroy, so a refused
     // destroy puts every callback back on the instances FMOD kept
     static saveCallbackState() {
@@ -428,11 +425,14 @@ class jaxe {
         };
     }
 
-    // Puts the saved entries back one handle at a time and reinstalls the
-    // FMOD callback on each instance that still resolves and that FMOD
-    // still holds. An instance the failed destroy took anyway stays out,
-    // and the sweep reclaims its slot.
+    // Puts the saved entries back one handle at a time. The FMOD callback
+    // goes back on each instance that still resolves and that FMOD still
+    // holds. The sweep runs first. The refused call's destroys are still
+    // queued, and the sweep's flush makes them observable. An instance the
+    // failure took anyway loses its slot before the walk and stays out,
+    // since a callback reinstalled on it would corrupt the module.
     static restoreCallbackState(saved) {
+        jaxe.sweepDeadLookups();
         var kept = Object.keys(saved.masks).concat(Object.keys(saved.keys));
         for (var k = 0; k < kept.length; k++) {
             var handle = kept[k] | 0;
@@ -443,9 +443,11 @@ class jaxe {
             if (saved.plugins[handle] !== undefined) jaxe.pluginSeen[handle] = saved.plugins[handle];
             inst.setCallback(jaxe.callbackHandler, jaxe.effectiveCallbackMask(handle));
         }
-        jaxe.sweepDeadLookups();
     }
 
+    // Uninstalls callbacks on every tracked instance (or only those whose
+    // description raw pointer is in descPtrs when given). Used before
+    // bulk-destroy operations: releaseAllInstances, bank unload, unloadAll.
     static uninstallCallbacksFor(descPtrs) {
         var handles = Object.keys(jaxe.cbMasks).concat(Object.keys(jaxe.psKeys));
         for (var i = 0; i < handles.length; i++) {

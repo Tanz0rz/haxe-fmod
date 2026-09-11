@@ -403,26 +403,48 @@ def serve(bindir, port):
 """
 
 
+def record_page_function(seconds):
+    # The page launcher the two record steps share. A browser dead three
+    # seconds in, before the first click, reports failure so the caller
+    # launches it once more with a fresh profile. The runner's snap
+    # Chromium has died at startup on its GPU wrapper.
+    return f"""          record_page() {{
+            PROFILE=$(mktemp -d)
+            {CHROME}
+              "$1" > "$2" 2>&1 &
+            CHROME_PID=$!
+            sleep 3
+            if ! kill -0 $CHROME_PID 2>/dev/null; then return 1; fi
+            xdotool mousemove 320 240 click 1
+            sleep 1
+            ffmpeg -f pulse -i virtual_speaker.monitor -t {seconds} -y "$3" &
+            RECORD_PID=$!
+            sleep 4
+            xdotool mousemove 320 240 click 1
+            sleep {seconds - 3}
+            kill $CHROME_PID || true
+            pkill -f "$PROFILE" || true
+            wait $RECORD_PID || true
+            return 0
+          }}
+"""
+
+
+def record_page_call(url, console, wav):
+    return f"""          if ! record_page {url} {console} {wav}; then
+            echo "::notice ::the browser died at startup, launching it once more"
+            cp {console} "$(dirname {console})/first-attempt-$(basename {console})" || true
+            record_page {url} {console} {wav} || echo "the browser died at startup twice"
+          fi
+          kill $HTTP_PID || true
+"""
+
+
 def browser_steps(j):
     return f"""      - name: Record audio
         if: matrix.state == 'game-audio'
         run: |
-{serve(j.bindir, 8180)}          {CHROME}
-            http://localhost:8180 &
-          CHROME_PID=$!
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 1
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-{j.name}.wav &
-          RECORD_PID=$!
-          sleep 4
-          xdotool mousemove 320 240 click 1
-          sleep 27
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          wait $RECORD_PID || true
-
+{serve(j.bindir, 8180)}{record_page_function(30)}{record_page_call("http://localhost:8180", f"/tmp/audio-{j.name}-console.log", f"/tmp/audio-{j.name}.wav")}
       - name: Validate audio
         if: matrix.state == 'game-audio'
         run: ./ci/validate-audio.sh /tmp/audio-{j.name}.wav 10
@@ -430,22 +452,7 @@ def browser_steps(j):
       - name: Record volume test
         if: matrix.state == 'volume'
         run: |
-{serve(j.bindir, 8181)}          {CHROME}
-            "http://localhost:8181/index.html?test=volume" > /tmp/volume-test-{j.name}-console.log 2>&1 &
-          CHROME_PID=$!
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 1
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-{j.name}.wav &
-          RECORD_PID=$!
-          sleep 4
-          xdotool mousemove 320 240 click 1
-          sleep 22
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
-          kill $HTTP_PID || true
-          wait $RECORD_PID || true
-          grep -o "VOLUME_TEST.*" /tmp/volume-test-{j.name}-console.log | sed 's/",.*$//' || true
+{serve(j.bindir, 8181)}{record_page_function(25)}{record_page_call('"http://localhost:8181/index.html?test=volume"', f"/tmp/volume-test-{j.name}-console.log", f"/tmp/volume-test-{j.name}.wav")}          grep -o "VOLUME_TEST.*" /tmp/volume-test-{j.name}-console.log | sed 's/",.*$//' || true
 
       - name: Validate volume/mute
         if: matrix.state == 'volume'

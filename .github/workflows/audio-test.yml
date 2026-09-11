@@ -4372,27 +4372,37 @@ jobs:
           cd -
           sleep 1
           PROFILE=$(mktemp -d)
-          chromium-browser \
+          record_page() {
+            PROFILE=$(mktemp -d)
+            chromium-browser \
             --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            http://localhost:8180 &
-          CHROME_PID=$!
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 1
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-linux-html5-chromium.wav &
-          RECORD_PID=$!
-          sleep 4
-          xdotool mousemove 320 240 click 1
-          sleep 27
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
+              "$1" > "$2" 2>&1 &
+            CHROME_PID=$!
+            sleep 3
+            if ! kill -0 $CHROME_PID 2>/dev/null; then return 1; fi
+            xdotool mousemove 320 240 click 1
+            sleep 1
+            ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y "$3" &
+            RECORD_PID=$!
+            sleep 4
+            xdotool mousemove 320 240 click 1
+            sleep 27
+            kill $CHROME_PID || true
+            pkill -f "$PROFILE" || true
+            wait $RECORD_PID || true
+            return 0
+          }
+          if ! record_page http://localhost:8180 /tmp/audio-linux-html5-chromium-console.log /tmp/audio-linux-html5-chromium.wav; then
+            echo "::notice ::the browser died at startup, launching it once more"
+            cp /tmp/audio-linux-html5-chromium-console.log "$(dirname /tmp/audio-linux-html5-chromium-console.log)/first-attempt-$(basename /tmp/audio-linux-html5-chromium-console.log)" || true
+            record_page http://localhost:8180 /tmp/audio-linux-html5-chromium-console.log /tmp/audio-linux-html5-chromium.wav || echo "the browser died at startup twice"
+          fi
           kill $HTTP_PID || true
-          wait $RECORD_PID || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -4407,27 +4417,37 @@ jobs:
           cd -
           sleep 1
           PROFILE=$(mktemp -d)
-          chromium-browser \
+          record_page() {
+            PROFILE=$(mktemp -d)
+            chromium-browser \
             --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            "http://localhost:8181/index.html?test=volume" > /tmp/volume-test-linux-html5-chromium-console.log 2>&1 &
-          CHROME_PID=$!
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 1
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-linux-html5-chromium.wav &
-          RECORD_PID=$!
-          sleep 4
-          xdotool mousemove 320 240 click 1
-          sleep 22
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
+              "$1" > "$2" 2>&1 &
+            CHROME_PID=$!
+            sleep 3
+            if ! kill -0 $CHROME_PID 2>/dev/null; then return 1; fi
+            xdotool mousemove 320 240 click 1
+            sleep 1
+            ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y "$3" &
+            RECORD_PID=$!
+            sleep 4
+            xdotool mousemove 320 240 click 1
+            sleep 22
+            kill $CHROME_PID || true
+            pkill -f "$PROFILE" || true
+            wait $RECORD_PID || true
+            return 0
+          }
+          if ! record_page "http://localhost:8181/index.html?test=volume" /tmp/volume-test-linux-html5-chromium-console.log /tmp/volume-test-linux-html5-chromium.wav; then
+            echo "::notice ::the browser died at startup, launching it once more"
+            cp /tmp/volume-test-linux-html5-chromium-console.log "$(dirname /tmp/volume-test-linux-html5-chromium-console.log)/first-attempt-$(basename /tmp/volume-test-linux-html5-chromium-console.log)" || true
+            record_page "http://localhost:8181/index.html?test=volume" /tmp/volume-test-linux-html5-chromium-console.log /tmp/volume-test-linux-html5-chromium.wav || echo "the browser died at startup twice"
+          fi
           kill $HTTP_PID || true
-          wait $RECORD_PID || true
           grep -o "VOLUME_TEST.*" /tmp/volume-test-linux-html5-chromium-console.log | sed 's/",.*$//' || true
 
       - name: Validate volume/mute
@@ -5613,27 +5633,37 @@ jobs:
           cd -
           sleep 1
           PROFILE=$(mktemp -d)
-          chromium-browser \
+          record_page() {
+            PROFILE=$(mktemp -d)
+            chromium-browser \
             --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            http://localhost:8180 &
-          CHROME_PID=$!
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 1
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-heaps-html5.wav &
-          RECORD_PID=$!
-          sleep 4
-          xdotool mousemove 320 240 click 1
-          sleep 27
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
+              "$1" > "$2" 2>&1 &
+            CHROME_PID=$!
+            sleep 3
+            if ! kill -0 $CHROME_PID 2>/dev/null; then return 1; fi
+            xdotool mousemove 320 240 click 1
+            sleep 1
+            ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y "$3" &
+            RECORD_PID=$!
+            sleep 4
+            xdotool mousemove 320 240 click 1
+            sleep 27
+            kill $CHROME_PID || true
+            pkill -f "$PROFILE" || true
+            wait $RECORD_PID || true
+            return 0
+          }
+          if ! record_page http://localhost:8180 /tmp/audio-heaps-html5-console.log /tmp/audio-heaps-html5.wav; then
+            echo "::notice ::the browser died at startup, launching it once more"
+            cp /tmp/audio-heaps-html5-console.log "$(dirname /tmp/audio-heaps-html5-console.log)/first-attempt-$(basename /tmp/audio-heaps-html5-console.log)" || true
+            record_page http://localhost:8180 /tmp/audio-heaps-html5-console.log /tmp/audio-heaps-html5.wav || echo "the browser died at startup twice"
+          fi
           kill $HTTP_PID || true
-          wait $RECORD_PID || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -5648,27 +5678,37 @@ jobs:
           cd -
           sleep 1
           PROFILE=$(mktemp -d)
-          chromium-browser \
+          record_page() {
+            PROFILE=$(mktemp -d)
+            chromium-browser \
             --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            "http://localhost:8181/index.html?test=volume" > /tmp/volume-test-heaps-html5-console.log 2>&1 &
-          CHROME_PID=$!
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 1
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-heaps-html5.wav &
-          RECORD_PID=$!
-          sleep 4
-          xdotool mousemove 320 240 click 1
-          sleep 22
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
+              "$1" > "$2" 2>&1 &
+            CHROME_PID=$!
+            sleep 3
+            if ! kill -0 $CHROME_PID 2>/dev/null; then return 1; fi
+            xdotool mousemove 320 240 click 1
+            sleep 1
+            ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y "$3" &
+            RECORD_PID=$!
+            sleep 4
+            xdotool mousemove 320 240 click 1
+            sleep 22
+            kill $CHROME_PID || true
+            pkill -f "$PROFILE" || true
+            wait $RECORD_PID || true
+            return 0
+          }
+          if ! record_page "http://localhost:8181/index.html?test=volume" /tmp/volume-test-heaps-html5-console.log /tmp/volume-test-heaps-html5.wav; then
+            echo "::notice ::the browser died at startup, launching it once more"
+            cp /tmp/volume-test-heaps-html5-console.log "$(dirname /tmp/volume-test-heaps-html5-console.log)/first-attempt-$(basename /tmp/volume-test-heaps-html5-console.log)" || true
+            record_page "http://localhost:8181/index.html?test=volume" /tmp/volume-test-heaps-html5-console.log /tmp/volume-test-heaps-html5.wav || echo "the browser died at startup twice"
+          fi
           kill $HTTP_PID || true
-          wait $RECORD_PID || true
           grep -o "VOLUME_TEST.*" /tmp/volume-test-heaps-html5-console.log | sed 's/",.*$//' || true
 
       - name: Validate volume/mute
@@ -6626,27 +6666,37 @@ jobs:
           cd -
           sleep 1
           PROFILE=$(mktemp -d)
-          chromium-browser \
+          record_page() {
+            PROFILE=$(mktemp -d)
+            chromium-browser \
             --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            http://localhost:8180 &
-          CHROME_PID=$!
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 1
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-html5.wav &
-          RECORD_PID=$!
-          sleep 4
-          xdotool mousemove 320 240 click 1
-          sleep 27
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
+              "$1" > "$2" 2>&1 &
+            CHROME_PID=$!
+            sleep 3
+            if ! kill -0 $CHROME_PID 2>/dev/null; then return 1; fi
+            xdotool mousemove 320 240 click 1
+            sleep 1
+            ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y "$3" &
+            RECORD_PID=$!
+            sleep 4
+            xdotool mousemove 320 240 click 1
+            sleep 27
+            kill $CHROME_PID || true
+            pkill -f "$PROFILE" || true
+            wait $RECORD_PID || true
+            return 0
+          }
+          if ! record_page http://localhost:8180 /tmp/audio-kha-html5-console.log /tmp/audio-kha-html5.wav; then
+            echo "::notice ::the browser died at startup, launching it once more"
+            cp /tmp/audio-kha-html5-console.log "$(dirname /tmp/audio-kha-html5-console.log)/first-attempt-$(basename /tmp/audio-kha-html5-console.log)" || true
+            record_page http://localhost:8180 /tmp/audio-kha-html5-console.log /tmp/audio-kha-html5.wav || echo "the browser died at startup twice"
+          fi
           kill $HTTP_PID || true
-          wait $RECORD_PID || true
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -6661,27 +6711,37 @@ jobs:
           cd -
           sleep 1
           PROFILE=$(mktemp -d)
-          chromium-browser \
+          record_page() {
+            PROFILE=$(mktemp -d)
+            chromium-browser \
             --no-sandbox --no-first-run --no-default-browser-check --user-data-dir="$PROFILE" \
             --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader \
             --autoplay-policy=no-user-gesture-required \
             --enable-logging=stderr --v=0 \
             --window-size=640,480 \
             --window-position=0,0 \
-            "http://localhost:8181/index.html?test=volume" > /tmp/volume-test-kha-html5-console.log 2>&1 &
-          CHROME_PID=$!
-          sleep 3
-          xdotool mousemove 320 240 click 1
-          sleep 1
-          ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y /tmp/volume-test-kha-html5.wav &
-          RECORD_PID=$!
-          sleep 4
-          xdotool mousemove 320 240 click 1
-          sleep 22
-          kill $CHROME_PID || true
-          pkill -f "$PROFILE" || true
+              "$1" > "$2" 2>&1 &
+            CHROME_PID=$!
+            sleep 3
+            if ! kill -0 $CHROME_PID 2>/dev/null; then return 1; fi
+            xdotool mousemove 320 240 click 1
+            sleep 1
+            ffmpeg -f pulse -i virtual_speaker.monitor -t 25 -y "$3" &
+            RECORD_PID=$!
+            sleep 4
+            xdotool mousemove 320 240 click 1
+            sleep 22
+            kill $CHROME_PID || true
+            pkill -f "$PROFILE" || true
+            wait $RECORD_PID || true
+            return 0
+          }
+          if ! record_page "http://localhost:8181/index.html?test=volume" /tmp/volume-test-kha-html5-console.log /tmp/volume-test-kha-html5.wav; then
+            echo "::notice ::the browser died at startup, launching it once more"
+            cp /tmp/volume-test-kha-html5-console.log "$(dirname /tmp/volume-test-kha-html5-console.log)/first-attempt-$(basename /tmp/volume-test-kha-html5-console.log)" || true
+            record_page "http://localhost:8181/index.html?test=volume" /tmp/volume-test-kha-html5-console.log /tmp/volume-test-kha-html5.wav || echo "the browser died at startup twice"
+          fi
           kill $HTTP_PID || true
-          wait $RECORD_PID || true
           grep -o "VOLUME_TEST.*" /tmp/volume-test-kha-html5-console.log | sed 's/",.*$//' || true
 
       - name: Validate volume/mute

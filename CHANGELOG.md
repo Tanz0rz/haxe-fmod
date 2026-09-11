@@ -178,8 +178,9 @@
 - `Sound.lock` on a sound the library owns is refused, since the library releases that sound on its own.
 - The library releases a programmer sound it created on the game thread, as the destroy record drains. The subsound handles and the sound's own handle go with it. The sound therefore lives until the next `FmodManager.Update`. The callback released it on FMOD's thread before, while the handle still resolved for up to a frame.
 - `Sound.release` collects the subsound handles of any count. A list of 1024 left the rest of a larger FSB resolving freed sounds.
-- The HTML5 `unloadAll`, `Bank.unload`, and `releaseAllInstances` put every callback back when FMOD refuses the call. The instances FMOD took anyway stay out, and the sweep reclaims their slots. An HTML5 `ChannelGroup.release` FMOD refuses keeps the group's channel callback mapping.
-- A `PcmStream` read callback removed last takes the frame hook with it.
+- The HTML5 `unloadAll`, `Bank.unload`, and `releaseAllInstances` put every callback back when FMOD refuses the call. The sweep runs first, so the instances FMOD took anyway are out before any callback goes back. An HTML5 `ChannelGroup.release` FMOD refuses keeps the group's channel callback mapping.
+- A `PcmStream` read callback removed last takes the frame hook with it, and a test pins both branches.
+- The browser record steps launch Chromium once more when it dies at startup. The game audio leg keeps the browser's console log. The runner's snap Chromium died on its GPU wrapper and the leg reported silence.
 - The three HashLink build jobs keep their pre-built hdll check on a tag, like the doctor and package check. The loop invariant derives the SDK-only tests from their includes and holds the local replay to the same sets. The FMOD header parser stops on an enum initializer it cannot read rather than shifting the values after it.
 - The flixel pan scenario checks the camera listener against a half-width camera. The dropped record test parks a borrowed handle as none, and the arity audit reads the stop result.
 - A `Sound.release` or `ChannelGroup.release` FMOD refuses leaves the lock, the custom rolloff, and the subsound handles as they were. They were torn down before the call.

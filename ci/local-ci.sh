@@ -7,8 +7,7 @@
 # workflow's record and run steps.
 #
 # Not replayed: env-doctor, js-harness, api-docs, package-check,
-# package-check-cpp, linux-hl-compat, and the heaps-hl and kha-linux
-# manual-update legs.
+# package-check-cpp, linux-hl-compat, and the heaps-hl manual-update leg.
 # The Mac and Windows jobs have no local equivalent. Of docs.yml, the
 # unit-tests job replays the snippet compile, the review ledger, and the
 # line counts. The site build, the API reference, the extension test, and
@@ -241,16 +240,22 @@ run_browser_state() {
 # Serves the html5 build and records the browser's audio for the main game
 # record_browser_game <port> <wav> <seconds> [console-log]
 record_browser_game() {
-  local port="$1" wav="$2" secs="$3" console="${4:-/dev/null}" query="${5:-}" http chrome rec
+  local port="$1" wav="$2" secs="$3" console="${4:-/dev/null}" query="${5:-}" http chrome rec attempt
   (cd "$WEB_BIN" && exec python3 -m http.server "$port" > /dev/null 2>&1) &
   http=$!
   sleep 1
-  "$CHROMIUM" --no-sandbox $CHROME_GL --autoplay-policy=no-user-gesture-required \
-    --no-first-run --no-default-browser-check --disable-sync --user-data-dir="$(mktemp -d "$OUT/chrome.XXXXXX")" \
-    --enable-logging=stderr --v=0 --window-size=640,480 --window-position=0,0 \
-    "http://localhost:$port/index.html$query" > "$console" 2>&1 &
-  chrome=$!
-  sleep 3
+  # A browser dead three seconds in gets one more launch with a fresh
+  # profile, like the workflow's record steps
+  for attempt in 1 2; do
+    "$CHROMIUM" --no-sandbox $CHROME_GL --autoplay-policy=no-user-gesture-required \
+      --no-first-run --no-default-browser-check --disable-sync --user-data-dir="$(mktemp -d "$OUT/chrome.XXXXXX")" \
+      --enable-logging=stderr --v=0 --window-size=640,480 --window-position=0,0 \
+      "http://localhost:$port/index.html$query" > "$console" 2>&1 &
+    chrome=$!
+    sleep 3
+    if kill -0 $chrome 2>/dev/null; then break; fi
+    echo "the browser died at startup, launching it once more"
+  done
   xdotool mousemove 320 240 click 1
   sleep 1
   ffmpeg -loglevel error -f pulse -i virtual_speaker.monitor -t "$secs" -y "$wav" &
@@ -509,7 +514,7 @@ job_linux_html5_chromium() {
     done
     cmp "$STAGE_DIR/fmodstudio.js" export/html5/bin/lib/fmodstudio.js' _ "$EXAMPLE" "$TMP"
   start_display_audio
-  step "Record audio" record_browser_game 8080 "$TMP/audio-html5.wav" 30
+  step "Record audio" record_browser_game 8080 "$TMP/audio-html5.wav" 30 "$TMP/audio-html5-console.log"
   step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-html5.wav" 10
   step "Record volume test" record_volume_html5
   step "Validate volume/mute" ./ci/validate-volume.sh "$TMP/volume-test-html5.wav" 15
