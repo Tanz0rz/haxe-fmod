@@ -11,6 +11,8 @@
 /example-project/HeapsPlatformer/build-manual
 /example-project/HeapsPlatformer/.haxefmod
 /example-project/EZPlatformer/.haxefmod
+# build-hdll run at the library root writes its project-local hdll here
+/.haxefmod/
 /example-project/EZPlatformer/fmod/.cache
 /example-project/EZPlatformer/fmod/.user
 /example-project/EZPlatformer/fmod/.unsaved/
