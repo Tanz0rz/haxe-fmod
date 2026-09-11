@@ -46,7 +46,14 @@ class NativeStudioStub {
     public static function sys_lookup_path(guid:String):String return "";
     public static function sys_get_param_by_name(name:String):Float return 0.0;
     public static function sys_get_param_by_name_final(name:String):Float return 0.0;
-    public static function sys_set_param_by_name(name:String, value:Float, ignoreSeekSpeed:Bool):Int return ERR_UNSUPPORTED;
+    /** The last global parameter name and value handed to the stub, for the unit tests. */
+    public static var testLastGlobalParameter:String = null;
+    public static var testLastGlobalValue:Float = 0;
+    public static function sys_set_param_by_name(name:String, value:Float, ignoreSeekSpeed:Bool):Int {
+        testLastGlobalParameter = name;
+        testLastGlobalValue = value;
+        return ERR_UNSUPPORTED;
+    }
     public static function sys_set_param_by_name_with_label(name:String, label:String, ignoreSeekSpeed:Bool):Int return ERR_UNSUPPORTED;
     public static function sys_get_param_by_id(id1:Int, id2:Int):Float return 0.0;
     public static function sys_get_param_by_id_final(id1:Int, id2:Int):Float return 0.0;

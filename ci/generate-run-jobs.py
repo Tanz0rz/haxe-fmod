@@ -241,7 +241,8 @@ def run_for(j, seconds, log, wav_env):
           ffmpeg -f pulse -i virtual_speaker.monitor -t {seconds} -y {j.tmp(f"audio-{j.name}.wav")} &
           RECORD_PID=$!
           cd {j.bindir}
-          timeout {seconds} {j.launch} > {log} 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 {seconds} {j.launch} > {log} 2>&1 || true
           cd -
           wait $RECORD_PID || true
 """
@@ -249,7 +250,8 @@ def run_for(j, seconds, log, wav_env):
         return f"""          export FMOD_WAVWRITER="{wav_env}"
           export HAXEFMOD_LOG_FILE="{log}"
           cd {j.bindir}
-          timeout {seconds} {j.launch} > "{log}" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 {seconds} {j.launch} > "{log}" 2>&1 || true
           cd -
 """
     return f"""          export FMOD_WAVWRITER={wav_env}

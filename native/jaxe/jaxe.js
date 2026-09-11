@@ -335,7 +335,9 @@ class jaxe {
             }
             if (descPtrs != null) {
                 var d = {};
-                if (inst.getDescription(d) != jaxe.FMOD.OK || !descPtrs.has(jaxe.rawPtr(d.val))) continue;
+                var owned = inst.getDescription(d) == jaxe.FMOD.OK && descPtrs.has(jaxe.rawPtr(d.val));
+                jaxe.dropWrapper(d.val);
+                if (!owned) continue;
             }
             jaxe.uninstallCallback(handle);
         }
@@ -1151,7 +1153,7 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // fbuf: [0]=studio update us, [1..6]=core dsp/stream/geometry/update/conv1/conv2.
+    // fbuf: [0]=studio update percent of one core, [1..6]=core dsp/stream/geometry/update/conv1/conv2 percent.
     // FMOD JS writes the usage fields directly onto the out objects.
     static fmod_sys_get_cpu_usage(fbuf) {
         if (!jaxe.sysReady()) return jaxe.lastResult;
@@ -1475,7 +1477,11 @@ class jaxe {
             var listed = {};
             if (bank.getEventList(list, cnt.val, listed) == jaxe.FMOD.OK && list.val) {
                 var ptrs = new Set();
-                for (var i = 0; i < list.val.length; i++) ptrs.add(jaxe.rawPtr(list.val[i]));
+                for (var i = 0; i < list.val.length; i++) {
+                    ptrs.add(jaxe.rawPtr(list.val[i]));
+                    // Read for its pointer only, so the wrapper goes at once
+                    jaxe.dropWrapper(list.val[i]);
+                }
                 jaxe.uninstallCallbacksFor(ptrs);
             }
         }
@@ -2491,7 +2497,9 @@ class jaxe {
             } catch (e) {
                 continue;
             }
-            if (jaxe.rawPtr(out.val) === raw) jaxe.handleFree((s.gen << 16) | i);
+            var owner = jaxe.rawPtr(out.val);
+            jaxe.dropWrapper(out.val);
+            if (owner === raw) jaxe.handleFree((s.gen << 16) | i);
         }
     }
 
@@ -2668,6 +2676,10 @@ class jaxe {
         jaxe.lastResult = ps.sound.release();
         if (jaxe.lastResult != jaxe.FMOD.OK) return jaxe.lastResult;
         ps.ring = null;
+        // The slot holds a composite, so handleFree cannot delete the
+        // sound wrapper inside it
+        jaxe.dropWrapper(ps.sound);
+        ps.sound = null;
         jaxe.handleFree(handle);
         return jaxe.lastResult;
     }
@@ -3354,6 +3366,9 @@ class jaxe {
         var out = {};
         jaxe.lastResult = group.getParentGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        // The master group has no parent: the glue hands back a wrapper
+        // around a null pointer, which is no group
+        if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
         return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_CHANGROUP);
     }
 
@@ -4489,6 +4504,9 @@ class jaxe {
         var out = {};
         jaxe.lastResult = ch.getCurrentSound(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        // A channel from playDSP has no sound: the glue hands back a
+        // wrapper around a null pointer
+        if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
         // Borrowed reference: releasing it would pull the sound out from
         // under its owner
         return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
@@ -5878,7 +5896,8 @@ class jaxe {
         var out = {};
         jaxe.lastResult = sound.getSubSoundParent(out);
         // A top-level sound comes back as a wrapper around a null pointer
-        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val || jaxe.rawPtr(out.val) == 0) return 0;
+        if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
         return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
     }
 

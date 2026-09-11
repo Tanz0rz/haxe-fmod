@@ -4939,6 +4939,7 @@ HL_PRIM int HL_NAME(evd_create_instance)(int h) {
         return 0;
     }
     if (!attach_instance_ctx(instance, handle)) {
+        gLastResult = FMOD_ERR_MEMORY;
         faxe_handle_free(handle);
         FMOD_Studio_EventInstance_Release(instance);
         return 0;

@@ -74,7 +74,7 @@ class NativeStudioCpp {
     public static inline function sys_flush_commands():Int return Raw.sys_flush_commands();
     public static inline function sys_flush_sample_loading():Int return Raw.sys_flush_sample_loading();
 
-    /** Fills Scratch float buffer: [0]=studio update us, [1..6]=core dsp/stream/geometry/update/conv1/conv2 */
+    /** Fills Scratch float buffer: [0]=studio update percent of one core, [1..6]=core dsp/stream/geometry/update/conv1/conv2 percent */
     public static inline function sys_get_cpu_usage():Int return Raw.sys_get_cpu_usage(Scratch.floatBuf());
 
     /** Fills Scratch int buffer: [0..3]=cmdqueue cur/peak/cap/stall, [4..7]=handle cur/peak/cap/stall. float buffer: [0]=cmd stalltime, [1]=handle stalltime */

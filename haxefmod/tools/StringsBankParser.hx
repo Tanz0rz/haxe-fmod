@@ -79,7 +79,12 @@ class StringsBankParser {
 		var end = 8 + riffSize;
 		if (end > bytes.length) end = bytes.length;
 
-		var stdt = findChunk(bytes, 12, end, "STDT");
+		var stdt = try {
+			findChunk(bytes, 12, end, "STDT", 0);
+		} catch (e:haxe.Exception) {
+			throw new haxe.Exception('$sourceName has a corrupt chunk layout: ${e.message}'
+				+ " - the bank is corrupt or uses an unsupported FMOD Studio format.");
+		}
 		if (stdt == null) {
 			throw new haxe.Exception('No string table (STDT chunk) found in $sourceName'
 				+ " - this is a regular bank. The generator needs Master.strings.bank."
@@ -90,7 +95,7 @@ class StringsBankParser {
 			parseStringTable(bytes, stdt.start, stdt.end);
 		} catch (e:haxe.Exception) {
 			throw new haxe.Exception('Failed to parse the string table in $sourceName: ${e.message}'
-				+ " - the bank may be corrupt or use an unsupported FMOD Studio format.");
+				+ " - the bank is corrupt or uses an unsupported FMOD Studio format.");
 		}
 
 		if (entries.length == 0) {
@@ -101,9 +106,16 @@ class StringsBankParser {
 		return entries;
 	}
 
+	// A real bank nests LIST chunks a few levels deep. A crafted file can
+	// nest one per twelve bytes, and the walk is recursive, so a bound
+	// keeps it off the native stack.
+	static inline var MAX_LIST_DEPTH:Int = 32;
+
 	/** Depth-first search for the first chunk with the given tag between
-		start and end. Returns the payload range or null. */
-	static function findChunk(bytes:Bytes, start:Int, end:Int, tag:String):Null<{start:Int, end:Int}> {
+		start and end. Returns the payload range or null. Throws past
+		MAX_LIST_DEPTH nested LIST chunks. */
+	static function findChunk(bytes:Bytes, start:Int, end:Int, tag:String, depth:Int):Null<{start:Int, end:Int}> {
+		if (depth > MAX_LIST_DEPTH) throw new haxe.Exception('LIST chunks nested deeper than $MAX_LIST_DEPTH levels');
 		var p = start;
 		while (p + 8 <= end) {
 			var chunkTag = bytes.getString(p, 4);
@@ -117,7 +129,7 @@ class StringsBankParser {
 			if (chunkTag == tag) return {start: payloadStart, end: payloadEnd};
 			if (chunkTag == "LIST" && size >= 4) {
 				// LIST payload: 4-byte list type, then child chunks.
-				var inner = findChunk(bytes, payloadStart + 4, payloadEnd, tag);
+				var inner = findChunk(bytes, payloadStart + 4, payloadEnd, tag, depth + 1);
 				if (inner != null) return inner;
 			}
 			// RIFF chunks are word-aligned. Sizes are padded to even.

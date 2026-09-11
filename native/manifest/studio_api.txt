@@ -112,7 +112,7 @@ sys_load_bank_file str i32 -> i32
 sys_unload_all -> i32
 sys_flush_commands -> i32
 sys_flush_sample_loading -> i32
-# profiling; fbuf: [0]=studio update us, [1..6]=core dsp/stream/geometry/update/conv1/conv2
+# profiling; fbuf: [0]=studio update percent of one core, [1..6]=core dsp/stream/geometry/update/conv1/conv2 percent
 sys_get_cpu_usage fbuf -> i32
 # ibuf: [0..3]=cmdqueue cur/peak/cap/stall [4..7]=handle cur/peak/cap/stall; fbuf: [0]=cmd stalltime [1]=handle stalltime
 sys_get_buffer_usage ibuf fbuf -> i32

@@ -2324,6 +2324,7 @@ jobs:
             /tmp/audio-linux-hl-compat.wav
             /tmp/game-linux-hl-compat.log
             /tmp/volume-test-linux-hl-compat.wav
+            /tmp/*-linux-hl-compat.log
           if-no-files-found: warn
           overwrite: true
 
@@ -3808,7 +3809,8 @@ jobs:
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-linux-cpp.wav &
           RECORD_PID=$!
           cd example-project/EZPlatformer/export/linux/bin
-          timeout 30 ./run.sh > /tmp/game-linux-cpp.log 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 30 ./run.sh > /tmp/game-linux-cpp.log 2>&1 || true
           cd -
           wait $RECORD_PID || true
           echo "=== Game log ==="
@@ -4011,7 +4013,8 @@ jobs:
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-linux-hl.wav &
           RECORD_PID=$!
           cd example-project/EZPlatformer/export/hl/bin
-          timeout 30 env LD_LIBRARY_PATH="$(pwd)" ./EZPlatformerTestEdition > /tmp/game-linux-hl.log 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 30 env LD_LIBRARY_PATH="$(pwd)" ./EZPlatformerTestEdition > /tmp/game-linux-hl.log 2>&1 || true
           cd -
           wait $RECORD_PID || true
           echo "=== Game log ==="
@@ -4813,7 +4816,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-cpp.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-windows-cpp.log"
           cd example-project/EZPlatformer/export/windows/bin
-          timeout 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/game-windows-cpp.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/game-windows-cpp.log" 2>&1 || true
           cd -
           echo "=== Game log ==="
           cat $GITHUB_WORKSPACE/game-windows-cpp.log || true
@@ -4826,7 +4830,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-windows-cpp.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-windows-cpp.log"
           cd example-project/EZPlatformer/export/windows/bin
-          timeout 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/volume-test-windows-cpp.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/volume-test-windows-cpp.log" 2>&1 || true
           cd -
 
       - name: Fix WAV headers
@@ -4990,7 +4995,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-hl.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-windows-hl.log"
           cd example-project/EZPlatformer/export/hl/bin
-          timeout 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/game-windows-hl.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/game-windows-hl.log" 2>&1 || true
           cd -
           echo "=== Game log ==="
           cat $GITHUB_WORKSPACE/game-windows-hl.log || true
@@ -5003,7 +5009,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-windows-hl.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-windows-hl.log"
           cd example-project/EZPlatformer/export/hl/bin
-          timeout 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/volume-test-windows-hl.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/volume-test-windows-hl.log" 2>&1 || true
           cd -
 
       - name: Fix WAV headers
@@ -5207,7 +5214,8 @@ jobs:
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-heaps-hl.wav &
           RECORD_PID=$!
           cd example-project/HeapsPlatformer/build/hl
-          timeout 30 ./run.sh > /tmp/game-heaps-hl.log 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 30 ./run.sh > /tmp/game-heaps-hl.log 2>&1 || true
           cd -
           wait $RECORD_PID || true
           echo "=== Game log ==="
@@ -5816,7 +5824,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-heaps-windows-hl.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-heaps-windows-hl.log"
           cd example-project/HeapsPlatformer/build/hl
-          timeout 60 ./HeapsPlatformer.exe > "$GITHUB_WORKSPACE/game-heaps-windows-hl.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 ./HeapsPlatformer.exe > "$GITHUB_WORKSPACE/game-heaps-windows-hl.log" 2>&1 || true
           cd -
           echo "=== Game log ==="
           cat $GITHUB_WORKSPACE/game-heaps-windows-hl.log || true
@@ -5829,7 +5838,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log"
           cd example-project/HeapsPlatformer/build/hl
-          timeout 60 ./HeapsPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 ./HeapsPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log" 2>&1 || true
           cd -
 
       - name: Fix WAV headers
@@ -6004,7 +6014,8 @@ jobs:
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-linux.wav &
           RECORD_PID=$!
           cd example-project/KhaPlatformer/build/linux
-          timeout 30 ./run.sh > /tmp/game-kha-linux.log 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 30 ./run.sh > /tmp/game-kha-linux.log 2>&1 || true
           cd -
           wait $RECORD_PID || true
           echo "=== Game log ==="
@@ -6207,7 +6218,8 @@ jobs:
           ffmpeg -f pulse -i virtual_speaker.monitor -t 30 -y /tmp/audio-kha-hl.wav &
           RECORD_PID=$!
           cd example-project/KhaPlatformer/build/linux-hl
-          timeout 30 ./run.sh > /tmp/game-kha-hl.log 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 30 ./run.sh > /tmp/game-kha-hl.log 2>&1 || true
           cd -
           wait $RECORD_PID || true
           echo "=== Game log ==="
@@ -7009,7 +7021,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-kha-windows.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-kha-windows.log"
           cd example-project/KhaPlatformer/build/windows
-          timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/game-kha-windows.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/game-kha-windows.log" 2>&1 || true
           cd -
           echo "=== Game log ==="
           cat $GITHUB_WORKSPACE/game-kha-windows.log || true
@@ -7022,7 +7035,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-kha-windows.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-kha-windows.log"
           cd example-project/KhaPlatformer/build/windows
-          timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows.log" 2>&1 || true
           cd -
 
       - name: Fix WAV headers
@@ -7186,7 +7200,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-kha-windows-hl.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-kha-windows-hl.log"
           cd example-project/KhaPlatformer/build/windows-hl
-          timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/game-kha-windows-hl.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/game-kha-windows-hl.log" 2>&1 || true
           cd -
           echo "=== Game log ==="
           cat $GITHUB_WORKSPACE/game-kha-windows-hl.log || true
@@ -7199,7 +7214,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-kha-windows-hl.wav"
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log"
           cd example-project/KhaPlatformer/build/windows-hl
-          timeout 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log" 2>&1 || true
           cd -
 
       - name: Fix WAV headers

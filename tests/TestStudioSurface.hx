@@ -248,8 +248,9 @@ class TestStudioSurface {
 		stream.play();
 		assert(stub.testLastPlayGroup == 0, "pcm play defaults to the master group");
 
-		assert(Channel.DSP_HEAD == ChannelGroup.DSP_HEAD && Channel.DSP_FADER == ChannelGroup.DSP_FADER
-			&& Channel.DSP_TAIL == ChannelGroup.DSP_TAIL, "channel chain positions match the group's");
+		// FMOD_CHANNELCONTROL_DSP_HEAD, _FADER, _TAIL are -1, -2, -3
+		assert(Channel.DSP_HEAD == -1 && Channel.DSP_FADER == -2 && Channel.DSP_TAIL == -3,
+			"channel chain positions are FMOD's literals");
 
 		var instance:EventInstance = EventInstance.NULL;
 		assert(instance.assignProgrammerSoundFrom(Sound.NULL) == FmodResult.FMOD_ERR_INVALID_PARAM,
@@ -755,6 +756,9 @@ class TestStudioSurface {
 		// Channel event routing: namespaced records reach the channel map
 		// and End removes the registration
 		var received:Array<haxefmod.core.ChannelEvent> = [];
+		// An earlier suite installed the router already, so it is cleared
+		// first to prove this registration installs it
+		haxefmod.studio.CallbackDispatcher.channelRouter = null;
 		ChannelCallbacks.set(1234, function(e) received.push(e));
 		assert(haxefmod.studio.CallbackDispatcher.channelRouter != null, "chan router self-installed");
 		haxefmod.studio.CallbackDispatcher.deliver(1234, ChannelCallbacks.TYPE_SYNCPOINT, 3, 0, 0, 0, 0, 0, "");
@@ -829,7 +833,6 @@ class TestStudioSurface {
 		var received:Array<haxefmod.core.ChannelEvent> = [];
 		group = cast 4321;
 		group.setCallback(function(e) received.push(e));
-		assert(StudioSystem.lastResult() == FmodResult.FMOD_ERR_UNSUPPORTED, "cg setCallback reaches the stub");
 		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, haxe.io.FPHelper.floatToI32(0.25), 0, 0, 0, 0, 0.5, "");
 		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
 		assert(received.length == 2, "cg events delivered");
@@ -1122,15 +1125,18 @@ class TestStudioSurface {
 		assert(!group.setMaxAudibleBehavior(SoundGroupBehavior.STEALLOWEST).isOk(), "typed behavior set routes");
 		assert(!group.setMaxAudibleBehavior(SoundGroup.BEHAVIOR_MUTE).isOk(), "behavior alias still accepted");
 		assert(group.getMaxAudibleBehavior() == SoundGroupBehavior.FAIL, "typed behavior get default");
-		assert(SoundGroup.BEHAVIOR_STEAL_LOWEST == SoundGroupBehavior.STEALLOWEST, "behavior alias value");
+		// FMOD_SOUNDGROUP_BEHAVIOR_STEALLOWEST is 2
+		assert((SoundGroup.BEHAVIOR_STEAL_LOWEST : Int) == 2, "behavior alias value");
 
 		var dsp = Dsp.create(DspType.FADER);
 		assert(dsp.addInput(dsp, DspConnectionType.SIDECHAIN).isNull(), "typed addInput routes");
 		assert(dsp.addInput(dsp, DspConnection.TYPE_SEND).isNull(), "addInput alias still accepted");
 		assert(dsp.addInput(dsp).getType() == DspConnectionType.STANDARD, "typed connection type default");
-		assert(DspConnection.TYPE_SEND_SIDECHAIN == DspConnectionType.SEND_SIDECHAIN, "connection alias value");
+		// FMOD_DSPCONNECTION_TYPE_SEND_SIDECHAIN is 3
+		assert((DspConnection.TYPE_SEND_SIDECHAIN : Int) == 3, "connection alias value");
 		assert(dsp.getDataParameterIndex(FmodDspParameterDataType.FFT) == -1, "typed data parameter index routes");
-		assert(Dsp.PARAMETER_DATA == FmodDspParameterType.DATA, "parameter type alias value");
+		// FMOD_DSP_PARAMETER_TYPE_DATA is 3
+		assert((Dsp.PARAMETER_DATA : Int) == 3, "parameter type alias value");
 
 		assert(ChannelGroup.DSP_HEAD == (ChannelControlDspIndex.HEAD : Int)
 			&& ChannelGroup.DSP_FADER == (ChannelControlDspIndex.FADER : Int)

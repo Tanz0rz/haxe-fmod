@@ -114,9 +114,13 @@ class TestComponentCores {
 
 		// Without an instance the global parameter path is used. The stub
 		// rejects every parameter, which is the outcome the pan test pins
+		// The provider sits at 100, outside this zone, so the outside
+		// value is what reaches the global setter
+		stub.testLastGlobalParameter = null;
 		var global = new ZoneTrigger(provider, 0, 0, 10, 10, "Nope", 1, 0);
 		global.update();
-		assert(!haxefmod.studio.StudioSystem.lastResult().isOk(), "global path reaches StudioSystem.setParameter");
+		assert(stub.testLastGlobalParameter == "Nope" && stub.testLastGlobalValue == 0,
+			"global path reaches StudioSystem.setParameter with the name and value");
 
 		stub.testInitialized = savedInit;
 	}

@@ -42,7 +42,9 @@ abstract Bank(Int) from Int to Int {
     /**
      * Unloads the bank and invalidates this handle (and every event
      * description/instance handle that came from it). The userdata and
-     * the description-level callbacks of those descriptions are dropped.
+     * the description-level callbacks of those descriptions are dropped,
+     * for the first 1024 events of the bank. A larger bank keeps the
+     * rest until StudioSystem.unloadAll.
      */
     public function unload():FmodResult {
         for (description in getEventList()) {

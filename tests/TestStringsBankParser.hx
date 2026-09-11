@@ -183,6 +183,28 @@ class TestStringsBankParser {
 		// the catch, so some corrupt banks must come back as a result
 		Sys.println('  hostile corpus: returned=$returned threw=$threw');
 		assert("hostile corpus: some inputs return a result", returned > 0);
+
+		// A crafted bank nests one LIST chunk per twelve bytes. The walk is
+		// recursive, so the parser reports the depth instead of overflowing
+		// the stack.
+		var levels = 2000;
+		var nested = new haxe.io.BytesBuffer();
+		nested.addString("RIFF");
+		nested.addInt32(4 + levels * 12);
+		nested.addString("FEV ");
+		for (level in 0...levels) {
+			nested.addString("LIST");
+			nested.addInt32((levels - level) * 12 - 8);
+			nested.addString("xxxx");
+		}
+		var deepMessage = "";
+		try {
+			StringsBankParser.parse(nested.getBytes(), "deep.bank");
+		} catch (e:haxe.Exception) {
+			deepMessage = e.message;
+		}
+		assert("deeply nested LIST chunks are reported, not overflowed",
+			deepMessage.indexOf("corrupt chunk layout") >= 0 && deepMessage.indexOf("nested deeper") >= 0);
 	}
 
 	//// identifier mangling

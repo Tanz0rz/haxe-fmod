@@ -79,9 +79,10 @@ class FmodHeapsUpdater {
         try {
             frame();
         } catch (e:Dynamic) {
-            // A throwing ticker must not leave the frame flag set, or
-            // no later init could arm the loop again
+            // A throwing ticker must not end the loop: the next frame is
+            // armed before the error goes on to the browser console
             inFrame = false;
+            if (installed) frameRequest = js.Browser.window.requestAnimationFrame(browserFrame);
             throw e;
         }
         inFrame = false;

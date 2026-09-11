@@ -197,31 +197,30 @@ class SynthScenario implements TestScenario {
         }
         if (_stream.isNull()) return;
 
-        // The segment is done once the mixer has drained the whole ring.
-        // Underruns after that are the ring reporting the drained state and
-        // carry no signal, so they are not checked.
+        // The segment is done once the mixer has drained the whole ring,
+        // or once the drain wait ran out. Underruns after the drain are
+        // the ring reporting the drained state and carry no signal, so
+        // they are not checked.
         var drained = _stream.space() == _capacity;
         _drainFrames++;
         if (!drained && _drainFrames <= DRAIN_WAIT_FRAMES) return;
         // A ring that never drains fails the segment instead of holding
         // the job until its wall clock
         if (!drained) check('segment${_segment + 1}_drained', false, 'frames=$_drainFrames');
-        {
-            if (!_lowpass.isNull()) {
-                _channel.removeDsp(_lowpass);
-                _lowpass.release();
-                _lowpass = Dsp.NULL;
-            }
-            _channel.stop();
-            _stream.release();
-            _stream = PcmStream.NULL;
-            _channel = Channel.NULL;
+        if (!_lowpass.isNull()) {
+            _channel.removeDsp(_lowpass);
+            _lowpass.release();
+            _lowpass = Dsp.NULL;
+        }
+        _channel.stop();
+        _stream.release();
+        _stream = PcmStream.NULL;
+        _channel = Channel.NULL;
 
-            if (_segment + 1 < SEGMENTS.length) {
-                startSegment(_segment + 1);
-            } else {
-                finish();
-            }
+        if (_segment + 1 < SEGMENTS.length) {
+            startSegment(_segment + 1);
+        } else {
+            finish();
         }
     }
 

@@ -13,8 +13,8 @@ import flixel.FlxG;
     so it pushes the positions of the frame before.
 **/
 class FmodFlxUpdater {
-    // A fresh closure per install. Flixel defers a removal that runs
-    // inside the postUpdate dispatch to the end of that dispatch. add()
+    // A fresh closure after every removeHook. Flixel defers a removal
+    // that runs inside the postUpdate dispatch to the end of it. add()
     // would then find the old closure still present and keep it. An
     // init after a removeHook in the same dispatch therefore registers
     // a distinct closure, which survives the deferred removal.

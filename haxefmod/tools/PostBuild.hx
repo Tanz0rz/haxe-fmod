@@ -855,10 +855,6 @@ class PostBuild {
 	}
 
 	/**
-	 * The generated Linux launcher script. The exe invocation is quoted so
-	 * a name with spaces still launches. Public for unit tests.
-	 */
-	/**
 	 * Writes a launcher when it is missing or its content changed, and
 	 * makes it executable. An unchanged file is left alone, so its
 	 * timestamp does not move on every build.
@@ -868,6 +864,10 @@ class PostBuild {
 		if (executable) Sys.command("chmod", ["+x", path]);
 	}
 
+	/**
+	 * The generated Linux launcher script. The exe invocation is quoted so
+	 * a name with spaces still launches. Public for unit tests.
+	 */
 	public static function runShContent(exeName:String, viaHl:Bool = false, mac:Bool = false):String {
 		var launch = viaHl ? 'hl "./${exeName}"' : '"./${exeName}"';
 		var libPath = mac ? "DYLD_LIBRARY_PATH" : "LD_LIBRARY_PATH";
