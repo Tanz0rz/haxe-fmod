@@ -4,8 +4,7 @@
 	
 	<app title="EZPlatformerTestEdition" file="EZPlatformerTestEdition" main="Main" version="0.0.1" company="Tanz0rz" />
 	
-	<!--The flixel preloader is not accurate in Chrome. You can use it regularly if you embed the swf into a html file
-		or you can set the actual size of your file manually at "FlxPreloaderBase-onUpdate-bytesTotal"!-->
+	<!-- TestPreloader extends FmodFlxPreloader, so FMOD and the banks are ready before the first state -->
 	<app preloader="TestPreloader" />
 	
 	<!--Minimum without FLX_NO_GAMEPAD: 11.8, without FLX_NO_NATIVE_CURSOR: 11.2 -->

@@ -16,19 +16,23 @@ import openfl.utils.Assets;
         <app preloader="haxefmod.flixel.FmodFlxPreloader" />
 
     The preloader initializes FMOD while lime loads the assets. The
-    default banks come from the loaded assets, so nothing is fetched
-    twice. The preloader completes once FMOD reports initialized, and
-    the first state plays events at once. Native targets initialize
+    default banks come from the loaded assets, so the runtime fetches
+    none of them. The preloader completes once FMOD reports initialized,
+    and the first state plays events at once. Native targets initialize
     synchronously, so the preloader completes as soon as the assets do.
+    It installs FmodFlxUpdater, so FmodManager.Update() runs every frame
+    from the first state on.
 
-    A subclass overrides settings() to pass FmodSettings. The first
-    initialization wins, so settings passed to FmodFlxSetup.init later
-    are ignored. Override create() and update() for custom visuals the
-    way FlxPreloader allows.
+    A subclass overrides settings() to pass FmodSettings. It runs once,
+    and the preloader sets banksProvided on the object it returns. The
+    first initialization wins, so settings passed to FmodFlxSetup.init
+    later are ignored. Override create() and update() for custom visuals
+    the way FlxPreloader allows.
 
-    When a default bank fails to load, the preloader shows the failure
-    for failureDisplayTime seconds, then completes. The game then runs
-    without audio, and the console names the bank.
+    When a default bank is missing from the assets or fails to load, the
+    preloader shows the failure for failureDisplayTime seconds, then
+    completes. The game then runs without that bank, and the console
+    names it.
 **/
 class FmodFlxPreloader extends FlxPreloader {
     /** How long the failure message stays before the game starts anyway, in seconds. **/
@@ -40,6 +44,8 @@ class FmodFlxPreloader extends FlxPreloader {
     var pendingLoads:Int = 0;
     var failedAt:Float = -1;
     var failureText:TextField;
+    var fmodSettings:FmodSettings;
+    var resolved:haxefmod.runtime.ResolvedFmodSettings;
 
     /** The settings FMOD initializes with. Override it in a subclass. Null means the defines and defaults. **/
     function settings():Null<FmodSettings> {
@@ -58,10 +64,8 @@ class FmodFlxPreloader extends FlxPreloader {
     function initialize():Void {
         if (initialized) return;
         initialized = true;
-        var s = settings();
-        if (s == null) s = {};
-        s.banksProvided = true;
-        FmodManager.Initialize(s);
+        resolvedSettings();
+        FmodManager.Initialize(fmodSettings);
     }
 
     /**
@@ -75,32 +79,38 @@ class FmodFlxPreloader extends FlxPreloader {
         assetsLoaded = true;
     }
 
-    /** True once lime's default library holds every bank in autoLoadBanks. **/
-    function banksAvailable():Bool {
-        if (lime.utils.Assets.getLibrary("default") == null) return false;
-        var resolved = resolvedSettings();
-        for (fileName in resolved.autoLoadBanks) {
-            if (!Assets.exists(FmodRuntime.bankPath(fileName, resolved.bankFolder))) return false;
-        }
-        return true;
-    }
-
+    // The settings are read once. The resolved copy names the banks and
+    // the folder before the runtime has them.
     function resolvedSettings():haxefmod.runtime.ResolvedFmodSettings {
-        var resolved = FmodRuntime.settings();
-        return resolved != null ? resolved : haxefmod.runtime.FmodSettingsResolver.resolve(settings());
+        if (resolved == null) {
+            fmodSettings = settings();
+            if (fmodSettings == null) fmodSettings = {};
+            fmodSettings.banksProvided = true;
+            resolved = haxefmod.runtime.FmodSettingsResolver.resolve(fmodSettings);
+        }
+        return resolved;
     }
 
     /**
         Hands every bank in autoLoadBanks to the runtime. A bank lime
         preloaded is read at once. A bank the project marked as not
-        preloaded is fetched here, and initialization waits for it.
+        preloaded is fetched here, and initialization waits for it. A
+        bank the project assets lack is reported as failed.
     **/
     function provideBanks():Void {
         var resolved = resolvedSettings();
         for (fileName in resolved.autoLoadBanks) {
             var path = FmodRuntime.bankPath(fileName, resolved.bankFolder);
+            if (!Assets.exists(path)) {
+                FmodRuntime.provideBankFailed(fileName, 'the project assets have no $path. Add the bank folder to the project assets');
+                continue;
+            }
             if (lime.utils.Assets.isLocal(path, BINARY)) {
-                FmodRuntime.provideBank(fileName, Assets.getBytes(path));
+                // The manifest lists the asset. On a native target the
+                // file can still be absent from the bank folder.
+                var bytes = Assets.getBytes(path);
+                if (bytes == null) FmodRuntime.provideBankFailed(fileName, 'the assets list $path but there is no file behind it. Check the bank folder');
+                else FmodRuntime.provideBank(fileName, bytes);
                 continue;
             }
             pendingLoads++;
@@ -108,7 +118,7 @@ class FmodFlxPreloader extends FlxPreloader {
                 FmodRuntime.provideBank(fileName, bytes);
                 pendingLoads--;
             }).onError(function(error) {
-                trace('Error: FMOD - the preloader could not load $path: $error');
+                FmodRuntime.provideBankFailed(fileName, 'the preloader could not load $path ($error)');
                 pendingLoads--;
             });
         }
@@ -119,49 +129,33 @@ class FmodFlxPreloader extends FlxPreloader {
         if (!provided) {
             // Lime hands out asset bytes after its own preload, and on
             // native targets it registers the library a frame or two after
-            // the preloader started. A bank missing from the project assets
-            // is reported once the library is there.
-            if (!assetsLoaded) return;
-            if (!banksAvailable()) {
-                if (lime.utils.Assets.getLibrary("default") != null) reportMissing();
-                return;
-            }
+            // the preloader started
+            if (!assetsLoaded || lime.utils.Assets.getLibrary("default") == null) return;
             provided = true;
             provideBanks();
         }
         if (pendingLoads > 0) return;
         // Native init loads the default banks inside Initialize, so the
-        // bytes go in first. HTML5 initialized in create()
+        // bytes go in first. HTML5 is initialized from create().
         initialize();
         FmodManager.Update();
-        // The failure check comes first: a native target reports
-        // initialized even when a default bank failed inside Initialize
-        if (!FmodManager.InitializeFailed()) {
-            if (FmodManager.IsInitialized()) _loaded = true;
+        if (FmodManager.InitializeFailed()) {
+            var now = haxe.Timer.stamp();
+            if (failedAt < 0) {
+                failedAt = now;
+                showFailure();
+            } else if (now - failedAt >= failureDisplayTime) {
+                complete();
+            }
             return;
         }
-        var now = haxe.Timer.stamp();
-        if (failedAt < 0) {
-            failedAt = now;
-            showFailure();
-        } else if (now - failedAt >= failureDisplayTime) {
-            _loaded = true;
-        }
+        if (FmodManager.IsInitialized()) complete();
     }
 
-    var missingReported:Bool = false;
-
-    /** Names the banks the project assets lack, then initializes so the failure path runs. **/
-    function reportMissing():Void {
-        if (missingReported) return;
-        missingReported = true;
-        var resolved = resolvedSettings();
-        for (fileName in resolved.autoLoadBanks) {
-            var path = FmodRuntime.bankPath(fileName, resolved.bankFolder);
-            if (!Assets.exists(path)) trace('Error: FMOD - the preloader found no asset at $path. Add the bank folder to the project assets.');
-        }
-        provided = true;
-        initialize();
+    // The game runs FMOD from here on, with or without every bank
+    function complete():Void {
+        FmodFlxUpdater.init();
+        _loaded = true;
     }
 
     /** Shows the failure message. Override it for a custom look. **/
@@ -170,6 +164,8 @@ class FmodFlxPreloader extends FlxPreloader {
         failureText.defaultTextFormat = new TextFormat(null, 14, 0xffffff);
         failureText.width = openfl.Lib.current.stage.stageWidth;
         failureText.y = openfl.Lib.current.stage.stageHeight * 0.75;
+        failureText.multiline = true;
+        failureText.wordWrap = true;
         failureText.selectable = false;
         failureText.text = "FMOD could not load its banks. The game starts without audio.";
         addChild(failureText);

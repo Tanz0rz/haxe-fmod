@@ -10,11 +10,11 @@ The FMOD web build is a WebAssembly module. The library's post-build step copies
 
 The wasm module and the default banks load in the background. `FmodManager.IsInitialized()` (or `FmodRuntime.isInitialized()`) reports true once both are usable.
 
-The engine preloaders make that wait invisible. `FmodFlxPreloader` runs inside lime's preloader, and `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` call back once FMOD is ready. Each hands the default banks to the runtime as bytes from the engine's own loading, so the banks are fetched once and the first scene starts with FMOD usable. [Engine components](guides/components.md#setup) shows the three.
+The engine preloaders make that wait invisible. `FmodFlxPreloader` runs inside lime's preloader, and `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` call back once FMOD is ready. Each hands the default banks to the runtime as bytes it read during loading. The banks are fetched once, and the first scene starts with FMOD usable. [Engine components](guides/components.md#setup) shows the three.
 
 The bytes go through `FmodRuntime.provideBank(fileName, bytes)`, with the `banksProvided` setting on. A game on another engine does the same from whatever loads its assets, then calls `FmodRuntime.onceReady(start, onFailed)`.
 
-A game that starts FMOD without a preloader polls the flag from a loading scene and starts the real game from it. The same code is correct on native targets, where the check is true immediately.
+A game that starts FMOD without a preloader polls the flag from a loading scene. It starts the real game from there. The same code is correct on native targets, where the check is true immediately.
 
 ```haxe
 function update():Void {
@@ -24,7 +24,7 @@ function update():Void {
 }
 ```
 
-`FmodManager.InitializeFailed()` reports that a default bank failed to load, so the poll never turns true. A loading scene checks it beside `IsInitialized()` and shows a message. The preloaders do this for you. `AnyBankFailed()` reports the same for a bank loaded later.
+`FmodManager.InitializeFailed()` reports that a default bank failed to load. The system still initializes without that bank, so a loading scene checks it before `IsInitialized()` and shows a message. `FmodFlxPreloader` does this for you. `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` run the `onFailed` callback the game passed. `AnyBankFailed()` reports the same for a bank loaded later.
 
 ```haxe
 function updateLoadingScene():Void {

@@ -92,10 +92,11 @@ class ProbeSysExtras {
         sound.release();
         #end
         var usage = StudioSystem.getFileUsage();
-        // The default banks come from the preloader as bytes, so FMOD read
-        // no file for them. The counters then prove only that the call works.
+        // The default banks come from the preloader as bytes, so FMOD reads
+        // no file for them. The probe WAV above is the file read on sys
+        // targets. In the browser the counters prove only that the call works.
         @:privateAccess state.check("sys_get_file_usage", usage != null && (usage.sampleBytesRead + usage.streamBytesRead + usage.otherBytesRead > 0
-            || FmodRuntime.providedBankCount() > 0),
+            #if !sys || FmodRuntime.providedBankCount() > 0 #end),
             usage == null ? 'result=${StudioSystem.lastResult().toString()}'
             : 'sample=${usage.sampleBytesRead} stream=${usage.streamBytesRead} other=${usage.otherBytesRead}');
 

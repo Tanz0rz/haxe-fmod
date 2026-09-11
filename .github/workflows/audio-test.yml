@@ -168,6 +168,10 @@ jobs:
           haxe tests/build-defines.hxml
           haxe tests/build-debug-defaults.hxml
 
+      # One init per process: the failure path gets its own suite
+      - name: Test the default bank failure path
+        run: haxe tests/build-preload-failure.hxml
+
       # The shared headers own the cross-thread lifetime contracts.
       # ASan/UBSan cover the single-threaded invariants (including the
       # handle fuzz), TSan proves the locking on the two tests that drive
@@ -1783,7 +1787,8 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending
+            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -1907,7 +1912,8 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending
+            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -2488,7 +2494,8 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending
+            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -4624,7 +4631,8 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending
+            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -4786,7 +4794,8 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending
+            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -5542,7 +5551,8 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending
+            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -6610,7 +6620,8 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending
+            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -6772,7 +6783,8 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending
+            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }

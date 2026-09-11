@@ -490,10 +490,14 @@ class NativeStudioStub {
     public static function dsp_get_active(handle:Int):Bool return false;
     public static function dsp_get_metering_enabled(handle:Int):Int return ERR_UNSUPPORTED;
 
-    // Bank loading from memory
+    // Bank loading from memory. The shims refuse null data and a length
+    // of zero, so the stub does the same.
     public static var testBankMemoryLoads:Array<Int> = [];
+    public static var testBankMemoryFlags:Array<Int> = [];
     public static function sys_load_bank_memory(data:haxe.io.Bytes, len:Int, flags:Int):Int {
+        if (data == null || len <= 0) return 0;
         testBankMemoryLoads.push(len);
+        testBankMemoryFlags.push(flags);
         return testSyntheticHandles ? ++testNextHandle : 0;
     }
 

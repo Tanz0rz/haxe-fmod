@@ -93,7 +93,7 @@ class ApiProbeScenario implements TestScenario {
 
         log("API_PROBE: Starting");
 
-        // Installed here (instead of the loading state) because the
+        // Installed here (instead of the preloader) because the
         // per-frame updater it adds would drain the callback queue every
         // frame and defeat cb-test's overflow phase
         host.setupInit();
@@ -916,8 +916,8 @@ class ApiProbeScenario implements TestScenario {
             && Math.abs(created.getParameter("Surface") - 1) < 0.001, 'value=${created.getParameter("Surface")}');
         check("helper_event_not_paused", !created.isPaused(), "");
         // Every example starts through its engine preloader, which hands the
-        // default banks to the runtime as bytes. The runtime then loaded
-        // them from memory instead of fetching files.
+        // default banks to the runtime as bytes. The runtime loads them
+        // from memory instead of fetching files.
         check("preload_banks_provided", FmodRuntime.providedBankCount() == FmodRuntime.settings().autoLoadBanks.length
             && FmodRuntime.allBanksProvided(), 'provided=${FmodRuntime.providedBankCount()} expected=${FmodRuntime.settings().autoLoadBanks.length}');
         check("helper_init_not_failed", !FmodManager.InitializeFailed() && !FmodManager.AnyBankFailed(), "");
@@ -1348,8 +1348,8 @@ class ApiProbeScenario implements TestScenario {
             check("replay_stale_invalid", !replay.isValid(), "");
         }
 
-        // Bank from memory: covered by the js harness on html5; native loads
-        // the real bank bytes here
+        // Bank from memory. The js harness covers html5, and native loads
+        // the real bank bytes here.
         #if sys
         var bankBytes = try sys.io.File.getBytes("assets/fmod/Desktop/Master.bank") catch (e:Dynamic) null;
         if (bankBytes == null) {

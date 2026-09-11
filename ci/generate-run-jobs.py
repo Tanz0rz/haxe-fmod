@@ -213,7 +213,8 @@ def setup_steps(j):
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending
+            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }

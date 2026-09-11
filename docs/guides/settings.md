@@ -25,9 +25,9 @@ FmodRuntime.onceReady(() -> {
 });
 ```
 
-`onceReady` runs the handler immediately when initialization is already complete. Otherwise it runs the handler on the first serviced frame after initialization completes. Values pushed to FMOD before that point land on objects that do not exist yet. Setup code that applies state belongs inside the handler. A second argument runs instead when a default bank failed to load, so initialization cannot complete.
+`onceReady` runs the handler immediately when initialization is already complete. Otherwise it runs the handler on the first serviced frame after initialization completes. Values pushed to FMOD before that point land on objects that do not exist yet. Setup code that applies state belongs inside the handler. A second argument runs instead when a default bank failed to load. That runs at once when the failure is already known, otherwise from `update`.
 
-`provideBank(fileName, bytes)` hands the runtime the bytes of a default bank, so it loads from memory instead of fetching the file. The engine preloaders call it with what the engine's own loader delivered. With the `banksProvided` setting on, initialization waits for every bank in `autoLoadBanks` to be provided and fetches none of them.
+`provideBank(fileName, bytes)` hands the runtime the bytes of a default bank. The runtime then loads from memory instead of fetching the file. The engine preloaders call it with what the engine's own loader delivered. With the `banksProvided` setting on, initialization fetches none of them. On HTML5 it waits for every bank in `autoLoadBanks` to be provided. A native target loads them inside `init`, so every bank is provided before `init` or counts as failed. `provideBankFailed(fileName, reason)` reports a bank the loader cannot deliver. The runtime traces the reason once, and initialization completes without that bank.
 
 `FmodRuntime.update()` services the runtime. It drains the callback queue and pushes the positions of attached instances. It also calls FMOD's update when the background auto-update is off. `FmodManager.Update()` calls it, so a game needs only one of the two.
 
@@ -58,7 +58,7 @@ FmodRuntime.onceReady(() -> {
 | `logLevel` | `haxefmod_log_level` | 1 | FMOD debug logging. 0 none, 1 errors, 2 warnings, 3 everything. |
 | `bankFolder` | `haxefmod_bank_folder` | `assets/fmod/Desktop` | Folder that bank file names resolve against. |
 | `autoLoadBanks` | | `["Master.bank", "Master.strings.bank"]` | Banks that init loads. Pass `[]` to manage all loading yourself. |
-| `banksProvided` | | false | The engine's loader delivers the default banks through `FmodRuntime.provideBank`, so init waits for them and fetches none. The [engine preloaders](components.md#setup) set this. |
+| `banksProvided` | | false | The engine's loader delivers the default banks through `FmodRuntime.provideBank`, so init fetches none. HTML5 waits for them, a native target needs them before `init`. The [engine preloaders](components.md#setup) set this. |
 | `autoUpdate` | | true | Services FMOD from a background thread (native) or timer (HTML5). Audio then keeps running when the game loop stalls. |
 | `muteWhenUnfocused` | `haxefmod_no_mute_when_unfocused` | true | Mutes the master output while the window is unfocused. See [FmodManager](fmod-manager.md#window-focus). |
 | `maxMPEGCodecs`, `maxVorbisCodecs`, `maxFADPCMCodecs` | | 0 | Codec pool sizes. 0 keeps FMOD's default for each. |
@@ -106,8 +106,9 @@ FmodRuntime.onceReady(() -> {
 | `isFocusMuted()` | Whether the focus mute is holding the master output down right now. |
 | `maxAttachedVelocity()` | The velocity cap applied to attached instances and the engine listeners, 0 for none. |
 | `setDebugLevel(level)` | FMOD's log level on the `logLevel` scale. The level reaches FMOD at once on native targets. On HTML5 it is applied once the module is ready, so a call before initialization completes is not lost. |
-| `initFailed()` | Whether a default bank failure stopped initialization. `FmodManager.InitializeFailed()` reports the same. |
-| `provideBank(fileName, bytes)` / `allBanksProvided()` / `providedBankCount()` | The default banks as bytes from the engine's loader, whether every bank in `autoLoadBanks` has been provided, and how many loaded from provided bytes. |
+| `initFailed()` | Whether a default bank failed to load or was never provided. The system still runs without that bank, so `isInitialized()` turns true too. `FmodManager.InitializeFailed()` reports the same. |
+| `provideBank(fileName, bytes)` / `provideBankFailed(fileName, reason)` | The default banks as bytes from the engine's loader, or a bank the loader cannot deliver. |
+| `allBanksProvided()` / `providedBankCount()` | Whether every bank in `autoLoadBanks` has been provided, and how many loaded from provided bytes. |
 | `onceReady(handler, ?onFailed)` | Runs the handler once FMOD is ready, or `onFailed` when a default bank failed. |
 | `pauseAll(paused)` / `muteAll(muted)` | Pauses or mutes the master bus. `FmodManager.PauseAllEvents`, `UnpauseAllEvents`, and `SetMasterMute` call these. |
 | `playOneShot(path, ?x, ?y)` / `playOneShotAttached(path, provider)` | The one-shot calls behind `FmodManager.PlayOneShot`, `PlayOneShotAt`, and `PlayOneShotAttached`. |

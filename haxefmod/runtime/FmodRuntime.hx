@@ -43,8 +43,14 @@ class FmodRuntime {
     static var focusMuteSynced:Bool = false;
     static var readyHandlers:Array<Void->Void> = [];
     static var failedHandlers:Array<Void->Void> = [];
-    // Bank bytes the engine's loader delivered, keyed by file name
+    // Bank bytes the engine's loader delivered, keyed by file name. An
+    // entry is removed once the runtime loaded it, FMOD copies the data.
     static var providedBanks:Map<String, haxe.io.Bytes> = new Map();
+    // Every file name that was ever provided, for allBanksProvided
+    static var providedNames:Map<String, Bool> = new Map();
+    // Default banks that failed, keyed by file name. A failed bank is
+    // reported once and never retried.
+    static var failedBanks:Map<String, Bool> = new Map();
     static var defaultBankFailed:Bool = false;
 
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
@@ -142,9 +148,11 @@ class FmodRuntime {
         #if (cpp || hl)
         if (!result.isOk()) return result;
         #end
+        dropUnexpectedProvided();
         #if !js
         // Native init loads the default banks synchronously. The stub
-        // backend runs the same path, so the unit tests cover it.
+        // backend runs the same path, so the unit tests cover it. A bank
+        // that failed is reported, and the system is usable without it.
         loadDefaultBanks();
         defaultBanksLoaded = true;
         #end
@@ -160,10 +168,11 @@ class FmodRuntime {
     }
 
     /**
-     * True once FMOD is usable: the system is initialized AND the
-     * settings' autoLoadBanks are loaded. Native init does both
-     * synchronously. On HTML5 both are asynchronous, so games gate their
-     * first state on this.
+     * True once FMOD is usable: the system is initialized AND every bank
+     * in the settings' autoLoadBanks is loaded or has failed. Native init
+     * does both synchronously. On HTML5 both are asynchronous, so games
+     * gate their first state on this. A failed default bank is reported
+     * by initFailed(), so a game checks that first.
      */
     public static function isInitialized():Bool {
         if (!NativeStudio.sys_is_initialized()) return false;
@@ -176,7 +185,6 @@ class FmodRuntime {
     static var defaultBanksLoaded:Bool = false;
     #if js
     static var defaultBankPaths:Array<String> = null;
-    static var defaultBankErrorLogged:Bool = false;
     #end
 
     /**
@@ -184,18 +192,49 @@ class FmodRuntime {
      * loads it from memory instead of fetching the file. The engine
      * preloaders call this with what the engine's own loader delivered.
      * The name is the entry in autoLoadBanks, with or without the folder.
-     * Call it before or after init, the bank is used either way. A bank
-     * provided after the runtime fetched it is ignored.
+     * Call it before or after init, the bank is used either way. FMOD
+     * copies the data, so the bytes are released after the load. A bank
+     * provided after the runtime fetched it is ignored. A name that is
+     * not in autoLoadBanks is dropped with a warning. Null bytes count
+     * as a failed bank.
      */
     public static function provideBank(fileName:String, bytes:haxe.io.Bytes):Void {
-        providedBanks.set(bankFileName(fileName), bytes);
+        var name = bankFileName(fileName);
+        if (bytes == null) {
+            provideBankFailed(fileName, "the loader delivered no bytes");
+            return;
+        }
+        if (resolved != null) {
+            if (!isDefaultBank(name)) {
+                trace('Warning: FMOD - $name was provided but is not in autoLoadBanks (${resolved.autoLoadBanks.join(", ")}). Dropped.');
+                return;
+            }
+            if (banks.isRegistered(bankPath(fileName))) return;
+        }
+        providedNames.set(name, true);
+        providedBanks.set(name, bytes);
+    }
+
+    /**
+     * Reports that a default bank cannot be provided: the engine's loader
+     * found no such asset or its fetch failed. The runtime traces the
+     * reason once, initFailed() turns true, and initialization completes
+     * without that bank. The engine preloaders call this.
+     */
+    public static function provideBankFailed(fileName:String, reason:String):Void {
+        var name = bankFileName(fileName);
+        if (failedBanks.exists(name)) return;
+        failedBanks.set(name, true);
+        defaultBankFailed = true;
+        providedBanks.remove(name);
+        trace('Error: FMOD - the default bank $name could not be provided: $reason. The game runs without it.');
     }
 
     /** True when the bytes of every bank in autoLoadBanks were provided. */
     public static function allBanksProvided():Bool {
         if (resolved == null) return false;
         for (fileName in resolved.autoLoadBanks) {
-            if (!providedBanks.exists(bankFileName(fileName))) return false;
+            if (!providedNames.exists(bankFileName(fileName))) return false;
         }
         return true;
     }
@@ -212,14 +251,38 @@ class FmodRuntime {
         return slash >= 0 ? fileName.substr(slash + 1) : fileName;
     }
 
-    /** Loads one default bank from provided bytes. Returns false when the load failed. */
+    static function isDefaultBank(name:String):Bool {
+        for (fileName in resolved.autoLoadBanks) {
+            if (bankFileName(fileName) == name) return true;
+        }
+        return false;
+    }
+
+    // Bytes provided under a name that is not a default bank are dropped
+    // at init, with the warning provideBank gives after init
+    static function dropUnexpectedProvided():Void {
+        for (name in providedBanks.keys()) {
+            if (isDefaultBank(name)) continue;
+            trace('Warning: FMOD - $name was provided but is not in autoLoadBanks (${resolved.autoLoadBanks.join(", ")}). Dropped.');
+            providedBanks.remove(name);
+        }
+    }
+
+    /**
+     * Loads one default bank from provided bytes and releases them.
+     * Returns false when the load failed. A failure is final: the bank
+     * is marked failed and never retried.
+     */
     static function loadProvidedBank(fileName:String):Bool {
-        var bytes = providedBanks.get(bankFileName(fileName));
+        var name = bankFileName(fileName);
+        var bytes = providedBanks.get(name);
+        providedBanks.remove(name);
         var path = bankPath(fileName);
-        if (banks.loadMemory(path, bytes).isNull()) {
+        if (bytes == null || banks.loadMemory(path, bytes).isNull()) {
+            failedBanks.set(name, true);
             defaultBankFailed = true;
             trace('Error: FMOD - default bank $path failed to load from the bytes the preloader provided'
-                + ' (${StudioSystem.lastResult()}). Initialization cannot complete without it.');
+                + ' (${StudioSystem.lastResult()}). The game runs without it.');
             return false;
         }
         providedBankLoads++;
@@ -243,23 +306,30 @@ class FmodRuntime {
                 else if (!resolved.banksProvided) banks.loadAsync(path);
             }
         }
+        // A bank that failed is settled: initialization completes without
+        // it, and initFailed() reports the failure.
+        var ready = true;
         for (fileName in resolved.autoLoadBanks) {
             var path = bankPath(fileName);
-            if (banks.isLoaded(path)) continue;
+            var name = bankFileName(fileName);
+            if (banks.isLoaded(path) || failedBanks.exists(name)) continue;
             if (resolved.banksProvided && !banks.isRegistered(path)) {
                 // Waiting for the engine's loader to provide it
-                if (providedBanks.exists(bankFileName(fileName))) loadProvidedBank(fileName);
-                return false;
+                if (providedBanks.exists(name) && loadProvidedBank(fileName)) continue;
+                ready = false;
+                continue;
             }
-            if (banks.loadingState(path) == FmodLoadingState.ERROR && !defaultBankErrorLogged) {
-                defaultBankErrorLogged = true;
+            if (banks.loadingState(path) == FmodLoadingState.ERROR) {
+                failedBanks.set(name, true);
                 defaultBankFailed = true;
                 trace('Error: FMOD - default bank failed to load: $path.'
                     + ' The browser fetches it relative to the page, from the bank folder setting.'
-                    + ' Check the path in the network tab. Initialization cannot complete without it.');
+                    + ' Check the path in the network tab. The game runs without it.');
+                continue;
             }
-            return false;
+            ready = false;
         }
+        if (!ready) return false;
         defaultBanksLoaded = true;
         #end
         return defaultBanksLoaded;
@@ -271,14 +341,13 @@ class FmodRuntime {
      * asynchronous HTML5 init finishes. Values pushed to FMOD before that
      * point land on objects that do not exist yet. Wiring that applies
      * state at setup time replays it through this hook. The optional
-     * onFailed runs instead when initialization cannot complete, because
-     * a default bank failed to load (initFailed). Only update() can
-     * observe that, so a game that waits for FMOD calls update() every
-     * frame.
+     * onFailed runs instead when a default bank failed to load
+     * (initFailed), at once when the failure is already known and
+     * otherwise from update(). A game that waits for FMOD on HTML5
+     * calls update() every frame.
      */
     public static function onceReady(handler:Void->Void, ?onFailed:Void->Void):Void {
-        // The failure check comes first: a native target reports
-        // initialized even when a default bank failed inside init
+        // A failed default bank wins over readiness on every target
         if (initFailed()) {
             if (onFailed != null) onFailed();
             return;
@@ -307,9 +376,10 @@ class FmodRuntime {
     }
 
     /**
-     * True when initialization cannot complete because a default bank
-     * failed to load. isInitialized() stays false then. Native targets
-     * load the default banks inside init, so this is an HTML5 state.
+     * True when a default bank failed to load or was never provided.
+     * The system is still initialized and runs without that bank, so
+     * isInitialized() turns true as well. Check this first. The console
+     * names the bank and the reason.
      */
     public static function initFailed():Bool {
         return defaultBankFailed;
@@ -346,15 +416,15 @@ class FmodRuntime {
      * positions. Call once per frame (FmodManager.Update does).
      */
     public static function update():Void {
-        if (!isInitialized()) {
-            if (initFailed() && failedHandlers.length > 0) {
-                var failed = failedHandlers;
-                failedHandlers = [];
-                readyHandlers = [];
-                for (handler in failed) handler();
-            }
-            return;
+        // A failed default bank runs the onFailed handlers instead of the
+        // ready handlers, as soon as the failure is known
+        if (initFailed() && (failedHandlers.length > 0 || readyHandlers.length > 0)) {
+            var failed = failedHandlers;
+            failedHandlers = [];
+            readyHandlers = [];
+            for (handler in failed) handler();
         }
+        if (!isInitialized()) return;
         if (!focusMuteSynced) {
             failedHandlers = [];
             // HTML5 initialization completes asynchronously, so the first
@@ -442,6 +512,7 @@ class FmodRuntime {
     /**
      * Resolves a bank file name against the configured bank folder. Before
      * init, pass the folder the settings name, or the default applies.
+     * A name that already holds a slash is a path and comes back as is.
      */
     public static function bankPath(fileName:String, ?folder:String):String {
         if (folder == null) folder = resolved != null ? resolved.bankFolder : "assets/fmod/Desktop";
@@ -523,14 +594,19 @@ class FmodRuntime {
     static function loadDefaultBanks():Void {
         if (resolved == null) return;
         for (fileName in resolved.autoLoadBanks) {
-            if (providedBanks.exists(bankFileName(fileName))) {
+            var name = bankFileName(fileName);
+            if (failedBanks.exists(name)) {
+                // The preloader reported it already
+            } else if (providedBanks.exists(name)) {
                 loadProvidedBank(fileName);
             } else if (resolved.banksProvided) {
-                defaultBankFailed = true;
-                trace('Error: FMOD - the settings say the preloader provides the banks, but ${bankFileName(fileName)} was not provided before init.');
+                // Native init cannot wait: a bank the preloader did not
+                // hand over before init is a failure
+                provideBankFailed(fileName, "the settings say the preloader provides the banks, but it was not provided before init");
             } else if (banks.load(bankPath(fileName)).isNull()) {
+                failedBanks.set(name, true);
                 defaultBankFailed = true;
-                trace('Error: FMOD - default bank failed to load: ${bankPath(fileName)} (${StudioSystem.lastResult()}). Check the file and the bank folder setting.');
+                trace('Error: FMOD - default bank failed to load: ${bankPath(fileName)} (${StudioSystem.lastResult()}). Check the file and the bank folder setting. The game runs without it.');
             }
         }
     }

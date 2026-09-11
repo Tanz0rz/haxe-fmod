@@ -23,19 +23,22 @@ import hxd.Event;
 
     Calling init() again is safe and keeps a single focus wiring.
 
-    preload() does the same and also loads the default banks through
-    Heaps' own binary loader, then calls back once FMOD is ready. The
-    first scene can then play events at once, on HTML5 too.
+    preload() does the same and also loads the default banks, through
+    hxd.net.BinaryLoader in the browser and from disk on HashLink, then
+    calls back once FMOD is ready. The first scene can then play events
+    at once, on HTML5 too.
 **/
 class FmodHeapsSetup {
     /**
-        Initializes FMOD, loads the default banks through hxd.net.BinaryLoader
-        from the bank folder, and calls onReady once everything is usable.
+        Initializes FMOD, loads the default banks from the bank folder
+        (hxd.net.BinaryLoader in the browser, the file on HashLink), and
+        calls onReady once everything is usable.
         On HTML5 the bank fetch and the FMOD module load run in parallel.
-        On HashLink both are synchronous and onReady runs before this
-        returns. onFailed runs instead when a bank cannot be loaded, and
-        the console names it.
-        @param settings The FmodSettings for Initialize. banksProvided is set here.
+        On HashLink both are synchronous and the callback runs before this
+        returns. onFailed runs instead when a bank cannot be loaded. FMOD
+        is initialized with the settings either way, the game runs without
+        that bank, and the console names it.
+        @param settings The FmodSettings for Initialize. banksProvided is set on the object.
         @param onReady Called once FMOD and the default banks are usable.
         @param onFailed Called when a default bank fails to load.
     **/
@@ -43,13 +46,6 @@ class FmodHeapsSetup {
         if (settings == null) settings = {};
         settings.banksProvided = true;
         var resolved = haxefmod.runtime.FmodSettingsResolver.resolve(settings);
-        var failed = false;
-        var fail = function(fileName:String, reason:String) {
-            if (failed) return;
-            failed = true;
-            trace('Error: FMOD - could not load the default bank $fileName: $reason');
-            if (onFailed != null) onFailed();
-        };
         #if js
         // The wasm module and the bank fetches run in parallel
         init(settings);
@@ -59,24 +55,27 @@ class FmodHeapsSetup {
             #if js
             var loader = new hxd.net.BinaryLoader(path);
             loader.onLoaded = function(bytes:haxe.io.Bytes) FmodRuntime.provideBank(fileName, bytes);
-            loader.onError = function(message:String) fail(fileName, message);
+            loader.onError = function(message:String) {
+                // The browser gives no status text on most failures
+                var reason = message == null || message == "" ? "the fetch failed, check the network tab" : message;
+                FmodRuntime.provideBankFailed(fileName, 'the fetch of $path failed ($reason)');
+            };
             loader.load();
             #else
             try {
                 FmodRuntime.provideBank(fileName, sys.io.File.getBytes(path));
             } catch (e:Dynamic) {
-                fail(fileName, Std.string(e));
+                FmodRuntime.provideBankFailed(fileName, '$path could not be read ($e)');
             }
             #end
         }
-        if (failed) return;
         #if !js
         // Native init loads the default banks inside init, from the bytes
         // provided above
         init(settings);
         #end
         FmodRuntime.onceReady(onReady, function() {
-            if (!failed) fail("a default bank", "the runtime reports the load failed");
+            if (onFailed != null) onFailed();
         });
     }
 

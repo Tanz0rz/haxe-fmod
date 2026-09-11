@@ -10,7 +10,7 @@ import haxefmod.studio.Types;
 
 /**
  * Probe for the init settings and system info. It reads what the
- * LoadFmodState settings did to the running system: output, resampler,
+ * preloader's settings did to the running system: output, resampler,
  * memory tracking, and thread attributes. Driver info, the console port
  * calls, and the limits follow. Nothing here changes state that outlives
  * the probe.
@@ -20,7 +20,7 @@ class ProbeInitSettings {
         var baseline = StudioSystem.liveHandleCount();
         var settings = FmodRuntime.settings();
 
-        // The settings LoadFmodState passed are visible in the resolved copy
+        // The settings the preloader passed are visible in the resolved copy
         @:privateAccess state.check("init_settings_resolved", settings != null && settings.memoryTracking
             && settings.resamplerMethod == FmodDspResampler.CUBIC && settings.threadAttributes.length == 1,
             settings == null ? "null" : 'tracking=${settings.memoryTracking} resampler=${(settings.resamplerMethod : Int)}');

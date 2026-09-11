@@ -173,7 +173,7 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
 
 === "Heaps"
 
-    Call `FmodHeapsSetup.preload()` once from your `hxd.App`'s `init()`. It initializes FMOD, loads the default banks through Heaps' own binary loader, and calls back once both are ready. The first scene then plays at once, on HTML5 too. See [Engine components](guides/components.md#setup).
+    Call `FmodHeapsSetup.preload()` once from your `hxd.App`'s `init()`. It initializes FMOD and loads the default banks, then calls back once both are ready. The first scene then plays at once, on HTML5 too. See [Engine components](guides/components.md#setup).
 
     ```haxe
     import haxefmod.FmodManager;
@@ -202,7 +202,7 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
 
 === "Kha"
 
-    Add the bank folder to the khafile assets for the browser, so `kha.Assets.loadEverything` loads the banks with everything else. Then call `FmodKhaSetup.preload()` from its callback. It initializes FMOD from those assets, or from the bank folder on a native target, and calls back once FMOD is ready. The first scene then plays at once, on HTML5 too. See [Engine components](guides/components.md#setup).
+    Add the bank folder to the khafile assets for the browser, so `kha.Assets.loadEverything` loads the banks with everything else. Then call `FmodKhaSetup.preload()` from its callback. It initializes FMOD from those assets. A native target reads the bank folder instead. It calls back once FMOD is ready. The first scene then plays at once, on HTML5 too. See [Engine components](guides/components.md#setup).
 
     ```js
     if (platform === 'html5') project.addAssets('assets/fmod/Desktop/*.bank');
@@ -237,7 +237,7 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
 
 ### One import for every file
 
-The setup import belongs in the entry point alone. `FmodManager` and the generated constants are used from every file that plays a sound. An `import.hx` at the root of your source path imports them once for every module under it. This is a Haxe compiler feature, so it works the same on every engine and target. Wrap the imports in `#if !macro`, because the FMOD classes use build macros, and an import inside the macro context breaks compilation. The three example games carry this file.
+The setup import belongs in the entry point alone. `FmodManager` and the generated constants are used from every file that plays a sound. An `import.hx` at the root of your source path imports them once for every module under it. This is a Haxe compiler feature, so it works the same on every engine and target. Wrap the imports in `#if !macro`. The FMOD classes use build macros, and an import inside the macro context breaks compilation. The three example games carry this file for `FmodManager`.
 
 ```haxe
 #if !macro

@@ -39,14 +39,14 @@ class KhaTestHost implements TestHost {
         check("hardening_setup_reinit_single_updater", installs == 1, 'count=$installs');
     }
 
-    // Kha ships no global volume control, so the FMOD master bus is the
-    // one control. The checks drive it and read each change back. The
-    // focus-mute wiring the setup installs is checked through
-    // setFocusThroughEngine instead.
     public function setUpdaterInstalled(installed:Bool):Void {
         if (installed) FmodKhaUpdater.init() else FmodKhaUpdater.removeHook();
     }
 
+    // Kha ships no global volume control, so the FMOD master bus is the
+    // one control. The checks drive it and read each change back. The
+    // focus-mute wiring the setup installs is checked through
+    // setFocusThroughEngine instead.
     public function checkVolumeControls(check:String->Bool->String->Void):Void {
         FmodManager.SetMasterVolume(0.5);
         check("kha_master_volume", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,

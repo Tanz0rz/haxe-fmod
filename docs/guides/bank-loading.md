@@ -14,7 +14,7 @@ if (bank.isNull()) trace("Vehicles.bank failed to load");
 FmodRuntime.banks.unload(path);
 ```
 
-`load` blocks on native. On HTML5 it always runs asynchronously. A file exists in the browser's virtual filesystem only after a fetch wrote it. `loadAsync` starts a background load on every target. It returns a handle that becomes usable once `loadingState(path)` reports `LOADED`. `loadMemory(path, bytes)` loads a bank from bytes the engine's loader delivered and registers it under the path a file load would use. The other registry calls are `isRegistered`, `isLoaded`, `loadingState`, `refCount`, `get`, `anyLoading`, and `anyError`. `unload` returns true when it unloaded the bank. It returns false when it only decremented the count.
+`load` blocks on native. On HTML5 it always runs asynchronously. A file exists in the browser's virtual filesystem only after a fetch wrote it. `loadAsync` starts a background load on every target. It returns a handle that becomes usable once `loadingState(path)` reports `LOADED`. `loadMemory(path, bytes)` loads a bank from bytes the engine's loader delivered. It registers the bank under the path a file load would use. The other registry calls are `isRegistered`, `isLoaded`, `loadingState`, `refCount`, `get`, `anyLoading`, and `anyError`. `unload` returns true when it unloaded the bank. It returns false when it only decremented the count.
 
 ```haxe
 import haxefmod.runtime.FmodRuntime;

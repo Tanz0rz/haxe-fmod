@@ -71,15 +71,15 @@ class Main extends hxd.App {
                 stackSize: FmodThreadStackSize.STUDIO_UPDATE}]});
         #else
         // The plain game keeps audio running while unfocused, so the
-        // HighPass filter the play states apply on focus loss is audible
+        // HighPass filter PlayScene applies on focus loss is audible
         return ({muteWhenUnfocused: false});
         #end
     }
 
     function startGame():Void {
         #if audio_test
-        // A test build with no state requested is the plain game, so CI
-        // builds one variant for every leg
+        // With no state requested a test build is the plain game, one
+        // build variant per CI leg
         var state = TestConfig.requestedState();
         if (state != null) {
             switchScene(new TestScene(state));
@@ -90,7 +90,7 @@ class Main extends hxd.App {
     }
 
     function onFmodFailed():Void {
-        // The console named the bank. The game runs without audio.
+        // The runtime traced which bank failed. The game starts without it.
         trace("FMOD did not initialize, starting without audio");
         startGame();
     }

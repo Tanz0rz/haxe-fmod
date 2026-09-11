@@ -155,8 +155,10 @@ typedef FmodSettings = {
     /**
      * The engine's own loader delivers the default banks as bytes through
      * FmodRuntime.provideBank, so the runtime never fetches them by URL.
-     * Initialization then waits for every bank in autoLoadBanks to be
-     * provided. The engine preloaders set this. Default false.
+     * On HTML5 initialization waits for every bank in autoLoadBanks to be
+     * provided. A native target loads them inside init, so every bank
+     * is provided before init or counts as failed. The engine preloaders
+     * set this. Default false.
      */
     @:optional var banksProvided:Bool;
 

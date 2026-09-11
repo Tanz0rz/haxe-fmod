@@ -129,7 +129,7 @@ The `haxefmod.flixel` package in 2.0 fully absorbs the separate flixel-fmod libr
 | `FlxFmod.stopMusicAndSwitchState(state)` | `haxefmod.flixel.FmodFlxUtilities.TransitionToStateAndStopMusic(state)` |
 | Hand-rolled sound tray / volume wiring | Covered by `FmodFlxSetup.init()` |
 
-`FmodFlxSetup.init()` does everything the old `Init()` did. It initializes FMOD and hooks the per-frame update through `FmodFlxUpdater`. It routes `FlxG.sound` volume to the FMOD master bus and silences the sound tray beep. It also routes mute to the master bus mute flag, which flixel-fmod never did. It requires flixel 5.9.0 or newer. It is safe to combine with an earlier `FmodManager.Initialize()` call. An HTML5 preloader is one example. Initialization is guarded and the second call is a no-op.
+`FmodFlxSetup.init()` does everything the old `Init()` did. It initializes FMOD and hooks the per-frame update through `FmodFlxUpdater`. It routes `FlxG.sound` volume to the FMOD master bus and silences the sound tray beep. It also routes mute to the master bus mute flag, which flixel-fmod never did. It requires flixel 5.9.0 or newer. It is safe to combine with an earlier `FmodManager.Initialize()` call. `FmodFlxPreloader` is one example. Initialization is guarded and the second call is a no-op.
 
 ### Master volume aliases
 

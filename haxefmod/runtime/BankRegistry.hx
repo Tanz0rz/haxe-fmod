@@ -51,6 +51,15 @@ class BankRegistry {
         if (entry != null && !entry.bank.isNull()) entry.bank.unload();
         var bank = StudioSystem.loadBankMemory(bytes);
         if (bank.isNull()) {
+            // The same bank loaded outside the registry is adopted, the
+            // way a file load adopts it
+            if (StudioSystem.lastResult() == FmodResult.FMOD_ERR_EVENT_ALREADY_LOADED) {
+                var existing = StudioSystem.getBank(bankPathFor(path));
+                if (!existing.isNull()) {
+                    banks.set(path, {bank: existing, refs: carriedRefs});
+                    return existing;
+                }
+            }
             banks.remove(path);
             return Bank.NULL;
         }

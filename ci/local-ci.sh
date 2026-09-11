@@ -131,7 +131,7 @@ trap cleanup EXIT
 # The game executable in a bin dir, the way the composite action finds it
 find_exe() {
   local exe
-  exe=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" -print -quit)
+  exe=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.hl" ! -name "*.ndll" ! -name "*.sh" ! -name "*.dat" ! -name "*.bank" -print -quit)
   if [ -z "$exe" ] && [ -f run.sh ]; then exe=./run.sh; fi
   echo "$exe"
 }
@@ -315,6 +315,7 @@ job_unit_tests() {
   step "Check binding coverage against the manifest" python3 ci/binding-coverage.py
   step "Test define-driven settings (haxefmod_* and -debug)" bash -eo pipefail -c '
     haxe tests/build-defines.hxml && haxe tests/build-debug-defaults.hxml'
+  step "Test the default bank failure path" haxe tests/build-preload-failure.hxml
   step "Run native tests under AddressSanitizer and UBSan" bash -eo pipefail -c '
     for t in handles cbqueue guid pcmring; do
       gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \

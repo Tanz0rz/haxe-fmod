@@ -108,6 +108,12 @@ runs:
           sleep 1
         done
         kill $GAME_PID 2>/dev/null || true
+        # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+        for i in $(seq 10); do
+          kill -0 $GAME_PID 2>/dev/null || break
+          sleep 1
+        done
+        kill -9 $GAME_PID 2>/dev/null || true
         wait $GAME_PID 2>/dev/null || true
 
         grep "$GATE:" "$LOG_FILE" || true
