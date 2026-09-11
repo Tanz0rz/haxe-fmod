@@ -5723,9 +5723,8 @@ static FMOD_VECTOR* rolloff_copy(vbyte* data, int count) {
     const float* f = (const float*)data;
     int i;
     if (!data || count <= 0) return NULL;
-    /* The byte pointer carries no length. The packer never writes more
-     * than the scratch capacity, so a larger count is a lie. */
-    if (count > FAXE_LIST_MAX / 3) count = FAXE_LIST_MAX / 3;
+    /* The byte pointer carries no length. The Haxe packer owns the buffer
+     * and writes exactly count triples, like every other byte buffer prim. */
     points = (FMOD_VECTOR*)malloc(sizeof(FMOD_VECTOR) * (size_t)count);
     if (!points) return NULL;
     for (i = 0; i < count; i++) {

@@ -2,8 +2,12 @@ name: Canary
 
 # Canary builds against moving targets: latest haxelib releases, HashLink
 # master, and (on dispatch) a new FMOD SDK version. A failure here is an
-# early-warning signal to investigate upstream changes - it does NOT mean
-# main is broken and must not be treated as a broken-main page.
+# early-warning signal to investigate upstream changes. It does NOT mean
+# main is broken, and it is no broken-main page.
+
+# Every job reads only. update-hdlls raises its own grant to push.
+permissions:
+  contents: read
 
 on:
   schedule:
@@ -71,9 +75,9 @@ jobs:
   # HashLink master (unpinned)
   # Tracks HashLink master so breakage against haxefmod surfaces weekly.
   # HashLink master needs SDL3 since the SDL3 port (hashlink #830), and
-  # ubuntu-latest has no libsdl3-dev package yet, so SDL3 is built from
+  # ubuntu-latest has no libsdl3-dev package yet. SDL3 is built from
   # source (cached) whenever apt cannot provide it. The apt check emits the
-  # signal for the pre-SDL3 HashLink pin in audio-test.yml: a notice means
+  # signal for the pre-SDL3 HashLink pin in audio-test.yml. A notice means
   # the pin can be dropped, a warning means keep it.
   # ===========================================================================
   hashlink-master:
@@ -124,14 +128,19 @@ jobs:
             echo "::warning ::libsdl3-dev is still unavailable on ubuntu-latest. SDL3 will be built from source. Keep the pre-SDL3 HashLink pin in audio-test.yml."
           fi
 
+      - name: Name the runner image for the cache key
+        if: steps.sdl3-apt.outputs.available == 'false'
+        # The install tree was built against one image's toolchain, so an
+        # image roll gets a fresh build
+        run: echo "RUNNER_IMAGE=${ImageOS:-unknown}-${ImageVersion:-0}" >> "$GITHUB_ENV"
+
       - name: Restore SDL3 build cache
         if: steps.sdl3-apt.outputs.available == 'false'
         id: sdl3-cache
         uses: actions/cache@v5
         with:
           path: /tmp/sdl3-install
-          # The install tree was built against one image's toolchain
-          key: sdl3-${{ runner.os }}-${{ env.ImageOS }}-${{ env.SDL3_VERSION }}
+          key: sdl3-${{ runner.os }}-${{ env.RUNNER_IMAGE }}-${{ env.SDL3_VERSION }}
 
       - name: Build SDL3 from source
         if: steps.sdl3-apt.outputs.available == 'false' && steps.sdl3-cache.outputs.cache-hit != 'true'
@@ -226,9 +235,9 @@ jobs:
   # ===========================================================================
   # New FMOD version (workflow_dispatch only)
   # One-click testing of a new FMOD release once its tag exists in the
-  # fmod-sdk-cache repo: linux-cpp compiles the C++ binding against the new
-  # headers, linux-hl goes through the build-hdll flow (a version mismatch
-  # against the pre-built hdll is expected for anything newer than 2.03.12).
+  # fmod-sdk-cache repo. linux-cpp compiles the C++ binding against the new
+  # headers, and linux-hl goes through the build-hdll flow. A version mismatch
+  # against the pre-built hdll is expected for anything newer than 2.03.12.
   # Runs only after latest-deps and hashlink-master pass. When either of
   # those fails the run stops early instead of spending 30 minutes here.
   # ===========================================================================
@@ -392,11 +401,11 @@ jobs:
   # ===========================================================================
   # Failure alert email (Resend)
   # Emails the maintainer when any canary job fails. Configuration lives
-  # outside the workflow: the RESEND_API_KEY secret holds the Resend API key,
-  # the CANARY_ALERT_TO repository variable holds the recipient address, and
-  # the optional CANARY_ALERT_FROM variable overrides the sender address.
+  # outside the workflow. The RESEND_API_KEY secret holds the Resend API key,
+  # and the CANARY_ALERT_TO repository variable holds the recipient address.
+  # The optional CANARY_ALERT_FROM variable overrides the sender address.
   # When the secret or recipient is missing the step logs a notice and exits
-  # cleanly so the alert never turns a canary run red on its own.
+  # cleanly. The alert never turns a canary run red on its own.
   # ===========================================================================
   notify-failure:
     runs-on: ubuntu-latest

@@ -13,8 +13,11 @@ import haxefmod.studio.native.NativeStudio;
  * fetch into the virtual filesystem (HTML5). Poll loadingState or check
  * isLoaded.
  */
+typedef BankEntry = {bank:Bank, refs:Int, ?errorLogged:Bool};
+
 class BankRegistry {
-    var banks:Map<String, {bank:Bank, refs:Int, ?errorLogged:Bool}> = new Map();
+    // Two spellings of one path share an entry, see adopt()
+    var banks:Map<String, BankEntry> = new Map();
 
     /** Creates an empty registry. */
     public function new() {}
@@ -56,14 +59,14 @@ class BankRegistry {
             if (StudioSystem.lastResult() == FmodResult.FMOD_ERR_EVENT_ALREADY_LOADED) {
                 var existing = StudioSystem.getBank(bankPathFor(path));
                 if (!existing.isNull()) {
-                    banks.set(path, entryFor(existing, carriedRefs));
+                    adopt(path, entry, existing, carriedRefs);
                     return existing;
                 }
             }
-            banks.remove(path);
+            forget(path, entry);
             return Bank.NULL;
         }
-        banks.set(path, {bank: bank, refs: carriedRefs});
+        install(path, entry, bank, carriedRefs);
         return bank;
     }
 
@@ -128,16 +131,16 @@ class BankRegistry {
             if (StudioSystem.lastResult() == FmodResult.FMOD_ERR_EVENT_ALREADY_LOADED) {
                 var existing = StudioSystem.getBank(bankPathFor(path));
                 if (!existing.isNull()) {
-                    banks.set(path, entryFor(existing, carriedRefs));
+                    adopt(path, entry, existing, carriedRefs);
                     return existing;
                 }
             }
             // The earlier bank is unloaded above, so an entry left here
             // reports holders of a bank that is gone.
-            banks.remove(path);
+            forget(path, entry);
             return Bank.NULL;
         }
-        banks.set(path, {bank: bank, refs: carriedRefs});
+        install(path, entry, bank, carriedRefs);
         return bank;
     }
 
@@ -152,22 +155,50 @@ class BankRegistry {
         entry.refs--;
         if (entry.refs > 0) return false;
         // Every spelling that shares the entry goes with it
-        for (key in [for (k in banks.keys()) if (banks.get(k) == entry) k]) banks.remove(key);
+        for (key in keysOf(entry)) banks.remove(key);
         entry.bank.unload();
         return true;
     }
 
-    // The entry for an adopted bank. A bank the registry holds under
-    // another spelling of its path shares that entry, so one count covers
-    // every holder and the last unload is the one that unloads.
-    function entryFor(bank:Bank, refs:Int):{bank:Bank, refs:Int, ?errorLogged:Bool} {
-        for (entry in banks) {
-            if (entry.bank == bank) {
-                entry.refs += refs;
-                return entry;
-            }
+    // Installs the bank a load produced. A stale entry the path had is
+    // reused in place, so every spelling that shares it follows.
+    function install(path:String, stale:BankEntry, bank:Bank, refs:Int):Void {
+        if (stale == null) {
+            banks.set(path, {bank: bank, refs: refs});
+            return;
         }
-        return {bank: bank, refs: refs};
+        stale.bank = bank;
+        stale.refs = refs;
+        stale.errorLogged = false;
+        banks.set(path, stale);
+    }
+
+    // Adopts a bank FMOD reports as loaded already. A bank the registry
+    // holds under another spelling of its path shares that entry. One
+    // count then covers every holder, and the last unload unloads.
+    function adopt(path:String, stale:BankEntry, bank:Bank, refs:Int):Void {
+        for (owner in banks) {
+            if (owner == stale || owner.bank != bank) continue;
+            owner.refs += refs;
+            for (key in keysOf(stale)) banks.set(key, owner);
+            banks.set(path, owner);
+            return;
+        }
+        install(path, stale, bank, refs);
+    }
+
+    // Drops a failed load. Every spelling of a stale entry goes with it.
+    function forget(path:String, stale:BankEntry):Void {
+        if (stale == null) {
+            banks.remove(path);
+            return;
+        }
+        for (key in keysOf(stale)) banks.remove(key);
+    }
+
+    function keysOf(entry:BankEntry):Array<String> {
+        if (entry == null) return [];
+        return [for (k in banks.keys()) if (banks.get(k) == entry) k];
     }
 
     /** True while the path has a registry entry, loaded or still loading. */

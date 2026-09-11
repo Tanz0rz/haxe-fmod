@@ -45,9 +45,12 @@ class HeapsTestHost implements TestHost {
         check("hardening_setup_reinit_single_updater", installs == 1 && FmodHeapsUpdater.isInstalled(),
             'count=$installs installed=${FmodHeapsUpdater.isInstalled()}');
         // A removeHook then init from inside the updater's own frame keeps
-        // the hook, and the frame runs FmodManager.Update once. The re-arm
-        // waits for the next loop turn, so one frame() call covers it. The
-        // frame hook runs inside FmodManager.Update and counts its runs.
+        // the hook. The frame hook runs inside FmodManager.Update and
+        // counts its runs. In the browser the frame is driven through
+        // browserFrame, and the animation frame requests are counted: the
+        // reinstall leaves the re-arm to the running frame, so one request
+        // stands after it. On HashLink the re-arm waits for the next loop
+        // turn, which the installed flag covers.
         var previousHook = haxefmod.studio.CallbackDispatcher.frameHook;
         var runs = 0;
         haxefmod.studio.CallbackDispatcher.frameHook = function() {
@@ -57,10 +60,26 @@ class HeapsTestHost implements TestHost {
                 FmodHeapsUpdater.init();
             }
         };
+        #if js
+        var arms = 0;
+        var window:Dynamic = js.Browser.window;
+        var realRequest:Dynamic = window.requestAnimationFrame;
+        window.requestAnimationFrame = function(cb:Dynamic):Int {
+            arms++;
+            return realRequest.call(window, cb);
+        };
+        @:privateAccess FmodHeapsUpdater.browserFrame(0.0);
+        window.requestAnimationFrame = realRequest;
+        haxefmod.studio.CallbackDispatcher.frameHook = previousHook;
+        check("hardening_setup_remove_reinit_inside_tick",
+            runs == 1 && arms == 1 && FmodHeapsUpdater.isInstalled(),
+            'runs=$runs arms=$arms installed=${FmodHeapsUpdater.isInstalled()}');
+        #else
         @:privateAccess FmodHeapsUpdater.frame();
         haxefmod.studio.CallbackDispatcher.frameHook = previousHook;
         check("hardening_setup_remove_reinit_inside_tick", runs == 1 && FmodHeapsUpdater.isInstalled(),
             'runs=$runs installed=${FmodHeapsUpdater.isInstalled()}');
+        #end
     }
 
     public function setUpdaterInstalled(installed:Bool):Void {

@@ -4403,6 +4403,7 @@ class jaxe {
         var prev = jaxe.instCgHandles[handle];
         if (prev !== undefined && prev !== cg) jaxe.handleFree(prev);
         if (cg !== 0) jaxe.instCgHandles[handle] = cg;
+        else delete jaxe.instCgHandles[handle];
         return cg;
     }
 

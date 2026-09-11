@@ -214,6 +214,7 @@ class Scheduler {
     public static function addFrameTask(task:Void->Void, priority:Int):Int return 0;
     public static function removeFrameTask(id:Int):Void {}
     public static function realTime():Float return 0;
+    public static function time():Float return 0;
 }
 """,
 }

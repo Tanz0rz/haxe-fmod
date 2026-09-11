@@ -1,6 +1,6 @@
 /* The site's .highlight box carries 6px of padding and a grey fill. The
-   note pulls back out to the box edge, draws a rule, and sits on white
-   so the code and the prose read as two things. */
+   note pulls back out to the box edge, draws a rule, and sits on white.
+   The code and the prose then read as two things. */
 .haxefmod-block .haxefmod-note {
     font-size: 14px;
     line-height: 1.5;

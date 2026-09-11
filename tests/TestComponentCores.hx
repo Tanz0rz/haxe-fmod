@@ -165,6 +165,18 @@ class TestComponentCores {
 		stub.testInitialized = true;
 		waiting.update();
 		assert(loaded == 2, "the load starts once FMOD is ready");
+
+		// A refused system never comes up: the loader reports the error once
+		stub.testInitialized = false;
+		var savedRefused = @:privateAccess FmodRuntime.systemFailed;
+		@:privateAccess FmodRuntime.systemFailed = true;
+		var refusedErrors = 0;
+		var refused = new BankLoadTracker(["Cores.bank"], () -> loaded++, () -> refusedErrors++);
+		refused.update();
+		refused.update();
+		assert(refusedErrors == 1 && loaded == 2, "a refused system fires onError once");
+		@:privateAccess FmodRuntime.systemFailed = savedRefused;
+		stub.testInitialized = true;
 		waiting.dispose();
 
 		// A bank that settles in ERROR reports through onError once

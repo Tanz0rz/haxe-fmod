@@ -62,7 +62,15 @@ class BankLoadTracker {
         // banks loaded" and fires onLoaded after the banks were released.
         if (loaded || disposed || errored) return;
         if (!started) {
-            if (!FmodRuntime.isInitialized()) return;
+            if (!FmodRuntime.isInitialized()) {
+                // A refused system never comes up, so the banks never
+                // settle. The loader reports that once, like a failed load.
+                if (FmodRuntime.initSettled() && FmodRuntime.initFailed()) {
+                    errored = true;
+                    if (onError != null) onError();
+                }
+                return;
+            }
             startLoads();
         }
         for (path in paths) {

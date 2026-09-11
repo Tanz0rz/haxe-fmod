@@ -28,9 +28,12 @@ class NativeStudioStub {
     public static var testBankLoadingState:Int = 3;
     public static var testBankValid:Null<Bool> = null;
     public static var testBankUnloadCalls:Int = 0;
+    // The result sys_last_result reports, and the bank sys_get_bank finds
+    public static var testLastResult:Int = ERR_UNSUPPORTED;
+    public static var testGetBankHandle:Int = 0;
 
     // System
-    public static function sys_last_result():Int return ERR_UNSUPPORTED;
+    public static function sys_last_result():Int return testLastResult;
     public static function sys_get_bus(path:String):Int return 0;
     public static function sys_get_bus_by_id(guid:String):Int return 0;
     public static function sys_get_event(path:String):Int
@@ -38,7 +41,7 @@ class NativeStudioStub {
     public static function sys_get_event_by_id(guid:String):Int return 0;
     public static function sys_get_vca(path:String):Int return 0;
     public static function sys_get_vca_by_id(guid:String):Int return 0;
-    public static function sys_get_bank(path:String):Int return 0;
+    public static function sys_get_bank(path:String):Int return testGetBankHandle;
     public static function sys_get_bank_by_id(guid:String):Int return 0;
     public static function sys_get_bank_count():Int return 0;
     public static function sys_get_bank_list():Int return 0;

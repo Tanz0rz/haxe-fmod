@@ -162,12 +162,13 @@ class FmodFlxPreloader extends FlxPreloader {
         }
         var now = haxe.Timer.stamp();
         if (failedAt < 0) {
-            // The failure text needs the sized stage the visuals wait for
-            if (!visualsCreated) return;
             failedAt = now;
-            showFailure();
-        } else if (now - failedAt >= failureDisplayTime) {
-            complete();
+            // The failure text needs the sized stage the visuals wait for.
+            // The clock runs either way, so the game starts regardless.
+            if (visualsCreated) showFailure();
+        } else {
+            if (failureText == null && visualsCreated) showFailure();
+            if (now - failedAt >= failureDisplayTime) complete();
         }
     }
 

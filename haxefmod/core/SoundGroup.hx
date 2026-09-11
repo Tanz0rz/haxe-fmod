@@ -6,9 +6,9 @@ import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 
 /**
- * A handle to an FMOD sound group: polyphony caps and behaviors across any
- * set of sounds (e.g. at most three footstep sounds at once, stealing the
- * quietest). Assign sounds with Sound.setSoundGroup. Every sound
+ * A handle to an FMOD sound group. It sets polyphony caps and behaviors
+ * across any set of sounds (e.g. at most three footstep sounds at once,
+ * stealing the quietest). Assign sounds with Sound.setSoundGroup. Every sound
  * belongs to the master group until moved.
  */
 abstract SoundGroup(Int) from Int to Int {

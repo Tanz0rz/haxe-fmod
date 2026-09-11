@@ -10,8 +10,8 @@
  * - bit 31 unused, so handles are always positive ints
  * - handle value 0 is always invalid (generation can never be 0)
  *
- * Generations catch use-after-release: freeing a slot bumps its generation,
- * so any retained stale handle fails to resolve and callers can return
+ * Generations catch use-after-release. Freeing a slot bumps its generation,
+ * so any retained stale handle fails to resolve. Callers then return
  * FMOD_ERR_INVALID_HANDLE instead of touching freed memory.
  *
  * Threading: the table must only be mutated from the Haxe thread. FMOD
@@ -122,7 +122,7 @@ static int faxe_handle_alloc(void* ptr, unsigned char type) {
 /* Returns the existing handle for a pointer already in the table (same type),
  * 0 when the table has never seen it. Linear scan is fine: called only from
  * the Haxe thread on lookup paths. find_or_alloc allocates when the scan
- * misses, which prevents duplicate handles when FMOD returns the same object
+ * misses. That prevents duplicate handles when FMOD returns the same object
  * from multiple lookups (e.g. getBus by path then by ID). */
 static int faxe_handle_find(void* ptr, unsigned char type) {
     int i;

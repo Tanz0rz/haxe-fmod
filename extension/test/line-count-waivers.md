@@ -1,6 +1,6 @@
 # Line-count waivers
 
-`ci/example-line-counts.py` counts the lines of the site's C# snippet (or the C++ one where the page has no C#) against the lines the Haxe tab shows for the same unit. Every unit below was reviewed by hand and the counts differ for the reason in the last column. The script reports a row again when either count moves and asks for the row to go when the counts match. Lines that hold only an opening brace or a C# attribute are not counted, and neither is the package header of a declaration.
+`ci/example-line-counts.py` counts the lines of the site's C# snippet against the lines the Haxe tab shows for the same unit. Where the page has no C#, the C++ snippet stands in. Every unit below was reviewed by hand. The counts differ for the reason in the last column. The script reports a row again when either count moves. It asks for the row to go when the counts match. Lines that hold only an opening brace or a C# attribute are not counted. Neither is the package header of a declaration.
 
 | Page | Key | Language | Site | Haxe | Reason |
 |---|---|---|---|---|---|
@@ -30,7 +30,7 @@
 | core-api-system | FMOD_CREATESOUNDEXINFO | C# | 38 | 25 | cbsize, the callbacks, and the pointer fields run on FMOD threads (types.txt skip). |
 | core-api-system | FMOD_SYSTEM_CALLBACK | C# | 7 | 1 | The five delegate parameters arrive as one SystemEvent (types.txt skip). |
 | core-api-system | System::setDSPBufferSize | text | 13 | 10 | The four declarations fold into the var lines that read the getter results. |
-| dsp-plugin-api-guide | 18.7 Multiple Plug-ins Within One File#2 | text | 11 | 8 | ERRCHECK lines on calls that return their value, and the plugin info is read in the line that declares the type. |
+| dsp-plugin-api-guide | 18.7 Multiple Plug-ins Within One File#2 | text | 11 | 8 | ERRCHECK lines on calls that return their value. The plugin info is read in the line that declares the type. |
 | glossary | 22.33 Reading Sound Data | C# | 9 | 5 | The three declarations fold into the var lines that receive each result. |
 | glossary | 22.49 User Data | C# | 10 | 5 | setUserData takes the string itself, no GCHandle round trip. |
 | loading-and-playing-sounds-in-the-core-api | 4.1.1 Non-blocking Sound Creation | text | 3 | 2 | The declaration folds into the var line. |
@@ -71,6 +71,6 @@
 | using-dsp-effects-in-the-core-api | Creating an effect and making all Channels send to it.#3 | text | 5 | 4 | The declaration folds into the var line. |
 | using-dsp-effects-in-the-core-api | Controlling mix level and pan matrices for DSPConnections | text | 6 | 4 | The two declarations fold into the var lines. |
 | using-dsp-effects-in-the-core-api | Set the output format of a DSP unit, and control the pan matrix for its output signal#2 | text | 10 | 9 | The connection declaration folds into the var line. |
-| using-dsp-effects-in-the-core-api | 7.2.4 Multiple plug-ins within one file#2 | text | 11 | 8 | ERRCHECK lines on calls that return their value, and the plugin info is read in the line that declares the type. |
+| using-dsp-effects-in-the-core-api | 7.2.4 Multiple plug-ins within one file#2 | text | 11 | 8 | ERRCHECK lines on calls that return their value. The plugin info is read in the line that declares the type. |
 | welcome-whats-new-201 | Thread attributes | C++ | 3 | 5 | Thread attributes are a setting of Initialize, the array adds its opening and closing lines. |
 | welcome-whats-new-201 | Thread attributes#2 | C++ | 2 | 4 | Thread attributes are a setting of Initialize, the array adds its opening and closing lines. |

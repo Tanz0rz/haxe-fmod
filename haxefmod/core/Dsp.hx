@@ -287,9 +287,9 @@ abstract Dsp(Int) from Int to Int {
     }
 
     /**
-     * Uploads a data parameter payload (byte layout per the effect's
-     * contract, e.g. a convolution impulse response: 16-bit samples with
-     * the channel count as the first value).
+     * Uploads a data parameter payload, with the byte layout per the
+     * effect's contract. A convolution impulse response, for example, is
+     * 16-bit samples with the channel count as the first value.
      */
     public inline function setParameterData(index:Int, data:haxe.io.Bytes):FmodResult {
         return NativeStudio.dsp_set_param_data(this, index, data, data == null ? 0 : data.length);

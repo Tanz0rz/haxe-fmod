@@ -109,12 +109,17 @@ LINUX_HASHLINK = """
           sudo apt-get install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \\
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
+      - name: Name the runner image for the cache key
+        # The cached tree holds binaries built against one image's
+        # toolchain, so an image roll gets a fresh build
+        run: echo "RUNNER_IMAGE=${ImageOS:-unknown}-${ImageVersion:-0}" >> "$GITHUB_ENV"
+
       - name: Cache the HashLink build
         id: hl-cache
         uses: actions/cache@v5
         with:
           path: /tmp/hashlink-src
-          key: hashlink-781960a5-${{ runner.os }}
+          key: hashlink-781960a5-${{ runner.os }}-${{ env.RUNNER_IMAGE }}
 
       - name: Build HashLink
         if: steps.hl-cache.outputs.cache-hit != 'true'

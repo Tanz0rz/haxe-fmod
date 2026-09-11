@@ -4,8 +4,11 @@
 # workflow uses.
 #
 # Not replayed: env-doctor, js-harness, api-docs, package-check,
-# package-check-cpp, and linux-hl-compat. The Mac and Windows jobs have no
-# local equivalent.
+# package-check-cpp, linux-hl-compat, and the heaps-hl manual-update leg.
+# The Mac and Windows jobs have no local equivalent. Of docs.yml, the
+# unit-tests job replays the snippet compile, the review ledger, and the
+# line counts. The site build, the API reference, the extension test, and
+# the link check are not replayed.
 #
 # Usage: ci/local-ci.sh [job ...]
 #   jobs: unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox
@@ -314,6 +317,9 @@ job_unit_tests() {
   require_sdk
   step "Check the DSP parameter enums match fmod_dsp_effects.h" python3 ci/gen-dsp-parameters.py --check
   step "Compile the README examples" python3 ci/check-readme-snippets.py
+  step "Compile the guide examples" python3 ci/check-readme-snippets.py docs extension/haxe extension/functions.md
+  step "Check every docs-tab entry is reviewed" python3 ci/example-ledger.py --status --require-all
+  step "Check the example line counts" python3 ci/example-line-counts.py
   step "Check the HTML5 compile gate" python3 ci/check-html5-gate.py
   step "Check the HTML5 phrase matches the gate" python3 ci/check-html5-phrase.py
   step "Check the deprecated aliases still compile and warn" python3 ci/check-deprecations.py

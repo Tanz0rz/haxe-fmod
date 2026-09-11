@@ -2,7 +2,7 @@ name: Docs
 
 # Builds the documentation site (guides from docs/ plus the dox API
 # reference under /api/) on every push to the default branch, the 3.0.0
-# branch, and release tags, and publishes it to
+# branch, and release tags. It publishes the site to
 # https://www.tanz0rz.com/haxe-fmod/. The site is rsynced from the self-hosted runner
 # to the docs host and swapped in atomically. GitHub Pages keeps serving a
 # redirect to www.tanz0rz.com for links made before the move.

@@ -123,6 +123,17 @@ if text.count('grep -q "FMOD SDK version mismatch"') < 3:
 else:
     ok("compat jobs verify the mismatch banner text")
 
+# 4b. Every portability loop over the shared header tests names the same
+# tests, so a header added to one compiler pass reaches the others
+loops = re.findall(r"for (?:%%t|t) in \(?((?:handles|cbqueue|guid|instctx|pcmring| )+)\)?", text)
+# The ThreadSanitizer loops run the threaded tests only, so they are apart
+loops = [l for l in loops if "handles" in l]
+loop_sets = {tuple(sorted(l.split())) for l in loops}
+if len(loops) < 3 or len(loop_sets) != 1:
+    fail(f"the shared header test loops differ: {loops}")
+else:
+    ok(f"{len(loops)} shared header test loops name the same {len(loops[0].split())} tests")
+
 # 5. linux-html5-chromium requires a FAILING build against a doctored web SDK,
 # with pipefail, and verifies the version-mismatch banner. The check is
 # paired to the job, so a copy of the block elsewhere cannot mask its removal.

@@ -86,7 +86,7 @@
     // Static methods are called on the type, instance methods on a value
     // of it, which the receiver name shows without a comment.
     // The site prints every language as a type-qualified declaration
-    // (Sound::set3DConeSettings, Studio.EventInstance.start), so the Haxe
+    // (Sound::set3DConeSettings, Studio.EventInstance.start). The Haxe
     // tab qualifies with the Haxe type the same way, static or not.
     // The other tabs qualify the function with its package (C# prints
     // Studio.EventInstance.start). The Haxe tab prints the full type

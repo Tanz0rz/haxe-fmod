@@ -1,7 +1,7 @@
 name: Cache Cleanup
 
 # The Actions cache store is capped at 10GB and evicts least-recently-used
-# entries once it is full, so a repo that never prunes quietly starts
+# entries once it is full. A repo that never prunes quietly starts
 # losing the caches it depends on. This keeps it well under the cap. Stale
 # branch caches go on a schedule. A merged branch's caches go as soon as
 # its pull request merges.

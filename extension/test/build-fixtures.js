@@ -8,7 +8,7 @@
 // reads it. The keys computed at runtime are then the keys the catalog
 // was written under. It also carries a copy of the site's selector
 // logic (show and hide every language-classed element, remember the
-// pick) and renders content late the way the real SPA does.
+// pick). It renders content late the way the real SPA does.
 // window.__rerender() replaces the content again for idempotency tests.
 //
 // Usage: node extension/test/build-fixtures.js [outdir]   write the pages

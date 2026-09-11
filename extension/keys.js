@@ -2,7 +2,7 @@
 //
 // The catalog (extension/catalog/<page>.md), the Haxe entries
 // (extension/haxe/<page>.md), and the content script all identify a code
-// block by the same key, computed here from the page's own structure:
+// block by the same key. It is computed here from the page's own structure:
 //
 //   function   the id of the h2[api="function"] the block belongs to,
 //              e.g. studio_eventinstance_start

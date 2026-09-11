@@ -5133,7 +5133,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Uploads a data parameter payload (byte layout per the effect's contract, e.g.",
+     "doc": "Uploads a data parameter payload, with the byte layout per the effect's contract.",
      "gated": false,
      "name": "setParameterData",
      "signature": "setParameterData(index:Int, data:haxe.io.Bytes):FmodResult",

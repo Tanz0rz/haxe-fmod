@@ -13,7 +13,7 @@
 //
 // The catalog (extension/catalog/<page>.md), the Haxe entries
 // (extension/haxe/<page>.md), and the content script all identify a code
-// block by the same key, computed here from the page's own structure:
+// block by the same key. It is computed here from the page's own structure:
 //
 //   function   the id of the h2[api="function"] the block belongs to,
 //              e.g. studio_eventinstance_start
@@ -5289,7 +5289,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Uploads a data parameter payload (byte layout per the effect's contract, e.g.",
+     "doc": "Uploads a data parameter payload, with the byte layout per the effect's contract.",
      "gated": false,
      "name": "setParameterData",
      "signature": "setParameterData(index:Int, data:haxe.io.Bytes):FmodResult",
@@ -15687,7 +15687,7 @@ const HAXEFMOD_EXAMPLES = {
 
 (function () {
     var style = document.createElement("style");
-    style.textContent = "/* The site's .highlight box carries 6px of padding and a grey fill. The\n   note pulls back out to the box edge, draws a rule, and sits on white\n   so the code and the prose read as two things. */\n.haxefmod-block .haxefmod-note {\n    font-size: 14px;\n    line-height: 1.5;\n    margin: 10px -6px -6px -6px;\n    padding: 8px 12px 6px 12px;\n    border-top: 1px solid #b3b3b3;\n    background: #ffffff;\n    color: #333333;\n}\n\n.haxefmod-block .haxefmod-note p {\n    margin: 4px 0;\n}\n\n.haxefmod-block .haxefmod-type {\n    font-family: monospace;\n    font-size: 13px;\n    color: #555555;\n}\n\n.haxefmod-block .haxefmod-warn-title {\n    color: #a40000;\n    font-weight: bold;\n}\n\n.haxefmod-block .haxefmod-warn ul {\n    margin: 2px 0 6px 0;\n    padding-left: 20px;\n}\n\n.haxefmod-block .haxefmod-warn li {\n    margin: 2px 0;\n}\n\n.haxefmod-block .haxefmod-footer {\n    color: #666666;\n    font-size: 12px;\n}\n\n.haxefmod-block .haxefmod-footer a {\n    color: #666666;\n    text-decoration: underline;\n}\n\n/* The site sizes every tab for two or three characters (max-width 30px),\n   which pushes \"Haxe\" off center. Match the site's selector specificity\n   and give the word its room. */\n#Documentation div.documentation-content div.language-tab.haxefmod-tab,\n#Documentation div.searchresults div.language-tab.haxefmod-tab {\n    max-width: 40px;\n    text-align: center;\n}\n\n/* The extension keeps the clicked tab in place itself, so the browser's own anchoring must not move the page as blocks change height. */\ndiv.manual-content,\ndiv.searchresults {\n    overflow-anchor: none;\n}\n";
+    style.textContent = "/* The site's .highlight box carries 6px of padding and a grey fill. The\n   note pulls back out to the box edge, draws a rule, and sits on white.\n   The code and the prose then read as two things. */\n.haxefmod-block .haxefmod-note {\n    font-size: 14px;\n    line-height: 1.5;\n    margin: 10px -6px -6px -6px;\n    padding: 8px 12px 6px 12px;\n    border-top: 1px solid #b3b3b3;\n    background: #ffffff;\n    color: #333333;\n}\n\n.haxefmod-block .haxefmod-note p {\n    margin: 4px 0;\n}\n\n.haxefmod-block .haxefmod-type {\n    font-family: monospace;\n    font-size: 13px;\n    color: #555555;\n}\n\n.haxefmod-block .haxefmod-warn-title {\n    color: #a40000;\n    font-weight: bold;\n}\n\n.haxefmod-block .haxefmod-warn ul {\n    margin: 2px 0 6px 0;\n    padding-left: 20px;\n}\n\n.haxefmod-block .haxefmod-warn li {\n    margin: 2px 0;\n}\n\n.haxefmod-block .haxefmod-footer {\n    color: #666666;\n    font-size: 12px;\n}\n\n.haxefmod-block .haxefmod-footer a {\n    color: #666666;\n    text-decoration: underline;\n}\n\n/* The site sizes every tab for two or three characters (max-width 30px),\n   which pushes \"Haxe\" off center. Match the site's selector specificity\n   and give the word its room. */\n#Documentation div.documentation-content div.language-tab.haxefmod-tab,\n#Documentation div.searchresults div.language-tab.haxefmod-tab {\n    max-width: 40px;\n    text-align: center;\n}\n\n/* The extension keeps the clicked tab in place itself, so the browser's own anchoring must not move the page as blocks change height. */\ndiv.manual-content,\ndiv.searchresults {\n    overflow-anchor: none;\n}\n";
     document.documentElement.appendChild(style);
 })();
 
@@ -15779,7 +15779,7 @@ const HAXEFMOD_EXAMPLES = {
     // Static methods are called on the type, instance methods on a value
     // of it, which the receiver name shows without a comment.
     // The site prints every language as a type-qualified declaration
-    // (Sound::set3DConeSettings, Studio.EventInstance.start), so the Haxe
+    // (Sound::set3DConeSettings, Studio.EventInstance.start). The Haxe
     // tab qualifies with the Haxe type the same way, static or not.
     // The other tabs qualify the function with its package (C# prints
     // Studio.EventInstance.start). The Haxe tab prints the full type

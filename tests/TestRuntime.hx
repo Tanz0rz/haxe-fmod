@@ -27,6 +27,7 @@ class TestRuntime {
 		testBankRegistry();
 		testBankRegistryNormalization();
 		testBankRegistryErroredRetry();
+		testBankRegistryAliases();
 		testAttachedInstances();
 		testIsInitializedComposition();
 		testAttachedOneShotAutoRelease();
@@ -178,6 +179,58 @@ class TestRuntime {
 		assert(BankRegistry.bankPathFor("assets/fmod/Desktop/Master.strings.bank") == "bank:/Master.strings", "bank path multi-dot");
 		assert(BankRegistry.bankPathFor("Solo.bank") == "bank:/Solo", "bank path bare file");
 		assert(BankRegistry.bankPathFor("dir/NoExtension") == "bank:/NoExtension", "bank path no extension");
+	}
+
+	static function testBankRegistryAliases():Void {
+		// FMOD reports a second spelling of a loaded bank as already
+		// loaded. The registry shares one entry between the spellings.
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		stub.testSyntheticHandles = true;
+		stub.testBankLoadingState = 3;
+		stub.testBankValid = null;
+		var registry = new BankRegistry();
+		var desktop = "assets/fmod/Desktop/Music.bank";
+		var mobile = "assets/fmod/Mobile/Music.bank";
+		var first = registry.load(desktop);
+		assert(!first.isNull(), "the first spelling loads");
+		stub.testSyntheticHandles = false;
+		stub.testLastResult = 70; // FMOD_ERR_EVENT_ALREADY_LOADED
+		stub.testGetBankHandle = first;
+		var second = registry.load(mobile);
+		stub.testSyntheticHandles = true;
+		assert(second == first, "the second spelling adopts the loaded bank");
+		assert(registry.refCount(desktop) == 2 && registry.refCount(mobile) == 2, "both spellings share one count");
+		var unloads = stub.testBankUnloadCalls;
+		assert(!registry.unload(mobile) && stub.testBankUnloadCalls == unloads, "the first unload keeps the bank");
+		assert(registry.refCount(desktop) == 1, "the shared count drops once");
+		assert(registry.unload(desktop) && stub.testBankUnloadCalls == unloads + 1, "the last unload unloads once");
+		assert(!registry.isRegistered(desktop) && !registry.isRegistered(mobile), "every spelling goes with the entry");
+
+		// A shared entry whose bank died is replaced in place, so every
+		// spelling follows the reload and the count carries over
+		first = registry.load(desktop);
+		stub.testSyntheticHandles = false;
+		stub.testGetBankHandle = first;
+		registry.load(mobile);
+		stub.testSyntheticHandles = true;
+		stub.testLastResult = 68; // FMOD_ERR_UNSUPPORTED, the stub default
+		stub.testGetBankHandle = 0;
+		stub.testBankValid = false;
+		unloads = stub.testBankUnloadCalls;
+		var reloaded = registry.load(mobile);
+		stub.testBankValid = null;
+		assert(!reloaded.isNull() && reloaded != first, "a dead shared bank is loaded afresh");
+		assert(stub.testBankUnloadCalls == unloads + 1, "the dead bank is unloaded once");
+		assert(registry.get(desktop) == reloaded && registry.get(mobile) == reloaded, "both spellings follow the reload");
+		assert(registry.refCount(desktop) == 3 && registry.refCount(mobile) == 3, "the holders of both spellings carry over");
+		registry.unload(desktop);
+		registry.unload(desktop);
+		assert(registry.unload(mobile) && !registry.isRegistered(desktop), "three unloads release the shared bank");
+		// The stub defaults the later tests count on
+		stub.testSyntheticHandles = false;
+		stub.testBankLoadingState = 3;
+		stub.testBankUnloadCalls = 0;
+		stub.testGetBankHandle = 0;
 	}
 
 	static function testBankRegistryNormalization():Void {

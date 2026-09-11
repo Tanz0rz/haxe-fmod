@@ -1,8 +1,12 @@
 name: Release Smoke Test
 
-# Post-release verification: installs haxefmod from lib.haxe.org (never from
-# the checkout) and builds the example project with it, proving that what
-# users actually download works end to end.
+# Post-release verification. It installs haxefmod from lib.haxe.org (never
+# from the checkout) and builds the example project with it. That proves
+# what users actually download works end to end.
+
+# Every job reads only. update-hdlls raises its own grant to push.
+permissions:
+  contents: read
 
 on:
   workflow_dispatch:
@@ -61,10 +65,12 @@ jobs:
           haxelib path haxefmod
 
       - name: Verify the installed version
+        env:
+          VERSION: ${{ github.event.inputs.version }}
         run: |
           # An empty dispatch input installs the latest release, and that
           # must be the version this checkout declares.
-          EXPECTED="${{ github.event.inputs.version }}"
+          EXPECTED="$VERSION"
           if [ -z "$EXPECTED" ]; then
             EXPECTED=$(grep '"version"' haxelib.json | sed 's/.*: *"\([^"]*\)".*/\1/')
           fi

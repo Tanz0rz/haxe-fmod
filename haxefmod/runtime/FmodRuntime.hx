@@ -283,11 +283,12 @@ class FmodRuntime {
     // Two entries with one file name in different folders take bare
     // names in order, the ones still open first.
     static function defaultBankEntry(name:String):Null<String> {
-        var withFolder = name.indexOf("/") >= 0;
+        var withFolder = name.indexOf("/") >= 0 || name.indexOf("\\") >= 0;
+        var wanted = BankRegistry.normalizePath(bankPath(name));
         var first:Null<String> = null;
         for (entry in resolved.autoLoadBanks) {
             if (withFolder) {
-                if (bankPath(entry) == bankPath(name)) return entry;
+                if (BankRegistry.normalizePath(bankPath(entry)) == wanted) return entry;
                 continue;
             }
             if (bankFileName(entry) != name) continue;

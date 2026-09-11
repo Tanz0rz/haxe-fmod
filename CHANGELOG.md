@@ -134,7 +134,9 @@
 - A bank loaded under two spellings of its path shares one registry entry. An unload of one spelling no longer pulls the bank from under the other.
 - Two default banks with one file name in different folders are provided apart. The provided bytes are keyed by bank path.
 - `FmodKhaUpdater` runs `FmodManager.Update` once per frame when it is reinstalled from inside its own tick.
-- `FmodFlxPreloader` waits for a sized stage before it shows the failure text.
+- `FmodFlxPreloader` shows the failure text once the stage has a size. The failure clock runs either way, so the game starts.
+- A bank loader created after FMOD refused to initialize runs `onError` once. It never called back before.
+- A registry entry shared by two spellings of a path is replaced in place when its bank died. Every spelling follows the reload.
 - `ChannelGroup.getParentGroup` on the master group and `Channel.getCurrentSound` on a channel from `playDSP` report no object on HTML5. They minted a handle around a null pointer before.
 - The HTML5 shim drops the wrappers it reads for their pointers only. That covers a bank unload, the callback uninstall, the sub sound parent lookups, and a released `PcmStream`.
 - A null string argument on HashLink reaches the shim as an empty one, which FMOD refuses with an error. It faulted in the string conversion before.
