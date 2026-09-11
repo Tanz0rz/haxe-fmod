@@ -1153,7 +1153,8 @@ class TestStudioSurface {
 			fileOffset: 2844864, initialSubsound: 0, numSubsounds: 1, subSoundIndex: 0};
 		assert(soundInfo.mode == 0x200 && soundInfo.length == 4800, "sound info typed");
 
-		assert(ChannelMode.MODE_3D_LINEARROLLOFF == ChannelMode.LINEAR_ROLLOFF_3D
+		// FMOD_3D_LINEARROLLOFF is 0x00200000
+		assert(ChannelMode.MODE_3D_LINEARROLLOFF == 0x00200000 && ChannelMode.LINEAR_ROLLOFF_3D == 0x00200000
 			&& ChannelMode.MODE_3D_HEADRELATIVE == 0x00040000
 			&& ChannelMode.VIRTUAL_PLAYFROMSTART == 0x80000000
 			&& ChannelMode.DEFAULT == 0, "channel mode header names and aliases");

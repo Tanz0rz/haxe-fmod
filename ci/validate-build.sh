@@ -1,7 +1,7 @@
 #!/bin/bash
 # Validate that a build output directory has all required files.
 # Usage: ./ci/validate-build.sh <bin-dir> <target>
-# target: "cpp" or "hl"
+# target: "cpp" or "hl", named in the report. Both validate the same way.
 # Exits 0 if valid, 1 if validation fails.
 
 BIN_DIR="$1"

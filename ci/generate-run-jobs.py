@@ -566,6 +566,8 @@ def run_job(j, text):
           path: |
             {j.tmpx(f"*-{j.name}.wav")}
             {j.tmpx(f"*-{j.name}.log")}
+            {j.tmpx(f"*-{j.name}-manual.log")}
+            {j.tmpx(f"*-{j.name}.log.raw")}
             {j.tmpx(f"*-{j.name}-console.log")}{crash_path}
           if-no-files-found: ignore
           overwrite: true

@@ -205,8 +205,8 @@ class CallbackScenario implements TestScenario {
         #if js
         // FMOD's JS runtime never invokes the nested-beat callback. The
         // Chromium and Firefox jobs both report zero beats while the parent
-        // receives the referenced timeline's markers, so the gating check
-        // lives on the native targets.
+        // receives the referenced timeline's markers. The gating check
+        // therefore lives on the native targets.
         log('CB_TEST: nested_beats_delivered info=not delivered by the web glue'
             + ' beats=$_nestedBeats frames=$_nestedFrames');
         #else

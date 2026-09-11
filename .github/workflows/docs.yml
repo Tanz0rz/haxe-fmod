@@ -82,7 +82,7 @@ jobs:
         run: |
           mkdir -p /tmp/haxefmod-docs
           # One compile typed as an HTML5 build with every engine library
-          # on the path, so the flixel, Heaps, and Kha packages all land
+          # on the path. The flixel, Heaps, and Kha packages then all land
           # in the reference. Kha compiles against the stubs the snippet
           # checker keeps, since Kha only exists as a checkout. The CLI
           # (sys-only) and the native shim package are internal and stay

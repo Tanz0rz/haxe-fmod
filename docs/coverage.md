@@ -687,7 +687,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `System::createStream` | No Haxe declaration, another call plays this role. Sound.create with the ChannelMode.CREATESTREAM mode streams from a file, and PcmStream.create streams sample data the game writes. |
 | `System::get3DListenerAttributes` | No Haxe declaration, another call plays this role. haxefmod covers this with StudioSystem.getListenerAttributes(). |
 | `System::get3DNumListeners` | No Haxe declaration, another call plays this role. haxefmod covers this with StudioSystem.getNumListeners(). |
-| `System::getCPUUsage` | No Haxe declaration, another call plays this role. haxefmod covers this with StudioSystem.getCpuUsage(), which returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update time. |
+| `System::getCPUUsage` | No Haxe declaration, another call plays this role. haxefmod covers this with StudioSystem.getCpuUsage(), which returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update percentage. |
 | `System::getOutputHandle` | Cannot be bound. It returns a raw operating system pointer, which has no meaning in Haxe. Output device selection goes through CoreSystem.getDriverCount, getDriverName, and setDriver. |
 | `System::init` | No Haxe declaration, another call plays this role. haxefmod calls this for you. |
 | `System::registerCodec` | Cannot be bound. A plugin description is a struct of callbacks that FMOD runs on its mixer and streaming threads, and no Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create. |

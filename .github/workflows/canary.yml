@@ -364,7 +364,8 @@ jobs:
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
           EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
           chmod +x "$EXE"
-          timeout 30 "$EXE" > /tmp/game-canary-fmod.log 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 30 "$EXE" > /tmp/game-canary-fmod.log 2>&1 || true
           cd -
 
           echo "=== Game log ==="

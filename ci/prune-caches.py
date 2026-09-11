@@ -25,6 +25,7 @@ Usage:
 """
 
 import argparse
+import sys
 import datetime
 import json
 import re
@@ -178,7 +179,10 @@ def main():
             print("  failed to delete {}".format(entry["key"]))
     print("freed {:.0f} MB, leaving {:.0f} MB ({} failed)".format(
         mb(freed), mb(total - freed), failed))
+    # A refused delete fails the step, so a token without the right
+    # scope is noticed instead of the store filling up
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -860,13 +860,14 @@ class ApiProbeScenario implements TestScenario {
             && Math.abs(FmodManager.GetSongParameter("Surface")) < 0.001, 'value=${FmodManager.GetSongParameter("Surface")}');
         // The song started a few milliseconds ago, so a seek forward to
         // 200 ms reads back at or past 200 once the Studio update ran.
-        // A seek that never landed still reads near zero.
+        // A seek that never landed still reads near zero on native.
         FmodManager.SetSongTimelinePosition(200);
         StudioSystem.flushCommands();
         var seeked = FmodManager.GetSongTimelinePosition();
         #if js
         // The web runtime reports the seek once its own update ran, which
-        // a flush does not force, so the browser reads zero or the seek
+        // a flush does not force. A zero read is inconclusive there, so
+        // the browser check only bounds the value.
         check("helper_song_timeline_set", (seeked == 0 || seeked >= 200) && seeked < 700, 'position=$seeked');
         #else
         check("helper_song_timeline_set", seeked >= 200 && seeked < 700, 'position=$seeked');

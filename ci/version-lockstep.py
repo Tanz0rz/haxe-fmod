@@ -54,6 +54,9 @@ SCANNED = [
     "extension/haxefmod-fmod-docs.user.js",
     "extension/bindings-data.js",
     "extension/examples-data.js",
+    "ci/fmod_headers.py",
+    "docs/guides/settings.md",
+    "haxefmod/runtime/FmodRuntime.hx",
 ]
 
 # FMOD versions are always major.minor(2).patch(2), e.g. 2.03.12. Other

@@ -106,7 +106,7 @@ verdict: covered haxefmod covers this with StudioSystem.getNumListeners().
 
 ## system_getcpuusage
 <!-- System::getCPUUsage -->
-verdict: covered haxefmod covers this with StudioSystem.getCpuUsage(), which returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update time.
+verdict: covered haxefmod covers this with StudioSystem.getCpuUsage(), which returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update percentage.
 
 ## system_getoutputhandle
 <!-- System::getOutputHandle -->

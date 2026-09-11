@@ -123,9 +123,14 @@
 - `CoreSystem.getDspInfoByType` translates the `DspType` symbolically in both C shims. A raw cast described the wrong effect on any SDK version but the one the binding was numbered against.
 - An empty bank path is refused on HTML5 with `FMOD_ERR_INVALID_PARAM`. It made a placeholder the bank guards missed.
 - The HTML5 shim drops the duplicate wrapper a repeated lookup hands it. A path or GUID lookup no longer grows the wasm heap.
-- `FmodFlxUpdater.init` after `removeHook` inside one flixel dispatch keeps the hook. It registers a fresh closure, which survives the deferred removal of the old one.
+- `FmodFlxUpdater.init` after `removeHook` inside one flixel dispatch keeps the hook. The updater registers a distinct closure per install. Flixel defers a removal made inside the dispatch, and an add of the same listener in between would lose the hook.
+- `ChannelGroup.getParentGroup` on the master group and `Channel.getCurrentSound` on a channel from `playDSP` report no object on HTML5. They minted a handle around a null pointer before.
+- The HTML5 shim drops the wrappers it reads for their pointers only. That covers a bank unload, the callback uninstall, the sub sound parent lookups, and a released `PcmStream`.
+- A null string argument on HashLink reaches the shim as an empty one, which FMOD refuses with an error. It faulted in the string conversion before.
+- `EventDescription.createInstance` on HashLink reports `FMOD_ERR_MEMORY` when the instance context cannot attach, like the C++ backend.
+- `haxelib run haxefmod generate` reports a strings bank with LIST chunks nested deeper than 32 levels as corrupt instead of overflowing the stack.
 - The launcher scripts `run.sh` and `run.cmd` are rewritten when their content changed. A fix to them reaches an existing build directory.
-- The Heaps browser loop can be armed again after a ticker threw.
+- The Heaps browser loop keeps running after a ticker threw. The error still reaches the console.
 - The C++ and HTML5 FFT spectrum readers clamp to the list maximum like the HashLink one.
 - The C++ auto-update thread resets its flag when the thread cannot start, so `update()` ticks FMOD from the game thread.
 - The docs extension and the userscript run on the FMOD 2.03 API reference only. They mark HTML5 support per method instead of per page. They find a function heading past any number of siblings, and touch only the containers they read. `extension/package.py` derives its file list from the manifest and has a `--check` mode.

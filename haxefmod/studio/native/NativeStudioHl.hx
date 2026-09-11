@@ -6,8 +6,8 @@ package haxefmod.studio.native;
  * Converts String to hl.Bytes at the boundary. raw prims live in hlaxe_fmod.c.
  */
 class NativeStudioHl {
-    // A null string reaches the shim as an empty one. The other two
-    // backends refuse it with an error, and a null access is no match.
+    // A null string reaches the shim as an empty one, which FMOD refuses
+    // with an error. A null access on the conversion was the alternative.
     static inline function toBytes(text:String):hl.Bytes {
         return @:privateAccess (text == null ? "" : text).toUtf8();
     }

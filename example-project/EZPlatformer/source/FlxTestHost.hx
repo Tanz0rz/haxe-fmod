@@ -51,8 +51,12 @@ class FlxTestHost implements TestHost {
         // A removeHook then init from inside the updater's own tick keeps
         // the hook too. Flixel defers the removal to the end of the
         // dispatch, so the updater must not hand it a removal there.
+        // The frame hook runs inside FmodManager.Update, so inside the
+        // tick. The previous hook (the PCM pump uses this slot) is put
+        // back once it ran.
+        var previousHook = haxefmod.studio.CallbackDispatcher.frameHook;
         haxefmod.studio.CallbackDispatcher.frameHook = function() {
-            haxefmod.studio.CallbackDispatcher.frameHook = null;
+            haxefmod.studio.CallbackDispatcher.frameHook = previousHook;
             FmodFlxUpdater.removeHook();
             FmodFlxUpdater.init();
         };

@@ -11194,7 +11194,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::getCPUUsage",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod covers this with StudioSystem.getCpuUsage(), which returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update time."
+    "No Haxe declaration, another call plays this role. haxefmod covers this with StudioSystem.getCpuUsage(), which returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update percentage."
    ]
   },
   "system_getdefaultmixmatrix": {

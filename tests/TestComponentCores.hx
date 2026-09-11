@@ -112,10 +112,9 @@ class TestComponentCores {
 		trigger.update();
 		assert(trigger.applied.length == 3 && trigger.applied[2] == 1, "the zone edge is inside");
 
-		// Without an instance the global parameter path is used. The stub
-		// rejects every parameter, which is the outcome the pan test pins
-		// The provider sits at 100, outside this zone, so the outside
-		// value is what reaches the global setter
+		// Without an instance the global parameter path is used. The
+		// provider sits at 100, outside this zone, so the outside value is
+		// what reaches the global setter.
 		stub.testLastGlobalParameter = null;
 		var global = new ZoneTrigger(provider, 0, 0, 10, 10, "Nope", 1, 0);
 		global.update();

@@ -203,7 +203,7 @@ class TestStringsBankParser {
 		} catch (e:haxe.Exception) {
 			deepMessage = e.message;
 		}
-		assert("deeply nested LIST chunks are reported, not overflowed",
+		assert("deeply nested LIST chunks are reported instead of overflowing the stack",
 			deepMessage.indexOf("corrupt chunk layout") >= 0 && deepMessage.indexOf("nested deeper") >= 0);
 	}
 

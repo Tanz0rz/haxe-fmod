@@ -5895,8 +5895,8 @@ class jaxe {
         if (!sound) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
         var out = {};
         jaxe.lastResult = sound.getSubSoundParent(out);
-        // A top-level sound comes back as a wrapper around a null pointer
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        // A top-level sound comes back as a wrapper around a null pointer
         if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
         return jaxe.handleFindOrAlloc(out.val, jaxe.TYPE_SOUND);
     }

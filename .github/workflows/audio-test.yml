@@ -2238,7 +2238,8 @@ jobs:
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
           EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
           chmod +x "$EXE"
-          timeout 30 "$EXE" > /tmp/game-linux-hl-compat.log 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 30 "$EXE" > /tmp/game-linux-hl-compat.log 2>&1 || true
           cd -
 
           echo "=== Game log ==="
@@ -2495,6 +2496,7 @@ jobs:
             /tmp/audio-mac-hl-compat.wav
             /tmp/game-mac-hl-compat.log
             /tmp/volume-test-mac-hl-compat.wav
+            /tmp/*-mac-hl-compat.log
           if-no-files-found: warn
           overwrite: true
 
@@ -2640,7 +2642,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/audio-windows-hl-compat.wav"
 
           cd "$BIN_DIR"
-          timeout 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/game-windows-hl-compat.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/game-windows-hl-compat.log" 2>&1 || true
           cd -
 
           echo "=== Game log ==="
@@ -2696,7 +2699,8 @@ jobs:
           export FMOD_WAVWRITER="$GITHUB_WORKSPACE/volume-test-windows-hl-compat.wav"
 
           cd "$BIN_DIR"
-          timeout 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/volume-test-windows-hl-compat.log" 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 60 "./$(basename "$EXE")" > "$GITHUB_WORKSPACE/volume-test-windows-hl-compat.log" 2>&1 || true
           cd -
 
       - name: Fix volume test WAV header
@@ -2733,6 +2737,7 @@ jobs:
             audio-windows-hl-compat.wav
             game-windows-hl-compat.log
             volume-test-windows-hl-compat.wav
+            *-windows-hl-compat.log
           if-no-files-found: warn
           overwrite: true
 
@@ -3940,6 +3945,8 @@ jobs:
           path: |
             /tmp/*-linux-cpp.wav
             /tmp/*-linux-cpp.log
+            /tmp/*-linux-cpp-manual.log
+            /tmp/*-linux-cpp.log.raw
             /tmp/*-linux-cpp-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -4133,6 +4140,8 @@ jobs:
           path: |
             /tmp/*-linux-hl.wav
             /tmp/*-linux-hl.log
+            /tmp/*-linux-hl-manual.log
+            /tmp/*-linux-hl.log.raw
             /tmp/*-linux-hl-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -4337,6 +4346,8 @@ jobs:
           path: |
             /tmp/*-linux-html5-chromium.wav
             /tmp/*-linux-html5-chromium.log
+            /tmp/*-linux-html5-chromium-manual.log
+            /tmp/*-linux-html5-chromium.log.raw
             /tmp/*-linux-html5-chromium-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -4540,6 +4551,8 @@ jobs:
           path: |
             /tmp/*-mac-cpp.wav
             /tmp/*-mac-cpp.log
+            /tmp/*-mac-cpp-manual.log
+            /tmp/*-mac-cpp.log.raw
             /tmp/*-mac-cpp-console.log
             /tmp/crash-mac-cpp/*
           if-no-files-found: ignore
@@ -4744,6 +4757,8 @@ jobs:
           path: |
             /tmp/*-mac-hl.wav
             /tmp/*-mac-hl.log
+            /tmp/*-mac-hl-manual.log
+            /tmp/*-mac-hl.log.raw
             /tmp/*-mac-hl-console.log
             /tmp/crash-mac-hl/*
           if-no-files-found: ignore
@@ -4924,6 +4939,8 @@ jobs:
           path: |
             ${{ github.workspace }}/*-windows-cpp.wav
             ${{ github.workspace }}/*-windows-cpp.log
+            ${{ github.workspace }}/*-windows-cpp-manual.log
+            ${{ github.workspace }}/*-windows-cpp.log.raw
             ${{ github.workspace }}/*-windows-cpp-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -5103,6 +5120,8 @@ jobs:
           path: |
             ${{ github.workspace }}/*-windows-hl.wav
             ${{ github.workspace }}/*-windows-hl.log
+            ${{ github.workspace }}/*-windows-hl-manual.log
+            ${{ github.workspace }}/*-windows-hl.log.raw
             ${{ github.workspace }}/*-windows-hl-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -5345,6 +5364,8 @@ jobs:
           path: |
             /tmp/*-heaps-hl.wav
             /tmp/*-heaps-hl.log
+            /tmp/*-heaps-hl-manual.log
+            /tmp/*-heaps-hl.log.raw
             /tmp/*-heaps-hl-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -5549,6 +5570,8 @@ jobs:
           path: |
             /tmp/*-heaps-html5.wav
             /tmp/*-heaps-html5.log
+            /tmp/*-heaps-html5-manual.log
+            /tmp/*-heaps-html5.log.raw
             /tmp/*-heaps-html5-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -5752,6 +5775,8 @@ jobs:
           path: |
             /tmp/*-heaps-mac-hl.wav
             /tmp/*-heaps-mac-hl.log
+            /tmp/*-heaps-mac-hl-manual.log
+            /tmp/*-heaps-mac-hl.log.raw
             /tmp/*-heaps-mac-hl-console.log
             /tmp/crash-heaps-mac-hl/*
           if-no-files-found: ignore
@@ -5932,6 +5957,8 @@ jobs:
           path: |
             ${{ github.workspace }}/*-heaps-windows-hl.wav
             ${{ github.workspace }}/*-heaps-windows-hl.log
+            ${{ github.workspace }}/*-heaps-windows-hl-manual.log
+            ${{ github.workspace }}/*-heaps-windows-hl.log.raw
             ${{ github.workspace }}/*-heaps-windows-hl-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -6145,6 +6172,8 @@ jobs:
           path: |
             /tmp/*-kha-linux.wav
             /tmp/*-kha-linux.log
+            /tmp/*-kha-linux-manual.log
+            /tmp/*-kha-linux.log.raw
             /tmp/*-kha-linux-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -6338,6 +6367,8 @@ jobs:
           path: |
             /tmp/*-kha-hl.wav
             /tmp/*-kha-hl.log
+            /tmp/*-kha-hl-manual.log
+            /tmp/*-kha-hl.log.raw
             /tmp/*-kha-hl-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -6542,6 +6573,8 @@ jobs:
           path: |
             /tmp/*-kha-html5.wav
             /tmp/*-kha-html5.log
+            /tmp/*-kha-html5-manual.log
+            /tmp/*-kha-html5.log.raw
             /tmp/*-kha-html5-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -6745,6 +6778,8 @@ jobs:
           path: |
             /tmp/*-kha-mac.wav
             /tmp/*-kha-mac.log
+            /tmp/*-kha-mac-manual.log
+            /tmp/*-kha-mac.log.raw
             /tmp/*-kha-mac-console.log
             /tmp/crash-kha-mac/*
           if-no-files-found: ignore
@@ -6949,6 +6984,8 @@ jobs:
           path: |
             /tmp/*-kha-mac-hl.wav
             /tmp/*-kha-mac-hl.log
+            /tmp/*-kha-mac-hl-manual.log
+            /tmp/*-kha-mac-hl.log.raw
             /tmp/*-kha-mac-hl-console.log
             /tmp/crash-kha-mac-hl/*
           if-no-files-found: ignore
@@ -7129,6 +7166,8 @@ jobs:
           path: |
             ${{ github.workspace }}/*-kha-windows.wav
             ${{ github.workspace }}/*-kha-windows.log
+            ${{ github.workspace }}/*-kha-windows-manual.log
+            ${{ github.workspace }}/*-kha-windows.log.raw
             ${{ github.workspace }}/*-kha-windows-console.log
           if-no-files-found: ignore
           overwrite: true
@@ -7308,6 +7347,8 @@ jobs:
           path: |
             ${{ github.workspace }}/*-kha-windows-hl.wav
             ${{ github.workspace }}/*-kha-windows-hl.log
+            ${{ github.workspace }}/*-kha-windows-hl-manual.log
+            ${{ github.workspace }}/*-kha-windows-hl.log.raw
             ${{ github.workspace }}/*-kha-windows-hl-console.log
           if-no-files-found: ignore
           overwrite: true

@@ -3867,7 +3867,7 @@ int fmod_sys_flush_sample_loading() {
     return (int)gLastResult;
 }
 
-// fbuf: [0]=studio update, [1..6]=core dsp/stream/geometry/update/convolution1/convolution2
+// fbuf: [0]=studio update percent of one core, [1..6]=core dsp/stream/geometry/update/convolution1/convolution2 percent
 int fmod_sys_get_cpu_usage(::Array<Float> fbuf) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     FMOD_STUDIO_CPU_USAGE studio;

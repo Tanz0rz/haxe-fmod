@@ -3,8 +3,8 @@ name: Docs canary
 # Weekly check that fmod.com's API reference matches the snapshot
 # the browser extension was built against. The Haxe tab is keyed by
 # function heading ids and by the position of code examples on each
-# page, so a page edit on their side can leave a tab on the wrong
-# example or drop one. A red run here means fmod.com changed and the
+# page. A page edit on their side can leave a tab on the wrong example
+# or drop one. A red run here means fmod.com changed and the
 # extension data needs a look, see extension/README.md.
 
 on:
