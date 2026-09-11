@@ -148,8 +148,10 @@ static int faxe_handle_find_or_alloc(void* ptr, unsigned char type) {
  * would wrongly match it. Sweeping right after an unload frees every
  * lookup slot whose object the validator reports dead. FMOD IsValid is
  * documented safe on destroyed objects, and address reuse cannot have
- * happened yet inside the same call. Instances, banks, and sounds
- * reclaim their slots through their own release and unload paths. */
+ * happened yet inside the same call. Bank slots are swept the same
+ * way: a single unload frees its own slot, and unloadAll kills every
+ * bank at once. Instances and sounds reclaim their slots through their
+ * own release paths. */
 typedef int (*FaxeLookupValidator)(void* ptr, unsigned char type);
 static void faxe_handle_free(int handle);
 static void faxe_handles_sweep_lookups(FaxeLookupValidator is_valid) {
@@ -158,7 +160,7 @@ static void faxe_handles_sweep_lookups(FaxeLookupValidator is_valid) {
         FaxeSlot* s = &gFaxeSlots[i];
         if (!s->alive) continue;
         if (s->type != FAXE_TYPE_BUS && s->type != FAXE_TYPE_VCA && s->type != FAXE_TYPE_EVD
-            && s->type != FAXE_TYPE_CHANGROUP) continue;
+            && s->type != FAXE_TYPE_CHANGROUP && s->type != FAXE_TYPE_BANK) continue;
         if (!is_valid(s->ptr, s->type)) {
             faxe_handle_free(((int)s->gen << 16) | i);
         }

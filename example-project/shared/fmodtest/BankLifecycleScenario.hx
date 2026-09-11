@@ -242,8 +242,8 @@ class BankLifecycleScenario implements TestScenario {
         check("spatial_resolves_after_load", !desc.isNull(), "");
         check("spatial_is_3d", desc.is3D(), "");
         check("spatial_doppler_enabled", desc.isDopplerEnabled(), "");
-        // The macro range, not the spatializer override (FMOD reports the
-        // event macros here)
+        // The macro range rather than the spatializer override (FMOD
+        // reports the event macros here)
         var distances = desc.getMinMaxDistance();
         check("spatial_distance_range", distances != null
             && distances.min < distances.max && distances.max > 0,

@@ -106,6 +106,7 @@ jobs:
 
       - name: Build HashLink target from the installed release
         run: |
+          set -o pipefail
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/release-build.log
           grep -q "(pre-built)" /tmp/release-build.log

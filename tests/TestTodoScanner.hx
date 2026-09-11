@@ -127,7 +127,7 @@ class TestTodoScanner {
 	}
 
 	static function testRootResolution() {
-		// A relative directory argument is the caller's, not the process
+		// A relative directory argument is the caller's rather than the process
 		// cwd (haxelib run leaves the process inside the library root)
 		var cwd = Sys.getCwd();
 		var resolved = Todos.resolveRoot(["tests"], cwd);

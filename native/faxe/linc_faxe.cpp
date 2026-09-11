@@ -579,6 +579,9 @@ static void releaseSubsoundHandles(FMOD::Sound* parent) {
         if (owner != parent) continue;
         int handle = ((int)gFaxeSlots[i].gen << 16) | i;
         soundLockClose(handle, (FMOD::Sound*)gFaxeSlots[i].ptr);
+        // The slot frees the subsound's rolloff points, so detach them
+        // while the subsound is still alive
+        if (faxe_handle_get_aux(handle)) ((FMOD::Sound*)gFaxeSlots[i].ptr)->set3DCustomRolloff(NULL, 0);
         faxe_handle_free(handle);
     }
 }
@@ -2467,8 +2470,7 @@ int fmod_dsp_get_metering_enabled(int h, ::Array<int> ibuf) {
 
 int fmod_sys_load_bank_memory(::Array<unsigned char> data, int len, int flags) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
-    if (len > data->length) len = data->length;
+    if (data == null() || len <= 0 || len > data->length) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     FMOD::Studio::Bank* bank = NULL;
     // FMOD_STUDIO_LOAD_MEMORY copies the buffer, so the caller's bytes are
     // free as soon as this returns
@@ -3779,6 +3781,7 @@ static int lincLookupSlotValid(void* ptr, unsigned char type) {
         case FAXE_TYPE_BUS: return ((FMOD::Studio::Bus*)ptr)->isValid() ? 1 : 0;
         case FAXE_TYPE_VCA: return ((FMOD::Studio::VCA*)ptr)->isValid() ? 1 : 0;
         case FAXE_TYPE_EVD: return ((FMOD::Studio::EventDescription*)ptr)->isValid() ? 1 : 0;
+        case FAXE_TYPE_BANK: return ((FMOD::Studio::Bank*)ptr)->isValid() ? 1 : 0;
         case FAXE_TYPE_CHANGROUP: {
             // Core objects are handle-validated inside FMOD: a call on a
             // destroyed group reports FMOD_ERR_INVALID_HANDLE safely
@@ -5023,7 +5026,7 @@ int fmod_sys_get_record_position(int id) {
 // slot owns until the handle dies. NULL with count 0 means clear.
 static FMOD_VECTOR* rolloffCopy(::Array<unsigned char> data, int count) {
     if (data == null() || count <= 0) return NULL;
-    if (count * 12 > data->length) return NULL;
+    if ((size_t)count * 12u > (size_t)data->length) return NULL;
     const float* f = (const float*)&data[0];
     FMOD_VECTOR* points = (FMOD_VECTOR*)malloc(sizeof(FMOD_VECTOR) * (size_t)count);
     if (!points) return NULL;

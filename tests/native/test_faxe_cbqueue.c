@@ -238,7 +238,7 @@ int main(void) {
         assert(faxe_cbq_pop(&out) == 1);
         assert(out.opaque == &payload);
         assert(((TestPayload*)out.opaque)->tag == 42);
-        assert(faxe_cbq_take_orphans() == NULL); /* consumed, not orphaned */
+        assert(faxe_cbq_take_orphans() == NULL); /* consumed rather than orphaned */
     }
 
     /* payloads of dropped events land on the orphan list, oldest-dropped

@@ -73,6 +73,9 @@ class FmodHeapsUpdater {
     #if js
     static function browserFrame(_:Float):Void {
         frame();
+        // A removeHook from inside frame() cancels a request that is
+        // already being serviced, so the loop ends here instead
+        if (!installed) return;
         frameRequest = js.Browser.window.requestAnimationFrame(browserFrame);
     }
     #end

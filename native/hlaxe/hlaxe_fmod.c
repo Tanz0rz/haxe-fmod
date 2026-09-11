@@ -83,7 +83,7 @@ static int resolve_play_group(int h, FMOD_CHANNELGROUP** out) {
     return *out != NULL;
 }
 
-// Callback - runs on an FMOD thread, NOT an HL thread. Must not touch the
+// Callback. Runs on an FMOD thread and never on an HL thread. Must not touch the
 // handle table or any HL values. It reads the per-instance context back from
 // FMOD userdata, copies payloads into a plain C record, and pushes it onto
 // the shared queue. The Haxe thread drains the queue during update().
@@ -334,6 +334,8 @@ HL_PRIM void HL_NAME(sys_set_auto_update)(bool enabled) {
         gAutoUpdateRunning = 1;
 #ifdef _WIN32
         gUpdateThread = CreateThread(NULL, 0, autoUpdateLoop, NULL, 0, NULL);
+        /* No thread means nothing updates, so the flag says so */
+        if (!gUpdateThread) gAutoUpdateRunning = 0;
 #else
         if (pthread_create(&gUpdateThread, NULL, autoUpdateLoop, NULL) == 0) {
             gThreadCreated = 1;
@@ -645,6 +647,9 @@ static void release_subsound_handles(FMOD_SOUND* parent) {
         if (owner != parent) continue;
         handle = ((int)gFaxeSlots[i].gen << 16) | i;
         sound_lock_close(handle, (FMOD_SOUND*)gFaxeSlots[i].ptr);
+        /* The slot frees the subsound's rolloff points, so detach them
+         * while the subsound is still alive */
+        if (faxe_handle_get_aux(handle)) FMOD_Sound_Set3DCustomRolloff((FMOD_SOUND*)gFaxeSlots[i].ptr, NULL, 0);
         faxe_handle_free(handle);
     }
 }
@@ -1132,6 +1137,7 @@ HL_PRIM int HL_NAME(dsp_fft_get_spectrum)(int h, vbyte* out, int maxBins) {
         (void**)&fft, &len, NULL, 0);
     if (gLastResult != FMOD_OK || !fft || fft->numchannels < 1) return 0;
     count = fft->length < maxBins ? fft->length : maxBins;
+    if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) outFloats[i] = (double)fft->spectrum[0][i];
     return count;
 }
@@ -4245,6 +4251,7 @@ static int hlaxe_lookup_slot_valid(void* ptr, unsigned char type) {
         case FAXE_TYPE_BUS: return FMOD_Studio_Bus_IsValid((FMOD_STUDIO_BUS*)ptr) ? 1 : 0;
         case FAXE_TYPE_VCA: return FMOD_Studio_VCA_IsValid((FMOD_STUDIO_VCA*)ptr) ? 1 : 0;
         case FAXE_TYPE_EVD: return FMOD_Studio_EventDescription_IsValid((FMOD_STUDIO_EVENTDESCRIPTION*)ptr) ? 1 : 0;
+        case FAXE_TYPE_BANK: return FMOD_Studio_Bank_IsValid((FMOD_STUDIO_BANK*)ptr) ? 1 : 0;
         case FAXE_TYPE_CHANGROUP: {
             // Core objects are handle-validated inside FMOD: a call on a
             // destroyed group reports FMOD_ERR_INVALID_HANDLE safely

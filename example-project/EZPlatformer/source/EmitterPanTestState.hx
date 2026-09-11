@@ -499,7 +499,7 @@ class EmitterPanTestState extends FlxState {
             attributes != null && approx(attributes.velocity.x, 0) && approx(attributes.velocity.y, 0),
             attributes == null ? "unreadable" : 'velocity=(${attributes.velocity.x}, ${attributes.velocity.y})');
 
-        // resetMotion: the next frame reads as a fresh seed, not movement
+        // resetMotion: the next frame reads as a fresh seed instead of movement
         camera.scroll.x = savedX;
         camera.scroll.y = savedY;
         cameraListener.resetMotion();

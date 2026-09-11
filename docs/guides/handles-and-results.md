@@ -1,6 +1,6 @@
 # Handles and results
 
-This guide covers the layers under [FmodManager](fmod-manager.md), where a game works with FMOD objects directly. Every FMOD object in `haxefmod.studio` and `haxefmod.core` is a typed handle: `EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`, `Sound`, `Channel`, `ChannelGroup`, `Dsp`, `SoundGroup`, and so on. All of them share these conventions.
+This guide covers the layers under [FmodManager](fmod-manager.md), where a game works with FMOD objects directly. Every FMOD object in `haxefmod.studio` and `haxefmod.core` is a typed handle. Examples are `EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`, `Sound`, `Channel`, `ChannelGroup`, `Dsp`, and `SoundGroup`. All of them share these conventions.
 
 ## Handles are integers
 
@@ -95,7 +95,7 @@ Struct-shaped results (`FmodParameterDescription`, `Fmod3DAttributes`, `FmodCpuU
 
 ## Enum abstracts
 
-FMOD's enumerations and flag sets are enum abstracts over `Int` in `haxefmod.studio.Types` and `haxefmod.studio.Callbacks`: `FmodStopMode`, `FmodPlaybackState`, `FmodLoadingState`, `EventCallbackType`, `FmodParameterFlags`, and so on. They accept and produce plain ints. Flags combine with `|` and states compare with `==`. Haxe's short constructor syntax applies wherever the type is known.
+FMOD's enumerations and flag sets are enum abstracts over `Int` in `haxefmod.studio.Types` and `haxefmod.studio.Callbacks`. Examples are `FmodStopMode`, `FmodPlaybackState`, `FmodLoadingState`, `EventCallbackType`, and `FmodParameterFlags`. They accept and produce plain ints. Flags combine with `|` and states compare with `==`. Haxe's short constructor syntax applies wherever the type is known.
 
 ```haxe
 import haxefmod.studio.Types;

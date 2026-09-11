@@ -235,7 +235,7 @@ if (typeof studio !== "undefined") {
     }
 
     // Collects {path, guid} entries from the open project: the same set the
-    // built strings bank will contain (events, snapshots, buses incl. the
+    // built strings bank contains (events, snapshots, buses incl. the
     // master "bus:/", VCAs, and global parameters)
     var MODEL_CLASSES = ["Event", "Snapshot", "MixerGroup", "MixerReturn", "MixerMaster", "MixerVCA", "ParameterPreset"];
 

@@ -154,6 +154,18 @@ class TestCallbackDispatcher {
 		assert("helper class clear removes event handlers", !CallbackDispatcher.hasHandler(50));
 		haxefmod.core.ChannelCallbacks.deliver(60, haxefmod.core.ChannelCallbacks.TYPE_END, 0);
 		assert("helper class clear removes channel handlers", chanEvents == 0);
+
+		// A stale handle stores nothing: END never comes for it, so the
+		// closure would stay for the session
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		stub.testStaleChannel = 61;
+		var staleEvents = 0;
+		haxefmod.core.ChannelCallbacks.set(61, _ -> staleEvents++);
+		haxefmod.core.ChannelCallbacks.setGroup(61, _ -> staleEvents++);
+		haxefmod.core.ChannelCallbacks.deliver(61, haxefmod.core.ChannelCallbacks.TYPE_END, 0);
+		assert("a stale channel handle stores no handler", staleEvents == 0
+			&& !@:privateAccess haxefmod.core.ChannelCallbacks.handlers.exists(61));
+		stub.testStaleChannel = 0;
 	}
 
 	static function testReentrancy() {

@@ -911,7 +911,7 @@ class PostBuild {
 		Sys.println("  ERROR: FMOD_SDK environment variable is not set.");
 		Sys.println("");
 		if (target == "hl") {
-			Sys.println("  You will see: Failed to load library hlaxe_fmod.hdll");
+			Sys.println("  The error reads: Failed to load library hlaxe_fmod.hdll");
 		} else {
 			Sys.println("  The game exits at startup because libfmod is missing.");
 		}

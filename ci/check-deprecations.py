@@ -83,7 +83,7 @@ DEPRECATED = [
 ]
 
 # Aliases in the engine packages compile against that engine. Flixel comes
-# from haxelib. The Heaps and Kha packages are new in 3.0.0 and carry none.
+# from haxelib. The Heaps and Kha packages carry none.
 ENGINE_DEPRECATED = [
     ("haxefmod.flixel.FmodFlxUtilities.PlaySoundOneShotAttached",
      "haxefmod.flixel.FmodFlxUtilities.PlaySoundOneShotAttached(\"event:/x\", null);",

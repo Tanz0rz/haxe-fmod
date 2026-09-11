@@ -194,7 +194,7 @@ static int faxe_cbq_take_overflow(void) {
  * Entries hold the whole path at the 512-byte native string size, so a
  * long bank path reaches the stash instead of failing the read. The event
  * record is narrower, so the take truncates. */
-#define FAXE_BANKPATH_CAPACITY 32
+#define FAXE_BANKPATH_CAPACITY 256
 #define FAXE_BANKPATH_STR_MAX 512
 
 typedef struct {

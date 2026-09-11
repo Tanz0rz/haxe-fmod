@@ -57,10 +57,10 @@ Lime builds get the FMOD runtime files copied next to the game automatically. Ev
 - `hl` copies the FMOD libraries and `hlaxe_fmod.hdll`, resolved through the same tiers as a lime build (see [Platforms](../platforms.md#hashlink)).
 - `cpp` copies the FMOD libraries, for executables the binding was compiled into. Kha's native targets use this on Kore HL/C builds too.
 
-Both native targets also get a launcher that starts the game with the right library path.
+Native targets also get a launcher that starts the game with the right library path.
 
 - Linux: `run.sh`
-- Windows: `run.cmd`
+- Windows: `run.cmd` for HashLink VM output only
 - macOS: `run.sh` for HashLink VM output only
 - `html5` copies the FMOD web engine (`fmodstudio.js`, `fmodstudio.wasm`) and the library's `jaxe.js` glue into the directory. Your page then loads them with script tags ahead of the game.
 

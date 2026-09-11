@@ -40,10 +40,28 @@ class FlxTestHost implements TestHost {
 
     public function checkSetupReinit(check:String->Bool->String->Void):Void {
         FmodFlxSetup.init();
-        // init() removes its postUpdate handler before adding it back, so a
-        // second call leaves the same single hook installed
-        check("hardening_setup_reinit_single_updater", FmodFlxUpdater.isInstalled(),
-            'installed=${FmodFlxUpdater.isInstalled()} (one postUpdate hook)');
+        // A second init leaves the same single hook installed
+        check("hardening_setup_reinit_single_updater", updaterHooks() == 1, 'hooks=${updaterHooks()}');
+        // An init from inside the postUpdate dispatch keeps the hook. A
+        // component created in a callback does exactly that.
+        FlxG.signals.postUpdate.addOnce(FmodFlxUpdater.init);
+        FlxG.signals.postUpdate.dispatch();
+        check("hardening_setup_reinit_inside_dispatch", updaterHooks() == 1 && FmodFlxUpdater.isInstalled(),
+            'hooks=${updaterHooks()} installed=${FmodFlxUpdater.isInstalled()}');
+    }
+
+    // How many times the updater's handler is registered on postUpdate.
+    // The signal is an abstract over a private class, so reflection
+    // reads its handler list.
+    static function updaterHooks():Int {
+        var signal:Dynamic = cast FlxG.signals.postUpdate;
+        var handlers:Array<Dynamic> = Reflect.field(signal, "handlers");
+        var hook:Dynamic = @:privateAccess FmodFlxUpdater.handler;
+        var count = 0;
+        if (handlers != null) for (h in handlers) {
+            if (Reflect.compareMethods(Reflect.field(h, "listener"), hook)) count++;
+        }
+        return count;
     }
 
     public function setUpdaterInstalled(installed:Bool):Void {

@@ -60,7 +60,7 @@ fi
 # 4. Check FMOD bank files present
 echo -n "  [4/5] FMOD bank files .............. "
 BANKS_DIR="$BIN_DIR/assets/fmod/Desktop"
-# Mac .app bundles: assets are in Contents/Resources/, not Contents/MacOS/
+# Mac .app bundles: assets are in Contents/Resources/ rather than Contents/MacOS/
 if [ ! -d "$BANKS_DIR" ] && [[ "$BIN_DIR" == *Contents/MacOS* ]]; then
   RESOURCES_DIR="${BIN_DIR%/Contents/MacOS*}/Contents/Resources"
   BANKS_DIR="$RESOURCES_DIR/assets/fmod/Desktop"

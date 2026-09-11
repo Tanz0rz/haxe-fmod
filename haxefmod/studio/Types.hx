@@ -445,8 +445,8 @@ typedef FmodTimelineMarkerProperties = {
 /**
  * FMOD_STUDIO_TIMELINE_NESTED_BEAT_PROPERTIES, the payload of
  * EventCallbackData.NestedTimelineBeat. eventId is the GUID of the
- * referenced event in FMOD's text form, empty in HTML5 where the web
- * runtime hands the beat over without it.
+ * referenced event in FMOD's text form. HTML5 never delivers this
+ * callback, so the payload is native only.
  */
 typedef FmodTimelineNestedBeatProperties = {
     var eventId:String;

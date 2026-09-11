@@ -162,7 +162,8 @@ class StudioSystem {
      * on failure.
      */
     public static function loadBankMemory(data:haxe.io.Bytes, flags:FmodLoadBankFlags = NORMAL):Bank {
-        return NativeStudio.sys_load_bank_memory(data, data.length, flags);
+        // Null reaches the shim, which refuses it with FMOD_ERR_INVALID_PARAM
+        return NativeStudio.sys_load_bank_memory(data, data == null ? 0 : data.length, flags);
     }
 
     /**

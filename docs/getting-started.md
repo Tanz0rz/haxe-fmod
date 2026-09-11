@@ -35,7 +35,7 @@ The library is tested on HaxeFlixel and other `lime` and `openfl` games, on Heap
 
 ## Prerequisites
 
-**Haxe** - the library is built and tested against 4.3.6. The nightly canary covers 4.3.7. Haxe 5 is not tested yet.
+**Haxe**: the library is built and tested against 4.3.6. The weekly canary covers 4.3.7. Haxe 5 is not tested yet.
 
 **FMOD Engine SDK** - Download version 2.03.12 from [fmod.com/download](https://www.fmod.com/download). Step 3 below covers the setup.
 
@@ -49,11 +49,11 @@ The library is tested on HaxeFlixel and other `lime` and `openfl` games, on Heap
 
 === "Heaps"
 
-    **HashLink** - the desktop target runs on the HashLink VM. Install [HashLink](https://hashlink.haxe.org/) and make sure `hl` is on your path. Browser builds need no VM.
+    **HashLink**: the desktop target runs on the HashLink VM. Install [HashLink](https://hashlink.haxe.org/) and make sure `hl` is on your path. Browser builds need no VM.
 
 === "Kha"
 
-    **Node.js and a Kha checkout** - builds run through khamake (`node make.js` from a [Kha](https://github.com/Kode/Kha) checkout). Kha brings its own Haxe.
+    **Node.js and a Kha checkout**: builds run through khamake (`node make.js` from a [Kha](https://github.com/Kode/Kha) checkout). Kha brings its own Haxe.
 
     **A C++ compiler** - Kha's native targets always compile C++ through Kore, so the platform toolchain is required. Install Xcode Command Line Tools on macOS, Visual Studio 2022 on Windows, and `gcc` and `g++` on Linux.
 

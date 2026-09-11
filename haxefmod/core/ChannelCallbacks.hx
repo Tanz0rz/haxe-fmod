@@ -2,6 +2,7 @@ package haxefmod.core;
 
 import haxefmod.core.ChannelEvent;
 import haxefmod.core.ChannelEvent.ChannelCallback;
+import haxefmod.studio.FmodResult;
 import haxefmod.studio.native.NativeStudio;
 
 /**
@@ -34,16 +35,18 @@ class ChannelCallbacks {
     public static function set(handle:Int, handler:ChannelCallback):Void {
         if (handle == 0 || handler == null) return;
         installRouter();
+        // A stale handle never delivers END, so storing the handler
+        // anyway would keep the closure for the rest of the session
+        if (NativeStudio.chan_set_callback(handle, true) == (FmodResult.FMOD_ERR_INVALID_HANDLE : Int)) return;
         handlers.set(handle, handler);
-        NativeStudio.chan_set_callback(handle, true);
     }
 
     public static function setGroup(handle:Int, handler:ChannelCallback):Void {
         if (handle == 0 || handler == null) return;
         installRouter();
+        if (NativeStudio.cg_set_callback(handle, true) == (FmodResult.FMOD_ERR_INVALID_HANDLE : Int)) return;
         handlers.set(handle, handler);
         groups.set(handle, true);
-        NativeStudio.cg_set_callback(handle, true);
     }
 
     /**

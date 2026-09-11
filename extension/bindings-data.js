@@ -9430,6 +9430,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "getBank(path:String):Bank",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Loads a bank from bytes the engine's loader delivered, registered under the path the file load would use.",
+     "name": "loadMemory",
+     "signature": "loadMemory(path:String, bytes:haxe.io.Bytes):Bank",
+     "static": false,
+     "type": "haxefmod.runtime.BankRegistry"
     }
    ],
    "html5": false

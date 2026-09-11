@@ -721,14 +721,14 @@ class ApiProbeScenario implements TestScenario {
         CallbackDispatcher.update();
         var baseline = StudioSystem.liveHandleCount();
 
-        // A lied fromPcm length must clamp, not over-read: the HashLink
+        // A lied fromPcm length must clamp instead of over-reading. The HashLink
         // shim crashed inside FMOD's memcpy before the wrapper clamp
         var pcm = haxe.io.Bytes.alloc(4800);
         var lied = Sound.fromPcm(pcm, 48000, 1, 1024 * 1024);
         check("hardening_frompcm_lied_length_clamps", !lied.isNull(),
             'result=${StudioSystem.lastResult().toString()}');
         // 4800 bytes of mono 16-bit at 48kHz = 2400 samples = 50ms: the
-        // length proves the clamp fed FMOD the real size, not the lie
+        // length proves the clamp fed FMOD the real size instead of the lie
         var lengthMs = lied.getLength();
         check("hardening_frompcm_clamped_size", lengthMs == 50, 'lengthMs=$lengthMs');
         lied.release();
@@ -1424,7 +1424,7 @@ class ApiProbeScenario implements TestScenario {
             'result=${StudioSystem.lastResult().toString()}');
         check("null_vca_defaults", missingVca.getVolume() == 0.0 && !missingVca.setVolume(1.0).isOk()
             && missingVca.getPath() == "" && !missingVca.isValid(), "");
-        // A well-formed GUID that belongs to an event, not a VCA
+        // A well-formed GUID that belongs to an event rather than a VCA
         var missingVcaById = StudioSystem.getVCAByID(FmodEvents.FmodEventsGuids.SFXJump);
         check("sys_get_vca_by_id_wrong_type", missingVcaById.isNull(), "");
 
@@ -1602,7 +1602,7 @@ class ApiProbeScenario implements TestScenario {
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
 
         // An instance's channel group handle is reclaimed when the
-        // instance is destroyed, not left dangling for pointer dedup to
+        // instance is destroyed instead of dangling for pointer dedup to
         // alias onto a future group
         var d = desc.createInstance();
         d.start();
@@ -1944,7 +1944,7 @@ class ApiProbeScenario implements TestScenario {
             'count=${FmodRuntime.attachedCount()}');
         // The one-shot must clean itself up even when every callback
         // registration is wiped while it plays. Release rides the attach
-        // loop's STOPPED check, not a callback.
+        // loop's STOPPED check rather than a callback.
         FmodManager.ClearAllCallbacks();
         _waitingForOneShot = true;
     }

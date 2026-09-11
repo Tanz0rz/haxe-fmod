@@ -490,7 +490,7 @@ class NativeStudioJs {
     public static inline function dsp_get_metering_enabled(handle:Int):Int return Raw.fmod_dsp_get_metering_enabled(handle, Scratch.intBuf());
 
     // Bank loading from memory
-    public static inline function sys_load_bank_memory(data:haxe.io.Bytes, len:Int, flags:Int):Int return Raw.fmod_sys_load_bank_memory(data.getData(), len, flags);
+    public static inline function sys_load_bank_memory(data:haxe.io.Bytes, len:Int, flags:Int):Int return Raw.fmod_sys_load_bank_memory(data == null ? null : data.getData(), len, flags);
 
     // Event instance core bridge
     public static inline function evi_get_channel_group(handle:Int):Int return Raw.fmod_evi_get_channel_group(handle);
@@ -545,7 +545,7 @@ class NativeStudioJs {
 
     // DSP data params, info, and output traversal
     /** Byte payload per the effect's data parameter contract. */
-    public static inline function dsp_set_param_data(handle:Int, index:Int, data:haxe.io.Bytes, len:Int):Int return Raw.fmod_dsp_set_param_data(handle, index, data.getData(), len);
+    public static inline function dsp_set_param_data(handle:Int, index:Int, data:haxe.io.Bytes, len:Int):Int return Raw.fmod_dsp_set_param_data(handle, index, data == null ? null : data.getData(), len);
     public static inline function dsp_get_idle(handle:Int):Bool return Raw.fmod_dsp_get_idle(handle);
     public static inline function dsp_get_info_name(handle:Int):String return Raw.fmod_dsp_get_info_name(handle);
     public static inline function dsp_get_output_dsp(handle:Int, index:Int):Int return Raw.fmod_dsp_get_output_dsp(handle, index);

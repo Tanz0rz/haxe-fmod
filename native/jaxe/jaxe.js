@@ -1086,7 +1086,7 @@ class jaxe {
                 s.ptr = bank.val;
                 s.raw = jaxe.rawPtr(bank.val);
                 // The MEMFS copy backs the loaded bank (streaming sample
-                // data reads from it), so it is deleted at unload, not here
+                // data reads from it), so unload deletes it and this path keeps it
                 jaxe.asyncBankFiles.set(s.raw, memfsName);
             }).catch(function () {
                 settle();
@@ -1723,6 +1723,7 @@ class jaxe {
         var eviHandle = jaxe.handleAlloc(instance.val, jaxe.TYPE_EVI);
         if (eviHandle == 0) {
             instance.val.release();
+            jaxe.lastResult = jaxe.ERR_MEMORY;
             return 0;
         }
         instance.val.setUserData(eviHandle);
@@ -1753,7 +1754,7 @@ class jaxe {
         var written = 0;
         for (var i = 0; i < n; i++) {
             var eviHandle = jaxe.handleFindOrAlloc(list.val[i], jaxe.TYPE_EVI);
-            if (eviHandle == 0) continue;
+            if (eviHandle == 0) { jaxe.lastResult = jaxe.ERR_MEMORY; continue; }
             // Stamp the handle whenever userdata disagrees, so re-minted
             // and alias-recycled instances route callbacks to the live
             // handle. (A liveCount delta cannot detect the alias path:
@@ -2872,7 +2873,9 @@ class jaxe {
         var outInfo = { peaklevel: [], rmslevel: [] };
         jaxe.lastResult = dsp.getMeteringInfo(inInfo, outInfo);
         if (jaxe.lastResult != jaxe.FMOD.OK) return 0;
-        var ch = outInfo.numchannels || outInfo.peaklevel.length;
+        // The glue always fills 32 level slots, so numchannels alone is
+        // the count, zero until the mixer has run through the unit
+        var ch = outInfo.numchannels | 0;
         if (ch > 32) ch = 32;
         for (var i = 0; i < ch; i++) {
             fbuf[i] = outInfo.peaklevel[i] || 0;
@@ -3942,13 +3945,15 @@ class jaxe {
 
     static fmod_sys_set_studio_callback_mask(mask) {
         if (!jaxe.sysReady()) return jaxe.lastResult;
-        jaxe.studioCallbackMask = mask >>> 0;
-        if ((jaxe.studioCallbackMask & jaxe.STUDIO_CB_BANK_UNLOAD) == 0) jaxe.bankPathByRaw.clear();
-        if (jaxe.studioCallbackMask === 0) {
+        var wanted = mask >>> 0;
+        if (wanted === 0) {
             jaxe.lastResult = jaxe.gSystem.setCallback(null, 0);
         } else {
-            jaxe.lastResult = jaxe.gSystem.setCallback(jaxe.studioSystemCallback, jaxe.studioCallbackMask);
+            jaxe.lastResult = jaxe.gSystem.setCallback(jaxe.studioSystemCallback, wanted);
         }
+        // The mask is recorded once FMOD took it, the way the C shims do
+        jaxe.studioCallbackMask = jaxe.lastResult == jaxe.FMOD.OK ? wanted : 0;
+        if ((jaxe.studioCallbackMask & jaxe.STUDIO_CB_BANK_UNLOAD) == 0) jaxe.bankPathByRaw.clear();
         return jaxe.lastResult;
     }
 

@@ -57,7 +57,7 @@ class TestComponentCores {
 		assert(approx(provider.fmodVelocityX(), 60) && approx(provider.fmodVelocityY(), -20),
 			"velocity is the movement over the elapsed time");
 
-		// A jump past the teleport distance is a cut, not movement
+		// A jump past the teleport distance is a cut rather than movement
 		x = 5000;
 		provider.sample(0.5);
 		assert(provider.fmodVelocityX() == 0 && provider.fmodVelocityY() == 0, "teleport reports zero velocity");
@@ -194,7 +194,7 @@ class TestComponentCores {
 		tracker.stopEventsOutsideMaxDistance = true;
 		tracker.cullCheckInterval = 1;
 		tracker.update();
-		assert(FmodRuntime.attachedCount() == baseline + 1, "culling with no listener attributes changes nothing");
+		assert(FmodRuntime.attachedCount() == baseline + 1, "culling with no listener leaves the instance attached");
 
 		tracker.dispose();
 		assert(FmodRuntime.attachedCount() == baseline, "dispose detaches");
@@ -208,13 +208,16 @@ class TestComponentCores {
 		assert(FmodRuntime.attachedCount() == baseline, "a null instance is not attached");
 		nothing.dispose();
 
-		// The listener tracker pushes the provider's position without a
-		// provider-less crash
+		// The listener tracker pushes nothing without a provider, and the
+		// provider's position once it has one
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		stub.testListenerPushes = [];
 		var listener = new ListenerTracker(null);
 		listener.update();
+		assert(stub.testListenerPushes.length == 0, "no listener push without a provider");
 		listener.provider = provider;
 		listener.update();
-		assert(true, "listener update with and without a provider");
+		assert(stub.testListenerPushes.length == 1, "one listener push per update with a provider");
 	}
 }
 

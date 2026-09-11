@@ -59,7 +59,12 @@ class NativeStudioStub {
     public static function sys_get_num_listeners():Int return 0;
     public static function sys_set_num_listeners(count:Int):Int return ERR_UNSUPPORTED;
     public static function sys_get_listener_attributes(index:Int):Int return ERR_UNSUPPORTED;
-    public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float, hasAttenuation:Bool, ax:Float, ay:Float, az:Float):Int return ERR_UNSUPPORTED;
+    /** Every listener position push, for the unit tests. */
+    public static var testListenerPushes:Array<{index:Int, x:Float, y:Float}> = [];
+    public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float, hasAttenuation:Bool, ax:Float, ay:Float, az:Float):Int {
+        testListenerPushes.push({index: index, x: px, y: py});
+        return ERR_UNSUPPORTED;
+    }
     public static function sys_last_parameter_guid():String return "";
     public static function sys_get_listener_weight(index:Int):Float return 0.0;
     public static function sys_set_listener_weight(index:Int, weight:Float):Int return ERR_UNSUPPORTED;
@@ -447,7 +452,9 @@ class NativeStudioStub {
     public static function dsp_get_cpu_usage(handle:Int):Int return ERR_UNSUPPORTED;
 
     // Channel callbacks and sync points
-    public static function chan_set_callback(handle:Int, enabled:Bool):Int return ERR_UNSUPPORTED;
+    /** A channel or group handle the stub reports as stale. */
+    public static var testStaleChannel:Int = 0;
+    public static function chan_set_callback(handle:Int, enabled:Bool):Int return handle == testStaleChannel ? 30 : ERR_UNSUPPORTED;
     public static function sys_set_callback_mask(mask:Int):Int return ERR_UNSUPPORTED;
     public static function sys_set_studio_callback_mask(mask:Int):Int return ERR_UNSUPPORTED;
     public static function sound_add_sync_point(handle:Int, offset:Int, unit:Int, name:String):Int return -1;
@@ -582,7 +589,7 @@ class NativeStudioStub {
     public static function cg_get_delay(handle:Int):Int return ERR_UNSUPPORTED;
     public static function cg_get_low_pass_gain(handle:Int):Float return 0.0;
     public static function cg_is_playing(handle:Int):Bool return false;
-    public static function cg_set_callback(handle:Int, enabled:Bool):Int return ERR_UNSUPPORTED;
+    public static function cg_set_callback(handle:Int, enabled:Bool):Int return handle == testStaleChannel ? 30 : ERR_UNSUPPORTED;
     public static function cg_set_3d_level(handle:Int, level:Float):Int return ERR_UNSUPPORTED;
     public static function cg_get_3d_level(handle:Int):Float return 0.0;
     public static function cg_set_3d_spread(handle:Int, angle:Float):Int return ERR_UNSUPPORTED;

@@ -5,7 +5,7 @@
 	"tags": ["fmod", "audio", "windows", "linux", "mac", "hashlink", "html5", "web", "openfl", "lime", "flixel", "heaps", "kha"],
 	"description" : "Use FMOD Studio with Haxe on HTML5, HashLink, Windows, Linux, and macOS",
 	"version" : "3.0.0",
-	"releasenote" : "Full parity with the FMOD API. Every FMOD type has a Haxe declaration. Callbacks deliver FMOD's own structs. Time units, sound modes, DSP data parameters, and init settings are bound. An HTML5 compile gate stops calls the web build cannot run. Heaps and Kha join HaxeFlixel. The helper class gains banks, snapshots, global parameters, and VCAs. It also takes FMOD's own names, such as PlayEvent, FmodEvent, and SetMasterVolume. A documentation site and a Haxe tab on fmod.com are live. This release breaks compatibility. Read MIGRATION.md.",
+	"releasenote" : "Full FMOD API parity with typed declarations, callbacks with FMOD structs, and an HTML5 compile gate. Heaps and Kha join HaxeFlixel. The helper class gains banks, snapshots, and VCAs under FMOD names. Breaking release, see MIGRATION.md.",
 	"contributors" : ["Tanz0rz"],
 	"dependencies" : { },
 	"main" : "haxefmod.tools.Run"

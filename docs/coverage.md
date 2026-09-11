@@ -496,7 +496,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_FlushCommands` | `StudioSystem.flushCommands` |  |
 | `FMOD_Studio_System_FlushSampleLoading` | `StudioSystem.flushSampleLoading`<br>`FmodManager.WaitForBanks` |  |
 | `FMOD_Studio_System_GetAdvancedSettings` | `StudioSystem.getStudioAdvancedSettings` | compile error |
-| `FMOD_Studio_System_GetBank` | `StudioSystem.getBank` |  |
+| `FMOD_Studio_System_GetBank` | `StudioSystem.getBank`<br>`BankRegistry.loadMemory` |  |
 | `FMOD_Studio_System_GetBankByID` | `StudioSystem.getBankByID` |  |
 | `FMOD_Studio_System_GetBankCount` | `StudioSystem.getBankCount` |  |
 | `FMOD_Studio_System_GetBankList` | `StudioSystem.getBankList` |  |
@@ -703,7 +703,6 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `file_close` | Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths. |
 | `file_open` | Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths. |
 | `file_read` | Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths. |
-| `file_seek` | Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths. |
 | `file_seek` | Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths. |
 | `getValue` | Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly. |
 | `setValue` | Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly. |

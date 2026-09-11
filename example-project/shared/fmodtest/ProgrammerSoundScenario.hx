@@ -290,7 +290,7 @@ class ProgrammerSoundScenario implements TestScenario {
             // metered silent on the CI runners. Its sound was ready, the
             // sample data was preloaded, and the event ran its full length.
             // The question is open, and the plan doc has the details. This
-            // first pass is logged, not checked, and the same key runs
+            // first pass is logged without a check, and the same key runs
             // again checked right after.
             _atWarmup = false;
             info("at_warmup", '$tag stopped=$_atStopped creates=$_atCreates destroys=$_atDestroys peak=$_atMaxPeak create_frame=$_atCreateFrame ready_frame=$_atReadyFrame first_audible_frame=$_atFirstAudibleFrame stopped_frame=$_atFrames');

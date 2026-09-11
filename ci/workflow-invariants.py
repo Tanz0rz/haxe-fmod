@@ -161,6 +161,7 @@ REQUIRED_STEPS = {
         "Run threaded native tests under ThreadSanitizer",
         "Test define-driven settings (haxefmod_* and -debug)",
         "Test the default bank failure path",
+        "Check the generated bindings table and example translations",
         "Check FMOD version literal lockstep",
         "Check hxcpp depend lockstep",
         "Compile the README examples",

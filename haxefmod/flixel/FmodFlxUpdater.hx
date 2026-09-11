@@ -15,10 +15,13 @@ import flixel.FlxG;
 class FmodFlxUpdater {
     static var handler:Void->Void = () -> FmodManager.Update();
 
-    /** Hooks the update once. Safe to call again, and after a recreated FlxGame. **/
+    /** Hooks the update once. Safe to call again, and from inside a callback. **/
     public static function init():Void {
-        // Remove-then-add keeps a single hook across repeated init calls.
-        FlxG.signals.postUpdate.remove(handler);
+        // add() keeps a single hook: a listener already registered is
+        // returned as is. A remove first would drop the hook when init
+        // runs inside the postUpdate dispatch. Flixel defers that removal
+        // to the end of the dispatch, and add() sees the listener still
+        // present until then.
         FlxG.signals.postUpdate.add(handler);
     }
 

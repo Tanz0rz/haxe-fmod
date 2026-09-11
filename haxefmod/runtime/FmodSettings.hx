@@ -74,7 +74,7 @@ typedef FmodSettings = {
 
     /**
      * Tracks memory per object (FMOD_STUDIO_INIT_MEMORY_TRACKING) so
-     * getMemoryUsage on StudioSystem, Bank, Bus, and EventInstance reports
+     * getMemoryUsage on StudioSystem, Bus, and EventInstance reports
      * real numbers. Only the logging FMOD libraries (libfmodstudioL) count.
      * The release libraries report zero. Costs a little CPU per
      * allocation. Default false.

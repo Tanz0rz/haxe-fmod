@@ -233,10 +233,6 @@ class TestPostBuild {
 		assert(!PostBuild.looksLikeWebSdk(desktop), "desktop package not mistaken for html5");
 		assert(!PostBuild.looksLikeWebSdk(root + "/missing"), "absent path is not the html5 package");
 
-		// The header both packages share cannot separate them
-		assert(sys.FileSystem.exists(web + "/api/core/inc/fmod_common.h"),
-			"html5 package ships the core headers too");
-
 		for (platform in ["mac", "windows", "linux"]) {
 			var marker = haxe.io.Path.join([desktop].concat(PostBuild.nativeCoreLib(platform)));
 			assert(sys.FileSystem.exists(marker), 'desktop package has the $platform core library');

@@ -160,6 +160,13 @@ jobs:
       - name: Check binding coverage against the manifest
         run: python3 ci/binding-coverage.py
 
+      # The docs workflow checks these too. Here they fail the matrix
+      # when a source change forgets the regeneration.
+      - name: Check the generated bindings table and example translations
+        run: |
+          python3 ci/haxe-bindings.py --check
+          python3 ci/haxe-catalog.py --check
+
       # The main suite only ever runs the define fallbacks: these two
       # variants prove -D haxefmod_* values and the -debug defaults
       # actually reach the settings resolver
@@ -238,6 +245,7 @@ jobs:
         env:
           FMOD_SDK_WEB: /tmp/fmod-sdk-cache-2.03.12/html5
         run: |
+          set -o pipefail
           # A fully configured environment must pass by exit code AND report
           cd example-project/EZPlatformer
           haxelib run haxefmod check 2>&1 | tee /tmp/doctor-ok.log
@@ -708,6 +716,7 @@ jobs:
 
       - name: Build HashLink target from the installed package
         run: |
+          set -o pipefail
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/package-build.log
           grep -q "(pre-built)" /tmp/package-build.log
@@ -1107,6 +1116,7 @@ jobs:
 
       - name: Build HashLink target (pre-built hdll)
         run: |
+          set -o pipefail
           # A binding ABI bump lands before update-hdlls can rebuild the
           # shipped hdlls, so a stale marker skips this verification and
           # the fresh hdll from build-hdll carries the rest of the job.
@@ -1138,6 +1148,7 @@ jobs:
 
       - name: Rebuild HashLink target (custom hdll)
         run: |
+          set -o pipefail
           rm -rf example-project/EZPlatformer/export/hl
           cd example-project/EZPlatformer
           haxelib run lime build hl -Daudio_test 2>&1 | tee /tmp/build-custom.log
@@ -1150,6 +1161,7 @@ jobs:
           name: hlaxe_fmod-linux.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
           overwrite: true
+          if-no-files-found: error
 
       - name: Verify FMOD libraries have no executable stack
         run: |
@@ -1180,6 +1192,7 @@ jobs:
       # lime postbuild. Run it against the real SDK and custom hdll here.
       - name: Stage FMOD runtime into a plain directory
         run: |
+          set -o pipefail
           cd example-project/EZPlatformer
           STAGE_DIR="$RUNNER_TEMP/stage-hl"
           haxelib run haxefmod stage linux hl "$STAGE_DIR" 2>&1 | tee /tmp/stage-hl.log
@@ -1233,6 +1246,7 @@ jobs:
       - name: lime test end to end
         if: ${{ !cancelled() }}
         run: |
+          set -o pipefail
           export DISPLAY=:99
           cd example-project/EZPlatformer
           # -Daudio_test compiles the state selector in. Without it the
@@ -1740,6 +1754,7 @@ jobs:
           name: hlaxe_fmod-mac.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
           overwrite: true
+          if-no-files-found: error
 
       - name: Validate build output
         run: |
@@ -2006,6 +2021,7 @@ jobs:
           echo "=== .haxefmod/ contents ==="
           ls -la example-project/EZPlatformer/.haxefmod/
           cat example-project/EZPlatformer/.haxefmod/hlaxe_fmod.version
+          test -s example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
 
       - name: Rebuild HashLink target (custom hdll)
         run: |
@@ -2021,6 +2037,7 @@ jobs:
           name: hlaxe_fmod-windows.hdll
           path: example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
           overwrite: true
+          if-no-files-found: error
 
       - name: Validate build output
         run: |
@@ -2579,6 +2596,7 @@ jobs:
           echo "=== .haxefmod/ contents ==="
           ls -la example-project/EZPlatformer/.haxefmod/
           cat example-project/EZPlatformer/.haxefmod/hlaxe_fmod.version
+          test -s example-project/EZPlatformer/.haxefmod/hlaxe_fmod.hdll
 
       - name: Rebuild HashLink target (custom hdll)
         run: |

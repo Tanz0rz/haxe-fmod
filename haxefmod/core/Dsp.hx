@@ -177,8 +177,8 @@ abstract Dsp(Int) from Int to Int {
     /**
      * The whole FFT payload: FMOD's bin count, the channel count, and one
      * magnitude array per channel. Each array holds the lesser of that
-     * count and maxBins (512 at most), so loop over the array, not over
-     * `length`. Null when no data is available yet.
+     * count and maxBins (512 at most), so the array bound is the loop
+     * limit rather than `length`. Null when no data is available yet.
      */
     public function getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft> {
         if (maxBins > 512) maxBins = 512;
@@ -292,7 +292,7 @@ abstract Dsp(Int) from Int to Int {
      * the channel count as the first value).
      */
     public inline function setParameterData(index:Int, data:haxe.io.Bytes):FmodResult {
-        return NativeStudio.dsp_set_param_data(this, index, data, data.length);
+        return NativeStudio.dsp_set_param_data(this, index, data, data == null ? 0 : data.length);
     }
 
     /**

@@ -230,7 +230,7 @@ def is_type_definition(code):
 def is_fmod_type_definition(entry):
     """An FMOD type shown under its own heading on an API reference page.
     A guide example that opens with a helper struct of its own (a context
-    the sample threads through a callback) is an example, not a type."""
+    the sample threads through a callback) is an example rather than a type."""
     if not re.search(r"\b(?:FMOD|FSBANK)_[A-Z0-9_]+\b", entry["heading"]):
         return False
     return is_type_definition(native_snippet(entry))
@@ -306,7 +306,7 @@ def shown_declaration(code, member_name=None):
     """The declaration the way the tab shows it. The doc comments inside
     it stay out (the other language tabs carry none), and a class,
     abstract, or enum abstract shows its values and public fields only.
-    Functions are haxefmod's helpers on the type, not the FMOD
+    Functions are haxefmod's helpers on the type rather than the FMOD
     declaration, so they never show, and neither do private members or
     the metadata that decorates one. With member_name (a Type: line that
     names one constant of a class) only that member shows."""
@@ -479,7 +479,7 @@ def resolve(section, problems, label, type_definition=False):
     if section["type"]:
         declared = declaration_of(section["type"])
         if declared is None and "." in section["type"]:
-            # A Type: line may name one constant of a class, the way the
+            # A Type: line can name one constant of a class, the way the
             # site shows one define per entry: Types.FmodLimits.MAX_SYSTEMS
             path, member = section["type"].rsplit(".", 1)
             declared = declaration_of(path)
@@ -527,7 +527,7 @@ def check_type_definition(entry, section, record, skips, problems, label):
         problems.append(f"{label}: Shape: lines are not accepted, a type definition shows its Haxe declaration through a Type: line")
         return 0
     if section["type"] is None:
-        problems.append(f"{label}: a type definition on the site needs a Type: line, not a hand-written fence")
+        problems.append(f"{label}: a type definition on the site needs a Type: line instead of a hand-written fence")
         return 0
     if section["code"] is not None or section["notes"]:
         problems.append(f"{label}: a type definition shows its declaration alone, drop the fence and the note lines")
@@ -578,7 +578,7 @@ def snippet_numbers(code):
     """Numeric literals, as values. 0 and 1 stay out: C spells booleans,
     null handles, and first indices with them, and every language of a
     snippet differs there without the meaning changing. Bracketed
-    indices and array sizes ([3]) are structure, not data, and Haxe
+    indices and array sizes ([3]) are structure rather than data, and Haxe
     spells them differently or not at all. Hex literals never match,
     both sides skip them the same way."""
     out = set()

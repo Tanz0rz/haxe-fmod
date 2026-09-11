@@ -178,8 +178,8 @@ class CallbackScenario implements TestScenario {
                     _nestedBeats++;
                     if (beat.tempo > 0 && beat.timeSignatureUpper > 0 && beat.timeSignatureLower > 0) _nestedTempoOk = true;
                     _nestedEventId = nested.eventId;
-                case other:
-                    log('CB_TEST: nested-phase $other');
+                case unexpected:
+                    log('CB_TEST: nested-phase $unexpected');
             }
         }, EventCallbackType.ALL);
         _nestedInstance.start();

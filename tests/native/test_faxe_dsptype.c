@@ -29,7 +29,7 @@ int main(void) {
         assert(faxe_dsp_type_to_binding(mapped) == i);
     }
 
-    /* Out-of-range binding values are refused, not cast */
+    /* Out-of-range binding values are refused rather than cast */
     assert(faxe_dsp_type_from_binding(-1) == FAXE_DSP_TYPE_UNSUPPORTED);
     assert(faxe_dsp_type_from_binding(999) == FAXE_DSP_TYPE_UNSUPPORTED);
 

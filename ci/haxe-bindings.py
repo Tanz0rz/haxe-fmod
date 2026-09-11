@@ -50,7 +50,7 @@ CONTENT_JS = os.path.join(ROOT, "extension", "content.js")
 USERSCRIPT = os.path.join(ROOT, "extension", "haxefmod-fmod-docs.user.js")
 
 SKIP_PACKAGES = ("haxefmod/studio/native", "haxefmod/tools")
-# Public for the library's own layering, not part of the API games call
+# Public for the library's own layering only. Games never call these.
 INTERNAL_TYPES = {"CallbackDispatcher", "ChannelCallbacks", "FmodSettingsResolver", "AttachedInstances"}
 
 FMOD_CALL = re.compile(r"\b(FMOD_(?:Studio_)?[A-Z][A-Za-z0-9]*_[A-Z][A-Za-z0-9]*)\s*\(")
@@ -144,7 +144,7 @@ def shim_functions():
     return {native: reach(native, {native}) for native in natives}
 
 
-# Shim name prefixes that name the owning object, not the operation
+# Shim name prefixes that name the owning object instead of the operation
 NATIVE_OBJECT_PREFIXES = {
     "sys", "core", "cg", "chan", "cc", "geo", "dsp", "conn", "snd", "sg", "rev",
     "bank", "ed", "ei", "bus", "vca", "cr", "ps", "pcm", "studio",
@@ -554,9 +554,16 @@ def render_coverage_md(table):
                       key=lambda r: r.get("heading", ""))
     if left_out:
         lines += ["## Not bound", "", "| FMOD | Reason |", "|---|---|"]
+        # Two site sections can document one FMOD heading (file_seek has
+        # two blocks on fmod.com). One row per heading.
+        seen = set()
         for record in left_out:
+            heading = record.get("heading", "")
+            if heading in seen:
+                continue
+            seen.add(heading)
             reason = " ".join(record["notes"]).replace("|", "\\|")
-            lines.append(f"| `{record.get('heading', '')}` | {reason} |")
+            lines.append(f"| `{heading}` | {reason} |")
         lines.append("")
     return "\n".join(lines) + "\n"
 

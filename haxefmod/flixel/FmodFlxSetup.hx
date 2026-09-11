@@ -46,12 +46,10 @@ class FmodFlxSetup {
 
         // Keep FMOD's focus state in sync so the master output mutes while
         // the window is backgrounded. That means no audio to an unfocused
-        // window, and no burst on refocus. Remove-then-add keeps a single
-        // wiring across repeated init calls and a recreated FlxGame (fresh
-        // signals).
-        FlxG.signals.focusGained.remove(focusGainedHandler);
+        // window, and no burst on refocus. add() keeps a single wiring
+        // across repeated init calls. It is also safe from inside a
+        // dispatch, where a remove is deferred past the add.
         FlxG.signals.focusGained.add(focusGainedHandler);
-        FlxG.signals.focusLost.remove(focusLostHandler);
         FlxG.signals.focusLost.add(focusLostHandler);
 
         #if FLX_SOUND_SYSTEM
@@ -60,9 +58,7 @@ class FmodFlxSetup {
             FlxG.sound.soundTray.silent = true;
         }
         #end
-        // Remove-then-add keeps exactly one wiring across repeated init
-        // calls and across a destroyed-and-recreated FlxGame (fresh signal).
-        FlxG.sound.onVolumeChange.remove(volumeHandler);
+        // add() keeps exactly one wiring across repeated init calls
         FlxG.sound.onVolumeChange.add(volumeHandler);
         applyVolume();
         // HTML5 initializes asynchronously, so the volume and mute applied
