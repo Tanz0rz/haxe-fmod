@@ -2,7 +2,7 @@
 //
 // The extension shows a Haxe tab beside every code block on the docs
 // site. To know that every block is covered, and covered with the right
-// code, this crawler walks every page reachable from welcome.html and
+// code, this crawler walks every page reachable from welcome.html. It
 // records each block under its key (see extension/keys.js) with the
 // snippet of every language the site shows for it, into
 // extension/catalog/<page>.md. The Haxe side in extension/haxe/<page>.md

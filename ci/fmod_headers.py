@@ -152,9 +152,9 @@ def read_types():
             name = flag.group(1)
             values = []
             j = index + 1
-            # The block ends at the first define from another family, so a
+            # The block ends at the first define from another family. A
             # typedef followed by unrelated defines (the reverb presets and
-            # limits after FMOD_THREAD_AFFINITY) does not absorb them
+            # limits after FMOD_THREAD_AFFINITY) does not absorb them.
             family = None
             while j < len(lines) and (DEFINE.match(lines[j]) or lines[j].strip() == ""):
                 define = DEFINE.match(lines[j])

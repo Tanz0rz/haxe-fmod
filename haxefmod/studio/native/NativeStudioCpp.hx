@@ -6,8 +6,8 @@ package haxefmod.studio.native;
  * Converts const char* returns to Haxe String at the boundary. raw functions
  * live in linc_faxe.cpp.
  *
- * This class carries the linc build wiring (LincBuild adds the @:buildXml
- * meta pointing at native/faxe/linc_faxe.xml), so compiling it is what makes
+ * This class carries the linc build wiring: LincBuild adds the @:buildXml
+ * meta pointing at native/faxe/linc_faxe.xml. Compiling it is what makes
  * hxcpp build and link linc_faxe.cpp into the host project.
  */
 @:keep

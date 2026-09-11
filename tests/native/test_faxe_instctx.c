@@ -1,10 +1,10 @@
 /*
  * Unit tests for native/shared/faxe_instctx.h, the per-instance context
  * the C++ and HashLink shims keep in FMOD userdata. The programmer sound
- * fields are the logic worth pinning. They are the name-to-key table, the
- * armed check the callback mask is built from, the pending check that
- * holds the destroy bit on a shim-created sound, and the clear that drops
- * every assignment at once.
+ * fields are the logic worth pinning. They are the name-to-key table and
+ * the armed check the callback mask is built from. The pending check holds
+ * the destroy bit on a shim-created sound, and the clear drops every
+ * assignment at once.
  *
  * CI compiles and runs the file in both C99 and C++ modes. The build
  * lines:

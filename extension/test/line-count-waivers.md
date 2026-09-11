@@ -21,7 +21,7 @@
 | core-api-common | FMOD_THREAD_AFFINITY | C# | 34 | 19 | The 64-bit group values and the per-thread defaults do not fit an Int (types.txt skip). |
 | core-api-common | FMOD_THREAD_PRIORITY | C# | 22 | 24 | CONVOLUTION1 and CONVOLUTION2 are in the 2.03 header, the C# integration leaves them out. |
 | core-api-common | FMOD_THREAD_STACK_SIZE | C# | 14 | 16 | CONVOLUTION1 and CONVOLUTION2 are in the 2.03 header, the C# integration leaves them out. |
-| core-api-common-dsp-effects | FMOD_DSP_TYPE | C# | 37 | 36 | MAX is a count, not a unit kind (types.txt skip). |
+| core-api-common-dsp-effects | FMOD_DSP_TYPE | C# | 37 | 36 | MAX is a count rather than a unit kind (types.txt skip). |
 | core-api-platform-html5 | Example usage.#2 | JavaScript | 8 | 2 | loadBankMemory takes the bytes the game fetched, FMOD.ReadFile and the pointer bookkeeping have no Haxe side. |
 | core-api-sound | FMOD_SOUND_PCMREAD_CALLBACK | C# | 5 | 1 | The delegate is one function type line, PcmStream stands in for the sound pointer. |
 | core-api-sound | Sound::setDefaults | C# | 3 | 2 | getDefaults returns both defaults, no out variable to declare. |

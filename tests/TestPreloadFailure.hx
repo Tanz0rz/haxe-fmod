@@ -48,11 +48,14 @@ class TestPreloadFailure {
 		FmodRuntime.onceReady(() -> plainRan++);
 
 		FmodRuntime.provideBank("Master.strings.bank", haxe.io.Bytes.alloc(24));
+		// Two default banks with one file name in different folders
+		FmodRuntime.provideBank("en/Extra.bank", haxe.io.Bytes.alloc(16));
+		FmodRuntime.provideBank("fr/Extra.bank", haxe.io.Bytes.alloc(32));
 		FmodRuntime.provideBank("Unrelated.bank", haxe.io.Bytes.alloc(8));
 		FmodRuntime.provideBank("Stray.bank", null);
 		assert(traces.filter(t -> t.indexOf("Stray.bank could not be provided") >= 0).length == 1, "before init a stray name is reported like any other");
 		stub.testBankMemoryLoads = [];
-		FmodRuntime.init({autoLoadBanks: ["Master.bank", "Master.strings.bank"], banksProvided: true});
+		FmodRuntime.init({autoLoadBanks: ["Master.bank", "Master.strings.bank", "en/Extra.bank", "fr/Extra.bank"], banksProvided: true});
 
 		// The stub reports the system up only when told, so the handlers
 		// stay pending until then
@@ -62,9 +65,12 @@ class TestPreloadFailure {
 		assert(!readyRan && failedRan == 0 && plainRan == 0 && !FmodRuntime.initSettled(), "nothing runs before the system is up");
 		stub.testInitialized = true;
 		assert(FmodRuntime.isInitialized() && FmodRuntime.initSettled(), "initialized without the failed bank once the system is up");
-		assert(FmodRuntime.providedBankCount() == 1 && stub.testBankMemoryLoads.length == 1 && stub.testBankMemoryLoads[0] == 24,
+		assert(FmodRuntime.providedBankCount() == 3 && stub.testBankMemoryLoads.length == 3 && stub.testBankMemoryLoads[0] == 24,
 			"the provided bank still loads from memory");
 		assert(FmodRuntime.banks.isRegistered("assets/fmod/Desktop/Master.strings.bank"), "the loaded bank is registered");
+		assert(FmodRuntime.banks.isRegistered("en/Extra.bank") && FmodRuntime.banks.isRegistered("fr/Extra.bank")
+			&& stub.testBankMemoryLoads[1] == 16 && stub.testBankMemoryLoads[2] == 32,
+			"banks with one file name in different folders are provided apart");
 		assert(!FmodRuntime.banks.isRegistered("assets/fmod/Desktop/Master.bank"), "the failed bank is not registered");
 		assert(!FmodRuntime.allBanksProvided(), "a failed bank was never provided");
 		assert(traces.filter(t -> t.indexOf("Unrelated.bank was provided but is not in autoLoadBanks") >= 0).length == 1,
@@ -94,7 +100,7 @@ class TestPreloadFailure {
 		// Bytes for a bank the runtime already handled are dropped
 		FmodRuntime.provideBank("Master.strings.bank", haxe.io.Bytes.alloc(24));
 		FmodRuntime.update();
-		assert(FmodRuntime.providedBankCount() == 1, "a bank provided after its load is ignored");
+		assert(FmodRuntime.providedBankCount() == 3, "a bank provided after its load is ignored");
 
 		haxe.Log.trace = originalTrace;
 		Sys.println('  $passed passed, $failed failed');

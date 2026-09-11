@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Deep audio profile of a recorded WAV: windowed RMS analysis that separates
+# Deep audio profile of a recorded WAV. A windowed RMS analysis separates
 # the recording envelope (leading/trailing silence from recorder slack and
-# game boot time) from the actual audio, then gates on properties of the
+# game boot time) from the actual audio. It then gates on properties of the
 # active region that a whole-file mean-volume check cannot see:
 #
 #   - enough ACTIVE audio (a 30s recording of 3s of sound must fail)
@@ -20,8 +20,8 @@
 # seams read as internal silence. Each segment has to meet its own
 # minimum length inside the sequence gate.
 #
-# Handles FMOD WAVWRITER quirks: an unfinalized data chunk (size 0) is read
-# to end of file, and a malformed fmt chunk (0 channels, from Sys.exit on
+# Handles FMOD WAVWRITER quirks. An unfinalized data chunk (size 0) is read
+# to end of file. A malformed fmt chunk (0 channels, from Sys.exit on
 # Windows) falls back to the known CI format of 48kHz 16-bit stereo.
 # Prints measurements and a one-char-per-second profile strip either way;
 # --no-gate reports without failing (used for the volume test, whose muted
@@ -279,8 +279,8 @@ def synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs):
             else:
                 failures.append("fade segment too short to analyze the ramp")
 
-        # Distance attenuation on PcmStream.create3d: both 3D segments are
-        # written at the same amplitude and played straight ahead, so the
+        # Distance attenuation on PcmStream.create3d. Both 3D segments are
+        # written at the same amplitude and played straight ahead. The
         # only thing that can separate their levels is the 3D rolloff.
         near_run = runs[SYNTH_3D_NEAR_INDEX]
         far_run = runs[SYNTH_3D_FAR_INDEX]

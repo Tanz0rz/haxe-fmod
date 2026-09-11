@@ -258,9 +258,9 @@ abstract Sound(Int) from Int to Int {
     public static function fromPcm(data:haxe.io.Bytes, sampleRate:Int, channels:Int, length:Int = -1):Sound {
         if (data == null) return NULL;
         // Exactly -1 means the whole buffer, and an oversized count clamps
-        // to the real size: the backends copy exactly the count they are
-        // given, and the HashLink one cannot see the buffer's true size,
-        // so a lied length would read past the heap allocation. Any other
+        // to the real size. The backends copy exactly the count they are
+        // given, and the HashLink one cannot see the buffer's true size.
+        // A lied length would read past the heap allocation. Any other
         // negative count surfaces as FMOD_ERR_INVALID_PARAM (matching
         // PcmStream.write) so a miscomputed count is heard about.
         var count = length == -1 || length > data.length ? data.length : length;

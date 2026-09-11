@@ -127,6 +127,14 @@
 - The C shims cut a callback string at a codepoint boundary, like the HTML5 shim. A long marker or plugin name reaches every target with the same text.
 - An HTML5 lookup with a full handle table reports `FMOD_ERR_MEMORY`, like the C shims. It reported `FMOD_OK` with a null handle before.
 - `Sound.release` reclaims its handle when FMOD reports the sound already freed. The sub sound and rolloff cleanup cannot be repeated.
+- The HashLink shim cuts a parameter name and the user property strings at a codepoint boundary too.
+- `EventInstance.getChannelGroup` on HTML5 frees the group handle with the instance. It leaked one slot per instance before.
+- `EventInstance.getChannelGroup` reports `FMOD_ERR_MEMORY` on a full handle table on every target.
+- An HTML5 bank load with no free handle slot unloads the bank again, like the C shims.
+- A bank loaded under two spellings of its path shares one registry entry. An unload of one spelling no longer pulls the bank from under the other.
+- Two default banks with one file name in different folders are provided apart. The provided bytes are keyed by bank path.
+- `FmodKhaUpdater` runs `FmodManager.Update` once per frame when it is reinstalled from inside its own tick.
+- `FmodFlxPreloader` waits for a sized stage before it shows the failure text.
 - `ChannelGroup.getParentGroup` on the master group and `Channel.getCurrentSound` on a channel from `playDSP` report no object on HTML5. They minted a handle around a null pointer before.
 - The HTML5 shim drops the wrappers it reads for their pointers only. That covers a bank unload, the callback uninstall, the sub sound parent lookups, and a released `PcmStream`.
 - A null string argument on HashLink reaches the shim as an empty one, which FMOD refuses with an error. It faulted in the string conversion before.

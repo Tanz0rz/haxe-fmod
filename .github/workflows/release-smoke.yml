@@ -47,11 +47,12 @@ jobs:
           yes | haxelib run lime setup || true
 
       - name: Install haxefmod from lib.haxe.org
+        env:
+          VERSION: ${{ github.event.inputs.version }}
         run: |
           # Never resolve haxefmod from the checkout - remove any dev/local
           # state, then install the release under test
           haxelib remove haxefmod || true
-          VERSION="${{ github.event.inputs.version }}"
           if [ -n "$VERSION" ]; then
             haxelib install haxefmod "$VERSION" --always --quiet
           else

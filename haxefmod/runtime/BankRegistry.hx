@@ -56,7 +56,7 @@ class BankRegistry {
             if (StudioSystem.lastResult() == FmodResult.FMOD_ERR_EVENT_ALREADY_LOADED) {
                 var existing = StudioSystem.getBank(bankPathFor(path));
                 if (!existing.isNull()) {
-                    banks.set(path, {bank: existing, refs: carriedRefs});
+                    banks.set(path, entryFor(existing, carriedRefs));
                     return existing;
                 }
             }
@@ -128,7 +128,7 @@ class BankRegistry {
             if (StudioSystem.lastResult() == FmodResult.FMOD_ERR_EVENT_ALREADY_LOADED) {
                 var existing = StudioSystem.getBank(bankPathFor(path));
                 if (!existing.isNull()) {
-                    banks.set(path, {bank: existing, refs: carriedRefs});
+                    banks.set(path, entryFor(existing, carriedRefs));
                     return existing;
                 }
             }
@@ -151,9 +151,23 @@ class BankRegistry {
         if (entry == null) return false;
         entry.refs--;
         if (entry.refs > 0) return false;
-        banks.remove(path);
+        // Every spelling that shares the entry goes with it
+        for (key in [for (k in banks.keys()) if (banks.get(k) == entry) k]) banks.remove(key);
         entry.bank.unload();
         return true;
+    }
+
+    // The entry for an adopted bank. A bank the registry holds under
+    // another spelling of its path shares that entry, so one count covers
+    // every holder and the last unload is the one that unloads.
+    function entryFor(bank:Bank, refs:Int):{bank:Bank, refs:Int, ?errorLogged:Bool} {
+        for (entry in banks) {
+            if (entry.bank == bank) {
+                entry.refs += refs;
+                return entry;
+            }
+        }
+        return {bank: bank, refs: refs};
     }
 
     /** True while the path has a registry entry, loaded or still loading. */

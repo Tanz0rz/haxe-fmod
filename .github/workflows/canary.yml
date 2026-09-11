@@ -130,7 +130,8 @@ jobs:
         uses: actions/cache@v5
         with:
           path: /tmp/sdl3-install
-          key: sdl3-${{ env.SDL3_VERSION }}
+          # The install tree was built against one image's toolchain
+          key: sdl3-${{ runner.os }}-${{ env.ImageOS }}-${{ env.SDL3_VERSION }}
 
       - name: Build SDL3 from source
         if: steps.sdl3-apt.outputs.available == 'false' && steps.sdl3-cache.outputs.cache-hit != 'true'

@@ -207,6 +207,20 @@ async function main() {
         `size=${jaxe.chanCallbackHandles.size}`);
     jaxe.fmod_core_release_sound(sndFinite);
 
+    // --- the channel group handle an instance handed out goes with it ---
+    const instGroup = jaxe.fmod_evd_create_instance(evd);
+    check('start_instGroup', jaxe.fmod_evi_start(instGroup) === 0, '');
+    await pump(3);
+    const beforeGroup = jaxe.liveCount;
+    const groupH = jaxe.fmod_evi_get_channel_group(instGroup);
+    check('instGroup_channel_group', groupH > 0 && jaxe.liveCount === beforeGroup + 1, `handle=${groupH} live=${jaxe.liveCount}`);
+    check('instGroup_channel_group_stable', jaxe.fmod_evi_get_channel_group(instGroup) === groupH, '');
+    jaxe.fmod_evi_stop(instGroup, 1);
+    jaxe.fmod_evi_release(instGroup);
+    check('channel_group_freed_with_instance',
+        jaxe.liveCount === beforeGroup - 1 && jaxe.handleResolve(groupH, jaxe.TYPE_CHANGROUP) == null,
+        `live=${jaxe.liveCount} before=${beforeGroup}`);
+
     // --- DSP connection handles die with graph teardown ---
     const dsp = jaxe.fmod_dsp_create_by_type(3 /* echo */);
     check('dsp_created', dsp > 0, `handle=${dsp}`);

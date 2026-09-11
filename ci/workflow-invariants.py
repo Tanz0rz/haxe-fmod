@@ -124,8 +124,8 @@ else:
     ok("compat jobs verify the mismatch banner text")
 
 # 5. linux-html5-chromium requires a FAILING build against a doctored web SDK,
-# with pipefail, and verifies the version-mismatch banner (paired to the
-# job so a copy of the block elsewhere cannot mask its removal here)
+# with pipefail, and verifies the version-mismatch banner. The check is
+# paired to the job, so a copy of the block elsewhere cannot mask its removal.
 html5_job = jobs.get("linux-html5-chromium-build", "")
 web_gate = re.search(
     r'set -o pipefail[\s\S]*?'

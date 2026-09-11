@@ -42,7 +42,25 @@ class HeapsTestHost implements TestHost {
     public function checkSetupReinit(check:String->Bool->String->Void):Void {
         FmodHeapsSetup.init();
         var installs = FmodHeapsUpdater.installCount;
-        check("hardening_setup_reinit_single_updater", installs == 1, 'count=$installs');
+        check("hardening_setup_reinit_single_updater", installs == 1 && FmodHeapsUpdater.isInstalled(),
+            'count=$installs installed=${FmodHeapsUpdater.isInstalled()}');
+        // A removeHook then init from inside the updater's own frame keeps
+        // the hook, and the frame runs FmodManager.Update once. The re-arm
+        // waits for the next loop turn, so one frame() call covers it. The
+        // frame hook runs inside FmodManager.Update and counts its runs.
+        var previousHook = haxefmod.studio.CallbackDispatcher.frameHook;
+        var runs = 0;
+        haxefmod.studio.CallbackDispatcher.frameHook = function() {
+            runs++;
+            if (runs == 1) {
+                FmodHeapsUpdater.removeHook();
+                FmodHeapsUpdater.init();
+            }
+        };
+        @:privateAccess FmodHeapsUpdater.frame();
+        haxefmod.studio.CallbackDispatcher.frameHook = previousHook;
+        check("hardening_setup_remove_reinit_inside_tick", runs == 1 && FmodHeapsUpdater.isInstalled(),
+            'runs=$runs installed=${FmodHeapsUpdater.isInstalled()}');
     }
 
     public function setUpdaterInstalled(installed:Bool):Void {

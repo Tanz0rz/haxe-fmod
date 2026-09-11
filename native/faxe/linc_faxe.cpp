@@ -2523,7 +2523,7 @@ int fmod_evi_get_channel_group(int h) {
     FMOD::ChannelGroup* group = NULL;
     gLastResult = instance->getChannelGroup(&group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    int cgHandle = faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    int cgHandle = lincHandleOrMemory(group, FAXE_TYPE_CHANGROUP);
     // The group dies with the instance, outside every sweep trigger. Record
     // the handle on the context so the DESTROYED drain reclaims the slot
     // before a recycled group address can alias it. A restarted instance

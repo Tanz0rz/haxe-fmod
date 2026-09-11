@@ -10090,7 +10090,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::initialize",
    "html5": false,
    "notes": [
-    "No Haxe declaration, the library owns this choice. FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels, and studioflags come from liveUpdate and memoryTracking. The flags come from the core fields (for example rightHanded3D and profiling), and extradriverdata is never passed."
+    "No Haxe declaration, the library owns this choice. FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels, and studioflags come from liveUpdate and memoryTracking. The flags come from the core fields profiling and distanceFilter, and extradriverdata is never passed."
    ]
   },
   "studio_system_isvalid": {

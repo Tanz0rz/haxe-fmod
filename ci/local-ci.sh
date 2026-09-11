@@ -90,6 +90,12 @@ begin_job() {
   echo "################ $1"
 }
 
+# The api-probe loads this plugin from the game directory, like the
+# workflow's build jobs
+build_test_plugin() {
+  gcc -shared -fPIC -o "$1/libtest_plugin_gain.so" -I "$FMOD_SDK/api/core/inc" tests/native/test_plugin_gain.c
+}
+
 require_sdk() {
   export FMOD_SDK="$FMOD_SDK_ROOT/linux"
   export FMOD_SDK_WEB="$FMOD_SDK_ROOT/html5"
@@ -184,9 +190,9 @@ run_native_state() {
 # kill reaches it. A server that outlives its step keeps the port and
 # serves a directory the next build has already replaced.
 # One html5 state in chromium, log gated like the workflow's browser steps.
-# Every launch gets its own profile directory: a launch that reuses the
+# Every launch gets its own profile directory. A launch that reuses the
 # profile of a browser that is shutting down hands its URL to that instance
-# and exits, and the page never runs.
+# and exits. The page then never runs.
 # run_browser_state <state> <gate> <port> <log> [timeout] [extra-gate] [record-wav] [record-seconds]
 run_browser_state() {
   local state="$1" gate="$2" port="$3" log="$4" tmo="${5:-45}" extra="${6:-}" wav="${7:-}" secs="${8:-60}"
@@ -320,7 +326,7 @@ job_unit_tests() {
   step "Test the default bank failure path" bash -eo pipefail -c '
     haxe tests/build-preload-failure.hxml && haxe tests/build-init-refused.hxml'
   step "Run native tests under AddressSanitizer and UBSan" bash -eo pipefail -c '
-    for t in handles cbqueue guid pcmring; do
+    for t in handles cbqueue guid instctx pcmring; do
       gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
         -Wall -Wextra -Werror -o "$1/asan_$t" tests/native/test_faxe_$t.c
       "$1/asan_$t"
@@ -339,13 +345,14 @@ job_linux_cpp() {
   require_sdk
   rm -rf "$EXAMPLE"/export/linux*
   step "Build C++ target" bash -eo pipefail -c 'cd "$1" && haxelib run lime build linux -64 -Daudio_test' _ "$EXAMPLE"
+  step "Build the test DSP plugin next to the game" build_test_plugin "$(cpp_bin_dir)"
   step "Verify FMOD libraries have no executable stack" no_execstack "$(cpp_bin_dir)"
   step "Validate build output" ./ci/validate-build.sh "$(cpp_bin_dir)" cpp
   start_display_audio
   step "Record audio" bash -eo pipefail -c '
     ffmpeg -loglevel error -f pulse -i virtual_speaker.monitor -t 30 -y "$2/audio-linux-cpp.wav" &
     REC=$!
-    cd "$1" && chmod +x run.sh && timeout 30 ./run.sh > "$2/game-linux-cpp.log" 2>&1 || true
+    cd "$1" && chmod +x run.sh && timeout -k 10 30 ./run.sh > "$2/game-linux-cpp.log" 2>&1 || true
     wait $REC || true
     ls -la "$2/audio-linux-cpp.wav"' _ "$(cpp_bin_dir)" "$TMP"
   step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-linux-cpp.wav" 10
@@ -367,7 +374,18 @@ job_linux_cpp() {
   step "Run ps-test state" run_native_state ps-test PS_TEST "$bin" "$TMP/ps-test-linux-cpp.log" 60 "" true
   step "Run bank-test state" run_native_state bank-test BANK_TEST "$bin" "$TMP/bank-test-linux-cpp.log" 60
   step "Run pan-test state" run_native_state pan-test PAN_TEST "$bin" "$TMP/pan-test-linux-cpp.log" 60
+  step "Run stress-test state (smoke)" bash -eo pipefail -c '
+    export HAXEFMOD_TEST_STATE=stress-test STRESS_SECONDS=15
+    cd "$1" && chmod +x run.sh
+    ./run.sh > "$2/stress-smoke-linux-cpp.log" 2>&1 &
+    PID=$!
+    for i in $(seq 90); do kill -0 $PID 2>/dev/null || break; sleep 1; done
+    kill $PID 2>/dev/null || true; wait $PID 2>/dev/null || true
+    grep "STRESS_TEST:" "$2/stress-smoke-linux-cpp.log" || true
+    grep -q "STRESS_TEST: COMPLETE" "$2/stress-smoke-linux-cpp.log" || { cat "$2/stress-smoke-linux-cpp.log"; exit 1; }
+    ! grep -q "pass=false" "$2/stress-smoke-linux-cpp.log"' _ "$(cpp_bin_dir)" "$TMP"
   step "Build manual-update variant" bash -eo pipefail -c 'cd "$1" && haxelib run lime build linux -64 -Daudio_test -Daudio_test_manual_update -Dhaxefmod_num_channels=100' _ "$EXAMPLE"
+  step "Build the test DSP plugin next to the game" build_test_plugin "$(cpp_bin_dir)"
   step "Run api-probe state (manual update variant)" run_native_state api-probe API_PROBE "$bin" "$TMP/api-probe-linux-cpp-manual.log" 60
 }
 
@@ -390,6 +408,7 @@ job_linux_hl() {
     rm -rf "$1/export/hl"
     cd "$1" && haxelib run lime build hl -Daudio_test 2>&1 | tee "$2/build-custom.log"
     grep -q "(custom-compiled from .haxefmod/)" "$2/build-custom.log"' _ "$EXAMPLE" "$TMP"
+  step "Build the test DSP plugin next to the game" build_test_plugin "$bin"
   step "Verify FMOD libraries have no executable stack" no_execstack "$bin"
   step "Validate build output" ./ci/validate-build.sh "$bin" hl
   step "Stage FMOD runtime into a plain directory" bash -eo pipefail -c '
@@ -412,7 +431,7 @@ job_linux_hl() {
     cd "$1"
     export LD_LIBRARY_PATH="$(pwd):${LD_LIBRARY_PATH:-}"
     EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
-    timeout 30 "$EXE" > "$2/game-linux-hl.log" 2>&1 || true
+    timeout -k 10 30 "$EXE" > "$2/game-linux-hl.log" 2>&1 || true
     wait $REC || true
     ls -la "$2/audio-linux-hl.wav"' _ "$bin" "$TMP"
   step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-linux-hl.wav" 10
@@ -450,7 +469,7 @@ job_linux_hl() {
   step "lime test end to end" bash -eo pipefail -c '
     cd "$1"
     export HAXEFMOD_TEST_STATE=api-probe
-    timeout 180 haxelib run lime test hl -Daudio_test 2>&1 | tee "$2/lime-test-linux-hl.log" || true
+    timeout -k 10 180 haxelib run lime test hl -Daudio_test 2>&1 | tee "$2/lime-test-linux-hl.log" || true
     grep -q "API_PROBE: COMPLETE" "$2/lime-test-linux-hl.log"
     ! grep -q "pass=false" "$2/lime-test-linux-hl.log"' _ "$EXAMPLE" "$TMP"
 }
@@ -553,7 +572,7 @@ job_heaps_hl() {
   step "Record audio" bash -eo pipefail -c '
     ffmpeg -loglevel error -f pulse -i virtual_speaker.monitor -t 30 -y "$2/audio-heaps-hl.wav" &
     REC=$!
-    cd "$1" && timeout 30 ./run.sh > "$2/game-heaps-hl.log" 2>&1 || true
+    cd "$1" && timeout -k 10 30 ./run.sh > "$2/game-heaps-hl.log" 2>&1 || true
     wait $REC || true
     ls -la "$2/audio-heaps-hl.wav"' _ "$bin" "$TMP"
   step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-heaps-hl.wav" 10
@@ -626,9 +645,9 @@ record_volume_heaps_html5() {
 
 # ---------------------------------------------------------------- kha-linux, kha-hl
 
-# The Kha example on a native target: khamake build with the binding
+# The Kha example on a native target. A khamake build with the binding
 # compiled in through kfile.js, the stage command for the runtime files,
-# then the same scenarios as linux-cpp
+# then the same scenarios as linux-cpp.
 job_kha_native() {
   local target="$1" job="$2"
   begin_job "$job"
@@ -647,7 +666,7 @@ job_kha_native() {
   step "Record audio" bash -eo pipefail -c '
     ffmpeg -loglevel error -f pulse -i virtual_speaker.monitor -t 30 -y "$2/audio-$3.wav" &
     REC=$!
-    cd "$1" && timeout 30 ./run.sh > "$2/game-$3.log" 2>&1 || true
+    cd "$1" && timeout -k 10 30 ./run.sh > "$2/game-$3.log" 2>&1 || true
     wait $REC || true
     ls -la "$2/audio-$3.wav"' _ "$bin" "$TMP" "$job"
   step "Validate audio" ./ci/validate-audio.sh "$TMP/audio-$job.wav" 10

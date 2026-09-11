@@ -11,6 +11,9 @@ import flixel.FlxG;
     its members have updated. The emitter and listener positions of this
     frame reach FMOD in the same frame. A plugin runs before the state,
     so it pushes the positions of the frame before.
+
+    init() also hooks FlxG.signals.preUpdate, which clears the once per
+    frame guard. That hook stays installed after removeHook().
 **/
 class FmodFlxUpdater {
     // One closure per install, each with its own generation captured.

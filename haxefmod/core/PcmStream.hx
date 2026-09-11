@@ -128,7 +128,7 @@ abstract PcmStream(Int) from Int to Int {
         // a miscomputed count surfaces instead of writing everything.
         var len = length == -1 ? data.length : length;
         // Clamp to the real buffer size. The HashLink shim receives a bare
-        // byte pointer with no length of its own, so an oversized count
+        // byte pointer with no length of its own. An oversized count
         // would read past the buffer without this guard.
         if (len > data.length) len = data.length;
         return NativeStudio.core_pcm_write(this, data, len);

@@ -122,17 +122,17 @@ class jaxe {
         return jaxe.handleAlloc(ptr, type);
     }
 
-    // Releases a wrapper the caller never keeps: an out parameter of a
-    // call that only wanted the other one
-    // A lookup that cannot get a slot reports it: the table is full, so
-    // the caller sees ERR_MEMORY instead of a silent zero (the JS twin of
-    // lincHandleOrMemory)
+    // A lookup that cannot get a slot reports it. The table is full, so
+    // the caller sees ERR_MEMORY instead of a silent zero. The JS twin of
+    // lincHandleOrMemory.
     static handleOrMemory(ptr, type) {
         var h = jaxe.handleFindOrAlloc(ptr, type);
         if (h === 0 && ptr) jaxe.lastResult = jaxe.ERR_MEMORY;
         return h;
     }
 
+    // Releases a wrapper the caller never keeps: an out parameter of a
+    // call that only wanted the other one
     static dropWrapper(obj) {
         if (obj && typeof obj.delete === "function") {
             try { obj.delete(); } catch (e) {}
@@ -190,7 +190,9 @@ class jaxe {
             // An async load parks a placeholder in a bank slot until the
             // fetch lands. It is not a wrapper and stays.
             if (s.type == jaxe.TYPE_BANK && s.ptr && s.ptr.pendingBankPath !== undefined) continue;
-            if (!jaxe.lookupSlotUsable(s)) jaxe.handleFree((s.gen << 16) | i);
+            if (jaxe.lookupSlotUsable(s)) continue;
+            if (s.type == jaxe.TYPE_EVI) jaxe.freeInstanceGroup((s.gen << 16) | i);
+            jaxe.handleFree((s.gen << 16) | i);
         }
     }
 
@@ -265,6 +267,18 @@ class jaxe {
     // are safe where cpp/hl need the userdata context struct.
     static cbMasks = {};
     static psKeys = {};
+    // The channel group handle each instance handed out, keyed by the
+    // instance handle. The group dies with the instance, outside every
+    // sweep trigger, so its slot is freed with the instance. Mirrors
+    // ctx->cgHandle in the native shims.
+    static instCgHandles = {};
+
+    static freeInstanceGroup(handle) {
+        var cg = jaxe.instCgHandles[handle];
+        if (cg === undefined) return;
+        jaxe.handleFree(cg);
+        delete jaxe.instCgHandles[handle];
+    }
 
     // UTF-8 byte length without allocating an encoder per call
     static utf8Encoder = null;
@@ -1056,7 +1070,7 @@ class jaxe {
         var bank = {};
         jaxe.lastResult = jaxe.gSystem.loadBankFile(fsPath, loadFlags, bank);
         if (jaxe.lastResult != jaxe.FMOD.OK || !bank.val) return 0;
-        return jaxe.handleOrMemory(bank.val, jaxe.TYPE_BANK);
+        return jaxe.bankHandleOrUnload(bank.val);
     }
 
     // Async bank load over HTTP, for a file that is NOT in MEMFS. It
@@ -1991,6 +2005,7 @@ class jaxe {
         // it leaks for the rest of the session.
         if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
             jaxe.handleFree(handle);
+            jaxe.freeInstanceGroup(handle);
         }
         return jaxe.lastResult;
     }
@@ -4360,7 +4375,18 @@ class jaxe {
         jaxe.lastResult = jaxe.gSystem.loadBankMemory(bytes, bytes.length,
             jaxe.FMOD.STUDIO_LOAD_MEMORY, flags >>> 0, bank);
         if (jaxe.lastResult != jaxe.FMOD.OK || !bank.val) return 0;
-        return jaxe.handleOrMemory(bank.val, jaxe.TYPE_BANK);
+        return jaxe.bankHandleOrUnload(bank.val);
+    }
+
+    // No slot means no way to ever unload the bank, so it goes back out,
+    // like the native shims do
+    static bankHandleOrUnload(bank) {
+        var h = jaxe.handleOrMemory(bank, jaxe.TYPE_BANK);
+        if (h === 0) {
+            bank.unload();
+            jaxe.dropWrapper(bank);
+        }
+        return h;
     }
 
     //// Event instance core bridge
@@ -4371,7 +4397,13 @@ class jaxe {
         var out = {};
         jaxe.lastResult = inst.getChannelGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
+        var cg = jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
+        // A restarted instance gets a new group, so a differing previous
+        // handle is dead and its slot goes now
+        var prev = jaxe.instCgHandles[handle];
+        if (prev !== undefined && prev !== cg) jaxe.handleFree(prev);
+        if (cg !== 0) jaxe.instCgHandles[handle] = cg;
+        return cg;
     }
 
     //// Command capture and replay

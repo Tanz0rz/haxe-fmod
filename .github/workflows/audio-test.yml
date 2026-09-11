@@ -1261,7 +1261,7 @@ jobs:
           # -Daudio_test compiles the state selector in. Without it the
           # normal game runs and no probe lines can appear
           export HAXEFMOD_TEST_STATE=api-probe
-          timeout 180 haxelib run lime test hl -Daudio_test 2>&1 | tee /tmp/lime-test-linux-hl.log || true
+          timeout -k 10 180 haxelib run lime test hl -Daudio_test 2>&1 | tee /tmp/lime-test-linux-hl.log || true
           grep -q "API_PROBE: COMPLETE" /tmp/lime-test-linux-hl.log || {
             echo "lime test never reached the probe's COMPLETE line"
             exit 1
@@ -7411,8 +7411,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Ensure the run is on a branch
+        env:
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
         run: |
-          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
           echo "Checking out branch: $BRANCH_NAME"
           git checkout "$BRANCH_NAME"
           git branch --show-current
@@ -7434,6 +7435,8 @@ jobs:
           git diff --stat templates/bin/hl/
 
       - name: Commit updated hdlls
+        env:
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -7449,9 +7452,8 @@ jobs:
           Built against FMOD 2.03.12 from run ${{ github.run_id }}
           COMMIT_MSG
           )"
-            BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
-            # Another push may have landed while this workflow ran (e.g. a
-            # user commit or a concurrent job). rebase onto the latest remote
+            # Another push can have landed while this workflow ran (e.g. a
+            # user commit or a concurrent job). Rebase onto the latest remote
             # branch before pushing and retry once if the push still races.
             git pull --rebase origin "$BRANCH_NAME"
             if ! git push; then

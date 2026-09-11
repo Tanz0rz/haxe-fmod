@@ -2820,7 +2820,7 @@ HL_PRIM int HL_NAME(evi_get_channel_group)(int h) {
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_EventInstance_GetChannelGroup(instance, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    cgHandle = faxe_handle_find_or_alloc(group, FAXE_TYPE_CHANGROUP);
+    cgHandle = hlaxe_handle_or_memory(group, FAXE_TYPE_CHANGROUP);
     /* The group dies with the instance, outside every sweep trigger. Record
      * the handle on the context so the DESTROYED drain reclaims the slot
      * before a recycled group address can alias it. A restarted instance
@@ -3734,7 +3734,7 @@ static char gParamGuidBuf[40] = "";
 static void write_param_desc(const FMOD_STUDIO_PARAMETER_DESCRIPTION* desc, vbyte* fbuf, vbyte* ibuf) {
     double* outFloats = (double*)fbuf;
     int* outInts = (int*)ibuf;
-    snprintf(gStringBuf, sizeof(gStringBuf), "%s", desc->name ? desc->name : "");
+    faxe_str_copy(gStringBuf, desc->name ? desc->name : "", sizeof(gStringBuf));
     faxe_guid_format(&desc->guid, gParamGuidBuf, sizeof(gParamGuidBuf));
     outFloats[0] = (double)desc->minimum;
     outFloats[1] = (double)desc->maximum;
@@ -5100,7 +5100,7 @@ HL_PRIM vbyte* HL_NAME(evd_get_user_property_name)(int h, int index) {
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
     gLastResult = FMOD_Studio_EventDescription_GetUserPropertyByIndex(desc, index, &prop);
     if (gLastResult == FMOD_OK && prop.name) {
-        snprintf(gStringBuf, sizeof(gStringBuf), "%s", prop.name);
+        faxe_str_copy(gStringBuf, prop.name, sizeof(gStringBuf));
     }
     return (vbyte*)gStringBuf;
 }
@@ -5141,7 +5141,7 @@ HL_PRIM vbyte* HL_NAME(evd_get_user_property_string)(int h, int index) {
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
     gLastResult = FMOD_Studio_EventDescription_GetUserPropertyByIndex(desc, index, &prop);
     if (gLastResult == FMOD_OK && prop.type == FMOD_STUDIO_USER_PROPERTY_TYPE_STRING && prop.stringvalue) {
-        snprintf(gStringBuf, sizeof(gStringBuf), "%s", prop.stringvalue);
+        faxe_str_copy(gStringBuf, prop.stringvalue, sizeof(gStringBuf));
     }
     return (vbyte*)gStringBuf;
 }
@@ -5723,6 +5723,9 @@ static FMOD_VECTOR* rolloff_copy(vbyte* data, int count) {
     const float* f = (const float*)data;
     int i;
     if (!data || count <= 0) return NULL;
+    /* The byte pointer carries no length. The packer never writes more
+     * than the scratch capacity, so a larger count is a lie. */
+    if (count > FAXE_LIST_MAX / 3) count = FAXE_LIST_MAX / 3;
     points = (FMOD_VECTOR*)malloc(sizeof(FMOD_VECTOR) * (size_t)count);
     if (!points) return NULL;
     for (i = 0; i < count; i++) {

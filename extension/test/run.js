@@ -1,20 +1,20 @@
 // Loads the unpacked extension into Chromium and drives the fixture page
-// (served in place of fmod.com) through the tab flow (the Haxe tab exists
-// on every function, selecting it shows the Haxe block and hides the
-// others, picking C++ again hides it, and the choice survives a reload),
-// then a guide page whose lone C++ examples get a selector of their own.
+// (served in place of fmod.com) through the tab flow. The Haxe tab exists
+// on every function. Selecting it shows the Haxe block and hides the
+// others, picking C++ again hides it, and the choice survives a reload.
+// Then a guide page whose lone C++ examples get a selector of their own.
 //
 // Usage: node extension/test/run.js [--live] [--all] [--headless]
 // --live runs the same checks against the real fmod.com page instead of
 // the fixture (needs network).
 // --all also drives a fixture generated from every catalog page (see
-// build-fixtures.js) and holds these invariants on each: one Haxe tab
-// per unit, no tab strip left standing over blocks that are all hidden,
-// selecting Haxe shows exactly one Haxe block per covered unit with one
-// footer each, and re-rendering the page (the SPA way) adds nothing.
+// build-fixtures.js) and holds these invariants on each. One Haxe tab
+// per unit. No tab strip left standing over blocks that are all hidden.
+// Selecting Haxe shows exactly one Haxe block per covered unit with one
+// footer each. Re-rendering the page (the SPA way) adds nothing.
 //
-// Needs the playwright package on NODE_PATH and a display: extensions
-// only load in headed Chromium, so run under xvfb-run on a headless
+// Needs the playwright package on NODE_PATH and a display, since extensions
+// only load in headed Chromium. Run under xvfb-run on a headless
 // box, or pass --headless to use Chromium's new headless mode, which
 // loads extensions without a display.
 const fs = require('fs');
@@ -141,8 +141,8 @@ async function main() {
     start = await startBlock();
     if (start.display !== 'block') fail('Haxe selection did not survive a reload');
 
-    // Swapping blocks must not move the tab under the pointer: scroll so
-    // the last function's tab sits mid-viewport, click Haxe, and the tab
+    // Swapping blocks must not move the tab under the pointer. Scroll so
+    // the last function's tab sits mid-viewport and click Haxe. The tab
     // stays at the same viewport position although the block below it
     // changed height.
     const pinned = await page.evaluate(async () => {
@@ -203,7 +203,7 @@ async function main() {
         if (!back.haxe || !back.cpp) fail('picking C++ on an added selector should restore the C++ blocks');
     }
 
-    // The matrix: a fixture built from every catalog page, so every DOM
+    // The matrix: a fixture built from every catalog page. Every DOM
     // shape the site has (tabbed functions, tabbed examples, lone
     // blocks, per-language runs, plain blocks) is driven with the same
     // invariants.

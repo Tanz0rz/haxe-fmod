@@ -1,11 +1,11 @@
 // Builds a fixture page for every file in extension/catalog/, so the
-// extension can be driven offline over every DOM shape the site has:
-// function entries with a language selector, tabbed examples, lone
+// extension can be driven offline over every DOM shape the site has.
+// Those are function entries with a language selector, tabbed examples, lone
 // blocks, per-language variants of one example, and plain text blocks
 // with no language class.
 //
 // The page reproduces fmod.com's structure the way extension/keys.js
-// reads it, so the keys computed at runtime are the keys the catalog
+// reads it. The keys computed at runtime are then the keys the catalog
 // was written under. It also carries a copy of the site's selector
 // logic (show and hide every language-classed element, remember the
 // pick) and renders content late the way the real SPA does.
@@ -70,7 +70,7 @@ function highlight(block, display) {
 }
 
 // The site's selectors carry one tab per language, in the site's fixed
-// order, and never a C/C++ tab: a language-c-cpp block sits under
+// order, and never a C/C++ tab. A language-c-cpp block sits under
 // separate C and C++ tabs. A block in a language the site does not
 // toggle gets no tab.
 function selector(blocks) {
@@ -115,7 +115,7 @@ function renderEntry(entry, parts, state) {
         state.lastLone = false;
     }
     // Per-language variants of one example sit right next to each other
-    // on the site, so a lone block following a lone block under the
+    // on the site. A lone block following a lone block under the
     // same heading gets no prose between.
     const lone = !entry.tabbed && entry.blocks.length === 1;
     const run = state.lastLone && lone;
@@ -165,9 +165,9 @@ function buildPage(name, catalogText) {
         '<script>',
         'var CONTENT = ' + JSON.stringify(content) + ';',
         // The site's selector logic, reproduced from fmod.com's own
-        // bundle: blocks are snapshotted at init, the stored language is
+        // bundle. Blocks are snapshotted at init. The stored language is
         // clamped to what the page offers (and the clamped value written
-        // back), language-c-cpp blocks show under C and C++, and a
+        // back). Language-c-cpp blocks show under C and C++, and a
         // language-all block or pick is always visible.
         "var KNOWN = ['language-c', 'language-cpp', 'language-c-cpp', 'language-csharp', 'language-javascript'];",
         'var siteTabs = null, siteBlocks = null, siteLangs = null;',

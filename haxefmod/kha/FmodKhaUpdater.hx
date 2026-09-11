@@ -24,6 +24,10 @@ class FmodKhaUpdater {
     static var tickers:Array<IKhaTicker> = [];
     static var lastStamp:Float = -1;
     static var taskId:Int = -1;
+    // Scheduler.time() holds one value for the whole frame. A task added
+    // during the frame runs in that frame, so a reinstall from inside a
+    // tick would tick everything twice without this latch.
+    static var lastFrameTime:Float = -1;
 
     /** Installs the frame task once. Later calls do nothing. **/
     public static function init():Void {
@@ -63,6 +67,9 @@ class FmodKhaUpdater {
     }
 
     static function frame():Void {
+        var frameTime = Scheduler.time();
+        if (frameTime == lastFrameTime) return;
+        lastFrameTime = frameTime;
         var now = Scheduler.realTime();
         var dt = lastStamp < 0 ? 0.0 : now - lastStamp;
         lastStamp = now;

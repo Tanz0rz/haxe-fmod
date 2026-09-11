@@ -216,7 +216,7 @@ class TestRuntime {
 		// the dead placeholder first, or its handle slot leaks per retry
 		var stub = haxefmod.studio.native.NativeStudioStub;
 		stub.testSyntheticHandles = true;
-		stub.testBankLoadingState = 4; // ERROR: invalid, not LOADING
+		stub.testBankLoadingState = 4; // ERROR: invalid rather than LOADING
 		stub.testBankUnloadCalls = 0;
 		var registry = new BankRegistry();
 		var first = registry.loadAsync("assets/fmod/Level.bank");

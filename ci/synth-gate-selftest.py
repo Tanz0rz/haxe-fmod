@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Negative-tests the synth frequency gate in audio-profile.py by feeding it
-# synthetic WAVs. The correct segment sequence must pass, and each way the
+# synthetic WAVs. The correct segment sequence must pass. Each way the
 # synth test can really break (silent, wrong tone, missing transition, pitch
 # not applied, wrong order, 3D distance not applied) must fail. Run from
 # anywhere:

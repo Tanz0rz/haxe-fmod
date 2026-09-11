@@ -103,7 +103,7 @@ async function main() {
     check('sync_delete', jaxe.fmod_sound_delete_sync_point(snd, 0) === F.OK
         && jaxe.fmod_sound_get_num_sync_points(snd) === 0, '');
 
-    // Format now carries the type and sample format in front
+    // Format carries the type and sample format in front
     const format = [];
     check('format_result', jaxe.fmod_sound_get_format(snd, format) === F.OK, '');
     check('format_type_raw', format[0] === F.SOUND_TYPE_RAW, `type=${format[0]}`);

@@ -258,4 +258,4 @@ verdict: library There is no shutdown call. FmodManager.Initialize() creates the
 
 ## studio_system_initialize
 <!-- Studio::System::initialize -->
-verdict: library FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels, and studioflags come from liveUpdate and memoryTracking. The flags come from the core fields (for example rightHanded3D and profiling), and extradriverdata is never passed.
+verdict: library FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels, and studioflags come from liveUpdate and memoryTracking. The flags come from the core fields profiling and distanceFilter, and extradriverdata is never passed.

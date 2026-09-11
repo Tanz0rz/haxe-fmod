@@ -257,8 +257,8 @@ int main(void) {
         assert(faxe_handle_resolve(hb, FAXE_TYPE_BUS) == &busObj);
 
         /* everything dead: sweep frees the three lookup slots and the
-         * bank slot, so a stale bank handle cannot resurrect onto a
-         * reloaded bank at the same address */
+         * bank slot. A stale bank handle cannot resurrect onto a
+         * reloaded bank at the same address. */
         faxe_handles_sweep_lookups(sweep_all_dead);
         assert(gFaxeLiveCount == liveBefore - 4);
         assert(faxe_handle_resolve(hb, FAXE_TYPE_BUS) == NULL);

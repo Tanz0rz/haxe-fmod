@@ -123,7 +123,7 @@ Snapshots are events to FMOD, so these calls accept them too. The [Snapshots](#s
 | `SetBusPaused(path, paused)` / `IsBusPaused(path)` | Pauses one bus. Every event through it freezes at its position and resumes from there. A pause menu pauses `bus:/SFX` and keeps the music bus running. |
 | `SetMasterVolume(volume)`, `GetMasterVolume()`, `SetMasterMute(mute)`, `IsMasterMuted()` | The same for the master bus, `bus:/`. |
 | `SetVCAVolume(path, volume)` / `GetVCAVolume(path)` | Linear VCA volume, 0.0 to 1.0. A VCA scales every bus assigned to it. |
-| `ClearAllCallbacks()` | Removes every registered callback: song and event handlers, event description handlers, core channel and group handlers, the system callback, and PCM stream read callbacks. Userdata stays. |
+| `ClearAllCallbacks()` | Removes every registered callback. Song, event, description, channel, group, and system callbacks all go, and so do PCM stream read callbacks. Userdata stays. |
 
 Bus and VCA paths come from FMOD Studio, for example `bus:/SFX` and `vca:/Music`. The generated `FmodBuses` and `FmodVCAs` classes hold them as constants. A project that authors its Master, Music, and SFX sliders as VCAs uses the VCA calls. A project that authors them as buses uses the bus calls.
 

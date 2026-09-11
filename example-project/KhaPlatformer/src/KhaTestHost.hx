@@ -36,7 +36,28 @@ class KhaTestHost implements TestHost {
     public function checkSetupReinit(check:String->Bool->String->Void):Void {
         FmodKhaSetup.init();
         var installs = FmodKhaUpdater.installCount;
-        check("hardening_setup_reinit_single_updater", installs == 1, 'count=$installs');
+        check("hardening_setup_reinit_single_updater", installs == 1 && FmodKhaUpdater.isInstalled(),
+            'count=$installs installed=${FmodKhaUpdater.isInstalled()}');
+        // A removeHook then init from inside the updater's own tick keeps
+        // the hook, and the frame runs FmodManager.Update once. A task
+        // added during a Kha frame runs in that frame, so the second
+        // frame() call stands for the reinstalled task. The frame hook
+        // runs inside FmodManager.Update and counts its runs.
+        var previousHook = haxefmod.studio.CallbackDispatcher.frameHook;
+        var runs = 0;
+        haxefmod.studio.CallbackDispatcher.frameHook = function() {
+            runs++;
+            if (runs == 1) {
+                FmodKhaUpdater.removeHook();
+                FmodKhaUpdater.init();
+            }
+        };
+        @:privateAccess FmodKhaUpdater.lastFrameTime = -1;
+        @:privateAccess FmodKhaUpdater.frame();
+        @:privateAccess FmodKhaUpdater.frame();
+        haxefmod.studio.CallbackDispatcher.frameHook = previousHook;
+        check("hardening_setup_remove_reinit_inside_tick", runs == 1 && FmodKhaUpdater.isInstalled(),
+            'runs=$runs installed=${FmodKhaUpdater.isInstalled()}');
     }
 
     public function setUpdaterInstalled(installed:Bool):Void {

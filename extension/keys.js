@@ -18,7 +18,7 @@
 // the site's selector shows one at a time. grouped() folds such a run
 // into one unit (kept under the first block's key), so the Haxe side
 // stores and renders one translation for it. The fold only applies to
-// the language classes the site's selector actually toggles: a block in
+// the language classes the site's selector actually toggles. A block in
 // another language (java, objective-c) is always visible on the site
 // and stays a unit of its own.
 (function (root) {
@@ -33,7 +33,7 @@
 
     // The nearest heading above the unit, when that heading is a
     // function heading. The site puts a variable number of paragraphs,
-    // tables, and lists between the two, so the walk stops at the first
+    // tables, and lists between the two. The walk stops at the first
     // heading of any level rather than after a fixed number of steps.
     function functionHeading(unit) {
         var node = unit.previousElementSibling;

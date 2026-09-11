@@ -50,12 +50,15 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Remove the closed branch's caches
+        # The branch name goes through the environment: a ref name can hold
+        # shell characters
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           python3 ci/prune-caches.py \
             --repo "${{ github.repository }}" \
-            --branch "${{ github.event.pull_request.head.ref }}"
+            --branch "$HEAD_REF"
 
   scheduled:
     if: github.event_name != 'pull_request'
@@ -67,11 +70,13 @@ jobs:
       - name: Prune stale caches
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEEP: ${{ github.event.inputs.keep || '2' }}
+          MAX_AGE_DAYS: ${{ github.event.inputs.max-age-days || '14' }}
         run: |
           python3 ci/prune-caches.py \
             --repo "${{ github.repository }}" \
-            --keep "${{ github.event.inputs.keep || '2' }}" \
-            --max-age-days "${{ github.event.inputs.max-age-days || '14' }}" \
+            --keep "$KEEP" \
+            --max-age-days "$MAX_AGE_DAYS" \
             ${{ github.event.inputs.dry-run == 'true' && '--dry-run' || '' }}
 
       - name: Report remaining usage

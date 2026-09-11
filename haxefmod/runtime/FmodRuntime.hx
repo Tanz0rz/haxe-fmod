@@ -44,13 +44,14 @@ class FmodRuntime {
     // onceReady handlers waiting for readiness. An entry with an onFailed
     // runs that instead when a default bank fails.
     static var pendingHandlers:Array<{ready:Void->Void, failed:Void->Void}> = [];
-    // Bank bytes the engine's loader delivered, keyed by file name. An
-    // entry is removed once the runtime loaded it, FMOD copies the data.
+    // Bank bytes the engine's loader delivered, keyed by bank path (the
+    // name as given before init, see settleProvidedKeys). An entry is
+    // removed once the runtime loaded it, FMOD copies the data.
     static var providedBanks:Map<String, haxe.io.Bytes> = new Map();
-    // Every file name that was ever provided, for allBanksProvided
+    // Every bank that was ever provided, for allBanksProvided
     static var providedNames:Map<String, Bool> = new Map();
-    // Default banks that failed, keyed by file name. A failed bank is
-    // reported once and never retried.
+    // Default banks that failed, keyed like providedBanks. A failed bank
+    // is reported once and never retried.
     static var failedBanks:Map<String, Bool> = new Map();
     static var defaultBankFailed:Bool = false;
     // The system itself refused to initialize. Nothing gets ready then.
@@ -157,7 +158,7 @@ class FmodRuntime {
             return initResult = result;
         }
         #end
-        dropUnexpectedProvided();
+        settleProvidedKeys();
         #if !js
         // Native init loads the default banks synchronously. The stub
         // backend runs the same path, so the unit tests cover it. A bank
@@ -211,9 +212,9 @@ class FmodRuntime {
      * as a failed bank.
      */
     public static function provideBank(fileName:String, bytes:haxe.io.Bytes):Void {
-        var name = bankFileName(fileName);
-        if (resolved != null && !isDefaultBank(name)) {
-            warnUnexpected(name);
+        var key = bankKey(fileName);
+        if (resolved != null && !isDefaultBank(key)) {
+            warnUnexpected(fileName);
             return;
         }
         if (bytes == null) {
@@ -221,10 +222,10 @@ class FmodRuntime {
             return;
         }
         // A bank already handled, loaded or failed, takes no more bytes
-        if (failedBanks.exists(name)) return;
-        if (resolved != null && banks.isRegistered(bankPath(fileName))) return;
-        providedNames.set(name, true);
-        providedBanks.set(name, bytes);
+        if (failedBanks.exists(key)) return;
+        if (resolved != null && banks.isRegistered(key)) return;
+        providedNames.set(key, true);
+        providedBanks.set(key, bytes);
     }
 
     /**
@@ -234,24 +235,24 @@ class FmodRuntime {
      * without that bank. The engine preloaders call this.
      */
     public static function provideBankFailed(fileName:String, reason:String):Void {
-        var name = bankFileName(fileName);
-        if (resolved != null && !isDefaultBank(name)) {
-            warnUnexpected(name);
+        var key = bankKey(fileName);
+        if (resolved != null && !isDefaultBank(key)) {
+            warnUnexpected(fileName);
             return;
         }
-        if (failedBanks.exists(name)) return;
-        failedBanks.set(name, true);
+        if (failedBanks.exists(key)) return;
+        failedBanks.set(key, true);
         defaultBankFailed = true;
-        providedBanks.remove(name);
-        providedNames.remove(name);
-        trace('Error: FMOD - the default bank $name could not be provided: $reason. The game runs without it.');
+        providedBanks.remove(key);
+        providedNames.remove(key);
+        trace('Error: FMOD - the default bank $fileName could not be provided: $reason. The game runs without it.');
     }
 
     /** True when the bytes of every bank in autoLoadBanks were provided. */
     public static function allBanksProvided():Bool {
         if (resolved == null) return false;
         for (fileName in resolved.autoLoadBanks) {
-            if (!providedNames.exists(bankFileName(fileName))) return false;
+            if (!providedNames.exists(bankPath(fileName))) return false;
         }
         return true;
     }
@@ -268,9 +269,38 @@ class FmodRuntime {
         return slash >= 0 ? fileName.substr(slash + 1) : fileName;
     }
 
-    static function isDefaultBank(name:String):Bool {
-        for (fileName in resolved.autoLoadBanks) {
-            if (bankFileName(fileName) == name) return true;
+    // The key a provided name is stored under: the path of its
+    // autoLoadBanks entry. Before init the name is kept as given, and
+    // init moves it to that key.
+    static function bankKey(fileName:String):String {
+        if (resolved == null) return fileName;
+        var entry = defaultBankEntry(fileName);
+        return entry != null ? bankPath(entry) : bankPath(fileName);
+    }
+
+    // The autoLoadBanks entry a provided name stands for. A name with a
+    // folder matches on the full path, a bare name on the file name.
+    // Two entries with one file name in different folders take bare
+    // names in order, the ones still open first.
+    static function defaultBankEntry(name:String):Null<String> {
+        var withFolder = name.indexOf("/") >= 0;
+        var first:Null<String> = null;
+        for (entry in resolved.autoLoadBanks) {
+            if (withFolder) {
+                if (bankPath(entry) == bankPath(name)) return entry;
+                continue;
+            }
+            if (bankFileName(entry) != name) continue;
+            var key = bankPath(entry);
+            if (!providedNames.exists(key) && !failedBanks.exists(key)) return entry;
+            if (first == null) first = entry;
+        }
+        return first;
+    }
+
+    static function isDefaultBank(key:String):Bool {
+        for (entry in resolved.autoLoadBanks) {
+            if (bankPath(entry) == key) return true;
         }
         return false;
     }
@@ -279,23 +309,36 @@ class FmodRuntime {
         trace('Warning: FMOD - $name was provided but is not in autoLoadBanks (${resolved.autoLoadBanks.join(", ")}). Dropped.');
     }
 
-    // A name reported before init that is not a default bank is dropped
-    // at init, bytes and failure alike. The warning is the one
-    // provideBank gives after init.
-    static function dropUnexpectedProvided():Void {
-        for (name in providedBanks.keys()) {
-            if (isDefaultBank(name)) continue;
-            warnUnexpected(name);
-            providedBanks.remove(name);
-            providedNames.remove(name);
-        }
-        for (name in failedBanks.keys()) {
-            if (isDefaultBank(name)) continue;
-            warnUnexpected(name);
-            failedBanks.remove(name);
+    // Names reported before init move to the keys of their entries at
+    // init. A name that is not a default bank is dropped, bytes and
+    // failure alike, with the warning provideBank gives after init.
+    static function settleProvidedKeys():Void {
+        var bytes = providedBanks;
+        var names = providedNames;
+        var failed = failedBanks;
+        providedBanks = new Map();
+        providedNames = new Map();
+        failedBanks = new Map();
+        for (name in names.keys()) {
+            var entry = defaultBankEntry(name);
+            if (entry == null) {
+                warnUnexpected(name);
+                continue;
+            }
+            var key = bankPath(entry);
+            providedNames.set(key, true);
+            if (bytes.exists(name)) providedBanks.set(key, bytes.get(name));
         }
         defaultBankFailed = false;
-        for (name in failedBanks.keys()) defaultBankFailed = true;
+        for (name in failed.keys()) {
+            var entry = defaultBankEntry(name);
+            if (entry == null) {
+                warnUnexpected(name);
+                continue;
+            }
+            failedBanks.set(bankPath(entry), true);
+            defaultBankFailed = true;
+        }
     }
 
     /**
@@ -304,7 +347,7 @@ class FmodRuntime {
      * is marked failed and never retried.
      */
     static function loadProvidedBank(fileName:String):Bool {
-        var name = bankFileName(fileName);
+        var name = bankPath(fileName);
         var bytes = providedBanks.get(name);
         providedBanks.remove(name);
         var path = bankPath(fileName);
@@ -332,7 +375,7 @@ class FmodRuntime {
             defaultLoadsStarted = true;
             for (fileName in resolved.autoLoadBanks) {
                 var path = bankPath(fileName);
-                var name = bankFileName(fileName);
+                var name = bankPath(fileName);
                 if (failedBanks.exists(name)) continue;
                 if (providedBanks.exists(name)) {
                     loadProvidedBank(fileName);
@@ -349,7 +392,7 @@ class FmodRuntime {
         var ready = true;
         for (fileName in resolved.autoLoadBanks) {
             var path = bankPath(fileName);
-            var name = bankFileName(fileName);
+            var name = bankPath(fileName);
             if (banks.isLoaded(path) || failedBanks.exists(name)) continue;
             if (resolved.banksProvided && !banks.isRegistered(path)) {
                 // Waiting for the engine's loader to provide it
@@ -655,7 +698,7 @@ class FmodRuntime {
     static function loadDefaultBanks():Void {
         if (resolved == null) return;
         for (fileName in resolved.autoLoadBanks) {
-            var name = bankFileName(fileName);
+            var name = bankPath(fileName);
             if (failedBanks.exists(name)) {
                 // The preloader reported it already
             } else if (providedBanks.exists(name)) {

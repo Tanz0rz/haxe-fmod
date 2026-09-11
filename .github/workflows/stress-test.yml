@@ -80,6 +80,8 @@ jobs:
           haxelib run lime build hl -Daudio_test
 
       - name: Run stress state
+        env:
+          STRESS_SECONDS_INPUT: ${{ github.event.inputs.stress-seconds }}
         run: |
           # Virtual display + audio sink (FMOD routes ALSA through Pulse)
           Xvfb :99 -screen 0 1024x768x24 &
@@ -98,7 +100,7 @@ jobs:
           ALSA_EOF
 
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-          SECONDS_BUDGET="${{ github.event.inputs.stress-seconds || '300' }}"
+          SECONDS_BUDGET="${STRESS_SECONDS_INPUT:-300}"
 
           export HAXEFMOD_TEST_STATE=stress-test
           export STRESS_SECONDS="$SECONDS_BUDGET"

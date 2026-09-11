@@ -215,7 +215,7 @@
  "functions/studio_parseid": "a8f449890852ab321b7c08b7e5219fbc8fb5c1cf",
  "functions/studio_system_getparameterdescriptionbyid": "a9cefec4d5be51fcde52f9121df719b6bc1bd078",
  "functions/studio_system_getparameterlabelbyid": "bc2448b7d1e2468ea9cd5aa9721528015765b5d2",
- "functions/studio_system_initialize": "ddfb6bdbf0c5dcfeb6d779e88a29f0b3a610c392",
+ "functions/studio_system_initialize": "c54548997a5e3ed74dbd024d1ae013203a485bec",
  "functions/studio_system_isvalid": "af73bcabf15724bbcb4c0efec1e53258801ba682",
  "functions/studio_system_loadbankcustom": "0207b23fa67df8153268ad7aa93be4445167bf72",
  "functions/studio_system_registerplugin": "4dc80d4ea37b08080316973102dffe9f1f1d51af",

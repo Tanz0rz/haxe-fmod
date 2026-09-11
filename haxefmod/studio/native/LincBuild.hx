@@ -11,9 +11,9 @@ using haxe.macro.PositionTools;
  * into the hxcpp build of any project that compiles NativeStudioCpp.
  */
 class LincBuild {
-    /** Adds a private internal inline static variable called __touch,
-        which sets the value to the current time so that builds are always
-        updated by the code, and native changes are dragged in automatically (except for header only changes) */
+    /** Adds a private inline static variable called __touch that holds
+        the build time. Every build then differs, so native changes are
+        picked up (header only changes excepted). */
     macro public static function touch():Array<Field> {
         var _fields = Context.getBuildFields();
 

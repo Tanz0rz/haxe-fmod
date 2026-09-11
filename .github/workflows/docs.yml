@@ -109,9 +109,14 @@ jobs:
           echo "$RUNNER_TEMP/mkdocs-venv/bin" >> "$GITHUB_PATH"
 
       - name: Build the site
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          # The edit link points at the branch this build came from
-          DOCS_EDIT_URI="edit/${GITHUB_REF_NAME}/docs/" DOCS_BRANCH="${GITHUB_REF_NAME}" mkdocs build --strict
+          # The edit link points at the branch this build came from. A tag
+          # has no edit view, so a tag build points at the default branch.
+          EDIT_REF="${GITHUB_REF_NAME}"
+          case "$GITHUB_REF" in refs/tags/*) EDIT_REF="${DEFAULT_BRANCH}" ;; esac
+          DOCS_EDIT_URI="edit/${EDIT_REF}/docs/" DOCS_BRANCH="${GITHUB_REF_NAME}" mkdocs build --strict
           # The dox output takes the api/ path, so a docs/api page cannot exist
           if [ -e site/api ]; then echo "FAIL: site/api exists before the API reference is moved in"; exit 1; fi
           mv site-api site/api
@@ -134,6 +139,9 @@ jobs:
           curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/api/
 
       - name: Upload the GitHub Pages redirect
+        # The redirect is static, and the Pages environment allows
+        # branches only, so a tag run skips it
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         uses: actions/upload-pages-artifact@v4
         with:
           path: ci/pages-redirect
@@ -141,6 +149,7 @@ jobs:
   deploy:
     # Keeps the GitHub Pages address alive as a redirect to www.tanz0rz.com
     needs: build
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:

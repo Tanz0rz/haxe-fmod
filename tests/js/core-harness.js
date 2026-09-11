@@ -221,7 +221,7 @@ function testChannelControl(studio) {
     pump(studio, 5);
 }
 
-//// DSP type enumeration: the golden list defines what slice 2 may bind
+//// DSP type enumeration: the golden list defines what slice 2 can bind
 
 function testDspEnumeration() {
     // FMOD_DSP_TYPE from the 2.03.12 SDK's own fmod_dsp_effects.h: a
