@@ -66,7 +66,10 @@ static inline void faxe_str_copy(char* dst, const char* src, size_t cap) {
  *                    shim sound and finds it for a game sound.
  *   DESTROY_PROGRAMMER_SOUND: the same fields, i1 = the recorded handle
  *                    the callback took for a shim sound, which the drain
- *                    frees. A game sound stays live and is found by address.
+ *                    frees. releaseOnDrain = that sound, which the drain
+ *                    releases on the game thread, so no handle resolves a
+ *                    sound released on FMOD's thread. A game sound stays
+ *                    live and is found by address.
  *   core ERROR (system namespace): i1 = FMOD_RESULT, i2 = instance type,
  *                    ptr = the failing object, str = function name,
  *                    str2 = function parameters
@@ -82,10 +85,11 @@ static inline void faxe_str_copy(char* dst, const char* src, size_t cap) {
  * reads it, and a dropped event just loses it. The drain resolves it on the
  * Haxe thread, where the handle table is safe to touch.
  *
- * freesI1 marks a record whose i1 handle the drain frees. A dropped record
- * of that kind parks the handle in a list the drain frees before its next
- * pop (see faxe_cbq_take_dropped_handles). The list holds as many handles
- * as the ring holds records. A slot leaks only once one drain interval
+ * freesI1 marks a record whose i1 handle the drain frees, and releaseOnDrain
+ * names a sound the drain releases. A dropped record of either kind parks
+ * both in a list the drain works through before its next pop (see
+ * faxe_cbq_take_dropped). The list holds as many entries as the ring
+ * holds records. A slot or a sound leaks only once one drain interval
  * drops more marked records than that.
  * jaxe.js frees such handles in the callback itself and needs no mark.
  */
@@ -99,6 +103,7 @@ typedef struct {
     int32_t i5;
     float f1;
     int32_t freesI1;            /* 1 when the drain frees the handle in i1, see above */
+    void* releaseOnDrain;       /* a sound the drain releases, or NULL, see above */
     void* opaque;               /* payload owned by the drain, or NULL */
     void* ptr;                  /* borrowed FMOD object for the drain, or NULL */
     char str[FAXE_CBQ_STR_MAX]; /* UTF-8, truncated, always NUL-terminated */
@@ -112,7 +117,13 @@ static int gCbqOverflow = 0;     /* set when an event was dropped */
 static int gCbqInitialized = 0;
 static void* gCbqOrphans = NULL; /* payloads of dropped events, linked by qnext */
 #define FAXE_CBQ_DROPPED_MAX FAXE_CBQ_CAPACITY
-static int gCbqDroppedHandles[FAXE_CBQ_DROPPED_MAX]; /* handles of dropped freesI1 records */
+/* What a dropped record left for the drain: a handle to free, a sound
+ * to release, or both. */
+typedef struct {
+    int handle;
+    void* sound;
+} FaxeCbDropped;
+static FaxeCbDropped gCbqDropped[FAXE_CBQ_DROPPED_MAX];
 static int gCbqDroppedCount = 0;
 
 #ifdef _WIN32
@@ -164,11 +175,14 @@ static void faxe_cbq_push(const FaxeCbEvent* event) {
         *(void**)dropped = gCbqOrphans;
         gCbqOrphans = dropped;
     }
-    /* The handle of a dropped destroy record waits for the drain. A full
-     * list leaks the slot rather than blocking the FMOD thread. */
-    if (gCbqCount == FAXE_CBQ_CAPACITY && gCbqRing[gCbqHead].freesI1 && gCbqRing[gCbqHead].i1
+    /* The handle and the sound of a dropped destroy record wait for the
+     * drain. A full list leaks them rather than blocking the FMOD thread. */
+    if (gCbqCount == FAXE_CBQ_CAPACITY
+            && ((gCbqRing[gCbqHead].freesI1 && gCbqRing[gCbqHead].i1) || gCbqRing[gCbqHead].releaseOnDrain)
             && gCbqDroppedCount < FAXE_CBQ_DROPPED_MAX) {
-        gCbqDroppedHandles[gCbqDroppedCount++] = gCbqRing[gCbqHead].i1;
+        gCbqDropped[gCbqDroppedCount].handle = gCbqRing[gCbqHead].freesI1 ? gCbqRing[gCbqHead].i1 : 0;
+        gCbqDropped[gCbqDroppedCount].sound = gCbqRing[gCbqHead].releaseOnDrain;
+        gCbqDroppedCount++;
     }
     gCbqRing[gCbqHead] = *event;
     gCbqRing[gCbqHead].str[FAXE_CBQ_STR_MAX - 1] = '\0';
@@ -212,13 +226,14 @@ static void* faxe_cbq_take_orphans(void) {
     return head;
 }
 
-/* Copies the handles of dropped freesI1 records into out (at most cap)
- * and clears the list. The caller frees each one. Haxe thread only. */
-static int faxe_cbq_take_dropped_handles(int* out, int cap) {
+/* Copies what dropped records left into out (at most cap) and clears the
+ * list. The caller frees each handle and releases each sound. Haxe thread
+ * only. */
+static int faxe_cbq_take_dropped(FaxeCbDropped* out, int cap) {
     int n = 0;
     if (!gCbqInitialized) return 0;
     faxe_cbq_lock();
-    while (n < gCbqDroppedCount && n < cap) { out[n] = gCbqDroppedHandles[n]; n++; }
+    while (n < gCbqDroppedCount && n < cap) { out[n] = gCbqDropped[n]; n++; }
     gCbqDroppedCount = 0;
     faxe_cbq_unlock();
     return n;

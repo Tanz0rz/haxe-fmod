@@ -52,7 +52,7 @@ Every handle has `setUserData(value)` and `getUserData()`, and so does `StudioSy
 
 - when the handle is released through the abstract (`release`, `stop`, `unload`) and FMOD accepted it or reported the handle dead. An event instance or channel drops it before the call.
 - when FMOD destroys an event instance on its own and delivers `Destroyed`
-- for every handle at once on `unloadAll`
+- for every handle at once on `unloadAll`, once FMOD accepted the call
 
 A recycled native slot gets a new generation and therefore a new handle int. A value left on a dead handle can never be read through the handle that later reuses its slot.
 

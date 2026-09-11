@@ -26,9 +26,11 @@ static int sweep_reject_one(void* ptr, unsigned char type) {
 static void* gHookPtr = NULL;
 static int gHookHandle = 0;
 static int gHookCalls = 0;
+static unsigned char gHookExpectType = FAXE_TYPE_NONE;
 static void sweep_note_free(void* ptr, int handle) {
-    /* the hook runs while the slot still resolves to that object */
-    assert(faxe_handle_resolve(handle, gFaxeSlots[handle & 0xFFFF].type) == ptr);
+    /* the hook runs while the slot still resolves to that object, as the
+     * type the caller expects */
+    assert(faxe_handle_resolve(handle, gHookExpectType) == ptr);
     gHookPtr = ptr;
     gHookHandle = handle;
     gHookCalls++;
@@ -230,6 +232,7 @@ int main(void) {
         assert(faxe_live_handle_count() == 5);
         gHookCalls = 0;
         gHookPtr = NULL;
+        gHookExpectType = FAXE_TYPE_SOUND;
         faxe_handles_free_children(parent, sweep_note_free); /* the walk reaches the grandchild */
         assert(faxe_handle_resolve(childA, FAXE_TYPE_SOUND) == NULL);
         assert(faxe_handle_resolve(childB, FAXE_TYPE_SOUND) == NULL);
@@ -387,6 +390,7 @@ int main(void) {
         int c2 = faxe_handle_alloc(&objB, FAXE_TYPE_CHAN);
         int other = faxe_handle_alloc(&objC, FAXE_TYPE_SOUND);
         gRejected = &objA;
+        gHookExpectType = FAXE_TYPE_CHAN;
         faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one, sweep_note_free);
         assert(faxe_handle_resolve(c1, FAXE_TYPE_CHAN) == NULL);
         assert(faxe_handle_resolve(c2, FAXE_TYPE_CHAN) == &objB);

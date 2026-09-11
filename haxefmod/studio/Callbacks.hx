@@ -74,9 +74,9 @@ enum EventCallbackData {
     /**
      * A programmer instrument finished with its sound. properties.sound
      * carries the same handle ProgrammerSoundCreated delivered, for
-     * matching. A sound the library created is released before this
-     * arrives, so that handle is for matching only. One the game handed
-     * over stays the game's.
+     * matching. A sound the library created is released on the game
+     * thread as this record drains, before this arrives, so that handle
+     * is for matching only. One the game handed over stays the game's.
      */
     ProgrammerSoundDestroyed(properties:FmodProgrammerSoundProperties);
     /**

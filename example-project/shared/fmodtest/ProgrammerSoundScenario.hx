@@ -151,8 +151,8 @@ class ProgrammerSoundScenario implements TestScenario {
     var _atNameSeen:Bool = false;
     var _atCreateSound:Sound = Sound.NULL;
     // Parked on the library's sound and its subsound, so the release the
-    // library runs frees both with their handles. A leak or a stale read
-    // shows in the leak check, and in the sanitizer legs.
+    // library runs frees both with their handles. A leaked handle shows
+    // in the leak check.
     static var AT_ROLLOFF:Array<FmodVector> = [{x: 1, y: 1, z: 0}, {x: 10, y: 0.1, z: 0}];
     var _atCreateSubsound:Int = -2;
     var _atDestroySound:Sound = Sound.NULL;

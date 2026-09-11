@@ -151,7 +151,7 @@ class TestPostBuild {
 	 * mismatched runtime libraries.
 	 */
 	static function testCustomHdllMarkerCheck():Void {
-		var base = "tests/fixtures/tmp-hdll-marker";
+		var base = "tests/.tmp/hdll-marker";
 		var projectDir = '$base/project';
 		var sdkDir = '$base/sdk';
 		var savedSdk = Sys.getEnv("FMOD_SDK");

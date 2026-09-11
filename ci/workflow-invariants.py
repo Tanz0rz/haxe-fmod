@@ -23,8 +23,9 @@ leans on:
      commit.
   7. Every Node harness in tests/js/ is invoked somewhere in the
      workflow.
-  8. Every portability loop over the shared header tests names the
-     same tests, so a test wired into one compiler pass reaches all.
+  8. The plain portability loops name every native test that needs no
+     SDK header, and the sanitizer loops name every native test, both
+     read from tests/native, so a test reaches every compiler pass.
   9. The HashLink commit is named once, in HASHLINK_COMMIT, and every
      checkout and cache key reads it there.
   10. HAXELIB_PINS names every pinned haxelib install and every haxelib
@@ -240,22 +241,26 @@ if direct:
 else:
     ok("no workflow uses krdlab/setup-haxe directly")
 
-# 8. Every portability loop over the shared header tests names the same
-# tests, so a header added to one compiler pass reaches the others
+# 8. The plain portability loops name every native test that needs no SDK
+# header, and the sanitizer loops name every native test
 loops = re.findall(r"for (?:%%t|t) in \(?([a-z0-9_ ]+?)\)?(?:;| do\b)", text)
 # The ThreadSanitizer loops run the threaded tests only, so they are apart.
-# The sanitizer loops take the SDK-dependent tests on top of the shared
-# header set, so they are compared among themselves and must cover it.
+# Both groups are pinned to the test files on disk: the plain loops name
+# every test that needs no SDK header, the sanitizer loops name every
+# test. A new test file wired into neither group fails here too.
+NATIVE_TESTS = sorted(f[len("test_faxe_"):-2] for f in os.listdir(os.path.join(ROOT, "tests", "native"))
+                      if f.startswith("test_faxe_") and f.endswith(".c"))
+SDK_TESTS = {"dspdata", "dsptype", "dspparams", "enums"}
+PLAIN_TESTS = sorted(set(NATIVE_TESTS) - SDK_TESTS)
 loops = [l for l in loops if "handles" in l]
 plain = [l for l in loops if "dspdata" not in l]
 sanitized = [l for l in loops if "dspdata" in l]
-plain_sets = {tuple(sorted(l.split())) for l in plain}
-sanitized_sets = {tuple(sorted(l.split())) for l in sanitized}
-covers = all(set(plain[0].split()) <= set(l.split()) for l in sanitized) if plain else False
-if len(plain) + len(sanitized) < 3 or not plain or len(plain_sets) != 1 or len(sanitized) < 2 or len(sanitized_sets) != 1 or not covers:
-    fail(f"the shared header test loops differ: plain {plain}, sanitized {sanitized}")
+plain_wrong = [l for l in plain if sorted(l.split()) != PLAIN_TESTS]
+sanitized_wrong = [l for l in sanitized if sorted(l.split()) != NATIVE_TESTS]
+if not plain or len(sanitized) < 2 or plain_wrong or sanitized_wrong:
+    fail(f"the shared header test loops differ from tests/native: plain {plain} (expected {PLAIN_TESTS}), sanitized {sanitized} (expected {NATIVE_TESTS})")
 else:
-    ok(f"{len(plain)} shared header test loops name the same {len(plain[0].split())} tests, {len(sanitized)} sanitizer loops add the SDK tests")
+    ok(f"{len(plain)} plain loops name the {len(PLAIN_TESTS)} header tests, {len(sanitized)} sanitizer loops name all {len(NATIVE_TESTS)}")
 
 # 5. linux-html5-chromium requires a FAILING build against a doctored web SDK,
 # with pipefail, and verifies the version-mismatch banner. The check is

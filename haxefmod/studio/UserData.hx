@@ -35,8 +35,8 @@ class UserDataKind {
  * here keyed by the handle int instead.
  *
  * The store drops an entry when the handle is released through the
- * abstract (release, stop, unload) and FMOD accepted the release or
- * reported the handle dead already. A refused release keeps the object,
+ * abstract (release, stop, unload). FMOD has to accept the release or
+ * report the handle dead already. A refused release keeps the object,
  * so the entry stays with it. An event instance or a channel drops its
  * entry before the call, since those calls fail on a dead handle only.
  * It also drops the entry when the

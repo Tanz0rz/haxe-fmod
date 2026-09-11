@@ -1252,10 +1252,25 @@ class jaxe {
     static fmod_sys_unload_all() {
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return jaxe.lastResult; }
         // All bank content is going away. Uninstall every callback first or
-        // the FMOD JS module is corrupted.
+        // the FMOD JS module is corrupted. The per-handle state is kept
+        // aside, so a refused unload puts every callback back.
+        var savedMasks = Object.assign({}, jaxe.cbMasks);
+        var savedKeys = Object.assign({}, jaxe.psKeys);
+        var savedPlugins = Object.assign({}, jaxe.pluginSeen);
         jaxe.uninstallCallbacksFor(null);
         jaxe.cacheAllBankPaths();
         jaxe.lastResult = jaxe.gSystem.unloadAll();
+        if (jaxe.lastResult != jaxe.FMOD.OK) {
+            jaxe.cbMasks = savedMasks;
+            jaxe.psKeys = savedKeys;
+            jaxe.pluginSeen = savedPlugins;
+            var kept = Object.keys(savedMasks).concat(Object.keys(savedKeys));
+            for (var k = 0; k < kept.length; k++) {
+                var handle = kept[k] | 0;
+                var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
+                if (inst) inst.setCallback(jaxe.callbackHandler, jaxe.effectiveCallbackMask(handle));
+            }
+        }
         if (jaxe.lastResult == jaxe.FMOD.OK) {
             // Every async-loaded bank just died without passing through
             // fmod_bank_unload, so their MEMFS copies are deleted here
@@ -2623,10 +2638,8 @@ class jaxe {
     }
 
     // Releasing a parent sound destroys its subsounds, so every sound
-    // handle whose FMOD parent is this sound is dropped first. Otherwise
-    // those slots would keep a dead wrapper.
-    // Collects the handles of every subsound under the parent while the
-    // tree is alive. The caller frees them once the release took effect.
+    // handle under it goes once the release took effect. This collects
+    // them while the tree is alive, and the caller frees them after.
     static collectSubSoundHandles(parent) {
         var raw = jaxe.rawPtr(parent);
         var found = [];
@@ -3136,10 +3149,12 @@ class jaxe {
     static fmod_cg_release(handle) {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        jaxe.chanCallbackHandles.delete(jaxe.rawPtr(group));
+        var raw = jaxe.rawPtr(group);
         jaxe.lastResult = group.release();
-        // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
+        // INVALID_HANDLE means FMOD freed the object already, so the slot goes too.
+        // A refused release keeps the group and its channel callback mapping.
         if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
+            jaxe.chanCallbackHandles.delete(raw);
             jaxe.handleFree(handle);
             // Releasing the group destroys the connections of every DSP in it
             jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);

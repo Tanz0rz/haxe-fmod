@@ -93,6 +93,11 @@ class HeapsTestHost implements TestHost {
             runs == 1 && arms == 1 && FmodHeapsUpdater.isInstalled(),
             'runs=$runs arms=$arms installed=${FmodHeapsUpdater.isInstalled()}');
         #else
+        // The driven frame runs FmodManager.Update once by construction,
+        // so the proof here is that the reinstall replaced the event loop
+        // handler and left the hook installed. The Kha and flixel hosts
+        // drive their loops and catch a doubled tick.
+        var before = @:privateAccess FmodHeapsUpdater.eventHandler;
         var thrown:Dynamic = null;
         try {
             @:privateAccess FmodHeapsUpdater.frame();
@@ -101,8 +106,10 @@ class HeapsTestHost implements TestHost {
         }
         haxefmod.studio.CallbackDispatcher.frameHook = previousHook;
         if (thrown != null) throw thrown;
-        check("hardening_setup_remove_reinit_inside_tick", runs == 1 && FmodHeapsUpdater.isInstalled(),
-            'runs=$runs installed=${FmodHeapsUpdater.isInstalled()}');
+        var after = @:privateAccess FmodHeapsUpdater.eventHandler;
+        check("hardening_setup_remove_reinit_inside_tick",
+            after != null && after != before && FmodHeapsUpdater.isInstalled(),
+            'replaced=${after != before} installed=${FmodHeapsUpdater.isInstalled()}');
         #end
     }
 

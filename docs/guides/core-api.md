@@ -35,7 +35,7 @@ On HTML5 only FSB images decode. See [Limitations](../limitations.md#html5). `fr
 
 `readData(buffer, ?length)` decodes PCM from a sound opened with `openOnly` into the buffer. It returns the number of bytes read. At the end of the file it returns `0`, and `StudioSystem.lastResult()` reports `FMOD_ERR_FILE_EOF`. On an error it returns the negated FMOD error code.
 
-`lock(offset, length)` returns a copy of a byte range of a sample sound as `haxe.io.Bytes`. `unlock(data)` writes the edited copy back and closes the lock. Only one lock can be open per sound. A release with a lock open unlocks the sound first.
+`lock(offset, length)` returns a copy of a byte range of a sample sound as `haxe.io.Bytes`. `unlock(data)` writes the edited copy back and closes the lock. Only one lock can be open per sound. A release with a lock open drops the lock with the sound.
 
 ## PcmStream
 

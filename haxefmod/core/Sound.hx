@@ -194,8 +194,8 @@ abstract Sound(Int) from Int to Int {
      * Edit the bytes and hand them to unlock, which writes them back and
      * closes the lock. Null on failure with the reason in
      * StudioSystem.lastResult(). That is FMOD_ERR_INVALID_PARAM when a
-     * lock is already open on this sound, the range is empty, or the
-     * library owns the sound and releases it on its own. A stream
+     * lock is already open on this sound or the range is empty. It is
+     * the same when the library owns the sound and releases it. A stream
      * or a range past the end reports FMOD's own error. Only sample sounds
      * (fromPcm, createRecordBuffer, or create without a stream mode) hold
      * a buffer to lock. The copy can be shorter than length when FMOD
@@ -212,8 +212,8 @@ abstract Sound(Int) from Int to Int {
      * Edit the bytes and hand them to unlock, which writes them back and
      * closes the lock. Null on failure with the reason in
      * StudioSystem.lastResult(). That is FMOD_ERR_INVALID_PARAM when a
-     * lock is already open on this sound, the range is empty, or the
-     * library owns the sound and releases it on its own. A stream
+     * lock is already open on this sound or the range is empty. It is
+     * the same when the library owns the sound and releases it. A stream
      * or a range past the end reports FMOD's own error. Only sample sounds
      * (fromPcm, createRecordBuffer, or create without a stream mode) hold
      * a buffer to lock. The copy can be shorter than length when FMOD

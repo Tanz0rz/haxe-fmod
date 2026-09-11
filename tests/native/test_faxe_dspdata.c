@@ -145,8 +145,9 @@ static void test_desc(void) {
     desc.floatdesc.mapping.piecewiselinearmapping.numpoints = 1000;
     faxe_dspdata_unpack_desc(&desc, f, ints);
     assert(ints[4] == FAXE_DSPDATA_MAX_MAPPING_POINTS);
-    /* the copied prefix is the array up to the cap */
+    /* the copied prefixes are both arrays up to the cap */
     assert(f[FAXE_DSPDATA_DESC_FLOATS + FAXE_DSPDATA_MAX_MAPPING_POINTS - 1] == values[FAXE_DSPDATA_MAX_MAPPING_POINTS - 1]);
+    assert(f[FAXE_DSPDATA_DESC_FLOATS + 2 * FAXE_DSPDATA_MAX_MAPPING_POINTS - 1] == positions[FAXE_DSPDATA_MAX_MAPPING_POINTS - 1]);
 
     memset(&desc, 0, sizeof(desc));
     desc.type = FMOD_DSP_PARAMETER_TYPE_INT;

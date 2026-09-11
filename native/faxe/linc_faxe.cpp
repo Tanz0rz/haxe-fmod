@@ -172,9 +172,10 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
             if (props && props->name) {
                 faxe_str_copy(ev.str, props->name, FAXE_CBQ_STR_MAX);
             }
-            // Only a sound this shim created is released. A game-owned one
-            // stays with the game. The record carries the handle the create
-            // drain recorded in i1, since the address dies with the release.
+            // Only a sound this shim created is released. The drain does
+            // that on the game thread, so its handle never resolves a sound
+            // already gone. A game-owned one stays with the game. The
+            // record carries the handle the create drain recorded in i1.
             int owned = 0;
             int soundHandle = 0;
             if (props && props->sound) {
@@ -188,8 +189,8 @@ static FMOD_RESULT F_CALLBACK eventCallback(FMOD_STUDIO_EVENT_CALLBACK_TYPE type
                 ev.i2 = props->subsoundIndex;
                 ev.i3 = owned;
                 ev.freesI1 = soundHandle != 0;
+                ev.releaseOnDrain = owned ? props->sound : NULL;
             }
-            if (owned) ((FMOD::Sound*)props->sound)->release();
             break;
         }
         case FMOD_STUDIO_EVENT_CALLBACK_TIMELINE_MARKER: {
@@ -655,15 +656,19 @@ int fmod_core_release_sound(int h) {
     // Nothing is touched before the release, so a refusal leaves the
     // sound, its lock, its rolloff, and its subsound handles as they were.
     // A sound FMOD freed reads neither its lock nor its rolloff points
-    // any more, so both records go with the slots below.
-    int subs[FAXE_LIST_MAX];
-    int n = collectSubsoundHandles(sound, subs, FAXE_LIST_MAX);
+    // any more, so both records go with the slots below. The buffer holds
+    // every slot, since an FSB can carry more subsounds than a list.
+    int cap = gFaxeSlotCap > 0 ? gFaxeSlotCap : 1;
+    int* subs = (int*)malloc(sizeof(int) * (size_t)cap);
+    if (!subs) { gLastResult = FMOD_ERR_MEMORY; return (int)gLastResult; }
+    int n = collectSubsoundHandles(sound, subs, cap);
     gLastResult = sound->release();
     // INVALID_HANDLE means FMOD already freed the sound, so the slots go too
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         for (int i = 0; i < n; i++) faxe_handle_free(subs[i]);
         faxe_handle_free(h);
     }
+    free(subs);
     return (int)gLastResult;
 }
 
@@ -3349,14 +3354,27 @@ static int lincMintRecorded(int instanceHandle, void* ptr, unsigned char type, i
     return handle;
 }
 
+// Ends a shim-created programmer sound on the game thread. The subsound
+// handles and the parent's own lock and rolloff go first, while the
+// sound is alive. The handle goes next, then the sound. A plugin DSP
+// handle arrives with no sound and its slot goes alone.
+static void lincDrainDroppedSound(int handle, FMOD::Sound* sound) {
+    if (handle) {
+        faxe_handles_free_children(handle, sound ? lincOwnedSoundTeardown : NULL);
+        if (sound) lincOwnedSoundTeardown(sound, handle);
+        faxe_handle_free(handle);
+    }
+    if (sound) sound->release();
+}
+
 bool fmod_cb_next() {
-    // The handles of destroy records the overflow dropped go first. Their
-    // objects died before the record was pushed, and a create record
-    // behind them could otherwise find the stale slot at a reused address.
+    // What destroy records the overflow dropped left goes first. That is
+    // a plugin handle whose DSP died with the callback, or a shim sound
+    // with its handle, torn down and released here on the game thread.
     {
-        int dropped[FAXE_CBQ_DROPPED_MAX];
-        int n = faxe_cbq_take_dropped_handles(dropped, FAXE_CBQ_DROPPED_MAX);
-        for (int i = 0; i < n; i++) { faxe_handles_free_children(dropped[i], NULL); faxe_handle_free(dropped[i]); }
+        FaxeCbDropped dropped[FAXE_CBQ_DROPPED_MAX];
+        int n = faxe_cbq_take_dropped(dropped, FAXE_CBQ_DROPPED_MAX);
+        for (int i = 0; i < n; i++) lincDrainDroppedSound(dropped[i].handle, (FMOD::Sound*)dropped[i].sound);
     }
     if (faxe_cbq_pop(&gCbCurrent) != 1) {
         // Drain end: dispose of contexts whose DESTROYED events were
@@ -3395,11 +3413,8 @@ bool fmod_cb_next() {
         // recorded handle ends here. A game-owned sound is alive and keeps
         // its handle, which the address still finds.
         if (gCbCurrent.i3) {
-            // The subsound handles taken from the sound go with it
-            if (gCbCurrent.i1) {
-                faxe_handles_free_children(gCbCurrent.i1, NULL);
-                faxe_handle_free(gCbCurrent.i1);
-            }
+            // The sound, its subsound handles, and its own handle end here
+            lincDrainDroppedSound(gCbCurrent.i1, (FMOD::Sound*)gCbCurrent.releaseOnDrain);
         } else {
             gCbCurrent.i1 = faxe_handle_find(gCbCurrent.ptr, FAXE_TYPE_SOUND);
         }
@@ -6854,8 +6869,8 @@ int fmod_core_sound_lock(int h, int offset, int length, ::Array<unsigned char> o
     unsigned int len1 = 0;
     unsigned int len2 = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -(int)gLastResult; }
-    // A sound the library owns is released on FMOD's thread, where no
-    // lock can be closed, so none is opened on it
+    // A sound the library owns is released by the library when its
+    // instrument is done, so no lock is opened on it
     if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
     if (out == null() || offset < 0 || length <= 0 || length > out->length) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
     if (faxe_handle_get_lock(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
