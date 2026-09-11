@@ -258,9 +258,11 @@ class BuildHdll {
 
 	/**
 	 * The hash of the shim sources, carried by the hdll as its
-	 * hlaxe_fmod_src marker. ci/hlaxe-src-hash.py computes the same one:
-	 * SHA-1 over the shim source, every shared header, and the manifest in
-	 * sorted path order, each as its path, a newline, its bytes, and a newline.
+	 * hlaxe_fmod_src marker. ci/hlaxe-src-hash.py computes the same one.
+	 * It is SHA-1 over the shim source, the shared headers in sorted order,
+	 * and the manifest. Each file enters as its path, a newline, its bytes
+	 * with CRLF folded to LF, and a newline. A Windows checkout then hashes
+	 * the same as a Linux one.
 	 */
 	public static function sourceHash(libRoot:String):String {
 		var files = ["native/hlaxe/hlaxe_fmod.c"];
@@ -271,7 +273,7 @@ class BuildHdll {
 		var buffer = new haxe.io.BytesBuffer();
 		for (rel in files) {
 			buffer.addString(rel + "\n");
-			buffer.add(File.getBytes(Path.join([libRoot, rel])));
+			buffer.addString(StringTools.replace(File.getContent(Path.join([libRoot, rel])), "\r\n", "\n"));
 			buffer.addString("\n");
 		}
 		return haxe.crypto.Sha1.make(buffer.getBytes()).toHex();

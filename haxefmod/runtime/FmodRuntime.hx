@@ -189,6 +189,19 @@ class FmodRuntime {
      */
     public static function isInitialized():Bool {
         if (!NativeStudio.sys_is_initialized()) return false;
+        #if js
+        // The HTML5 shim cannot refuse inside init, since the module loads
+        // later. A refused initialize is read here once the module is up.
+        if (!systemFailed) {
+            var refused:Int = js.Syntax.code("(typeof jaxe !== 'undefined' && jaxe.gInitFailure) ? jaxe.gInitFailure : 0");
+            if (refused != 0) {
+                systemFailed = true;
+                initResult = cast refused;
+                trace('Error: FMOD - the system refused to initialize ($initResult). The game runs without audio.');
+            }
+        }
+        if (systemFailed) return false;
+        #end
         // Direct NativeStudio users never went through init: no settings,
         // nothing to wait for
         if (resolved == null) return true;

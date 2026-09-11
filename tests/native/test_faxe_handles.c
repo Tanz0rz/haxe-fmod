@@ -23,6 +23,13 @@ static int sweep_reject_one(void* ptr, unsigned char type) {
     return ptr != gRejected;
 }
 
+static void* gHookPtr = NULL;
+static int gHookHandle = 0;
+static void sweep_note_free(void* ptr, int handle) {
+    gHookPtr = ptr;
+    gHookHandle = handle;
+}
+
 static int sweep_all_dead(void* ptr, unsigned char type) {
     (void)ptr; (void)type;
     return 0;
@@ -317,11 +324,13 @@ int main(void) {
         int c2 = faxe_handle_alloc(&objB, FAXE_TYPE_CHAN);
         int other = faxe_handle_alloc(&objC, FAXE_TYPE_SOUND);
         gRejected = &objA;
-        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one);
+        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one, sweep_note_free);
         assert(faxe_handle_resolve(c1, FAXE_TYPE_CHAN) == NULL);
         assert(faxe_handle_resolve(c2, FAXE_TYPE_CHAN) == &objB);
+        /* the hook saw the rejected slot while it still resolved */
+        assert(gHookPtr == &objA && gHookHandle == c1);
         gRejected = &objC;
-        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one);
+        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one, NULL);
         assert(faxe_handle_resolve(other, FAXE_TYPE_SOUND) == &objC);
         faxe_handle_free(c2);
         faxe_handle_free(other);

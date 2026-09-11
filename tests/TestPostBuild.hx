@@ -109,21 +109,42 @@ class TestPostBuild {
 		if (pass) passed++ else { failed++; Sys.println('  FAIL: $name'); }
 	}
 
+	// build-hdll and the package check must compute one hash. The exit
+	// code and stderr reach the message, so a missing python3 reads as such.
+	static function testSourceHashParity():Void {
+		var process = new sys.io.Process("python3", ["ci/hlaxe-src-hash.py", "."]);
+		var scripted = StringTools.trim(process.stdout.readAll().toString());
+		var err = StringTools.trim(process.stderr.readAll().toString());
+		var code = process.exitCode();
+		process.close();
+		var built = haxefmod.tools.BuildHdll.sourceHash(".");
+		assert(code == 0 && scripted.length == 40 && scripted == built,
+			'source hash parity: exit=$code script=$scripted tool=$built stderr=$err');
+
+		// A Windows checkout carries CRLF, and both sides must hash it the same
+		var crlfRoot = "tests/fixtures/tmp-crlf-root";
+		for (rel in ["native/hlaxe/hlaxe_fmod.c", "native/manifest/studio_api.txt"].concat(
+				[for (f in sys.FileSystem.readDirectory("native/shared")) if (StringTools.endsWith(f, ".h")) "native/shared/" + f])) {
+			var target = '$crlfRoot/$rel';
+			var dir = haxe.io.Path.directory(target);
+			if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
+			sys.io.File.saveContent(target, StringTools.replace(sys.io.File.getContent(rel), "\n", "\r\n"));
+		}
+		var crlfBuilt = haxefmod.tools.BuildHdll.sourceHash(crlfRoot);
+		var crlfProcess = new sys.io.Process("python3", ["ci/hlaxe-src-hash.py", crlfRoot]);
+		var crlfScripted = StringTools.trim(crlfProcess.stdout.readAll().toString());
+		crlfProcess.close();
+		assert(crlfBuilt == built && crlfScripted == built,
+			'source hash ignores line endings: tool=$crlfBuilt script=$crlfScripted lf=$built');
+		removeTree(crlfRoot);
+	}
+
 	/**
 	 * A project-local custom hdll is trusted only while its version marker
 	 * matches the SDK in use. A leftover build for a different FMOD version
 	 * must fall back to the pre-built hdll instead of shipping next to
 	 * mismatched runtime libraries.
 	 */
-	// build-hdll and the package check must compute one hash
-	static function testSourceHashParity():Void {
-		var process = new sys.io.Process("python3", ["ci/hlaxe-src-hash.py", "."]);
-		var scripted = StringTools.trim(process.stdout.readAll().toString());
-		process.close();
-		var built = haxefmod.tools.BuildHdll.sourceHash(".");
-		assert(scripted.length == 40 && scripted == built, 'source hash parity: script=$scripted tool=$built');
-	}
-
 	static function testCustomHdllMarkerCheck():Void {
 		var base = "tests/fixtures/tmp-hdll-marker";
 		var projectDir = '$base/project';
@@ -173,6 +194,16 @@ class TestPostBuild {
 			sys.FileSystem.deleteDirectory(path);
 		}
 		rmTree(base);
+	}
+
+	static function removeTree(path:String):Void {
+		if (!sys.FileSystem.exists(path)) return;
+		if (sys.FileSystem.isDirectory(path)) {
+			for (f in sys.FileSystem.readDirectory(path)) removeTree('$path/$f');
+			sys.FileSystem.deleteDirectory(path);
+		} else {
+			sys.FileSystem.deleteFile(path);
+		}
 	}
 
 	static function assert(condition:Bool, name:String):Void {

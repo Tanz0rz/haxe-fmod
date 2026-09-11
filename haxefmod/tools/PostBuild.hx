@@ -551,15 +551,16 @@ class PostBuild {
 		// .dat excluded: HL builds ship hlboot.dat next to the exe and
 		// run.sh must never point at it. .hl excluded for the same
 		// reason, a VM build's bytecode is launched through hl below.
-		var exeName = findExecutableName(binDir, [".so", ".hdll", ".ndll", ".dat", ".hl"]);
-		if (exeName != null) {
-			writeLauncher(runSh, runShContent(exeName), true);
-		} else if (standalone && target == "hl") {
-			// A HashLink VM build (Heaps, plain haxe -hl) has no
-			// executable of its own. The launcher runs the bytecode
-			// through hl with the library path set.
-			var bytecode = findBytecodeName(binDir);
-			if (bytecode != null) writeLauncher(runSh, runShContent(bytecode, true), true);
+		// A HashLink VM build (Heaps, plain haxe -hl) has no executable
+		// of its own. The launcher runs the bytecode through hl with the
+		// library path set. The bytecode wins over any other file in a
+		// destination that already holds a stale build, like copyMac.
+		var bytecode = standalone && target == "hl" ? findBytecodeName(binDir) : null;
+		if (bytecode != null) {
+			writeLauncher(runSh, runShContent(bytecode, true), true);
+		} else {
+			var exeName = findExecutableName(binDir, [".so", ".hdll", ".ndll", ".dat", ".hl"]);
+			if (exeName != null) writeLauncher(runSh, runShContent(exeName), true);
 		}
 
 		log("Done - copied FMOD .so files");
@@ -827,9 +828,12 @@ class PostBuild {
 		var names = FileSystem.readDirectory(dir);
 		names.sort(Reflect.compare);
 		for (file in names) {
-			if (file == "run.sh" || isLibraryFile(file, excludeExts)) continue;
+			if (file == "run.sh" || file == "run.cmd" || isLibraryFile(file, excludeExts)) continue;
 			var fullPath = Path.join([dir, file]);
-			if (!FileSystem.isDirectory(fullPath)) candidates.push(fullPath);
+			if (FileSystem.isDirectory(fullPath)) continue;
+			// A data file without the executable bit is never the game
+			if (Sys.systemName() != "Windows" && Sys.command("test", ["-x", fullPath]) != 0) continue;
+			candidates.push(fullPath);
 		}
 		if (candidates.length == 0) return null;
 		// An asset khamake copied next to the executable carries an

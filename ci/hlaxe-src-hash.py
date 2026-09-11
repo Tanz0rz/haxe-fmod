@@ -5,9 +5,10 @@ hlaxe_fmod_src marker. build-hdll computes the same hash
 check compares the two on a release tag. That proves the shipped hdlls
 were built from the tagged shim sources.
 
-The hash is SHA-1 over the shim source, every shared header, and the
-manifest, in sorted path order, each as its path, a newline, its bytes,
-and a newline.
+The hash is SHA-1 over the shim source, the shared headers in sorted
+order, and the manifest. Each file enters as its path, a newline, its
+bytes with CRLF folded to LF, and a newline. A Windows checkout then
+hashes the same as a Linux one.
 
 Run: python3 ci/hlaxe-src-hash.py [repo-root]
 """
@@ -27,7 +28,7 @@ def source_hash(root):
     digest = hashlib.sha1()
     for rel in source_files(root):
         with open(os.path.join(root, rel), "rb") as fh:
-            digest.update(rel.encode("utf-8") + b"\n" + fh.read() + b"\n")
+            digest.update(rel.encode("utf-8") + b"\n" + fh.read().replace(b"\r\n", b"\n") + b"\n")
     return digest.hexdigest()
 
 

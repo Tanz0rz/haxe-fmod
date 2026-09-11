@@ -40,6 +40,7 @@ namespace faxe {
 
 // Declared early: the channel play paths above the sweep call it
 static void lincReclaimDeadChannels();
+static void lincChannelDetachRolloff(void* ptr, int handle);
 
 // Global state
 static FMOD::Studio::System* gStudioSystem = NULL;
@@ -794,7 +795,11 @@ int fmod_core_pcm_release(int h) {
     // its silence path instead of touching the ring
     ps->sound->setUserData(NULL);
     gLastResult = ps->sound->release();
-    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    if (gLastResult != FMOD_OK) {
+        // The stream stays alive, so the ring goes back to its callback
+        ps->sound->setUserData(ps->ring);
+        return (int)gLastResult;
+    }
     faxe_pcmring_destroy(ps->ring);
     free(ps);
     faxe_handle_free(h);
@@ -3279,8 +3284,13 @@ bool fmod_cb_next() {
         if (gCbCurrent.i1 && gCbCurrent.i3) faxe_handle_free(gCbCurrent.i1);
     } else if (gCbCurrent.type == FAXE_CB_CHAN_END) {
         // An ended channel's slot goes with the record. The handle value
-        // still reaches the handler for identity.
-        faxe_handle_free(gCbCurrent.handle);
+        // still reaches the handler for identity. The typed resolve keeps
+        // a group's slot out of it, and the rolloff is detached first.
+        FMOD::Channel* ended = (FMOD::Channel*)faxe_handle_resolve(gCbCurrent.handle, FAXE_TYPE_CHAN);
+        if (ended) {
+            lincChannelDetachRolloff(ended, gCbCurrent.handle);
+            faxe_handle_free(gCbCurrent.handle);
+        }
     } else if (gCbCurrent.type == (FAXE_CB_SYS_NAMESPACE | (uint32_t)FMOD_SYSTEM_CALLBACK_ERROR)) {
         // The failing object's handle when the table knows it, never a
         // fresh one: a sound FMOD rejected can already be gone.
@@ -3867,8 +3877,15 @@ static int lincChannelSlotValid(void* ptr, unsigned char type) {
     return r != FMOD_ERR_INVALID_HANDLE && r != FMOD_ERR_CHANNEL_STOLEN;
 }
 
+// The slot's aux block is the custom rolloff array FMOD was lent. The
+// detach is attempted before the free, like fmod_chan_stop does, so a
+// voice that still reads it lets go first.
+static void lincChannelDetachRolloff(void* ptr, int handle) {
+    if (faxe_handle_get_aux(handle)) ((FMOD::Channel*)ptr)->set3DCustomRolloff(NULL, 0);
+}
+
 static void lincReclaimDeadChannels() {
-    faxe_handles_sweep_type(FAXE_TYPE_CHAN, lincChannelSlotValid);
+    faxe_handles_sweep_type(FAXE_TYPE_CHAN, lincChannelSlotValid, lincChannelDetachRolloff);
 }
 
 int fmod_sys_unload_all() {

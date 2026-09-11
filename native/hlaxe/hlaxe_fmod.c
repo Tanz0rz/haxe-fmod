@@ -23,6 +23,7 @@
 
 // Declared early: the channel play paths above the sweep call it
 static void hlaxe_reclaim_dead_channels(void);
+static void hlaxe_channel_detach_rolloff(void* ptr, int handle);
 #include "../shared/faxe_instctx.h"
 #include "../shared/faxe_dspdata.h"
 
@@ -881,7 +882,11 @@ HL_PRIM int HL_NAME(core_pcm_release)(int h) {
      * its silence path instead of touching the ring. */
     FMOD_Sound_SetUserData(ps->sound, NULL);
     gLastResult = FMOD_Sound_Release(ps->sound);
-    if (gLastResult != FMOD_OK) return (int)gLastResult;
+    if (gLastResult != FMOD_OK) {
+        /* The stream stays alive, so the ring goes back to its callback */
+        FMOD_Sound_SetUserData(ps->sound, ps->ring);
+        return (int)gLastResult;
+    }
     faxe_pcmring_destroy(ps->ring);
     free(ps);
     faxe_handle_free(h);
@@ -3691,8 +3696,13 @@ HL_PRIM bool HL_NAME(cb_next)() {
         if (gCbCurrent.i1 && gCbCurrent.i3) faxe_handle_free(gCbCurrent.i1);
     } else if (gCbCurrent.type == FAXE_CB_CHAN_END) {
         /* An ended channel's slot goes with the record. The handle value
-         * still reaches the handler for identity. */
-        faxe_handle_free(gCbCurrent.handle);
+         * still reaches the handler for identity. The typed resolve keeps
+         * a group's slot out of it, and the rolloff is detached first. */
+        FMOD_CHANNEL* ended = (FMOD_CHANNEL*)faxe_handle_resolve(gCbCurrent.handle, FAXE_TYPE_CHAN);
+        if (ended) {
+            hlaxe_channel_detach_rolloff(ended, gCbCurrent.handle);
+            faxe_handle_free(gCbCurrent.handle);
+        }
     } else if (gCbCurrent.type == (FAXE_CB_SYS_NAMESPACE | (uint32_t)FMOD_SYSTEM_CALLBACK_ERROR)) {
         /* The failing object's handle when the table knows it, never a
          * fresh one: a sound FMOD rejected can already be gone. */
@@ -4339,8 +4349,15 @@ static int hlaxe_channel_slot_valid(void* ptr, unsigned char type) {
     return r != FMOD_ERR_INVALID_HANDLE && r != FMOD_ERR_CHANNEL_STOLEN;
 }
 
+/* The slot's aux block is the custom rolloff array FMOD was lent. The
+ * detach is attempted before the free, like chan_stop does, so a voice
+ * that still reads it lets go first. */
+static void hlaxe_channel_detach_rolloff(void* ptr, int handle) {
+    if (faxe_handle_get_aux(handle)) FMOD_Channel_Set3DCustomRolloff((FMOD_CHANNEL*)ptr, NULL, 0);
+}
+
 static void hlaxe_reclaim_dead_channels(void) {
-    faxe_handles_sweep_type(FAXE_TYPE_CHAN, hlaxe_channel_slot_valid);
+    faxe_handles_sweep_type(FAXE_TYPE_CHAN, hlaxe_channel_slot_valid, hlaxe_channel_detach_rolloff);
 }
 
 static void hlaxe_reclaim_dead_lookups(void) {

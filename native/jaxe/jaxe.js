@@ -179,13 +179,6 @@ class jaxe {
         }
     }
 
-    // After an unload destroys bank content, drop every cached lookup
-    // slot whose object died. A reload can then not alias a recycled
-    // address under a stale handle. Flushing first makes the async unload
-    // observable to isValid. Mirrors faxe_handles_sweep_lookups in the
-    // native shims, and sweeps instance slots on top of that. The native
-    // shims reclaim those when the DESTROYED event drains, which this
-    // target never receives.
     // A channel that ended on its own keeps its slot, and FMOD answers
     // INVALID_HANDLE on it from then on. The sweep runs before a channel
     // handle is minted, so the dead ones go first.
@@ -199,6 +192,13 @@ class jaxe {
         }
     }
 
+    // After an unload destroys bank content, drop every cached lookup
+    // slot whose object died. A reload can then not alias a recycled
+    // address under a stale handle. Flushing first makes the async unload
+    // observable to isValid. Mirrors faxe_handles_sweep_lookups in the
+    // native shims, and sweeps instance slots on top of that. The native
+    // shims reclaim those when the DESTROYED event drains, which this
+    // target never receives.
     static sweepDeadLookups() {
         if (jaxe.gSystem) jaxe.gSystem.flushCommands();
         for (var i = 0; i < jaxe.slots.length; i++) {
@@ -284,6 +284,9 @@ class jaxe {
     // Per-instance callback masks and programmer-sound keys, keyed by handle.
     // JS is single-threaded (callbacks run on the main thread), so plain maps
     // are safe where cpp/hl need the userdata context struct.
+    // The result of a refused Studio initialize, 0 while it succeeded.
+    // FmodRuntime reads it on HTML5 once the module reports ready.
+    static gInitFailure = 0;
     static cbMasks = {};
     static psKeys = {};
     // The channel group handle each instance handed out, keyed by the
@@ -534,8 +537,9 @@ class jaxe {
             if (cur.i1 && cur.i3) jaxe.handleFree(cur.i1);
         } else if (cur.type == jaxe.CB_CHAN_END) {
             // An ended channel's slot goes with the record. The handle
-            // value still reaches the handler for identity.
-            jaxe.handleFree(cur.handle);
+            // value still reaches the handler for identity. The typed
+            // resolve keeps a group's slot out of it.
+            if (jaxe.handleResolve(cur.handle, jaxe.TYPE_CHAN)) jaxe.handleFree(cur.handle);
         } else if (cur.type == (jaxe.CB_SYS_NAMESPACE | 0x80) /* core ERROR */) {
             // The failing object's handle when the table knows it, never a
             // fresh one: a sound FMOD rejected can already be gone.
@@ -5731,10 +5735,11 @@ class jaxe {
         // 128 matches the native shims' fallback for a missing channel count
         var numChannels = (init && init.numChannels > 0) ? init.numChannels : 128;
         var initResult = jaxe.gSystem.initialize(numChannels, jaxe.studioInitFlags(init), jaxe.coreInitFlags(init), null);
-        if (initResult != jaxe.FMOD.OK) {
-            // The game goes on without audio, like a refused native init.
-            // Every later call reports on its own, so the cause is named
-            // here once.
+        if (typeof initResult === "number" && initResult !== jaxe.FMOD.OK) {
+            // The module stays up so the runtime's poll returns, and the
+            // runtime reads the failure from gInitFailure once it does.
+            // The cause is named here once as well.
+            jaxe.gInitFailure = initResult;
             jaxe.lastResult = initResult;
             console.error("haxefmod: FMOD Studio initialize failed with result " + initResult + ". Every later FMOD call fails.");
         }

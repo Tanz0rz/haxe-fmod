@@ -2,8 +2,8 @@
 # Builds the Kha example for one target and lays out a runnable directory.
 # Usage: KHA=/path/to/Kha [BUILD_ROOT=dir] ./build.sh linux|linux-hl|osx|osx-hl|windows|windows-hl|html5
 #   linux, osx, windows:  Kore with hxcpp-generated C++, the binding compiled
-#             from native/faxe/linc_faxe.cpp. Output build/<target>/, run
-#             with run.sh (run.cmd on Windows)
+#             from native/faxe/linc_faxe.cpp. Output build/<target>/. Linux
+#             runs through run.sh, macOS and Windows run the executable.
 #   *-hl:     Kore HL/C, the binding compiled from native/hlaxe/hlaxe_fmod.c.
 #             Same layout
 #   html5:    build/html5/ served as a static site, index.html?test=<state>

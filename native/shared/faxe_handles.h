@@ -169,15 +169,20 @@ static void faxe_handles_sweep_lookups(FaxeLookupValidator is_valid) {
 
 /* Frees every live slot of one type whose object the validator rejects.
  * Core channels use this: a channel that ended on its own keeps its slot
- * until the next channel play or lookup sweeps it. */
-static void faxe_handles_sweep_type(unsigned char type, FaxeLookupValidator is_valid) {
+ * until the next channel play or lookup sweeps it. The hook, when given,
+ * runs on each rejected slot before the free, so a shim can detach what
+ * the slot's aux block still lends to FMOD. */
+typedef void (*FaxeSlotHook)(void* ptr, int handle);
+static void faxe_handles_sweep_type(unsigned char type, FaxeLookupValidator is_valid, FaxeSlotHook before_free) {
     int i;
     for (i = 0; i < gFaxeSlotCap; i++) {
         FaxeSlot* s = &gFaxeSlots[i];
+        int handle;
         if (!s->alive || s->type != type) continue;
-        if (!is_valid(s->ptr, s->type)) {
-            faxe_handle_free(((int)s->gen << 16) | i);
-        }
+        if (is_valid(s->ptr, s->type)) continue;
+        handle = ((int)s->gen << 16) | i;
+        if (before_free) before_free(s->ptr, handle);
+        faxe_handle_free(handle);
     }
 }
 

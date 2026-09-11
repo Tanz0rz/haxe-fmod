@@ -16,6 +16,7 @@ Run: python3 extension/package.py            writes extension/dist/*.zip
 """
 
 import json
+import glob
 import os
 import shutil
 import sys
@@ -48,6 +49,8 @@ def package_files(manifest):
         add(worker)
     for name in manifest.get("background", {}).get("scripts", []):
         add(name)
+    if manifest.get("background", {}).get("page"):
+        add(manifest["background"]["page"])
     for name in manifest.get("icons", {}).values():
         add(name)
     action = manifest.get("action", {})
@@ -65,10 +68,18 @@ def package_files(manifest):
         add(manifest["options_ui"]["page"])
     for entry in manifest.get("web_accessible_resources", []):
         for name in entry.get("resources", []):
-            if "*" not in name:
+            if "*" in name:
+                # A glob expands here, and one that matches nothing is a
+                # manifest error rather than a silent gap
+                matches = sorted(os.path.relpath(p, HERE) for p in glob.glob(os.path.join(HERE, name), recursive=True))
+                if not matches:
+                    raise SystemExit(f"package.py: web_accessible_resources pattern {name!r} matches no file")
+                for match in matches:
+                    add(match)
+            else:
                 add(name)
     # A key this walk does not know that still names a file would ship
-    # a broken package, so it is an error rather than a silent gap
+    # a broken package. That is an error rather than a silent gap.
     known = {"content_scripts", "background", "icons", "action", "options_page",
              "options_ui", "web_accessible_resources"}
     for key, value in manifest.items():
