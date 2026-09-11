@@ -81,6 +81,7 @@ class FmodRuntime {
             trace("Error: FMOD - hlaxe_fmod.hdll binding version "
                 + NativeStudio.binding_abi_version() + " does not match this haxefmod ("
                 + BINDING_ABI + "). Run: haxelib run haxefmod build-hdll");
+            systemFailed = true;
             return FmodResult.FMOD_ERR_VERSION;
         }
         #end
@@ -238,6 +239,7 @@ class FmodRuntime {
         failedBanks.set(name, true);
         defaultBankFailed = true;
         providedBanks.remove(name);
+        providedNames.remove(name);
         trace('Error: FMOD - the default bank $name could not be provided: $reason. The game runs without it.');
     }
 

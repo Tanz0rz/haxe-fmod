@@ -15,7 +15,7 @@ jump.start();
 jump.release();
 ```
 
-`FmodRuntime.isInitialized()` is true once the system is up and every bank in `autoLoadBanks` is loaded. Native targets do both synchronously inside `init`. HTML5 does both asynchronously. The [engine preloaders](components.md#setup) wait for that before the first scene. A game that starts FMOD some other way polls the flag or hands work to `onceReady`.
+`FmodRuntime.isInitialized()` is true once the system is up and every bank in `autoLoadBanks` is loaded or has failed. Native targets do both synchronously inside `init`. HTML5 does both asynchronously. The [engine preloaders](components.md#setup) wait for that before the first scene. A game that starts FMOD some other way polls the flag or hands work to `onceReady`.
 
 ```haxe
 import haxefmod.runtime.FmodRuntime;

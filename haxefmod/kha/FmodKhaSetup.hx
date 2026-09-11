@@ -41,7 +41,7 @@ class FmodKhaSetup {
         console names it.
         @param settings The FmodSettings for Initialize. banksProvided is set on the object.
         @param onReady Called once FMOD and the default banks are usable.
-        @param onFailed Called when a default bank is missing or fails to load.
+        @param onFailed Called when a default bank is missing or fails to load. Without it, onReady runs anyway.
     **/
     public static function preload(?settings:FmodSettings, onReady:Void->Void, ?onFailed:Void->Void):Void {
         if (settings == null) settings = {};
@@ -73,9 +73,9 @@ class FmodKhaSetup {
         // Native init loads the default banks inside init, from the bytes
         // provided above. HTML5 loads them once the module is ready.
         init(settings);
-        FmodRuntime.onceReady(onReady, function() {
-            if (onFailed != null) onFailed();
-        });
+        // Passed through as is: with no onFailed, onReady runs once FMOD
+        // is ready, with or without every bank
+        FmodRuntime.onceReady(onReady, onFailed);
     }
 
     #if sys
