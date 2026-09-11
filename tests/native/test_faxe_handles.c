@@ -239,8 +239,9 @@ int main(void) {
     }
     assert(faxe_handle_resolve(h, FAXE_TYPE_EVI) == &dummy2);
 
-    /* sweep of dead lookup slots: only BUS/VCA/EVD slots the validator
-     * rejects are freed, other types are untouched even when "dead" */
+    /* sweep of dead lookup slots: the BUS/VCA/EVD/BANK slots the
+     * validator rejects are freed, other types are untouched even when
+     * "dead" */
     {
         static int busObj, vcaObj, evdObj, eviObj, bankObj;
         int hb = faxe_handle_find_or_alloc(&busObj, FAXE_TYPE_BUS);
@@ -255,14 +256,17 @@ int main(void) {
         assert(gFaxeLiveCount == liveBefore);
         assert(faxe_handle_resolve(hb, FAXE_TYPE_BUS) == &busObj);
 
-        /* everything dead: sweep frees exactly the three lookup slots */
+        /* everything dead: sweep frees the three lookup slots and the
+         * bank slot, so a stale bank handle cannot resurrect onto a
+         * reloaded bank at the same address */
         faxe_handles_sweep_lookups(sweep_all_dead);
-        assert(gFaxeLiveCount == liveBefore - 3);
+        assert(gFaxeLiveCount == liveBefore - 4);
         assert(faxe_handle_resolve(hb, FAXE_TYPE_BUS) == NULL);
         assert(faxe_handle_resolve(hv, FAXE_TYPE_VCA) == NULL);
         assert(faxe_handle_resolve(he, FAXE_TYPE_EVD) == NULL);
         assert(faxe_handle_resolve(hi, FAXE_TYPE_EVI) == &eviObj);
-        assert(faxe_handle_resolve(hk, FAXE_TYPE_BANK) == &bankObj);
+        assert(faxe_handle_resolve(hk, FAXE_TYPE_BANK) == NULL);
+        assert(faxe_handle_find_or_alloc(&bankObj, FAXE_TYPE_BANK) != hk);
 
         /* the freed slot recycles under a new generation. A fresh lookup
          * for a reused address gets a NEW handle, and the stale one stays
