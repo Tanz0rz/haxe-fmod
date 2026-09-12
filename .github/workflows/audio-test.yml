@@ -3676,6 +3676,10 @@ jobs:
             for f in KhaPlatformer libfmod.dylib libfmodstudio.dylib assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
+            # The dylibs load through @rpath, so the executable carries the
+            # search path next to itself
+            otool -l "$d/KhaPlatformer" | grep -A2 "cmd LC_RPATH" | grep -q "path @executable_path" \
+              || { echo "FAIL: $d/KhaPlatformer has no @executable_path search path, the game cannot load libfmod.dylib"; otool -l "$d/KhaPlatformer" | grep -A2 "cmd LC_RPATH"; exit 1; }
           done
           echo "OK: build directories are complete"
 
@@ -3754,6 +3758,10 @@ jobs:
             for f in KhaPlatformer libfmod.dylib libfmodstudio.dylib assets/fmod/Desktop/Master.bank; do
               test -e "$d/$f" || { echo "FAIL: missing $f in $d"; exit 1; }
             done
+            # The dylibs load through @rpath, so the executable carries the
+            # search path next to itself
+            otool -l "$d/KhaPlatformer" | grep -A2 "cmd LC_RPATH" | grep -q "path @executable_path" \
+              || { echo "FAIL: $d/KhaPlatformer has no @executable_path search path, the game cannot load libfmod.dylib"; otool -l "$d/KhaPlatformer" | grep -A2 "cmd LC_RPATH"; exit 1; }
           done
           echo "OK: build directories are complete"
 

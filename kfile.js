@@ -37,6 +37,11 @@ if (platform === Platform.OSX) {
 	// A bare name becomes -framework on macOS, so the dylibs go in by path
 	project.addLib(path.join(sdk, 'api', 'core', 'lib', 'libfmod.dylib'));
 	project.addLib(path.join(sdk, 'api', 'studio', 'lib', 'libfmodstudio.dylib'));
+	// The dylibs load through @rpath, so the link sets the search path
+	// next to the executable and leaves header room for the stage command
+	// to add one, the way hxcpp links a lime build
+	project.addLinkerFlag('-Wl,-rpath,@executable_path');
+	project.addLinkerFlag('-Wl,-headerpad_max_install_names');
 } else if (platform === Platform.Windows) {
 	// kmake appends .lib itself
 	project.addLib(path.join(sdk, 'api', 'core', 'lib', 'x64', 'fmod_vc'));

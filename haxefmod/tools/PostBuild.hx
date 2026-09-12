@@ -496,6 +496,25 @@ class PostBuild {
 					var err = proc.stderr.readAll().toString();
 					var code = proc.exitCode();
 					proc.close();
+					// A link with no header room refuses one more load command.
+					// A search path the link left behind, into the SDK for one,
+					// is at least as long and takes the new value in place
+					if (code != 0 && err.indexOf("do not fit") != -1) {
+						var old = rpathToRewrite(readLoadCommands(exe), sdkDir);
+						if (old != null) {
+							var rewrite = new sys.io.Process("install_name_tool", ["-rpath", old, "@executable_path", exe]);
+							var rewriteErr = rewrite.stderr.readAll().toString();
+							rewrite.stdout.readAll();
+							var rewriteCode = rewrite.exitCode();
+							rewrite.close();
+							if (rewriteCode == 0) {
+								log('Rewrote the dylib search path $old as @executable_path (the link left no header room)');
+								code = 0;
+							} else {
+								err += "\n" + rewriteErr;
+							}
+						}
+					}
 					if (code != 0 && err.indexOf("would duplicate") == -1) {
 						log('ERROR: install_name_tool could not add the dylib search path to $exe (exit $code)');
 						if (StringTools.trim(err + out) != "") log("  " + StringTools.trim(err + out));
@@ -859,6 +878,53 @@ class PostBuild {
 			for (other in candidates.slice(1)) log('  also: $other');
 		}
 		return candidates[0];
+	}
+
+	/** The load commands of a Mach-O file, or an empty string when otool cannot run. */
+	static function readLoadCommands(exe:String):String {
+		try {
+			var p = new sys.io.Process("otool", ["-l", exe]);
+			var text = p.stdout.readAll().toString();
+			p.stderr.readAll();
+			p.exitCode();
+			p.close();
+			return text;
+		} catch (e:Dynamic) {
+			return "";
+		}
+	}
+
+	/**
+	 * The LC_RPATH entry to rewrite as @executable_path when the header
+	 * has no room for one more. A path into the SDK wins, since the
+	 * game never ships with it. Any other absolute path at least as long
+	 * as the new value serves. Null when no entry fits.
+	 */
+	public static function rpathToRewrite(loadCommands:String, sdkDir:String):Null<String> {
+		var paths:Array<String> = [];
+		var inRpath = false;
+		for (raw in loadCommands.split("\n")) {
+			var line = StringTools.trim(raw);
+			if (StringTools.startsWith(line, "cmd ")) inRpath = line == "cmd LC_RPATH";
+			if (!inRpath || !StringTools.startsWith(line, "path ")) continue;
+			var value = line.substr(5);
+			var offset = value.lastIndexOf(" (offset");
+			if (offset != -1) value = value.substr(0, offset);
+			if (paths.indexOf(value) == -1) paths.push(value);
+		}
+		var target = "@executable_path";
+		var sdk = StringTools.replace(sdkDir, "\\", "/");
+		while (StringTools.endsWith(sdk, "/")) sdk = sdk.substr(0, sdk.length - 1);
+		for (p in paths) {
+			if (p == target) return null;
+		}
+		for (p in paths) {
+			if (sdk != "" && StringTools.startsWith(p, sdk + "/") && p.length >= target.length) return p;
+		}
+		for (p in paths) {
+			if (StringTools.startsWith(p, "/") && p.length >= target.length) return p;
+		}
+		return null;
 	}
 
 	/** True when the name ends in one of the extensions, with or without a version suffix. */

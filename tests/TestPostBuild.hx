@@ -19,6 +19,7 @@ class TestPostBuild {
 		testClearExecstack();
 		testSdkPackageDetection();
 		testStage();
+		testRpathToRewrite();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -216,6 +217,28 @@ class TestPostBuild {
 			failed++;
 			Sys.println('  FAIL: $name');
 		}
+	}
+
+	static function testRpathToRewrite():Void {
+		// otool -l output for a fat binary lists the load commands per slice
+		var slice = "Load command 14\n          cmd LC_RPATH\n      cmdsize 72\n         path /Users/runner/work/fmod-sdk/api/core/lib (offset 12)\n"
+			+ "Load command 15\n          cmd LC_RPATH\n      cmdsize 80\n         path /Users/runner/work/fmod-sdk/api/studio/lib (offset 12)\n"
+			+ "Load command 16\n          cmd LC_LOAD_DYLIB\n      cmdsize 48\n         name @rpath/libfmod.dylib (offset 24)\n";
+		var fat = "KhaPlatformer (architecture x86_64):\n" + slice + "KhaPlatformer (architecture arm64):\n" + slice;
+		check("the SDK search path is the one rewritten", PostBuild.rpathToRewrite(fat, "/Users/runner/work/fmod-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		check("a trailing slash on the SDK path is fine", PostBuild.rpathToRewrite(fat, "/Users/runner/work/fmod-sdk/") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		check("an absolute path outside the SDK serves as well", PostBuild.rpathToRewrite(fat, "/opt/other-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		var short = "          cmd LC_RPATH\n      cmdsize 24\n         path /usr/lib (offset 12)\n";
+		check("a path shorter than the new value is left alone", PostBuild.rpathToRewrite(short, "/opt/sdk") == null);
+		var relative = "          cmd LC_RPATH\n      cmdsize 40\n         path @loader_path/../Frameworks (offset 12)\n";
+		check("a relative search path is left alone", PostBuild.rpathToRewrite(relative, "/opt/sdk") == null);
+		var present = slice + "          cmd LC_RPATH\n      cmdsize 32\n         path @executable_path (offset 12)\n";
+		check("an executable that has the search path needs no rewrite", PostBuild.rpathToRewrite(present, "/Users/runner/work/fmod-sdk") == null);
+		var dylibOnly = "          cmd LC_LOAD_DYLIB\n      cmdsize 48\n         name @rpath/libfmod.dylib (offset 24)\n         path /not/an/rpath/entry (offset 12)\n";
+		check("a path line outside an LC_RPATH command is skipped", PostBuild.rpathToRewrite(dylibOnly, "/opt/sdk") == null);
+		check("no load commands gives null", PostBuild.rpathToRewrite("", "/opt/sdk") == null);
+		var mixed = "          cmd LC_RPATH\n      cmdsize 40\n         path /usr/local/lib/elsewhere (offset 12)\n" + slice;
+		check("the SDK search path wins over an earlier absolute one", PostBuild.rpathToRewrite(mixed, "/Users/runner/work/fmod-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
 	}
 
 	static function testRunShContent():Void {
