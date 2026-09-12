@@ -43,6 +43,9 @@ def main():
     for page, url in broken[:50]:
         print(f"FAIL: {page} links to {url}")
     print(f"check-site-links: {pages} pages, {len(broken)} broken link(s)")
+    if pages == 0:
+        print(f"FAIL: no HTML pages under {root}")
+        return 1
     return 1 if broken else 0
 
 

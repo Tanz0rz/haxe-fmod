@@ -110,7 +110,7 @@ jobs:
         # prebuilt interpreters for Debian
         run: |
           python3 -m venv "$RUNNER_TEMP/mkdocs-venv"
-          bash ci/retry.sh "$RUNNER_TEMP/mkdocs-venv/bin/pip" install --quiet "mkdocs-material==9.7.7"
+          bash ci/retry.sh "$RUNNER_TEMP/mkdocs-venv/bin/pip" install --quiet -r ci/docs-requirements.txt
           echo "$RUNNER_TEMP/mkdocs-venv/bin" >> "$GITHUB_PATH"
 
       - name: Build the site

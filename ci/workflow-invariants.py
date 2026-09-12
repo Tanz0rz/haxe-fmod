@@ -41,12 +41,12 @@ leans on:
      goes through the local action with the retry. The macOS jobs
      install Haxe through Homebrew, which retries on its own.
   14. Every haxelib install, git clone, npm install, playwright install,
-     brew install, pip install, and curl health check goes through
-     ci/retry.sh. That covers the workflows, the composite actions, and
+     brew install, pip install, git fetch, submodule update, and curl
+     call goes through ci/retry.sh. That covers the workflows, the composite actions, and
      the run job generator. Every apt-get carries its retry option.
   15. The steps gated on a stale pre-built hdll are the known few, so a
      new gate cannot hide behind the branch escape hatch unnoticed. The
-     three HashLink build gates read both hdll markers.
+     three HashLink build gates and the two id abi gates read both hdll markers.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -254,7 +254,7 @@ else:
 # from an action directory, is exit 127 on the runner. The path check
 # is what catches both. Every apt-get carries its retry option, and a
 # comment or echo naming one is skipped.
-FETCH_RE = re.compile(r"(haxelib install|git clone|npm install|npx playwright install|curl -fsS|brew install|pip\"? install)")
+FETCH_RE = re.compile(r"(haxelib install|git clone|git fetch|git submodule update|npm install|npx playwright install|curl -f?sS|brew install|pip\"? install)")
 WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)ci/retry\.sh\1")
 fetch_files = [os.path.join(os.path.dirname(PATH), wf) for wf in sorted(os.listdir(os.path.dirname(PATH))) if wf.endswith(".yml")]
 actions_dir = os.path.join(ROOT, ".github", "actions")
@@ -309,13 +309,14 @@ else:
 # 15. The stale-hdll escape hatch gates the known steps only
 STALE_GATED = ["Doctor passes in a configured environment", "Build HashLink target from the installed package", "Validate build output"]
 STALE_REFERENCES = 5
-STALE_INLINE = 3
+STALE_INLINE = 5
 gated = re.findall(r"- name: ([^\n]+)\n(?:[^\n]*\n){0,3}?[ ]*if: steps\.abi\.outputs\.stale != 'true'", text)
 stale_refs = len(re.findall(r"steps\.abi\.outputs\.stale", text))
 # The three HashLink build jobs gate inside their run block. Each of
 # those blocks reads both markers, so no inline hatch reads the ABI alone.
-inline_blocks = re.findall(r"\n[ ]*STALE=0\n(?:[^\n]*\n)*?[ ]*if \[ \"\$STALE\" = \"1\" \]", text)
-inline_half = [b for b in inline_blocks if '[ "$SRCMARK" != "$SRC" ]' not in b or '[ "$MARK" != "$ABI" ]' not in b]
+inline_blocks = re.findall(r"\n[ ]*STALE=(?:0|false)\n(?:[^\n]*\n)*?[ ]*if \[ \"\$STALE\" = (?:\"1\"|true) \]", text)
+inline_half = [b for b in inline_blocks
+               if '[ "$SRCMARK" != "$SRC" ]' not in b or ('[ "$MARK" != "$ABI" ]' not in b and '[ "$MARKER" != "$ABI" ]' not in b)]
 if gated != STALE_GATED or stale_refs != STALE_REFERENCES or len(inline_blocks) != STALE_INLINE or inline_half:
     fail(f"stale-hdll gates out of step: steps {gated}, {stale_refs} references of {STALE_REFERENCES}, {len(inline_blocks)} inline gates of {STALE_INLINE}, {len(inline_half)} reading one marker")
 else:

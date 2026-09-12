@@ -248,7 +248,7 @@ class jaxe {
         }
     }
 
-    // The channel group slots FMOD reports dead, with no Studio flush.
+    // Frees the channel group slots FMOD reports dead, with no Studio flush.
     // The native shims sweep the same type before a group mint.
     static sweepDeadGroups() {
         for (var i = 0; i < jaxe.slots.length; i++) {
@@ -278,10 +278,10 @@ class jaxe {
     }
 
     // Marks a handle whose object the game does not own. That is a
-    // programmer sound this shim created and releases, a plugin
-    // instrument's DSP that FMOD destroys with its event, or a channel
-    // group or sound group the game did not create. The public release
-    // entry points refuse it.
+    // programmer sound this shim created and releases, or a plugin
+    // instrument's DSP that FMOD destroys with its event. A channel group
+    // or sound group the game did not create carries the mark too. The
+    // public release entry points refuse it.
     static markOwned(handle) {
         if (handle > 0) jaxe.slots[handle & 0xFFFF].owned = true;
     }
@@ -539,9 +539,11 @@ class jaxe {
                 continue;
             }
             if (descPtrs != null) {
+                // An instance whose description is unknown stays in scope
                 var d = {};
-                var owned = inst.getDescription(d) == jaxe.FMOD.OK && descPtrs.has(jaxe.rawPtr(d.val));
-                jaxe.dropWrapper(d.val);
+                var known = inst.getDescription(d) == jaxe.FMOD.OK;
+                var owned = !known || descPtrs.has(jaxe.rawPtr(d.val));
+                if (known) jaxe.dropWrapper(d.val);
                 if (!owned) continue;
             }
             jaxe.uninstallCallback(handle);
@@ -1741,7 +1743,11 @@ class jaxe {
         }
         var raw = jaxe.rawPtr(bank);
         jaxe.lastResult = bank.unload();
-        if (jaxe.lastResult != jaxe.FMOD.OK && jaxe.lastResult != jaxe.ERR_INVALID_HANDLE) jaxe.restoreCallbackState(saved);
+        // A refused unload puts every callback back. A walk with no scope
+        // took callbacks off instances of other banks, and the survivors
+        // get theirs back too. The restore sweeps first and skips the dead.
+        var bankTookEffect = jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE;
+        if (!bankTookEffect || !scoped) jaxe.restoreCallbackState(saved);
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
         if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
             // Async loads copied the bank into MEMFS. Delete the copy or
@@ -2254,7 +2260,11 @@ class jaxe {
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         // Uninstall the callback first: destroying an instance with a
         // callback installed corrupts the FMOD JS module. The instance's
-        // group dies with it, so its callback comes off too.
+        // group dies with it, so its callback comes off too. A refused
+        // release puts both back.
+        var savedMask = jaxe.cbMasks[handle];
+        var savedKeys = jaxe.psKeys[handle];
+        var savedPlugin = jaxe.pluginSeen[handle];
         jaxe.uninstallCallback(handle);
         var cg = jaxe.instCgHandles[handle];
         var group = cg === undefined ? null : jaxe.resolveCg(cg);
@@ -2262,8 +2272,14 @@ class jaxe {
         var groupHandle = group && jaxe.chanCallbackHandles.has(groupRaw) ? jaxe.chanCallbackHandles.get(groupRaw) : undefined;
         if (groupHandle !== undefined) group.setCallback(null);
         jaxe.lastResult = inst.release();
-        if (jaxe.lastResult != jaxe.FMOD.OK && jaxe.lastResult != jaxe.ERR_INVALID_HANDLE && groupHandle !== undefined) {
-            group.setCallback(jaxe.channelCallback);
+        if (jaxe.lastResult != jaxe.FMOD.OK && jaxe.lastResult != jaxe.ERR_INVALID_HANDLE) {
+            if (groupHandle !== undefined) group.setCallback(jaxe.channelCallback);
+            if (savedMask !== undefined) jaxe.cbMasks[handle] = savedMask;
+            if (savedKeys !== undefined) jaxe.psKeys[handle] = savedKeys;
+            if (savedPlugin !== undefined) jaxe.pluginSeen[handle] = savedPlugin;
+            if (savedMask !== undefined || savedKeys !== undefined) {
+                inst.setCallback(jaxe.callbackHandler, jaxe.effectiveCallbackMask(handle));
+            }
         }
         // INVALID_HANDLE means FMOD already destroyed the instance (bank
         // unload, releaseAllInstances). The slot must still be reclaimed or

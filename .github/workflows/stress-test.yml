@@ -71,10 +71,10 @@ jobs:
           bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
+          set -o pipefail
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
             echo "=== MAKE FAILED - retrying single-threaded ==="
-            make 2>&1 | tee -a /tmp/hashlink-build.log
-            exit 1
+            make 2>&1 | tee -a /tmp/hashlink-build.log || exit 1
           }
           sudo make install
           sudo ldconfig
@@ -116,6 +116,7 @@ jobs:
           cd "$BIN_DIR"
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
           EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" -print -quit)
+          [ -n "$EXE" ] || { echo "FAIL: no game executable found in $(pwd)"; ls -la; exit 1; }
           "$EXE" > /tmp/stress-test.log 2>&1 &
           GAME_PID=$!
           cd -

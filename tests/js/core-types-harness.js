@@ -96,12 +96,12 @@ async function main() {
     const format = [];
     jaxe.fmod_sound_get_format(raw, format);
     check('exinfo_memory_format', format[1] === F.SOUND_FORMAT_PCM16 && format[2] === 1, `format=${format[1]} channels=${format[2]}`);
+    const walkedSg = jaxe.fmod_sound_get_sound_group(raw);
+    check('exinfo_initial_sound_group', walkedSg === group, `group=${group} got=${walkedSg}`);
     // A sound group the game created stays releasable when reached
-    // through a walk: the walk finds its slot instead of minting an
+    // through a walk. The walk finds its slot instead of minting an
     // owned one, the way the channel group walks do
-    check('exinfo_sound_group_walk_unowned', !jaxe.isOwned(group), '');
-    check('exinfo_initial_sound_group', jaxe.fmod_sound_get_sound_group(raw) === group,
-        `group=${group} got=${jaxe.fmod_sound_get_sound_group(raw)}`);
+    check('exinfo_sound_group_walk_unowned', !jaxe.isOwned(walkedSg), `walked=${walkedSg}`);
     const badGuid = jaxe.fmod_core_create_sound_memory_ex(pcm, pcm.byteLength, F.OPENRAW >>> 0,
         exinfo({ numchannels: 1, defaultfrequency: 48000, format: F.SOUND_FORMAT_PCM16 }), '', '', 'not-a-guid');
     check('exinfo_bad_guid', badGuid === 0 && jaxe.lastResult === F.ERR_INVALID_PARAM, `handle=${badGuid} result=${jaxe.lastResult}`);

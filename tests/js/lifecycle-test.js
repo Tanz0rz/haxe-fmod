@@ -146,9 +146,9 @@ async function main() {
         check('refused_bank_unload_keeps_state',
             JSON.stringify([jaxe.cbMasks, jaxe.psKeys, jaxe.pluginSeen]) === before, '');
         check('refused_bank_unload_keeps_instance', jaxe.handleResolve(kept, jaxe.TYPE_EVI) != null, '');
-        // The unloadAll and bank-unload paths destroy instances too, so
-        // they take the shim callback off every instance group in scope
-        // first and put it back when FMOD refuses
+        // The unloadAll and bank-unload paths destroy instances too. They
+        // take the shim callback off every instance group in scope first,
+        // and put it back when FMOD refuses
         const wide = jaxe.fmod_evd_create_instance(evd);
         jaxe.fmod_evi_start(wide);
         await pump(3);
@@ -172,10 +172,25 @@ async function main() {
         bankWrapper.unload = () => 40;
         const refusedBank2 = jaxe.fmod_bank_unload(masterBank);
         bankWrapper.unload = realBankUnload;
-        wideWrapper.setCallback = realWideSet;
         check('refused_bank_unload_cycles_group_callback',
             refusedBank2 === 40 && wideCalls.join(',') === 'off,on',
             `result=${refusedBank2} calls=${wideCalls.join(',')}`);
+        // A bank whose event list cannot be read leaves the scope
+        // unknown, so every callback comes off, the way the native shims
+        // fall back
+        wideCalls.length = 0;
+        const realEventList = bankWrapper.getEventList;
+        bankWrapper.getEventList = () => 40;
+        bankWrapper.unload = () => 40;
+        const refusedBank3 = jaxe.fmod_bank_unload(masterBank);
+        bankWrapper.unload = realBankUnload;
+        bankWrapper.getEventList = realEventList;
+        wideWrapper.setCallback = realWideSet;
+        check('unlisted_bank_unload_falls_back_to_every_callback',
+            refusedBank3 === 40 && wideCalls.join(',') === 'off,on',
+            `result=${refusedBank3} calls=${wideCalls.join(',')}`);
+        check('unlisted_bank_unload_keeps_state',
+            JSON.stringify([jaxe.cbMasks, jaxe.psKeys, jaxe.pluginSeen]) === before, '');
         check('refused_bulk_destroy_keeps_group_map',
             jaxe.chanCallbackHandles.get(jaxe.rawPtr(wideWrapper)) === wideGroup, '');
         jaxe.fmod_cg_set_callback(wideGroup, false);
@@ -326,7 +341,7 @@ async function main() {
     check('instGroup_release_refused', jaxe.fmod_cg_release(groupH) === jaxe.ERR_INVALID_PARAM && jaxe.resolveCg(groupH) != null,
         `result=${jaxe.lastResult}`);
     // A callback on the instance's group comes off before FMOD destroys
-    // the group, and the freed slot takes its map entry with it, so a new
+    // the group. The freed slot takes its map entry with it, so a new
     // group at the same address cannot inherit one
     const groupRaw = jaxe.rawPtr(jaxe.resolveCg(groupH));
     check('instGroup_callback_installed', jaxe.fmod_cg_set_callback(groupH, true) === 0
@@ -339,6 +354,38 @@ async function main() {
 
     check('instGroup_callback_map_pruned_with_slot', !jaxe.chanCallbackHandles.has(groupRaw),
         `size=${jaxe.chanCallbackHandles.size}`);
+
+    // A group FMOD destroyed keeps its slot until a sweep, and the new
+    // group of a create can land on the freed address. fmod_cg_create
+    // sweeps the dead group slots first, so no later walk can alias the
+    // new group under the dead handle.
+    {
+        const staleLive = jaxe.liveCount;
+        const staleInst = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_start(staleInst);
+        await pump(3);
+        const staleGroup = jaxe.fmod_evi_get_channel_group(staleInst);
+        check('stale_group_handle', staleGroup > 0, `handle=${staleGroup}`);
+        // Destroy the instance behind the shim's back, so the group dies
+        // with it and both slots stay
+        jaxe.fmod_evi_stop(staleInst, 1);
+        jaxe.handleResolve(staleInst, jaxe.TYPE_EVI).release();
+        jaxe.gSystem.flushCommands();
+        await pump(3);
+        check('dead_group_slot_lingers_until_sweep',
+            jaxe.handleResolve(staleGroup, jaxe.TYPE_CHANGROUP) != null
+            && !jaxe.lookupSlotUsable(jaxe.slots[staleGroup & 0xFFFF]), '');
+        const fresh = jaxe.fmod_cg_create('sweep-probe');
+        check('cg_create_sweeps_dead_group_slots',
+            fresh > 0 && jaxe.handleResolve(staleGroup, jaxe.TYPE_CHANGROUP) == null,
+            `fresh=${fresh} stale=${staleGroup}`);
+        jaxe.fmod_cg_release(fresh);
+        jaxe.fmod_evi_release(staleInst);
+        await pump(2);
+        drainEvents();
+        check('cg_create_sweep_leaves_no_slots', jaxe.liveCount === staleLive,
+            `live=${jaxe.liveCount} before=${staleLive}`);
+    }
 
     // A bulk destroy takes the shim callback off every instance group in
     // its scope first, and a refused call puts it back. FMOD must never

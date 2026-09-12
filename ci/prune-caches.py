@@ -81,7 +81,7 @@ def base_key(key):
     return SHA_SUFFIX.sub("", key)
 
 
-FAMILY = re.compile(r"^(haxelib-.*?)-[0-9]+\.[0-9]+\.[0-9]+((?:-[a-z]+)*)-lime[0-9.]+-.*$")
+FAMILY = re.compile(r"^(haxelib-.*?)-[0-9]+\.[0-9]+\.[0-9]+(?:-[a-z]+\.?[0-9]*)?((?:-[a-z]+)*)-lime[0-9.]+-.*$")
 
 
 def family(key):
@@ -216,7 +216,7 @@ def selftest():
     if sorted(e["id"] for e in doomed) != [1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13]:
         print("selftest FAIL: branch close kept {}".format(sorted(e["id"] for e in doomed)))
         sys.exit(1)
-    # The family regex runs against the keys the workflow makes today, so
+    # The family regex runs against the keys the workflows make today, so
     # a reordered pins string cannot switch the rule off unnoticed
     workflows = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows")
     text = ""
@@ -226,8 +226,9 @@ def selftest():
                 text += fh.read()
     pins = re.search(r"HAXELIB_PINS: (\S+)", text).group(1)
     haxe = re.search(r"\bHAXE_VERSION: (\S+)", text).group(1)
-    mac = re.search(r"MAC_HAXE_VERSION: (\S+)", text)
-    mac = mac.group(1) if mac else haxe
+    # The macOS jobs read their Haxe version from Homebrew at run time, so
+    # the selftest fills in a prerelease shape the regex has to accept
+    mac = "4.4.0-rc.1"
     # The key templates as the workflows write them, with each expression
     # filled in, so a reshaped key is noticed here
     live_keys = set()
@@ -242,7 +243,7 @@ def selftest():
         live_keys.add(key)
     families = [family(key) for key in sorted(live_keys)]
     if any(f is None for f in families) or len(set(families)) != len(families):
-        print("selftest FAIL: the family regex does not fit the workflow's keys: {}".format(families))
+        print("selftest FAIL: the family regex does not fit the workflows' keys: {}".format(families))
         sys.exit(1)
     print("prune-caches selftest: all rules hold")
 

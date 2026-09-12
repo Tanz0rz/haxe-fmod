@@ -944,7 +944,7 @@ static inline int lincHandleOrMemory(void* ptr, unsigned char type) {
     return handle;
 }
 
-// Defined with the lookup sweeps below, needed by the group release
+// Defined with the lookup sweeps below, needed by the group mint
 static int lincLookupSlotValid(void* ptr, unsigned char type);
 
 // A group the game did not create is owned: the master, a bus's, an
@@ -1419,7 +1419,9 @@ int fmod_bus_unlock_channel_group(int h) {
     // The group can be destroyed once unlocked: reclaim its cached handle
     // before a recycled address can alias it
     if (gLastResult == FMOD_OK) lincReclaimDeadLookups();
-    if (userData && lincLookupSlotValid(group, FAXE_TYPE_CHANGROUP)) {
+    // The handle in the user data still resolves to a group that survived
+    // the unlock. A new group at a recycled address never answers for it.
+    if (userData && faxe_handle_resolve((int)(intptr_t)userData, FAXE_TYPE_CHANGROUP) == group) {
         group->setUserData(userData);
         group->setCallback(lincChannelCallback);
     }
@@ -4144,8 +4146,9 @@ static LincGroupCallbackStash lincUninstallInstanceGroupCallbacks(FMOD::Studio::
     return stash;
 }
 
-// The descriptions of one bank, for the scoped uninstall. A bank past
-// the list cap falls back to every instance.
+// The descriptions of one bank, for the scoped uninstall. A count or a
+// list the bank refuses, or a bank past the list cap, falls back to
+// every instance.
 static int lincBankDescriptions(FMOD::Studio::Bank* bank, FMOD::Studio::EventDescription*** out) {
     FMOD::Studio::EventDescription** descs = (FMOD::Studio::EventDescription**)gListBuf;
     int count = 0;
@@ -4159,10 +4162,14 @@ static int lincBankDescriptions(FMOD::Studio::Bank* bank, FMOD::Studio::EventDes
     return count;
 }
 
+// The callback goes back on a group whose handle still resolves to it.
+// The caller sweeps first, so a group FMOD destroyed lost its slot and
+// a new group at the same address never answers for the old handle.
 static void lincRestoreInstanceGroupCallbacks(LincGroupCallbackStash* stash, bool restore) {
     if (restore) {
         for (int i = 0; i < stash->count; i++) {
-            if (!lincLookupSlotValid(stash->groups[i], FAXE_TYPE_CHANGROUP)) continue;
+            int gh = (int)(intptr_t)stash->userData[i];
+            if (!gh || faxe_handle_resolve(gh, FAXE_TYPE_CHANGROUP) != stash->groups[i]) continue;
             stash->groups[i]->setUserData(stash->userData[i]);
             stash->groups[i]->setCallback(lincChannelCallback);
         }
@@ -4176,11 +4183,11 @@ int fmod_sys_unload_all() {
     lincStashAllBankPaths();
     LincGroupCallbackStash stash = lincUninstallInstanceGroupCallbacks(NULL, 0);
     gLastResult = gStudioSystem->unloadAll();
-    lincRestoreInstanceGroupCallbacks(&stash, gLastResult != FMOD_OK);
     // A refused call can still have unloaded some banks, and the sweep
     // frees only the slots FMOD reports dead, so it runs either way.
     // Otherwise a stale slot at a reused address aliases a new object.
     lincReclaimDeadLookups();
+    lincRestoreInstanceGroupCallbacks(&stash, gLastResult != FMOD_OK);
     return (int)gLastResult;
 }
 
@@ -4463,12 +4470,16 @@ int fmod_bank_unload(int h) {
     int bankDescCount = lincBankDescriptions(bank, &bankDescs);
     LincGroupCallbackStash stash = lincUninstallInstanceGroupCallbacks(bankDescs, bankDescCount);
     gLastResult = bank->unload();
-    lincRestoreInstanceGroupCallbacks(&stash, gLastResult != FMOD_OK && gLastResult != FMOD_ERR_INVALID_HANDLE);
     // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
-    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
+    bool tookEffect = gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE;
+    if (tookEffect) {
         faxe_handle_free(h);
         lincReclaimDeadLookups();
     }
+    // A refused unload puts every callback back. A walk with no scope
+    // took callbacks off instances of other banks, and the survivors get
+    // theirs back too.
+    lincRestoreInstanceGroupCallbacks(&stash, !tookEffect || bankDescs == NULL);
     return (int)gLastResult;
 }
 
@@ -4795,6 +4806,8 @@ int fmod_evd_release_all_instances(int h) {
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     LincGroupCallbackStash stash = lincUninstallInstanceGroupCallbacks(&desc, 1);
     gLastResult = desc->releaseAllInstances();
+    // The sweep makes a destroyed group lose its slot before the restore
+    if (gLastResult != FMOD_OK) lincReclaimDeadLookups();
     lincRestoreInstanceGroupCallbacks(&stash, gLastResult != FMOD_OK);
     return (int)gLastResult;
 }

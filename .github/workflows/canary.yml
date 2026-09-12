@@ -178,10 +178,10 @@ jobs:
           bash ci/retry.sh --clean /tmp/hashlink-src git clone --depth 1 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git rev-parse HEAD
+          set -o pipefail
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
             echo "=== MAKE FAILED - retrying single-threaded ==="
-            make 2>&1 | tee -a /tmp/hashlink-build.log
-            exit 1
+            make 2>&1 | tee -a /tmp/hashlink-build.log || exit 1
           }
           sudo make install
           sudo ldconfig
@@ -228,6 +228,7 @@ jobs:
           cd "$BIN_DIR"
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
           EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          [ -n "$EXE" ] || { echo "FAIL: no game executable found in $(pwd)"; ls -la; exit 1; }
           chmod +x "$EXE"
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
           timeout -k 10 20 "$EXE" > /tmp/game-canary-hl.log 2>&1 || true
@@ -296,10 +297,10 @@ jobs:
           bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
+          set -o pipefail
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
             echo "=== MAKE FAILED - retrying single-threaded ==="
-            make 2>&1 | tee -a /tmp/hashlink-build.log
-            exit 1
+            make 2>&1 | tee -a /tmp/hashlink-build.log || exit 1
           }
           sudo make install
           sudo ldconfig
@@ -384,6 +385,7 @@ jobs:
           cd "$BIN_DIR"
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
           EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          [ -n "$EXE" ] || { echo "FAIL: no game executable found in $(pwd)"; ls -la; exit 1; }
           chmod +x "$EXE"
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
           timeout -k 10 30 "$EXE" > /tmp/game-canary-fmod.log 2>&1 || true
@@ -473,7 +475,7 @@ jobs:
             '{from: $from, to: [$to], subject: $subject, text: $text}' \
             > /tmp/resend-payload.json
 
-          HTTP_CODE=$(curl -sS -o /tmp/resend-response.json -w "%{http_code}" \
+          HTTP_CODE=$(bash ci/retry.sh curl -sS -o /tmp/resend-response.json -w "%{http_code}" \
             -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer $RESEND_API_KEY" \
             -H "Content-Type: application/json" \

@@ -128,8 +128,19 @@ abstract Bus(Int) from Int to Int {
      * Releases the lock from lockChannelGroup, so FMOD can destroy the channel group when it is not needed. A
      * callback on that group stays while the group survives the unlock.
      */
-    public inline function unlockChannelGroup():FmodResult {
-        return NativeStudio.bus_unlock_channel_group(this);
+    public function unlockChannelGroup():FmodResult {
+        var group = getChannelGroup();
+        var result:FmodResult = NativeStudio.bus_unlock_channel_group(this);
+        // The unlock can destroy the group. Its handler and user data go
+        // with a handle that no longer resolves.
+        if (result.isOk() && !group.isNull()) {
+            group.getVolume();
+            if (StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE) {
+                haxefmod.core.ChannelCallbacks.forgetGroup(group);
+                UserData.clear(UserDataKind.ChannelGroup, group);
+            }
+        }
+        return result;
     }
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))

@@ -65,9 +65,10 @@ typedef struct {
     unsigned char type;
     unsigned char alive;
     /* 1 when the game does not own the object. That is a programmer sound
-     * the library created and releases, a plugin instrument's DSP that FMOD
-     * destroys with its event, or a channel group or sound group the game
-     * did not create. The public release entry points refuse such a handle. */
+     * the library created and releases, or a plugin instrument's DSP that
+     * FMOD destroys with its event. A channel group or sound group the game
+     * did not create carries the mark too. The public release entry points
+     * refuse such a handle. */
     unsigned char owned;
     /* The handle of the owned sound this subsound was taken from, or 0.
      * Such a child dies with its parent (see faxe_handles_free_children). */

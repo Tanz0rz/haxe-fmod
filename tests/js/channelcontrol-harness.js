@@ -185,8 +185,8 @@ async function main() {
     check('cg_release_with_callback', jaxe.fmod_cg_release(child) === OK && !jaxe.chanCallbackHandles.has(childPtr)
         && cbCalls.join(',') === 'off,release', `calls=${cbCalls.join(',')}`);
     // The master group cannot be released. The shim marks it owned when it
-    // mints the handle and refuses with INVALID_PARAM before the FMOD call,
-    // so the slot and the channel callback mapping stay.
+    // mints the handle, and refuses with INVALID_PARAM before the FMOD call.
+    // The slot and the channel callback mapping stay.
     const master = jaxe.fmod_cg_get_master();
     const masterPtr = jaxe.rawPtr(jaxe.resolveCg(master));
     check('cg_master_callback_installed', jaxe.fmod_cg_set_callback(master, true) === OK

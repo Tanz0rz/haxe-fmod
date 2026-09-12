@@ -62,8 +62,10 @@ class ProbeDspData {
     }
 
     public static function run(state:ApiProbeScenario):Void {
-        _baseline = StudioSystem.liveHandleCount();
+        // The master lookup mints a persistent handle: warm it before the
+        // baseline
         _master = ChannelGroup.master();
+        _baseline = StudioSystem.liveHandleCount();
 
         // --- getInfo ---
         _fft = Dsp.create(DspType.FFT);

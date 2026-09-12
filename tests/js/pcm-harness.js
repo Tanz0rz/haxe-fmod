@@ -255,9 +255,9 @@ function testBusBridge() {
     check('bus_group_remove_dsp', jaxe.fmod_cg_remove_dsp(group, lowpass) === jaxe.FMOD.OK);
     jaxe.fmod_dsp_release(lowpass);
 
-    // The bus owns its channel group: FMOD frees it under Studio, so the
-    // shim refuses the release before the call and keeps the handle and
-    // its channel callback mapping.
+    // The bus owns its channel group: FMOD frees it under Studio. The shim
+    // refuses the release before the call and keeps the handle and its
+    // channel callback mapping.
     const busGroupRaw = jaxe.rawPtr(jaxe.resolveCg(group));
     check('bus_group_callback_installed', jaxe.fmod_cg_set_callback(group, true) === jaxe.FMOD.OK
         && jaxe.chanCallbackHandles.get(busGroupRaw) === group, `result=${jaxe.lastResult}`);
@@ -291,7 +291,7 @@ function testBusBridge() {
     check('bus_unlock_channel_group', jaxe.fmod_bus_unlock_channel_group(bus) === jaxe.FMOD.OK);
     busGroupWrapper.setCallback = realBusGroupSet;
     const survived = jaxe.resolveCg(group) != null;
-    check('bus_unlock_takes_group_callback_off',
+    check('bus_unlock_cycles_group_callback',
         busGroupCalls.join(',') === (survived ? 'off,on' : 'off')
         && jaxe.chanCallbackHandles.has(busGroupRaw) === survived,
         `calls=${busGroupCalls.join(',')} survived=${survived} mapped=${jaxe.chanCallbackHandles.has(busGroupRaw)}`);

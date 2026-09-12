@@ -1045,7 +1045,7 @@ static int hlaxe_handle_or_memory(void* ptr, unsigned char type) {
     return handle;
 }
 
-/* Defined with the lookup sweeps below, needed by the group release */
+/* Defined with the lookup sweeps below, needed by the group mint */
 static int hlaxe_lookup_slot_valid(void* ptr, unsigned char type);
 
 /* A group the game did not create is owned: the master, a bus's, an
@@ -1579,7 +1579,9 @@ HL_PRIM int HL_NAME(bus_unlock_channel_group)(int h) {
     /* The group can be destroyed once unlocked: reclaim its cached handle
      * before a recycled address can alias it */
     if (gLastResult == FMOD_OK) hlaxe_reclaim_dead_lookups();
-    if (userData && hlaxe_lookup_slot_valid(group, FAXE_TYPE_CHANGROUP)) {
+    /* The handle in the user data still resolves to a group that survived
+     * the unlock. A new group at a recycled address never answers for it. */
+    if (userData && faxe_handle_resolve((int)(intptr_t)userData, FAXE_TYPE_CHANGROUP) == (void*)group) {
         FMOD_ChannelGroup_SetUserData(group, userData);
         FMOD_ChannelGroup_SetCallback(group, hlaxe_channel_callback);
     }
@@ -4641,8 +4643,9 @@ static HlaxeGroupCallbackStash hlaxe_uninstall_instance_group_callbacks(FMOD_STU
     return stash;
 }
 
-/* The descriptions of one bank, for the scoped uninstall. A bank past
- * the list cap falls back to every instance. */
+/* The descriptions of one bank, for the scoped uninstall. A count or a
+ * list the bank refuses, or a bank past the list cap, falls back to
+ * every instance. */
 static int hlaxe_bank_descriptions(FMOD_STUDIO_BANK* bank, FMOD_STUDIO_EVENTDESCRIPTION*** out) {
     FMOD_STUDIO_EVENTDESCRIPTION** descs = (FMOD_STUDIO_EVENTDESCRIPTION**)gListBuf;
     int count = 0;
@@ -4656,11 +4659,15 @@ static int hlaxe_bank_descriptions(FMOD_STUDIO_BANK* bank, FMOD_STUDIO_EVENTDESC
     return count;
 }
 
+/* The callback goes back on a group whose handle still resolves to it.
+ * The caller sweeps first, so a group FMOD destroyed lost its slot and
+ * a new group at the same address never answers for the old handle. */
 static void hlaxe_restore_instance_group_callbacks(HlaxeGroupCallbackStash* stash, int restore) {
     int i;
     if (restore) {
         for (i = 0; i < stash->count; i++) {
-            if (!hlaxe_lookup_slot_valid(stash->groups[i], FAXE_TYPE_CHANGROUP)) continue;
+            int gh = (int)(intptr_t)stash->userData[i];
+            if (!gh || faxe_handle_resolve(gh, FAXE_TYPE_CHANGROUP) != (void*)stash->groups[i]) continue;
             FMOD_ChannelGroup_SetUserData(stash->groups[i], stash->userData[i]);
             FMOD_ChannelGroup_SetCallback(stash->groups[i], hlaxe_channel_callback);
         }
@@ -4675,11 +4682,11 @@ HL_PRIM int HL_NAME(sys_unload_all)() {
     hlaxe_stash_all_bank_paths();
     stash = hlaxe_uninstall_instance_group_callbacks(NULL, 0);
     gLastResult = FMOD_Studio_System_UnloadAll(gStudioSystem);
-    hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK);
     /* A refused call can still have unloaded some banks, and the sweep
      * frees only the slots FMOD reports dead, so it runs either way.
      * Otherwise a stale slot at a reused address aliases a new object. */
     hlaxe_reclaim_dead_lookups();
+    hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, sys_unload_all, _NO_ARG);
@@ -5002,17 +5009,22 @@ HL_PRIM int HL_NAME(bank_unload)(int h) {
     HlaxeGroupCallbackStash stash;
     FMOD_STUDIO_EVENTDESCRIPTION** bankDescs = NULL;
     int bankDescCount;
+    int tookEffect;
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     hlaxe_stash_bank_path(bank);
     bankDescCount = hlaxe_bank_descriptions(bank, &bankDescs);
     stash = hlaxe_uninstall_instance_group_callbacks(bankDescs, bankDescCount);
     gLastResult = FMOD_Studio_Bank_Unload(bank);
-    hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK && gLastResult != FMOD_ERR_INVALID_HANDLE);
     /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
-    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
+    tookEffect = gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE;
+    if (tookEffect) {
         faxe_handle_free(h);
         hlaxe_reclaim_dead_lookups();
     }
+    /* A refused unload puts every callback back. A walk with no scope
+     * took callbacks off instances of other banks, and the survivors get
+     * theirs back too. */
+    hlaxe_restore_instance_group_callbacks(&stash, !tookEffect || bankDescs == NULL);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, bank_unload, _I32);
@@ -5384,6 +5396,8 @@ HL_PRIM int HL_NAME(evd_release_all_instances)(int h) {
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     stash = hlaxe_uninstall_instance_group_callbacks(&desc, 1);
     gLastResult = FMOD_Studio_EventDescription_ReleaseAllInstances(desc);
+    /* The sweep makes a destroyed group lose its slot before the restore */
+    if (gLastResult != FMOD_OK) hlaxe_reclaim_dead_lookups();
     hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK);
     return (int)gLastResult;
 }

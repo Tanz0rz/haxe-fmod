@@ -347,7 +347,10 @@ class NativeStudioStub {
 
     // Core DSP effects
     public static function dsp_create_by_type(type:Int):Int return 0;
-    public static function dsp_release(handle:Int):Int return testReleaseResult;
+    public static function dsp_release(handle:Int):Int {
+        if (testOwnedHandles.indexOf(handle) >= 0) return ERR_INVALID_PARAM;
+        return testReleaseResult;
+    }
     public static function dsp_set_param_float(handle:Int, index:Int, value:Float):Int return ERR_UNSUPPORTED;
     public static function dsp_get_param_float(handle:Int, index:Int):Float return 0.0;
     public static function dsp_set_param_int(handle:Int, index:Int, value:Int):Int return ERR_UNSUPPORTED;

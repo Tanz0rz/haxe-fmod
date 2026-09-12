@@ -34,6 +34,18 @@ for include in includes:
     if normalized not in depends:
         failures.append(f"{include} (expected <depend> for {normalized})")
 
+# A header a shared header includes is a dependency too, so every
+# header under native/shared/ needs its entry whether or not the shim
+# includes it directly
+shared_dir = os.path.join(ROOT, "native", "shared")
+for name in sorted(os.listdir(shared_dir)):
+    if not name.endswith(".h"):
+        continue
+    normalized = "native/shared/" + name
+    checked += 1
+    if normalized not in depends:
+        failures.append(f"{name} (expected <depend> for {normalized})")
+
 stale = [d for d in depends
          if not os.path.exists(os.path.join(ROOT, d))]
 

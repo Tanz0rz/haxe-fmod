@@ -16,6 +16,9 @@ import haxefmod.studio.Types;
  */
 class ProbeCsharpAudit {
     public static function run(state:ApiProbeScenario):Void {
+        // The master sound group lookup mints a persistent handle: warm it
+        // before the baseline
+        haxefmod.core.SoundGroup.master();
         var baseline = StudioSystem.liveHandleCount();
 
         // Bus port index: FMOD only routes buses to ports on consoles.

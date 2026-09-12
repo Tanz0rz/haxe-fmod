@@ -635,6 +635,26 @@ class TestStudioSurface {
 		assert(soundGroup.getSoundCount() == 0, "sg soundCount default");
 		assert(!soundGroup.stop().isOk(), "sg stop result");
 		assert(!soundGroup.release().isOk(), "sg release result");
+		// A sound group the game did not create is refused with INVALID_PARAM,
+		// and the refusal keeps its user data
+		var ownedSg:SoundGroup = cast 7;
+		ownedSg.setUserData("keep");
+		haxefmod.studio.native.NativeStudioStub.testOwnedHandles = [7];
+		assert(ownedSg.release() == FmodResult.FMOD_ERR_INVALID_PARAM, "an owned sound group release is refused");
+		assert(ownedSg.getUserData() == "keep", "a refused sound group release keeps its user data");
+		haxefmod.studio.native.NativeStudioStub.testOwnedHandles = [];
+		var savedSgRelease = haxefmod.studio.native.NativeStudioStub.testReleaseResult;
+		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 0;
+		ownedSg.release();
+		haxefmod.studio.native.NativeStudioStub.testReleaseResult = savedSgRelease;
+		assert(ownedSg.getUserData() == null, "an unowned sound group release drops its user data");
+		// A plugin instrument's DSP is refused the same way
+		var ownedDsp:Dsp = cast 8;
+		ownedDsp.setUserData("keep");
+		haxefmod.studio.native.NativeStudioStub.testOwnedHandles = [8];
+		assert(ownedDsp.release() == FmodResult.FMOD_ERR_INVALID_PARAM, "an owned dsp release is refused");
+		assert(ownedDsp.getUserData() == "keep", "a refused dsp release keeps its user data");
+		haxefmod.studio.native.NativeStudioStub.testOwnedHandles = [];
 		assert(!pcmSound.setSoundGroup(soundGroup).isOk(), "sound setSoundGroup result");
 
 		assert(!CoreSystem.set3DSettings(1, 1, 1).isOk(), "sys set3DSettings result");
