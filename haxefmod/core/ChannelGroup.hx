@@ -194,7 +194,8 @@ abstract ChannelGroup(Int) from Int to Int {
      * Delivers ChannelEvent values for this group (drained once per frame
      * with the other callbacks). FMOD raises only Occlusion on a group,
      * for 3D groups when geometry is in use. release() removes the
-     * handler.
+     * handler. A group FMOD destroys with its event instance, its bank,
+     * or a bus unlock loses the handler there.
      */
     public inline function setCallback(handler:haxefmod.core.ChannelEvent.ChannelCallback):Void {
         haxefmod.core.ChannelCallbacks.setGroup(this, handler);

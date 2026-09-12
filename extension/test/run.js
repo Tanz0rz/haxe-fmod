@@ -125,7 +125,7 @@ async function main() {
     const cppVisible = await page.evaluate(() => Array.from(document.querySelectorAll('.language-cpp')).some(n => n.style.display !== 'none'));
     if (cppVisible) fail('C++ blocks still visible with Haxe selected');
     const selectedHaxe = await page.evaluate(() => document.querySelectorAll('.haxefmod-tab.selected').length);
-    if (selectedHaxe !== counts.tabs) fail('every Haxe tab should be selected, got ' + selectedHaxe);
+    if (selectedHaxe !== counts.tabs) fail('a Haxe tab is not selected, got ' + selectedHaxe);
     const storedValue = await page.evaluate(() => localStorage.getItem('FMOD.Documents.selected-language'));
     if (storedValue !== 'language-haxe') fail('selection not stored, got ' + storedValue);
 
@@ -136,14 +136,14 @@ async function main() {
             while (node && !node.classList.contains('haxefmod-block')) node = node.nextElementSibling;
             return node.textContent;
         });
-        if (unbound.indexOf('Cannot be bound') < 0) fail('an impossible function should say it cannot be bound: ' + unbound);
+        if (unbound.indexOf('Cannot be bound') < 0) fail('an impossible function does not say it cannot be bound: ' + unbound);
         const also = await page.evaluate(() => {
             const heading = document.getElementById('studio_eventinstance_set3dattributes');
             let node = heading.nextElementSibling;
             while (node && !node.classList.contains('haxefmod-block')) node = node.nextElementSibling;
             return node.textContent;
         });
-        if (also.indexOf('setPosition2D') < 0) fail('set3DAttributes block should mention setPosition2D');
+        if (also.indexOf('setPosition2D') < 0) fail('the set3DAttributes block does not mention setPosition2D');
     }
 
     await page.reload({ waitUntil: 'load' });
@@ -192,7 +192,7 @@ async function main() {
     const covered = Object.keys(examples).length;
     console.log('guide: ' + guide.lone + ' lone blocks, ' + guide.selectors + ' added selectors, ' + guide.blocks + ' haxe blocks, ' + covered + ' translations');
     if (covered === 0) fail('no studio-guide translations in examples-data.js');
-    if (guide.blocks !== covered || guide.tabs !== covered) fail('guide page should get one Haxe block per translated example');
+    if (guide.blocks !== covered || guide.tabs !== covered) fail('the guide page needs one Haxe block per translated example');
     if (covered > 0) {
         const first = await page.evaluate(() => {
             const block = document.querySelector('.haxefmod-block');
@@ -205,14 +205,14 @@ async function main() {
             haxe: Array.from(document.querySelectorAll('.haxefmod-block')).every(n => n.style.display === 'block'),
             cpp: Array.from(document.querySelectorAll('div.highlight.language-cpp:not(.haxefmod-block)')).every(n => n.style.display === 'none'),
         }));
-        if (!after.haxe || !after.cpp) fail('selecting Haxe on a guide page should show every Haxe block and hide the C++ ones');
+        if (!after.haxe || !after.cpp) fail('selecting Haxe on a guide page left a C++ block visible');
         await page.click('.haxefmod-selector .language-tab[data-language="language-cpp"]');
         await page.waitForTimeout(150);
         const back = await page.evaluate(() => ({
             haxe: Array.from(document.querySelectorAll('.haxefmod-block')).every(n => n.style.display === 'none'),
             cpp: Array.from(document.querySelectorAll('div.highlight.language-cpp:not(.haxefmod-block)')).every(n => n.style.display === 'block'),
         }));
-        if (!back.haxe || !back.cpp) fail('picking C++ on an added selector should restore the C++ blocks');
+        if (!back.haxe || !back.cpp) fail('picking C++ on an added selector left the C++ blocks hidden');
     }
 
     // The matrix: a fixture built from every catalog page. Every DOM

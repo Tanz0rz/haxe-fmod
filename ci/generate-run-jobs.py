@@ -196,16 +196,33 @@ def setup_steps(j):
             # store sometimes times out. Retry before the run fails on it.
             # The snap's content interfaces connect after the install
             # returns, and a launch before the GPU slot is connected dies
-            # at once. A headless probe waits for the first page to render.
+            # at once with "Content snap GPU wrapper not found". The step
+            # waits for the wrapper the launcher checks and connects a slot
+            # snapd left open after a minute. When the wrapper never
+            # appears it fails with the connection table. A headless
+            # probe then waits for the first page to render, and fails the
+            # step too, since the browser legs cannot run without it.
             install = f"""          for attempt in 1 2 3; do
             sudo apt-get -o Acquire::Retries=3 install -y {pkgs} && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
           sudo snap wait system seed.loaded || true
+          for i in $(seq 90); do
+            ls /snap/chromium/current/gpu-*/bin/gpu-*-provider-wrapper > /dev/null 2>&1 && break
+            if [ "$i" = 30 ]; then
+              echo "::notice ::the chromium GPU content slot is still open after a minute, connecting it"
+              snap connections chromium 2>/dev/null | awk '$1 ~ /^content\\[gpu-/ && $3 == "-" {{ print $2 }}' | while read -r plug; do
+                slot="${{plug#chromium:}}"
+                sudo snap connect "$plug" "mesa-${{slot#gpu-}}:$slot" || true
+              done
+            fi
+            [ "$i" = 90 ] && {{ echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }}
+            sleep 2
+          done
           for i in $(seq 30); do
-            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /dev/null 2>&1 && break
-            [ "$i" = 30 ] && echo "::warning ::chromium never rendered a headless page after the install"
+            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break
+            [ "$i" = 30 ] && {{ echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }}
             sleep 2
           done"""
         else:

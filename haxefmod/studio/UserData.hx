@@ -42,7 +42,9 @@ class UserDataKind {
  * since that call fails on a dead handle only.
  * It also drops the entry when the dispatcher delivers Destroyed for an
  * event instance FMOD tore down on its own. End does the same for a
- * channel with a handler. On HTML5 Destroyed never arrives, so the
+ * channel with a handler. A call that destroys many objects at once
+ * drops the entry of every channel group that died with them. On HTML5
+ * Destroyed never arrives, so the
  * dispatcher drops the entries of dead instance handles each update
  * instead. The native handle table recycles a slot with a new
  * generation. A reused slot produces a different handle int, so a stale

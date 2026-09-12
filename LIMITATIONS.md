@@ -63,7 +63,7 @@ These FMOD features cannot be bound from Haxe. Each one hands FMOD a function po
 - **List getters return at most 1024 entries** (banks, events, buses, VCAs, instances, and the other enumerations). A larger result logs a truncation warning with the real total.
 - **Programmer sound keys must be under 512 UTF-8 bytes, and instrument names under 64.** Longer keys or names are rejected with `FMOD_ERR_INVALID_PARAM` on every target. An instance holds at most eight named assignments.
 - **On C++ and HashLink an instance records at most 64 live plugin instruments.** A further one arrives in `PluginCreated` with `Dsp.NULL` as its effect. HTML5 has no plugin host.
-- **The native handle table holds at most 65536 slots.** Each slot serves 32767 handles and then retires. A call that finds no free slot returns the null handle, with `FMOD_ERR_MEMORY` in `lastResult()`.
+- **The handle table holds at most 65536 slots on every target.** Each slot serves 32767 handles and then retires. A call that finds no free slot returns the null handle, with `FMOD_ERR_MEMORY` in `lastResult()`.
 - **Only a group the game created can be released.** `ChannelGroup.release` and `SoundGroup.release` refuse every other group with `FMOD_ERR_INVALID_PARAM`. That covers the master group, a bus's group, an instance's group, and a group first reached through a walk. The handle stays usable.
 - **Live Update uses TCP port 9264 by default.** The `profilePort` setting picks another port. When it is enabled, macOS and Windows show a firewall dialog. It defaults to on in debug builds only.
 - **Numeric arguments pass through to FMOD for validation.** An out-of-range index or count comes back as an FMOD error code from the engine. It is the same code native FMOD reports.

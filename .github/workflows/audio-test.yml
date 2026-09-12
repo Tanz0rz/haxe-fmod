@@ -4389,9 +4389,21 @@ jobs:
             sleep 30
           done
           sudo snap wait system seed.loaded || true
+          for i in $(seq 90); do
+            ls /snap/chromium/current/gpu-*/bin/gpu-*-provider-wrapper > /dev/null 2>&1 && break
+            if [ "$i" = 30 ]; then
+              echo "::notice ::the chromium GPU content slot is still open after a minute, connecting it"
+              snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 == "-" { print $2 }' | while read -r plug; do
+                slot="${plug#chromium:}"
+                sudo snap connect "$plug" "mesa-${slot#gpu-}:$slot" || true
+              done
+            fi
+            [ "$i" = 90 ] && { echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }
+            sleep 2
+          done
           for i in $(seq 30); do
-            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /dev/null 2>&1 && break
-            [ "$i" = 30 ] && echo "::warning ::chromium never rendered a headless page after the install"
+            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break
+            [ "$i" = 30 ] && { echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }
             sleep 2
           done
 
@@ -5708,9 +5720,21 @@ jobs:
             sleep 30
           done
           sudo snap wait system seed.loaded || true
+          for i in $(seq 90); do
+            ls /snap/chromium/current/gpu-*/bin/gpu-*-provider-wrapper > /dev/null 2>&1 && break
+            if [ "$i" = 30 ]; then
+              echo "::notice ::the chromium GPU content slot is still open after a minute, connecting it"
+              snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 == "-" { print $2 }' | while read -r plug; do
+                slot="${plug#chromium:}"
+                sudo snap connect "$plug" "mesa-${slot#gpu-}:$slot" || true
+              done
+            fi
+            [ "$i" = 90 ] && { echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }
+            sleep 2
+          done
           for i in $(seq 30); do
-            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /dev/null 2>&1 && break
-            [ "$i" = 30 ] && echo "::warning ::chromium never rendered a headless page after the install"
+            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break
+            [ "$i" = 30 ] && { echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }
             sleep 2
           done
 
@@ -6790,9 +6814,21 @@ jobs:
             sleep 30
           done
           sudo snap wait system seed.loaded || true
+          for i in $(seq 90); do
+            ls /snap/chromium/current/gpu-*/bin/gpu-*-provider-wrapper > /dev/null 2>&1 && break
+            if [ "$i" = 30 ]; then
+              echo "::notice ::the chromium GPU content slot is still open after a minute, connecting it"
+              snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 == "-" { print $2 }' | while read -r plug; do
+                slot="${plug#chromium:}"
+                sudo snap connect "$plug" "mesa-${slot#gpu-}:$slot" || true
+              done
+            fi
+            [ "$i" = 90 ] && { echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }
+            sleep 2
+          done
           for i in $(seq 30); do
-            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /dev/null 2>&1 && break
-            [ "$i" = 30 ] && echo "::warning ::chromium never rendered a headless page after the install"
+            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break
+            [ "$i" = 30 ] && { echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }
             sleep 2
           done
 

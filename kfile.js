@@ -38,8 +38,8 @@ if (platform === Platform.OSX) {
 	project.addLib(path.join(sdk, 'api', 'core', 'lib', 'libfmod.dylib'));
 	project.addLib(path.join(sdk, 'api', 'studio', 'lib', 'libfmodstudio.dylib'));
 	// The dylibs load through @rpath, so the link sets the search path
-	// next to the executable and leaves header room for the stage command
-	// to add one, the way hxcpp links a lime build
+	// next to the executable, the way hxcpp links a lime build. The link
+	// leaves header room for the stage command to add one as well
 	project.addLinkerFlag('-Wl,-rpath,@executable_path');
 	project.addLinkerFlag('-Wl,-headerpad_max_install_names');
 } else if (platform === Platform.Windows) {

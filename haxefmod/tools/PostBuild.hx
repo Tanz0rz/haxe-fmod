@@ -898,7 +898,8 @@ class PostBuild {
 	 * The LC_RPATH entry to rewrite as @executable_path when the header
 	 * has no room for one more. A path into the SDK wins, since the
 	 * game never ships with it. Any other absolute path at least as long
-	 * as the new value serves. Null when no entry fits.
+	 * as the new value serves. Null when no entry fits, and null when
+	 * @executable_path is already there.
 	 */
 	public static function rpathToRewrite(loadCommands:String, sdkDir:String):Null<String> {
 		var paths:Array<String> = [];

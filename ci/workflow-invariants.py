@@ -50,6 +50,8 @@ leans on:
      new gate cannot hide behind the branch escape hatch unnoticed. The
      three HashLink build gates and the two hdll ABI check steps read
      both hdll markers.
+  16. Every browser job waits for the chromium GPU content slot after
+     the install, and its headless probe fails the step.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -336,6 +338,18 @@ if bare or unresolved or unretried or wrapped < 150:
     fail(f"network fetches outside ci/retry.sh: {bare}, wrapper paths that do not resolve: {unresolved}, apt-get without retries: {unretried} ({wrapped} wrapped)")
 else:
     ok(f"{wrapped} network fetches go through ci/retry.sh, none bare, every wrapper path resolves, apt retries")
+
+# 16. Every browser job waits for the chromium GPU content slot after
+# the install, and the headless probe that follows fails the step. The
+# snap's launcher dies at once without the wrapper, and the browser
+# legs were lost to that twice.
+seed_waits = text.count("sudo snap wait system seed.loaded")
+wrapper_waits = text.count("ls /snap/chromium/current/gpu-*/bin/gpu-*-provider-wrapper")
+fatal_probes = text.count('::error ::chromium never rendered a headless page after the install')
+if seed_waits < 3 or wrapper_waits != seed_waits or fatal_probes != seed_waits:
+    fail(f"chromium GPU slot waits out of step: {seed_waits} seed waits, {wrapper_waits} wrapper waits, {fatal_probes} fatal probes")
+else:
+    ok(f"{seed_waits} browser jobs wait for the chromium GPU content slot and fail on a dead probe")
 
 # 15. The stale-hdll escape hatch gates the known steps only
 STALE_GATED = ["Doctor passes in a configured environment", "Build HashLink target from the installed package", "Validate build output"]

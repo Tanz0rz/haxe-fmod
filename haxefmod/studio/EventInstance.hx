@@ -27,8 +27,10 @@ abstract EventInstance(Int) from Int to Int {
 
     /**
      * Drops the handler, user data, and walked-group entry of every group
-     * whose handle does not resolve. Every bulk destroy calls this once
-     * FMOD accepted it, since the native side sweeps the dead groups first.
+     * whose handle does not resolve. A bank unload, a release of every
+     * instance, and a bus unlock call this once FMOD accepted them. The
+     * native side sweeps the dead groups first, so a destroyed group has
+     * lost its slot by then. StudioSystem.unloadAll drops every entry.
      */
     public static function dropDeadGroups():Void {
         haxefmod.core.ChannelCallbacks.forgetDeadGroups();
