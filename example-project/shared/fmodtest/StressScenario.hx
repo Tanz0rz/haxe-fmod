@@ -69,6 +69,7 @@ class StressScenario implements TestScenario {
     var _pcmCycles:Int = 0;
     var _dspCycles:Int = 0;
     var _graphCycles:Int = 0;
+    var _groupCycles:Int = 0;
     var _pcmChunk:haxe.io.Bytes;
     var _callbackEvents:Int = 0;
 
@@ -247,7 +248,10 @@ class StressScenario implements TestScenario {
             // and cleared on a live stream channel
             var parent = ChannelGroup.create("churn-parent");
             var child = ChannelGroup.create("churn-child");
-            if (!parent.isNull() && !child.isNull()) parent.addGroup(child);
+            if (!parent.isNull() && !child.isNull()) {
+                parent.addGroup(child);
+                _groupCycles++;
+            }
             // Released outside the guard, so a single failed create leaks
             // nothing. A null handle releases harmlessly.
             child.release();
@@ -295,9 +299,12 @@ class StressScenario implements TestScenario {
             _persistentZone.release();
             _persistentZone = Reverb3D.NULL;
         }
-        info("pcm_cycles", Std.string(_pcmCycles));
-        info("dsp_cycles", Std.string(_dspCycles));
-        info("graph_cycles", Std.string(_graphCycles));
+        // A family whose creates all failed churned nothing, and the leak
+        // checks above pass on an empty run. Each family proves it ran.
+        check("pcm_cycles_ran", _pcmCycles > 0, 'cycles=$_pcmCycles');
+        check("dsp_cycles_ran", _dspCycles > 0, 'cycles=$_dspCycles');
+        check("graph_cycles_ran", _graphCycles > 0, 'cycles=$_graphCycles');
+        check("group_cycles_ran", _groupCycles > 0, 'cycles=$_groupCycles');
         log('STRESS_TEST: COMPLETE passed=$_passCount failed=$_failCount iterations=$_iterations');
         host.setStatus('STRESS_TEST complete: $_passCount passed, $_failCount failed, $_iterations cycles');
         _done = true;

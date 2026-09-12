@@ -642,8 +642,8 @@ static int collectSubsoundHandles(FMOD::Sound* parent, int* out, int cap) {
 // Closes what the game left open on a sound this shim is about to
 // release: the sample lock and the custom rolloff points FMOD reads.
 // Runs on live sounds only, from the game thread. A lock is refused on
-// an owned sound, so the lock close is a guard for a subsound handed
-// back before the refusal rather than a path in use.
+// an owned sound and on every subsound taken from one. The lock close
+// is a guard that no current path reaches.
 static void lincOwnedSoundTeardown(void* ptr, int handle) {
     FMOD::Sound* sound = (FMOD::Sound*)ptr;
     soundLockClose(handle, sound);
@@ -948,6 +948,9 @@ static inline FMOD::DSP* resolveDsp(int h) {
     return (FMOD::DSP*)faxe_handle_resolve(h, FAXE_TYPE_DSP);
 }
 
+// Defined with the channel callbacks below, needed by the group release
+static FMOD_RESULT F_CALLBACK lincChannelCallback(FMOD_CHANNELCONTROL* channelcontrol, FMOD_CHANNELCONTROL_TYPE controltype, FMOD_CHANNELCONTROL_CALLBACK_TYPE callbacktype, void* commanddata1, void* commanddata2);
+
 static inline FMOD::ChannelGroup* resolveChanGroup(int h) {
     return (FMOD::ChannelGroup*)faxe_handle_resolve(h, FAXE_TYPE_CHANGROUP);
 }
@@ -1149,7 +1152,16 @@ int fmod_cg_create(const ::String& name) {
 
 int fmod_cg_release(int h) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
+    void* userData = NULL;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    // The shim's callback reads the group's user data on FMOD's thread,
+    // so it comes off before the group can go. The user data is the
+    // handle and is set only with the callback, so it marks one installed.
+    group->getUserData(&userData);
+    if (userData) {
+        group->setCallback(NULL);
+        group->setUserData(NULL);
+    }
     // A refused release keeps the group and its rolloff points. A group
     // FMOD freed reads them no more, so they go with the slot below.
     gLastResult = group->release();
@@ -1158,6 +1170,10 @@ int fmod_cg_release(int h) {
         faxe_handle_free(h);
         // Releasing the group destroys the connections of every DSP in it
         faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+    } else if (userData) {
+        // A refused release keeps the callback the game installed
+        group->setUserData(userData);
+        group->setCallback(lincChannelCallback);
     }
     return (int)gLastResult;
 }
@@ -2591,13 +2607,17 @@ int fmod_evi_get_channel_group(int h) {
     FMOD::ChannelGroup* group = NULL;
     gLastResult = instance->getChannelGroup(&group);
     if (gLastResult != FMOD_OK || !group) return 0;
+    FaxeInstCtx* ctx = instanceCtx(instance);
+    // Another instance's dead group can sit at this address until its
+    // context drains. Its slot goes now, so two contexts never share one.
+    int found = faxe_handle_find(group, FAXE_TYPE_CHANGROUP);
+    if (ctx && found != 0 && found != ctx->cgHandle) faxe_handle_free(found);
     int cgHandle = lincHandleOrMemory(group, FAXE_TYPE_CHANGROUP);
     // The group dies with the instance, outside every sweep trigger. Record
     // the handle on the context so the DESTROYED drain reclaims the slot
     // before a recycled group address can alias it. A restarted instance
     // gets a new group, so a differing previous handle is dead: reclaim it
     // here for the same reason.
-    FaxeInstCtx* ctx = instanceCtx(instance);
     if (ctx) {
         if (ctx->cgHandle != 0 && ctx->cgHandle != cgHandle) {
             faxe_handle_free(ctx->cgHandle);
@@ -4005,13 +4025,15 @@ static void lincReclaimDeadLookups() {
     faxe_handles_sweep_lookups(lincLookupSlotValid);
 }
 
-// A channel that ended on its own keeps its slot, and FMOD answers
-// INVALID_HANDLE on it from then on. The sweep runs before a channel
-// handle is minted, so the dead ones go first.
+// A channel that ended on its own keeps its slot. FMOD reports it as
+// not playing, then answers INVALID_HANDLE or CHANNEL_STOLEN once the
+// voice is reused. The sweep runs before a channel handle is minted, so
+// the dead ones go first. A paused or virtual channel still plays.
 static int lincChannelSlotValid(void* ptr, unsigned char type) {
     (void)type;
     bool playing = false;
     FMOD_RESULT r = ((FMOD::Channel*)ptr)->isPlaying(&playing);
+    if (r == FMOD_OK) return playing ? 1 : 0;
     return r != FMOD_ERR_INVALID_HANDLE && r != FMOD_ERR_CHANNEL_STOLEN;
 }
 

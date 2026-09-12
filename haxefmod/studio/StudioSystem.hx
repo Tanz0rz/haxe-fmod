@@ -134,10 +134,11 @@ class StudioSystem {
      * Unloads all banks. Every handle that came from a bank dies with it.
      * Once FMOD accepted the call, every userdata entry, every
      * description-level callback, and every instance callback is dropped
-     * here too. A refused call keeps every bank and all of that state.
+     * here too. A refused call keeps all of that state, and can have
+     * unloaded some banks anyway.
      */
     public static function unloadAll():FmodResult {
-        // A refused unload keeps every bank, so the entries and handlers stay
+        // A refused unload keeps the entries and handlers
         var result:FmodResult = NativeStudio.sys_unload_all();
         if (result.isOk()) {
             UserData.clearAll();

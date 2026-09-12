@@ -107,7 +107,7 @@ sys_get_listener_attributes i32 fbuf -> i32
 sys_set_listener_attributes i32 fbuf bool -> i32
 sys_get_listener_weight i32 -> f64
 sys_set_listener_weight i32 f64 -> i32
-# bank loading (flags: bit0 = nonblocking); returns bank handle or 0
+# bank loading (flags: bit0 = nonblocking). Returns the bank handle or 0
 sys_load_bank_file str i32 -> i32
 sys_unload_all -> i32
 sys_flush_commands -> i32
@@ -147,7 +147,7 @@ vca_set_volume i32 f64 -> i32
 bank_is_valid i32 -> bool
 bank_get_id i32 -> str
 bank_get_path i32 -> str
-# real unload; frees the bank handle on success
+# real unload. Frees the bank handle on OK or ERR_INVALID_HANDLE
 bank_unload i32 -> i32
 bank_load_sample_data i32 -> i32
 bank_unload_sample_data i32 -> i32
@@ -180,11 +180,11 @@ evd_is_stream i32 -> bool
 evd_is_3d i32 -> bool
 evd_is_doppler_enabled i32 -> bool
 evd_has_sustain_point i32 -> bool
-# returns instance handle or 0; stores handle in FMOD userdata for callbacks
+# returns instance handle or 0. The handle rides FMOD userdata for callbacks
 evd_create_instance i32 -> i32
 evd_get_instance_count i32 -> i32
 # fills ibuf with instance handles for instances created through this binding
-# (instances get fresh handles if FMOD returns ones we have not seen; count returned)
+# (instances get fresh handles for objects the table has not seen. Count returned)
 evd_get_instance_list i32 ibuf -> i32
 evd_release_all_instances i32 -> i32
 evd_load_sample_data i32 -> i32
@@ -399,7 +399,7 @@ sys_get_reverb_properties i32 fbuf -> i32
 core_pcm_create_3d i32 i32 i32 -> i32
 
 ## Core DSP connection graph
-# add_input returns a connection handle; traversal handles dedup to existing slots
+# add_input returns a connection handle. Traversal handles dedup to existing slots
 dsp_add_input i32 i32 i32 -> i32
 dsp_disconnect_from i32 i32 i32 -> i32
 dsp_disconnect_all i32 bool bool -> i32

@@ -227,7 +227,7 @@ run_browser_state() {
   fi
   xdotool mousemove 320 240 click 1 || { echo "xdotool could not click on $DISPLAY"; kill $chrome $http 2>/dev/null || true; return 1; }
   sleep 5
-  xdotool mousemove 320 240 click 1
+  xdotool mousemove 320 240 click 1 || { echo "xdotool could not click on $DISPLAY"; kill $chrome $http 2>/dev/null || true; return 1; }
   for i in $(seq "$tmo"); do
     grep -q "$gate: COMPLETE" "$raw" && break
     sleep 1
@@ -272,7 +272,7 @@ record_browser_game() {
   # Second click during the recording, for a page that was not yet
   # interactive at the first one
   sleep 4
-  xdotool mousemove 320 240 click 1
+  xdotool mousemove 320 240 click 1 || { echo "xdotool could not click on $DISPLAY"; kill $chrome $http $rec 2>/dev/null || true; return 1; }
   sleep $((secs - 3))
   kill $chrome $http 2>/dev/null || true
   wait $rec 2>/dev/null || true

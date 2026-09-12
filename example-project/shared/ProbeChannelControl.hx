@@ -317,23 +317,25 @@ class ProbeChannelControl {
         // the thing waited on. A lock and unlock pair then waits out the
         // block in flight. The stream, group, and geometry are then safe
         // from a teardown under a live mix that reads them.
+        var waited = 0;
         for (i in 0...100) {
             if (!_group.isPlaying()) break;
-            StudioSystem.flushCommands();
+            waited++;
             #if sys
             Sys.sleep(0.01);
             #end
         }
+        @:privateAccess state.check("occlusion_group_stopped", !_group.isPlaying(), 'waited=$waited');
         StudioSystem.lockDsp();
         StudioSystem.unlockDsp();
         var rStream = _stream.release();
         var rGroup = _group.release();
-        // The group release is a mixer command too, and the geometry it
-        // was occluded by goes only after a block has run without it
-        StudioSystem.lockDsp();
-        StudioSystem.unlockDsp();
-        var rGeometry = _geometry.release();
+        // Occlusion is computed on FMOD's update thread, which the lock
+        // pair does not hold. The listener goes home and the Studio queue
+        // is flushed, so nothing is occluded when the polygon goes.
         StudioSystem.setListenerPosition2D(0, 0, 0);
+        StudioSystem.flushCommands();
+        var rGeometry = _geometry.release();
         // Occlusion callbacks arrive from the mixer thread, so let the
         // queue drain and the count settle (bounded) before comparing.
         // Fewer handles than the baseline only means an earlier probe's
@@ -350,7 +352,7 @@ class ProbeChannelControl {
             #end
         }
         @:privateAccess state.check("no_handle_leaks_occlusion_callback", StudioSystem.liveHandleCount() <= _baseline,
-            'baseline=$_baseline now=${StudioSystem.liveHandleCount()} settle_wait=$settled stop=${rStop.toString()} stream=${rStream.toString()} group=${rGroup.toString()} geometry=${rGeometry.toString()}');
+            'baseline=$_baseline now=${StudioSystem.liveHandleCount()} waited=$waited settle_wait=$settled stop=${rStop.toString()} stream=${rStream.toString()} group=${rGroup.toString()} geometry=${rGeometry.toString()}');
         _finished = true;
     }
 }

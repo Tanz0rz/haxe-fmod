@@ -55,11 +55,11 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install dox 1.6.0 --always --quiet
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
-          haxelib install heaps 2.1.0 --always --quiet
+          bash ci/retry.sh haxelib install dox 1.6.0 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install heaps 2.1.0 --always --quiet
 
       - name: Check the generated bindings table and example translations
         run: |
@@ -77,10 +77,10 @@ jobs:
 
       - name: Drive the extension over the fixture matrix
         run: |
-          npm install playwright@1.63.0 > /dev/null
+          bash ci/retry.sh npm install playwright@1.63.0 > /dev/null
           # The runner has chromium's system libraries preinstalled, and
           # --with-deps would need apt and root
-          npx playwright install chromium
+          bash ci/retry.sh npx playwright install chromium
           node extension/test/run.js --headless --all
 
       - name: Generate type XML
@@ -140,8 +140,8 @@ jobs:
             -e "ssh -F $SSH_CONFIG" \
             site/ "deploy-target:/var/www/releases/$RELEASE/haxe-fmod/"
           ssh -F "$SSH_CONFIG" deploy-target "bash /var/www/releases/publish.sh /var/www/releases/$RELEASE"
-          curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/
-          curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/api/
+          bash ci/retry.sh curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/
+          bash ci/retry.sh curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/api/
 
       - name: Upload the GitHub Pages redirect
         # The redirect is static, and the Pages environment allows

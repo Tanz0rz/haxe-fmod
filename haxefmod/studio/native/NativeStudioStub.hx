@@ -368,7 +368,11 @@ class NativeStudioStub {
     // Core channel groups
     public static function cg_get_master():Int return 0;
     public static function cg_create(name:String):Int return 0;
-    public static function cg_release(handle:Int):Int return testReleaseResult;
+    public static var testCgCallLog:Array<String> = [];
+    public static function cg_release(handle:Int):Int {
+        testCgCallLog.push("release:" + handle);
+        return testReleaseResult;
+    }
     public static function cg_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
     public static function cg_get_volume(handle:Int):Float return 0.0;
     public static function cg_set_pitch(handle:Int, pitch:Float):Int return ERR_UNSUPPORTED;
@@ -486,7 +490,11 @@ class NativeStudioStub {
     // Channel callbacks and sync points
     /** A channel or group handle the stub reports as stale. */
     public static var testStaleChannel:Int = 0;
-    public static function chan_set_callback(handle:Int, enabled:Bool):Int return handle == testStaleChannel ? 30 : ERR_UNSUPPORTED;
+    public static var testChanCallbackOff:Array<Int> = [];
+    public static function chan_set_callback(handle:Int, enabled:Bool):Int {
+        if (!enabled) testChanCallbackOff.push(handle);
+        return handle == testStaleChannel ? 30 : ERR_UNSUPPORTED;
+    }
     public static function sys_set_callback_mask(mask:Int):Int return ERR_UNSUPPORTED;
     public static function sys_set_studio_callback_mask(mask:Int):Int return ERR_UNSUPPORTED;
     public static function sound_add_sync_point(handle:Int, offset:Int, unit:Int, name:String):Int return -1;
@@ -621,7 +629,10 @@ class NativeStudioStub {
     public static function cg_get_delay(handle:Int):Int return ERR_UNSUPPORTED;
     public static function cg_get_low_pass_gain(handle:Int):Float return 0.0;
     public static function cg_is_playing(handle:Int):Bool return false;
-    public static function cg_set_callback(handle:Int, enabled:Bool):Int return handle == testStaleChannel ? 30 : ERR_UNSUPPORTED;
+    public static function cg_set_callback(handle:Int, enabled:Bool):Int {
+        testCgCallLog.push((enabled ? "on:" : "off:") + handle);
+        return handle == testStaleChannel ? 30 : ERR_UNSUPPORTED;
+    }
     public static function cg_set_3d_level(handle:Int, level:Float):Int return ERR_UNSUPPORTED;
     public static function cg_get_3d_level(handle:Int):Float return 0.0;
     public static function cg_set_3d_spread(handle:Int, angle:Float):Int return ERR_UNSUPPORTED;
@@ -796,8 +807,14 @@ class NativeStudioStub {
     public static function core_sound_get_music_channel_volume(handle:Int, channel:Int):Float return 0.0;
     public static function core_sound_set_music_speed(handle:Int, speed:Float):Int return ERR_UNSUPPORTED;
     public static function core_sound_get_music_speed(handle:Int):Float return 0.0;
-    public static function core_sound_get_num_sub_sounds(handle:Int):Int return -1;
-    public static function core_sound_get_sub_sound(handle:Int, index:Int):Int return 0;
+    public static var testNumSubSounds:Int = -1;
+    public static var testSubSoundLookups:Int = 0;
+    public static function core_sound_get_num_sub_sounds(handle:Int):Int return testNumSubSounds;
+    public static function core_sound_get_sub_sound(handle:Int, index:Int):Int {
+        testSubSoundLookups++;
+        // A sound with no subsounds modelled hands back the null handle
+        return testNumSubSounds < 0 ? 0 : 9000 + index;
+    }
     public static function core_sound_get_sub_sound_parent(handle:Int):Int return 0;
     public static function core_sound_get_num_tags(handle:Int):Int return -1;
     public static function core_sound_get_tag(handle:Int, name:String, index:Int):String return "";

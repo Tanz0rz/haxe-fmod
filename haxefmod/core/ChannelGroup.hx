@@ -569,9 +569,11 @@ abstract ChannelGroup(Int) from Int to Int {
      * release the master group or a Studio bus's group.
      */
     public inline function release():FmodResult {
+        // The native release takes the callback off the group before FMOD
+        // frees it, so only the handler map is cleared here
         var result:FmodResult = NativeStudio.cg_release(this);
         if (UserData.releaseTookEffect(result)) {
-            haxefmod.core.ChannelCallbacks.removeGroup(this);
+            haxefmod.core.ChannelCallbacks.forgetGroup(this);
             UserData.clear(UserDataKind.ChannelGroup, this);
         }
         return result;

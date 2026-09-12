@@ -2,8 +2,8 @@ name: Cache Cleanup
 
 # The Actions cache store is capped at 10GB and evicts least-recently-used
 # entries once it is full. A repo that never prunes quietly starts
-# losing the caches it depends on. This keeps it well under the cap. Stale
-# branch caches go on a schedule. A merged branch's caches go as soon as
+# losing the caches it depends on. A busy branch fills the store in a
+# day, so the prune runs daily. A merged branch's caches go as soon as
 # its pull request merges.
 #
 # Nothing here can break a build. Every cache it removes is rebuilt by the
@@ -11,7 +11,7 @@ name: Cache Cleanup
 
 on:
   schedule:
-    - cron: "0 5 * * 1"
+    - cron: "0 5 * * *"
   pull_request:
     types: [closed]
   workflow_dispatch:
@@ -66,6 +66,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
+
+      - name: Check the prune rules
+        run: python3 ci/prune-caches.py --selftest
 
       - name: Prune stale caches
         env:

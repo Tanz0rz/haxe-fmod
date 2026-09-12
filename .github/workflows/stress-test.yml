@@ -49,9 +49,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -68,7 +68,7 @@ jobs:
           set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
@@ -185,9 +185,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 

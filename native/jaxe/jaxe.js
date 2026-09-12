@@ -181,16 +181,19 @@ class jaxe {
         }
     }
 
-    // A channel that ended on its own keeps its slot, and FMOD answers
-    // INVALID_HANDLE on it from then on. The sweep runs before a channel
-    // handle is minted, so the dead ones go first.
+    // A channel that ended on its own keeps its slot. FMOD reports it as
+    // not playing, then answers INVALID_HANDLE or CHANNEL_STOLEN once the
+    // voice is reused. The sweep runs before a channel handle is minted,
+    // so the dead ones go first. A paused or virtual channel still plays.
     static reclaimDeadChannels() {
         for (var i = 0; i < jaxe.slots.length; i++) {
             var s = jaxe.slots[i];
             if (!s.alive || s.type !== jaxe.TYPE_CHAN) continue;
-            var r;
-            try { r = s.ptr.isPlaying({}); } catch (e) { r = jaxe.ERR_INVALID_HANDLE; }
-            if (r === jaxe.ERR_INVALID_HANDLE || r === jaxe.ERR_CHANNEL_STOLEN) jaxe.handleFree((s.gen << 16) | i);
+            var r, out = {};
+            try { r = s.ptr.isPlaying(out); } catch (e) { r = jaxe.ERR_INVALID_HANDLE; }
+            var dead = r === jaxe.ERR_INVALID_HANDLE || r === jaxe.ERR_CHANNEL_STOLEN
+                || (r === jaxe.FMOD.OK && !out.val);
+            if (dead) jaxe.handleFree((s.gen << 16) | i);
         }
     }
 
@@ -1293,7 +1296,7 @@ class jaxe {
         // Every async-loaded bank that died here never passed through
         // fmod_bank_unload, so its MEMFS copy goes now. A refused call
         // can have unloaded some banks too, so the map is reconciled
-        // against the live bank slots rather than cleared on success.
+        // against the live bank slots on both paths.
         jaxe.reconcileAsyncBankFiles();
         return jaxe.lastResult;
     }
@@ -3187,6 +3190,10 @@ class jaxe {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         var raw = jaxe.rawPtr(group);
+        // The callback comes off before the group can go, the way every
+        // destruction path uninstalls first on this target
+        var hadCallback = jaxe.chanCallbackHandles.has(raw);
+        if (hadCallback) group.setCallback(null);
         jaxe.lastResult = group.release();
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too.
         // A refused release keeps the group and its channel callback mapping.
@@ -3195,6 +3202,8 @@ class jaxe {
             jaxe.handleFree(handle);
             // Releasing the group destroys the connections of every DSP in it
             jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
+        } else if (hadCallback) {
+            group.setCallback(jaxe.channelCallback);
         }
         return jaxe.lastResult;
     }

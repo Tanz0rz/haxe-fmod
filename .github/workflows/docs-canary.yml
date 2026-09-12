@@ -29,8 +29,8 @@ jobs:
 
       - name: Install Playwright Chromium
         run: |
-          npm install playwright@1.63.0 > /dev/null
-          npx playwright install --with-deps chromium
+          bash ci/retry.sh npm install playwright@1.63.0 > /dev/null
+          bash ci/retry.sh npx playwright install --with-deps chromium
 
       - name: Compare fmod.com with the catalog
         run: node extension/test/catalog-site.js --check

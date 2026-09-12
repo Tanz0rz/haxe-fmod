@@ -126,7 +126,7 @@ LINUX_HASHLINK = """
         if: steps.hl-cache.outputs.cache-hit != 'true'
         run: |
           # Same pin as linux-hl: the commit before the SDL3 port
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
           make -j$(nproc)
@@ -406,9 +406,9 @@ def serve(bindir, port):
 
 def record_page_function(seconds):
     # The page launcher the two record steps share. A browser dead three
-    # seconds in, before the first click, returns 1 so the caller launches
-    # it once more with a fresh profile, after what the dead attempt left
-    # is reaped. The runner's snap Chromium has died at startup on its GPU
+    # seconds in, before the first click, reaps what it left and returns
+    # 1. The caller then launches it once more with a fresh profile. The
+    # runner's snap Chromium has died at startup on its GPU
     # wrapper. The caller's test disables errexit inside this body, so a
     # click that fails is reported here and returns 2, which nothing
     # retries.
@@ -453,9 +453,9 @@ def record_page_call(url, console, wav):
 
 
 def launch_page_function():
-    # The state page launcher. A browser dead three seconds in reports
-    # failure so the caller launches it once more with a fresh profile,
-    # after what the dead attempt left is reaped.
+    # The state page launcher. A browser dead three seconds in reaps what
+    # it left and reports failure. The caller then launches it once more
+    # with a fresh profile.
     return f"""          launch_page() {{
             PROFILE=$(mktemp -d)
             {CHROME}
@@ -504,9 +504,9 @@ def browser_steps(j):
             ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-{j.name}.wav &
             RECORD_PID=$!
           fi
-          xdotool mousemove 320 240 click 1
+          xdotool mousemove 320 240 click 1 || {{ echo "::error ::xdotool could not click on $DISPLAY"; kill $CHROME_PID $HTTP_PID || true; exit 1; }}
           sleep 5
-          xdotool mousemove 320 240 click 1
+          xdotool mousemove 320 240 click 1 || {{ echo "::error ::xdotool could not click on $DISPLAY"; kill $CHROME_PID $HTTP_PID || true; exit 1; }}
           for i in $(seq 70); do
             grep -q "$GATE: COMPLETE" "$RAW" && break
             sleep 1
@@ -574,8 +574,15 @@ def run_job(j, text):
         if: failure()
         run: |
           mkdir -p /tmp/crash-{j.name}
-          for i in $(seq 20); do
-            ls ~/Library/Logs/DiagnosticReports/*.ips >/dev/null 2>&1 && break
+          # A report from an earlier attempt is on disk already, so the
+          # wait is for the count of recent reports to stop growing
+          last=-1
+          stable=0
+          for i in $(seq 30); do
+            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
+            last=$n
+            [ "$stable" -ge 3 ] && break
             sleep 1
           done
           cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-{j.name}/ 2>/dev/null || true

@@ -167,11 +167,23 @@ async function main() {
     jaxe.fmod_dsp_release(osc);
     jaxe.fmod_dsp_release(fft);
 
-    // Releasing a group with a callback drops its map entry
-    const childPtr = jaxe.rawPtr(jaxe.resolveCg(child));
+    // Releasing a group with a callback takes the callback off first and
+    // drops its map entry. A refused release puts the callback back.
+    const childWrapper = jaxe.resolveCg(child);
+    const childPtr = jaxe.rawPtr(childWrapper);
     jaxe.fmod_chan_stop(channel);
     jaxe.fmod_core_pcm_release(stream);
-    check('cg_release_with_callback', jaxe.fmod_cg_release(child) === OK && !jaxe.chanCallbackHandles.has(childPtr), '');
+    const cbCalls = [];
+    const realSetCallback = childWrapper.setCallback;
+    childWrapper.setCallback = function (cb) { cbCalls.push(cb === null ? 'off' : 'on'); return realSetCallback.call(childWrapper, cb); };
+    const realRelease = childWrapper.release;
+    childWrapper.release = () => { cbCalls.push('release'); return 40; };
+    check('cg_refused_release_restores_callback', jaxe.fmod_cg_release(child) === 40
+        && cbCalls.join(',') === 'off,release,on' && jaxe.chanCallbackHandles.get(childPtr) === child, `calls=${cbCalls.join(',')}`);
+    childWrapper.release = function () { cbCalls.push('release'); return realRelease.call(childWrapper); };
+    cbCalls.length = 0;
+    check('cg_release_with_callback', jaxe.fmod_cg_release(child) === OK && !jaxe.chanCallbackHandles.has(childPtr)
+        && cbCalls.join(',') === 'off,release', `calls=${cbCalls.join(',')}`);
     jaxe.fmod_cg_release(other);
     jaxe.fmod_cg_release(parent);
     check('no_handle_leaks', jaxe.fmod_debug_live_handle_count() === baseline,

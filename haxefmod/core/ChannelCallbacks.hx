@@ -77,6 +77,16 @@ class ChannelCallbacks {
         NativeStudio.cg_set_callback(handle, false);
     }
 
+    /**
+     * Drops a released group's handler. The native release took the
+     * callback off the group first, so no native call follows here.
+     */
+    public static function forgetGroup(handle:Int):Void {
+        if (!groups.exists(handle)) return;
+        handlers.remove(handle);
+        groups.remove(handle);
+    }
+
     /** Removes every handler and turns off each native subscription, like remove and removeGroup do. */
     public static function clearAll():Void {
         for (handle in handlers.keys()) {

@@ -54,10 +54,10 @@ jobs:
       - name: Install Haxe libraries (latest, unpinned)
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime --always --quiet
-          haxelib install openfl --always --quiet
-          haxelib install flixel --always --quiet
-          haxelib install hxcpp --always --quiet
+          bash ci/retry.sh haxelib install lime --always --quiet
+          bash ci/retry.sh haxelib install openfl --always --quiet
+          bash ci/retry.sh haxelib install flixel --always --quiet
+          bash ci/retry.sh haxelib install hxcpp --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -106,9 +106,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -151,7 +151,7 @@ jobs:
           # and the runner image does not ship all of them
           sudo apt-get install -y libxext-dev libxrandr-dev libxcursor-dev \
             libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev
-          curl -fsSL -o /tmp/sdl3.tar.gz \
+          bash ci/retry.sh curl -fsSL -o /tmp/sdl3.tar.gz \
             "https://github.com/libsdl-org/SDL/releases/download/release-${SDL3_VERSION}/SDL3-${SDL3_VERSION}.tar.gz"
           tar -xzf /tmp/sdl3.tar.gz -C /tmp
           cmake -S "/tmp/SDL3-${SDL3_VERSION}" -B /tmp/sdl3-build -DCMAKE_BUILD_TYPE=Release
@@ -171,7 +171,7 @@ jobs:
           set -o pipefail
           # Intentionally unpinned: this canary tracks HashLink master so a
           # green run signals the pre-SDL3 pin in audio-test.yml can go away
-          git clone --depth 1 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone --depth 1 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git rev-parse HEAD
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
@@ -269,10 +269,10 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
-          haxelib install hxcpp 4.3.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install hxcpp 4.3.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -289,7 +289,7 @@ jobs:
           set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {

@@ -40,6 +40,11 @@ leans on:
   13. No workflow uses krdlab/setup-haxe directly, so every such install
      goes through the local action with the retry. The macOS jobs
      install Haxe through Homebrew, which retries on its own.
+  14. Every haxelib install, git clone, npm install, playwright install,
+     and curl health check goes through ci/retry.sh, in the workflows,
+     the composite actions, and the run job generator.
+  15. The steps gated on a stale pre-built hdll are the known few, so a
+     new gate cannot hide behind the branch escape hatch unnoticed.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -241,6 +246,36 @@ if direct:
     fail(f"a workflow uses krdlab/setup-haxe directly instead of the retrying action: {direct}")
 else:
     ok("no workflow uses krdlab/setup-haxe directly")
+
+# 14. Every network fetch goes through the retry wrapper
+FETCH_RE = re.compile(r"^[ ]*(?:[A-Z_]+=\S+ )*(haxelib install|git clone|npm install|npx playwright install|curl -fsS)", re.M)
+fetch_files = [os.path.join(os.path.dirname(PATH), wf) for wf in sorted(os.listdir(os.path.dirname(PATH))) if wf.endswith(".yml")]
+actions_dir = os.path.join(ROOT, ".github", "actions")
+fetch_files += [os.path.join(actions_dir, a, "action.yml") for a in sorted(os.listdir(actions_dir))]
+fetch_files.append(os.path.join(ROOT, "ci", "generate-run-jobs.py"))
+bare = []
+wrapped = 0
+for path in fetch_files:
+    with open(path) as fh:
+        for n, line in enumerate(fh, 1):
+            if FETCH_RE.match(line):
+                bare.append(f"{os.path.relpath(path, ROOT)}:{n}")
+            elif "retry.sh" in line and re.search(r"haxelib install|git clone|npm install|npx playwright install|curl -fsS", line):
+                wrapped += 1
+if bare or wrapped < 100:
+    fail(f"network fetches outside ci/retry.sh: {bare} ({wrapped} wrapped)")
+else:
+    ok(f"{wrapped} network fetches go through ci/retry.sh, none bare")
+
+# 15. The stale-hdll escape hatch gates the known steps only
+STALE_GATED = ["Doctor passes in a configured environment", "Build HashLink target from the installed package", "Validate build output"]
+STALE_REFERENCES = 5
+gated = re.findall(r"- name: ([^\n]+)\n(?:[^\n]*\n){0,3}?[ ]*if: steps\.abi\.outputs\.stale != 'true'", text)
+stale_refs = len(re.findall(r"steps\.abi\.outputs\.stale", text))
+if gated != STALE_GATED or stale_refs != STALE_REFERENCES:
+    fail(f"stale-hdll gates out of step: steps {gated}, {stale_refs} references of {STALE_REFERENCES}")
+else:
+    ok(f"the stale-hdll gate covers the {len(gated)} known steps and {stale_refs} references")
 
 # 8. The plain portability loops name every native test that needs no SDK
 # header, and the sanitizer loops name every native test

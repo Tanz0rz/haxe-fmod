@@ -165,15 +165,28 @@ class TestUserData {
 		var chan:Channel = 302;
 		chan.setUserData(1); chan.stop();
 		assert("channel cleared on stop", chan.getUserData() == null);
+		var ended:Channel = 312;
+		ended.setUserData(1);
+		haxefmod.core.ChannelCallbacks.deliver((ended : Int), haxefmod.core.ChannelCallbacks.TYPE_END, 0, 0);
+		assert("channel cleared on End", ended.getUserData() == null);
 		NativeStudioStub.testReleaseResult = 31; // FMOD_ERR_INVALID_PARAM
 		sound.setUserData(1); assert("refused sound release reports the result", sound.release() == 31);
 		assert("refused sound release keeps the entry", sound.getUserData() == 1);
 		// A library-owned sound is refused before the native release runs
 		NativeStudioStub.testReleaseResult = 0;
 		NativeStudioStub.testOwnedHandles = [sound];
+		NativeStudioStub.testNumSubSounds = 2;
+		NativeStudioStub.testSubSoundLookups = 0;
 		assert("owned sound release is refused", sound.release() == 31);
 		assert("owned sound release keeps the entry", sound.getUserData() == 1);
+		assert("owned sound release mints no subsound handle", NativeStudioStub.testSubSoundLookups == 0);
 		NativeStudioStub.testOwnedHandles = [];
+		var sub:Sound = 9000;
+		sub.setUserData(1);
+		sound.release();
+		assert("release walks the subsounds", NativeStudioStub.testSubSoundLookups == 2);
+		assert("release clears the subsound entries", sub.getUserData() == null);
+		NativeStudioStub.testNumSubSounds = -1;
 		NativeStudioStub.testReleaseResult = 31;
 		group.setUserData(1); group.release();
 		assert("refused group release keeps the entry", group.getUserData() == 1);
@@ -263,17 +276,24 @@ class TestUserData {
 		var desc:EventDescription = 401;
 		desc.setUserData("d");
 		desc.setCallback(function(_) {});
+		var evi:EventInstance = 402;
+		var hits = 0;
+		evi.setCallback(function(_) hits++);
 		// The stub refuses the unload, so every bank stays and so does the state
 		assert("refused unloadAll reports the result", StudioSystem.unloadAll() == 68);
 		assert("refused unloadAll keeps system", StudioSystem.getUserData() == "sys");
 		assert("refused unloadAll keeps handles", UserData.count() == 2);
 		assert("refused unloadAll keeps description callbacks", desc.hasCallback());
+		CallbackDispatcher.deliver(402, EventCallbackType.STOPPED, 0, 0, 0, 0, 0, 0, "");
+		assert("refused unloadAll keeps instance callbacks", hits == 1);
 		NativeStudioStub.testUnloadAllResult = 0;
 		StudioSystem.unloadAll();
 		NativeStudioStub.testUnloadAllResult = 68;
 		assert("unloadAll clears system", StudioSystem.getUserData() == null);
 		assert("unloadAll clears handles", UserData.count() == 0);
 		assert("unloadAll clears description callbacks", !desc.hasCallback());
+		CallbackDispatcher.deliver(402, EventCallbackType.STOPPED, 0, 0, 0, 0, 0, 0, "");
+		assert("unloadAll clears instance callbacks", hits == 1);
 	}
 
 	static function testDescriptionCallback():Void {

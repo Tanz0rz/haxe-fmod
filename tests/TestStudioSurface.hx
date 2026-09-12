@@ -838,11 +838,34 @@ class TestStudioSurface {
 		var oneRow = haxefmod.core.MixMatrix.read(4, 1, 0, 0);
 		assert(oneRow.matrix.length == 2 && oneRow.outChannels == 2, "mixMatrix read row cap keeps reported counts");
 
+		// A channel's clear and stop both drop the handler and turn the
+		// native subscription off, the stop before the native stop runs
+		var chan2:Channel = cast 4322;
+		var chanSeen:Array<haxefmod.core.ChannelEvent> = [];
+		haxefmod.studio.native.NativeStudioStub.testChanCallbackOff = [];
+		chan2.setCallback(function(e) chanSeen.push(e));
+		haxefmod.studio.CallbackDispatcher.deliver((chan2 : Int), ChannelCallbacks.TYPE_SYNCPOINT, 7, 0, 0, 0, 0, 0, "");
+		assert(chanSeen.length == 1, "chan events delivered");
+		chan2.clearCallback();
+		haxefmod.studio.CallbackDispatcher.deliver((chan2 : Int), ChannelCallbacks.TYPE_SYNCPOINT, 7, 0, 0, 0, 0, 0, "");
+		assert(chanSeen.length == 1, "chan clearCallback stops delivery");
+		assert(haxefmod.studio.native.NativeStudioStub.testChanCallbackOff.length == 1
+			&& haxefmod.studio.native.NativeStudioStub.testChanCallbackOff[0] == (chan2 : Int),
+			"chan clearCallback turns the native subscription off");
+		chan2.setCallback(function(e) chanSeen.push(e));
+		chan2.stop();
+		haxefmod.studio.CallbackDispatcher.deliver((chan2 : Int), ChannelCallbacks.TYPE_SYNCPOINT, 7, 0, 0, 0, 0, 0, "");
+		assert(chanSeen.length == 1, "chan stop removes the handler");
+		assert(haxefmod.studio.native.NativeStudioStub.testChanCallbackOff.length == 2,
+			"chan stop turns the native subscription off");
+
 		// Group callbacks share the channel map and clear through the group
 		// native. The stub creates no groups, so a fake handle stands in.
 		var received:Array<haxefmod.core.ChannelEvent> = [];
 		group = cast 4321;
+		haxefmod.studio.CallbackDispatcher.channelRouter = null;
 		group.setCallback(function(e) received.push(e));
+		assert(haxefmod.studio.CallbackDispatcher.channelRouter != null, "a group registration installs the router");
 		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, haxe.io.FPHelper.floatToI32(0.25), 0, 0, 0, 0, 0.5, "");
 		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
 		assert(received.length == 2, "cg events delivered");
@@ -857,10 +880,15 @@ class TestStudioSurface {
 		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, 0, 0, 0, 0, 0, 0.5, "");
 		assert(received.length == 3, "cg refused release keeps the handler");
 		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 0;
+		haxefmod.studio.native.NativeStudioStub.testCgCallLog = [];
 		group.release();
 		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 68;
 		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, 0, 0, 0, 0, 0, 0.5, "");
 		assert(received.length == 3, "cg release removes the handler");
+		// The native release uninstalls the callback itself, so no call on
+		// the freed handle follows and the last result stays the release's
+		assert(haxefmod.studio.native.NativeStudioStub.testCgCallLog.join(",") == 'release:${(group : Int)}',
+			"cg release makes no native callback call after the release");
 		ChannelCallbacks.clearAll();
 	}
 
@@ -1396,6 +1424,15 @@ class TestStudioSurface {
 			"ClearAllCallbacks drops the read callbacks and the frame hook");
 		PcmStream.NULL.setReadCallback(function(s, data, len) return FmodResult.FMOD_OK);
 		assert(!PcmStream.NULL.hasReadCallback(), "null stream takes no read callback");
+		stream.setReadCallback(function(s, data, len) return FmodResult.FMOD_OK);
+		stream.setReadCallback(null);
+		assert(!stream.hasReadCallback(), "a null read callback removes it");
+		stub.testPcmSpace = 64;
+		stream.setReadCallback(function(s, data, len) return FmodResult.FMOD_OK);
+		PcmStream.pump();
+		assert(@:privateAccess PcmStream.buffers.exists((stream : Int)), "a pumped reader holds a buffer");
+		stream.clearReadCallback();
+		assert(!@:privateAccess PcmStream.buffers.exists((stream : Int)), "clearing the read callback drops the buffer");
 		stub.testPcmSpace = 0;
 
 		// The callback typedefs are the handler types the setters take

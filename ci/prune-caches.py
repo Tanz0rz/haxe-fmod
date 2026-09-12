@@ -13,12 +13,14 @@ needs. Two things fill it here:
     commit behind at roughly 100MB a commit.
 
 So this removes caches whose branch is gone, caches left by tag runs,
-and caches on a side branch that has gone quiet. It also removes all
-but the newest few entries of each remaining key. Anything deleted is
-rebuilt by the next run that wants it. The cost of being wrong here is
-one slow job, never a broken one. The default branch is only ever pruned by the keep rule.
+caches on a side branch that has gone quiet, and stable keys a pin
+rotation left behind. It also removes all but the newest few entries of
+each remaining key. Anything deleted is rebuilt by the next run that
+wants it. The cost of being wrong here is one slow job, never a broken
+one. The default branch is only ever pruned by the keep rule.
 
 Usage:
+  python3 ci/prune-caches.py --selftest
   python3 ci/prune-caches.py --dry-run
   python3 ci/prune-caches.py --keep 2 --max-age-days 14
   python3 ci/prune-caches.py --branch some-deleted-branch   (PR cleanup)
@@ -78,6 +80,16 @@ def base_key(key):
     return SHA_SUFFIX.sub("", key)
 
 
+FAMILY = re.compile(r"^(.*?-(?:Linux|macOS|Windows))(?:-|$)")
+
+
+def family(key):
+    """A stable key up to its OS segment. A pin rotation changes what
+    follows and leaves the old key for nothing to restore."""
+    m = FAMILY.match(key)
+    return m.group(1) if m else key
+
+
 def plan(caches, live_branches, keep, only_branch, default_branch="master",
          max_age_days=None):
     """Returns (doomed, reason_by_id). Kept deliberately conservative: a
@@ -119,6 +131,26 @@ def plan(caches, live_branches, keep, only_branch, default_branch="master",
     if only_branch is not None:
         return doomed, reason
 
+    # A stable key a pin rotation left behind: a newer key of its family
+    # exists on the same ref, and nothing restored the old one since the
+    # newer one was created. Two keys a workflow restores in turn both
+    # stay, since each is touched after the other was created.
+    families = {}
+    for entry in survivors:
+        if SHA_SUFFIX.search(entry["key"]):
+            continue
+        families.setdefault((entry["ref"], family(entry["key"])), []).append(entry)
+    orphaned = set()
+    for (ref, fam), entries in sorted(families.items()):
+        newest = max(entries, key=lambda e: e["created_at"])
+        for entry in entries:
+            if entry is newest:
+                continue
+            if entry["last_accessed_at"] <= newest["created_at"]:
+                condemn(entry, "superseded by {}".format(newest["key"]))
+                orphaned.add(entry["id"])
+    survivors = [entry for entry in survivors if entry["id"] not in orphaned]
+
     # Of what is left, keep the newest few of each key. Stable keys (no sha
     # suffix) have one entry each and fall under the limit untouched.
     groups = {}
@@ -134,8 +166,55 @@ def plan(caches, live_branches, keep, only_branch, default_branch="master",
     return doomed, reason
 
 
+def selftest():
+    """The rules against fixtures shaped like the live store."""
+    def stamp(days_ago):
+        when = datetime.datetime.utcnow() - datetime.timedelta(days=days_ago)
+        return when.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def entry(id, key, created, accessed, ref="refs/heads/dev"):
+        return {"id": id, "ref": ref, "key": key, "created_at": stamp(created),
+                "last_accessed_at": stamp(accessed), "size_in_bytes": 1}
+
+    pins_old = "haxelib-hl-Linux-4.3.6-lime8.3.0"
+    pins_new = "haxelib-hl-Linux-4.3.6-lime8.3.0-dox1.6.0"
+    sha_a = "hxcpp-Linux-app-" + "a" * 40
+    sha_b = "hxcpp-Linux-app-" + "b" * 40
+    sha_c = "hxcpp-Linux-app-" + "c" * 40
+    caches = [
+        entry(1, pins_old, 3, 2),             # rotated away, unused since
+        entry(2, pins_new, 1, 0),             # the live key
+        entry(3, "fmod-sdk-Linux-2.02.33", 5, 0),   # both SDK keys restore
+        entry(4, "fmod-sdk-Linux-2.03.12", 4, 0),
+        entry(5, sha_a, 3, 3), entry(6, sha_b, 2, 2), entry(7, sha_c, 1, 1),
+        entry(8, "kha-macOS-" + "d" * 40, 30, 0),   # restored today, stays
+        entry(9, "kha-macOS-" + "e" * 40, 30, 30),  # idle a month
+        entry(10, pins_new, 1, 0, ref="refs/heads/gone"),
+        entry(11, pins_new, 1, 0, ref="refs/heads/refs/tags/v1"),
+    ]
+    doomed, reason = plan(caches, {"master", "dev"}, 2, None, "master", 14)
+    got = {e["id"]: reason[e["id"]] for e in doomed}
+    expect = {
+        1: "superseded by " + pins_new,
+        5: "superseded (2 newer)",
+        9: "dev idle 30d",
+        10: "branch gone no longer exists",
+        11: "tag run",
+    }
+    if got != expect:
+        print("selftest FAIL: got {} expected {}".format(got, expect))
+        sys.exit(1)
+    doomed, reason = plan(caches, {"master", "dev"}, 2, "dev", "master", 14)
+    if sorted(e["id"] for e in doomed) != [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+        print("selftest FAIL: branch close kept {}".format(sorted(e["id"] for e in doomed)))
+        sys.exit(1)
+    print("prune-caches selftest: all rules hold")
+
+
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--selftest", action="store_true",
+                        help="run the rules against fixtures and exit")
     parser.add_argument("--repo", default="Tanz0rz/haxe-fmod")
     parser.add_argument("--keep", type=int, default=2,
                         help="entries to keep per key (default 2)")
@@ -146,6 +225,9 @@ def main():
                         help="delete only this branch's caches (PR cleanup)")
     parser.add_argument("--dry-run", action="store_true")
     options = parser.parse_args()
+    if options.selftest:
+        selftest()
+        return
 
     caches = fetch_caches(options.repo)
     live = fetch_live_branches(options.repo) if options.branch is None else set()

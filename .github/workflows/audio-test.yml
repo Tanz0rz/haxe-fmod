@@ -59,10 +59,10 @@ jobs:
         # engines in the deprecation check below
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
-          haxelib install heaps 2.1.0 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install heaps 2.1.0 --always --quiet
 
       - name: Run unit tests
         run: haxe tests/build.hxml
@@ -251,10 +251,10 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
-          haxelib install hxcpp 4.3.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install hxcpp 4.3.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -270,7 +270,8 @@ jobs:
           MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$" || true)
           if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
             echo "stale=true" >> "$GITHUB_OUTPUT"
-            echo "::notice ::the pre-built hdll carries ABI '$MARKER' and the manifest says $ABI, the doctor check waits for update-hdlls"
+            echo "::warning ::the pre-built hdll carries ABI '$MARKER' and the manifest says $ABI, the doctor check waits for update-hdlls"
+            echo "The pre-built hdll carries ABI '$MARKER' and the manifest says $ABI. The doctor steps are skipped until update-hdlls lands." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "stale=false" >> "$GITHUB_OUTPUT"
           fi
@@ -502,7 +503,7 @@ jobs:
       - name: Install dox
         run: |
           haxelib setup ~/haxelib
-          haxelib install dox 1.6.0 --always --quiet
+          bash ci/retry.sh haxelib install dox 1.6.0 --always --quiet
 
       - name: Generate type XML
         run: |
@@ -644,7 +645,8 @@ jobs:
           MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$" || true)
           if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
             echo "stale=true" >> "$GITHUB_OUTPUT"
-            echo "::notice ::the pre-built hdll carries ABI '$MARKER' and the manifest says $ABI, the hl package steps wait for update-hdlls"
+            echo "::warning ::the pre-built hdll carries ABI '$MARKER' and the manifest says $ABI, the hl package steps wait for update-hdlls"
+            echo "The pre-built hdll carries ABI '$MARKER' and the manifest says $ABI. The HashLink package steps are skipped until update-hdlls lands." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "stale=false" >> "$GITHUB_OUTPUT"
           fi
@@ -768,14 +770,14 @@ jobs:
       - name: Install libraries with haxefmod from the package
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           # The doctor counts hxcpp among a lime project's dependencies
-          haxelib install hxcpp 4.3.2 --always --quiet
+          bash ci/retry.sh haxelib install hxcpp 4.3.2 --always --quiet
           # Install from the zip only, so no checkout copy can leak in
           haxelib remove haxefmod || true
-          haxelib install haxefmod.zip --always --quiet
+          bash ci/retry.sh haxelib install haxefmod.zip --always --quiet
           haxelib path haxefmod
           yes | haxelib run lime setup || true
 
@@ -792,7 +794,7 @@ jobs:
           set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
@@ -914,12 +916,12 @@ jobs:
       - name: Install libraries with haxefmod from the package
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           # Install from the zip only, so no checkout copy can leak in
           haxelib remove haxefmod || true
-          haxelib install haxefmod.zip --always --quiet
+          bash ci/retry.sh haxelib install haxefmod.zip --always --quiet
           haxelib path haxefmod
           yes | haxelib run lime setup || true
 
@@ -973,10 +975,10 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
-          haxelib install hxcpp 4.3.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install hxcpp 4.3.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -1085,10 +1087,10 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
-          haxelib install hxcpp 4.3.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install hxcpp 4.3.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -1177,9 +1179,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -1196,7 +1198,7 @@ jobs:
           set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
@@ -1400,9 +1402,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -1522,9 +1524,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -1562,9 +1564,9 @@ jobs:
           mkdir -p "$RUNNER_TEMP/pw"
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install playwright@1.63.0 > /dev/null
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 bash ci/retry.sh npm install playwright@1.63.0 > /dev/null
           export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
-          npx playwright install --with-deps firefox
+          bash ci/retry.sh npx playwright install --with-deps firefox
 
       - name: Run api-probe state (firefox)
         if: ${{ !cancelled() }}
@@ -1702,10 +1704,10 @@ jobs:
         run: |
           mkdir -p ~/haxelib
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
-          haxelib install hxcpp 4.3.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install hxcpp 4.3.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -1812,9 +1814,9 @@ jobs:
         run: |
           mkdir -p ~/haxelib
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -1952,10 +1954,10 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
-          haxelib install hxcpp 4.3.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install hxcpp 4.3.2 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
           yes | haxelib run lime setup || true
 
@@ -2080,9 +2082,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
           yes | haxelib run lime setup || true
 
@@ -2217,9 +2219,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -2236,7 +2238,7 @@ jobs:
           set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
@@ -2492,9 +2494,9 @@ jobs:
         run: |
           mkdir -p ~/haxelib
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -2689,9 +2691,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
           yes | haxelib run lime setup || true
 
@@ -2894,9 +2896,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install heaps 2.1.0 --always --quiet
-          haxelib install hashlink 1.15.0 --always --quiet
-          haxelib install hlsdl 1.15.0 --always --quiet
+          bash ci/retry.sh haxelib install heaps 2.1.0 --always --quiet
+          bash ci/retry.sh haxelib install hashlink 1.15.0 --always --quiet
+          bash ci/retry.sh haxelib install hlsdl 1.15.0 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
 
       - name: Install system dependencies
@@ -2921,7 +2923,7 @@ jobs:
         if: steps.hl-cache.outputs.cache-hit != 'true'
         run: |
           # Same pin as linux-hl: the commit before the SDL3 port
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
           make -j$(nproc)
@@ -2989,9 +2991,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install heaps 2.1.0 --always --quiet
-          haxelib install hashlink 1.15.0 --always --quiet
-          haxelib install hlsdl 1.15.0 --always --quiet
+          bash ci/retry.sh haxelib install heaps 2.1.0 --always --quiet
+          bash ci/retry.sh haxelib install hashlink 1.15.0 --always --quiet
+          bash ci/retry.sh haxelib install hlsdl 1.15.0 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
 
       - name: Install system dependencies
@@ -3016,7 +3018,7 @@ jobs:
         if: steps.hl-cache.outputs.cache-hit != 'true'
         run: |
           # Same pin as linux-hl: the commit before the SDL3 port
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
           make -j$(nproc)
@@ -3084,9 +3086,9 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install heaps 2.1.0 --always --quiet
-          haxelib install hashlink 1.15.0 --always --quiet
-          haxelib install hlsdl 1.15.0 --always --quiet
+          bash ci/retry.sh haxelib install heaps 2.1.0 --always --quiet
+          bash ci/retry.sh haxelib install hashlink 1.15.0 --always --quiet
+          bash ci/retry.sh haxelib install hlsdl 1.15.0 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
 
 
@@ -3148,9 +3150,9 @@ jobs:
         run: |
           mkdir -p ~/haxelib
           haxelib setup ~/haxelib
-          haxelib install heaps 2.1.0 --always --quiet
-          haxelib install hashlink 1.15.0 --always --quiet
-          haxelib install hlsdl 1.15.0 --always --quiet
+          bash ci/retry.sh haxelib install heaps 2.1.0 --always --quiet
+          bash ci/retry.sh haxelib install hashlink 1.15.0 --always --quiet
+          bash ci/retry.sh haxelib install hlsdl 1.15.0 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
 
       - name: Build custom hdll via build-hdll
@@ -3213,10 +3215,10 @@ jobs:
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install heaps 2.1.0 --always --quiet
-          haxelib install hashlink 1.15.0 --always --quiet
-          haxelib install hlsdl 1.15.0 --always --quiet
-          haxelib install hldx 1.15.0 --always --quiet
+          bash ci/retry.sh haxelib install heaps 2.1.0 --always --quiet
+          bash ci/retry.sh haxelib install hashlink 1.15.0 --always --quiet
+          bash ci/retry.sh haxelib install hlsdl 1.15.0 --always --quiet
+          bash ci/retry.sh haxelib install hldx 1.15.0 --always --quiet
           haxelib dev haxefmod "$GITHUB_WORKSPACE"
 
       - name: Install HashLink
@@ -3310,7 +3312,7 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          bash ci/retry.sh --clean "$RUNNER_TEMP/Kha" git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
           # A shallow clone holds the tip only, so ask for the pinned commit
           git fetch --depth 1 origin "$KHA_COMMIT"
@@ -3391,7 +3393,7 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          bash ci/retry.sh --clean "$RUNNER_TEMP/Kha" git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
           # A shallow clone holds the tip only, so ask for the pinned commit
           git fetch --depth 1 origin "$KHA_COMMIT"
@@ -3469,7 +3471,7 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          bash ci/retry.sh --clean "$RUNNER_TEMP/Kha" git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
           # A shallow clone holds the tip only, so ask for the pinned commit
           git fetch --depth 1 origin "$KHA_COMMIT"
@@ -3547,7 +3549,7 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          bash ci/retry.sh --clean "$RUNNER_TEMP/Kha" git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
           # A shallow clone holds the tip only, so ask for the pinned commit
           git fetch --depth 1 origin "$KHA_COMMIT"
@@ -3627,7 +3629,7 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          bash ci/retry.sh --clean "$RUNNER_TEMP/Kha" git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
           # A shallow clone holds the tip only, so ask for the pinned commit
           git fetch --depth 1 origin "$KHA_COMMIT"
@@ -3705,7 +3707,7 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          bash ci/retry.sh --clean "$RUNNER_TEMP/Kha" git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
           # A shallow clone holds the tip only, so ask for the pinned commit
           git fetch --depth 1 origin "$KHA_COMMIT"
@@ -3780,7 +3782,7 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          bash ci/retry.sh --clean "$RUNNER_TEMP/Kha" git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
           # A shallow clone holds the tip only, so ask for the pinned commit
           git fetch --depth 1 origin "$KHA_COMMIT"
@@ -3855,7 +3857,7 @@ jobs:
       - name: Check out Kha
         if: steps.kha-cache.outputs.cache-hit != 'true'
         run: |
-          git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          bash ci/retry.sh --clean "$RUNNER_TEMP/Kha" git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
           cd "$RUNNER_TEMP/Kha"
           # A shallow clone holds the tip only, so ask for the pinned commit
           git fetch --depth 1 origin "$KHA_COMMIT"
@@ -4516,9 +4518,9 @@ jobs:
             ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-linux-html5-chromium.wav &
             RECORD_PID=$!
           fi
-          xdotool mousemove 320 240 click 1
+          xdotool mousemove 320 240 click 1 || { echo "::error ::xdotool could not click on $DISPLAY"; kill $CHROME_PID $HTTP_PID || true; exit 1; }
           sleep 5
-          xdotool mousemove 320 240 click 1
+          xdotool mousemove 320 240 click 1 || { echo "::error ::xdotool could not click on $DISPLAY"; kill $CHROME_PID $HTTP_PID || true; exit 1; }
           for i in $(seq 70); do
             grep -q "$GATE: COMPLETE" "$RAW" && break
             sleep 1
@@ -4748,8 +4750,15 @@ jobs:
         if: failure()
         run: |
           mkdir -p /tmp/crash-mac-cpp
-          for i in $(seq 20); do
-            ls ~/Library/Logs/DiagnosticReports/*.ips >/dev/null 2>&1 && break
+          # A report from an earlier attempt is on disk already, so the
+          # wait is for the count of recent reports to stop growing
+          last=-1
+          stable=0
+          for i in $(seq 30); do
+            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
+            last=$n
+            [ "$stable" -ge 3 ] && break
             sleep 1
           done
           cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-mac-cpp/ 2>/dev/null || true
@@ -4960,8 +4969,15 @@ jobs:
         if: failure()
         run: |
           mkdir -p /tmp/crash-mac-hl
-          for i in $(seq 20); do
-            ls ~/Library/Logs/DiagnosticReports/*.ips >/dev/null 2>&1 && break
+          # A report from an earlier attempt is on disk already, so the
+          # wait is for the count of recent reports to stop growing
+          last=-1
+          stable=0
+          for i in $(seq 30); do
+            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
+            last=$n
+            [ "$stable" -ge 3 ] && break
             sleep 1
           done
           cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-mac-hl/ 2>/dev/null || true
@@ -5424,7 +5440,7 @@ jobs:
         if: steps.hl-cache.outputs.cache-hit != 'true'
         run: |
           # Same pin as linux-hl: the commit before the SDL3 port
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
           make -j$(nproc)
@@ -5812,9 +5828,9 @@ jobs:
             ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-heaps-html5.wav &
             RECORD_PID=$!
           fi
-          xdotool mousemove 320 240 click 1
+          xdotool mousemove 320 240 click 1 || { echo "::error ::xdotool could not click on $DISPLAY"; kill $CHROME_PID $HTTP_PID || true; exit 1; }
           sleep 5
-          xdotool mousemove 320 240 click 1
+          xdotool mousemove 320 240 click 1 || { echo "::error ::xdotool could not click on $DISPLAY"; kill $CHROME_PID $HTTP_PID || true; exit 1; }
           for i in $(seq 70); do
             grep -q "$GATE: COMPLETE" "$RAW" && break
             sleep 1
@@ -6044,8 +6060,15 @@ jobs:
         if: failure()
         run: |
           mkdir -p /tmp/crash-heaps-mac-hl
-          for i in $(seq 20); do
-            ls ~/Library/Logs/DiagnosticReports/*.ips >/dev/null 2>&1 && break
+          # A report from an earlier attempt is on disk already, so the
+          # wait is for the count of recent reports to stop growing
+          last=-1
+          stable=0
+          for i in $(seq 30); do
+            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
+            last=$n
+            [ "$stable" -ge 3 ] && break
             sleep 1
           done
           cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-heaps-mac-hl/ 2>/dev/null || true
@@ -6878,9 +6901,9 @@ jobs:
             ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-kha-html5.wav &
             RECORD_PID=$!
           fi
-          xdotool mousemove 320 240 click 1
+          xdotool mousemove 320 240 click 1 || { echo "::error ::xdotool could not click on $DISPLAY"; kill $CHROME_PID $HTTP_PID || true; exit 1; }
           sleep 5
-          xdotool mousemove 320 240 click 1
+          xdotool mousemove 320 240 click 1 || { echo "::error ::xdotool could not click on $DISPLAY"; kill $CHROME_PID $HTTP_PID || true; exit 1; }
           for i in $(seq 70); do
             grep -q "$GATE: COMPLETE" "$RAW" && break
             sleep 1
@@ -7110,8 +7133,15 @@ jobs:
         if: failure()
         run: |
           mkdir -p /tmp/crash-kha-mac
-          for i in $(seq 20); do
-            ls ~/Library/Logs/DiagnosticReports/*.ips >/dev/null 2>&1 && break
+          # A report from an earlier attempt is on disk already, so the
+          # wait is for the count of recent reports to stop growing
+          last=-1
+          stable=0
+          for i in $(seq 30); do
+            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
+            last=$n
+            [ "$stable" -ge 3 ] && break
             sleep 1
           done
           cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-kha-mac/ 2>/dev/null || true
@@ -7322,8 +7352,15 @@ jobs:
         if: failure()
         run: |
           mkdir -p /tmp/crash-kha-mac-hl
-          for i in $(seq 20); do
-            ls ~/Library/Logs/DiagnosticReports/*.ips >/dev/null 2>&1 && break
+          # A report from an earlier attempt is on disk already, so the
+          # wait is for the count of recent reports to stop growing
+          last=-1
+          stable=0
+          for i in $(seq 30); do
+            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
+            last=$n
+            [ "$stable" -ge 3 ] && break
             sleep 1
           done
           cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-kha-mac-hl/ 2>/dev/null || true
