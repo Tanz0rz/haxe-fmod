@@ -59,9 +59,9 @@ def fetch_default_branch(repo):
     return gh("api", "repos/{}".format(repo), "-q", ".default_branch").strip()
 
 
-def age_days(created_at):
+def age_days(when):
     """Age of an ISO8601 timestamp in days, naive UTC."""
-    stamp = created_at.replace("Z", "").split(".")[0]
+    stamp = when.replace("Z", "").split(".")[0]
     then = datetime.datetime.strptime(stamp, "%Y-%m-%dT%H:%M:%S")
     return (datetime.datetime.utcnow() - then).total_seconds() / 86400.0
 
@@ -106,11 +106,13 @@ def plan(caches, live_branches, keep, only_branch, default_branch="master",
         elif name not in live_branches:
             condemn(entry, "branch {} no longer exists".format(name or ref))
         elif (max_age_days is not None and name != default_branch
-              and age_days(entry["created_at"]) > max_age_days):
-            # A side branch that has not built in weeks is done with its
-            # caches, and one stale branch can hold gigabytes. The default
-            # branch is exempt: its caches stay hot by definition.
-            condemn(entry, "{} idle {:.0f}d".format(name, age_days(entry["created_at"])))
+              and age_days(entry["last_accessed_at"]) > max_age_days):
+            # A side branch whose caches nothing has restored in weeks is
+            # done with them, and one stale branch can hold gigabytes. The
+            # stable keys of a busy branch are created once and restored
+            # on every run, so the last restore is the idle measure. The
+            # default branch is exempt: its caches stay hot by definition.
+            condemn(entry, "{} idle {:.0f}d".format(name, age_days(entry["last_accessed_at"])))
         else:
             survivors.append(entry)
 

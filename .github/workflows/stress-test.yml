@@ -91,8 +91,10 @@ jobs:
         run: |
           # Virtual display + audio sink (FMOD routes ALSA through Pulse)
           Xvfb :99 -screen 0 1024x768x24 &
+          XVFB_PID=$!
           export DISPLAY=:99
           sleep 1
+          kill -0 $XVFB_PID 2>/dev/null || { echo "FAIL: Xvfb did not start on :99"; exit 1; }
           pulseaudio --start --exit-idle-time=-1 || true
           pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
           pactl set-default-sink virtual_speaker
@@ -223,8 +225,10 @@ jobs:
       - name: Run api-probe under valgrind
         run: |
           Xvfb :99 -screen 0 640x480x24 &
+          XVFB_PID=$!
           export DISPLAY=:99
           sleep 1
+          kill -0 $XVFB_PID 2>/dev/null || { echo "FAIL: Xvfb did not start on :99"; exit 1; }
           BIN_DIR=$(ls -d example-project/EZPlatformer/export/linux*/bin | head -1)
           cd "$BIN_DIR"
           # Memory errors only: --error-exitcode makes any invalid

@@ -1289,15 +1289,12 @@ class jaxe {
         jaxe.cacheAllBankPaths();
         jaxe.lastResult = jaxe.gSystem.unloadAll();
         if (jaxe.lastResult != jaxe.FMOD.OK) jaxe.restoreCallbackState(saved);
-        if (jaxe.lastResult == jaxe.FMOD.OK) {
-            // Every async-loaded bank just died without passing through
-            // fmod_bank_unload, so their MEMFS copies are deleted here
-            for (const name of jaxe.asyncBankFiles.values()) {
-                jaxe.unlinkMemfsFile(name);
-            }
-            jaxe.asyncBankFiles.clear();
-            jaxe.sweepDeadLookups();
-        }
+        else jaxe.sweepDeadLookups();
+        // Every async-loaded bank that died here never passed through
+        // fmod_bank_unload, so its MEMFS copy goes now. A refused call
+        // can have unloaded some banks too, so the map is reconciled
+        // against the live bank slots rather than cleared on success.
+        jaxe.reconcileAsyncBankFiles();
         return jaxe.lastResult;
     }
 
@@ -1663,6 +1660,22 @@ class jaxe {
             jaxe.sweepDeadLookups();
         }
         return jaxe.lastResult;
+    }
+
+    // Drops the MEMFS copy of every async-loaded bank whose slot is gone,
+    // so a bank FMOD unloaded outside fmod_bank_unload frees its bytes
+    static reconcileAsyncBankFiles() {
+        var live = new Set();
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (s.alive && s.type === jaxe.TYPE_BANK && s.raw) live.add(s.raw);
+        }
+        for (const [raw, name] of Array.from(jaxe.asyncBankFiles.entries())) {
+            if (!live.has(raw)) {
+                jaxe.unlinkMemfsFile(name);
+                jaxe.asyncBankFiles.delete(raw);
+            }
+        }
     }
 
     // Deleting is best-effort: a missing FS_unlink export or an already

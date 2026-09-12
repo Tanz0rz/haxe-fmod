@@ -199,8 +199,10 @@ jobs:
         run: |
           # Start virtual display
           Xvfb :99 -screen 0 1024x768x24 &
+          XVFB_PID=$!
           export DISPLAY=:99
           sleep 1
+          kill -0 $XVFB_PID 2>/dev/null || { echo "FAIL: Xvfb did not start on :99"; exit 1; }
 
           # Start PulseAudio with virtual sink
           pulseaudio --start --exit-idle-time=-1 || true
@@ -348,8 +350,10 @@ jobs:
         run: |
           # Start virtual display
           Xvfb :99 -screen 0 1024x768x24 &
+          XVFB_PID=$!
           export DISPLAY=:99
           sleep 1
+          kill -0 $XVFB_PID 2>/dev/null || { echo "FAIL: Xvfb did not start on :99"; exit 1; }
 
           # Start PulseAudio with virtual sink
           pulseaudio --start --exit-idle-time=-1 || true

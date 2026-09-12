@@ -41,13 +41,24 @@ const live = process.argv.includes('--live');
 const all = process.argv.includes('--all');
 const headless = process.argv.includes('--headless');
 
+// The browser profile lives in the temp directory for one run. The
+// self-hosted runner keeps its temp directory, so every exit removes it.
+let profile = null;
+
+function dropProfile() {
+    if (!profile) return;
+    try { fs.rmSync(profile, { recursive: true, force: true }); } catch (e) {}
+    profile = null;
+}
+
 function fail(message) {
     console.error('FAIL: ' + message);
+    dropProfile();
     process.exit(1);
 }
 
 async function main() {
-    const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'haxefmod-ext-'));
+    profile = fs.mkdtempSync(path.join(os.tmpdir(), 'haxefmod-ext-'));
     const launch = {
         headless: false,
         args: [
@@ -305,6 +316,7 @@ async function main() {
 
     await page.screenshot({ path: path.join(__dirname, 'last-run.png'), fullPage: true });
     await context.close();
+    dropProfile();
     console.log('extension test passed' + (live ? ' (live fmod.com)' : ' (fixture)'));
 }
 

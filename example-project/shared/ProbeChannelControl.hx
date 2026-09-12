@@ -311,12 +311,14 @@ class ProbeChannelControl {
             'events=${_groupEvents.length} frames=$_frames');
         var rStop = _channel.stop();
         // Core commands cross to the mixer asynchronously. The stop is
-        // applied at the start of a mix block, so wait until the channel
-        // reports stopped (bounded). A lock and unlock pair then waits out
-        // the block in flight. The stream, group, and geometry are then
-        // safe from a teardown under a live mix that reads them.
+        // applied at the start of a mix block, so wait until the group
+        // reports nothing playing (bounded). The channel handle itself is
+        // freed by the stop, so it reads as stopped at once and cannot be
+        // the thing waited on. A lock and unlock pair then waits out the
+        // block in flight. The stream, group, and geometry are then safe
+        // from a teardown under a live mix that reads them.
         for (i in 0...100) {
-            if (!_channel.isPlaying()) break;
+            if (!_group.isPlaying()) break;
             StudioSystem.flushCommands();
             #if sys
             Sys.sleep(0.01);
@@ -326,6 +328,10 @@ class ProbeChannelControl {
         StudioSystem.unlockDsp();
         var rStream = _stream.release();
         var rGroup = _group.release();
+        // The group release is a mixer command too, and the geometry it
+        // was occluded by goes only after a block has run without it
+        StudioSystem.lockDsp();
+        StudioSystem.unlockDsp();
         var rGeometry = _geometry.release();
         StudioSystem.setListenerPosition2D(0, 0, 0);
         // Occlusion callbacks arrive from the mixer thread, so let the

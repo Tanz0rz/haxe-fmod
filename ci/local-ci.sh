@@ -118,6 +118,7 @@ start_display_audio() {
     Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
     DISPLAY_STARTED=$!
     sleep 1
+    kill -0 $DISPLAY_STARTED 2>/dev/null || { echo "FAIL: Xvfb did not start on :99"; exit 1; }
   fi
   export XDG_RUNTIME_DIR="$OUT/xdg"
   export PULSE_RUNTIME_PATH="$XDG_RUNTIME_DIR/pulse"
@@ -202,21 +203,29 @@ run_native_state() {
 # run_browser_state <state> <gate> <port> <log> [timeout] [extra-gate] [record-wav] [record-seconds]
 run_browser_state() {
   local state="$1" gate="$2" port="$3" log="$4" tmo="${5:-45}" extra="${6:-}" wav="${7:-}" secs="${8:-60}"
-  local raw="$log.raw" http chrome rec=""
+  local raw="$log.raw" http chrome rec="" attempt
   (cd "$WEB_BIN" && exec python3 -m http.server "$port" > /dev/null 2>&1) &
   http=$!
   sleep 1
+  # A browser dead three seconds in gets one more launch with a fresh
+  # profile, like the workflow's state steps
+  for attempt in 1 2; do
+    "$CHROMIUM" --no-sandbox $CHROME_GL --autoplay-policy=no-user-gesture-required \
+      --no-first-run --no-default-browser-check --disable-sync --user-data-dir="$(mktemp -d "$OUT/chrome.XXXXXX")" \
+      --enable-logging=stderr --v=0 --window-size=640,480 --window-position=0,0 \
+      "http://localhost:$port/index.html?test=$state" > "$raw" 2>&1 &
+    chrome=$!
+    sleep 3
+    if kill -0 $chrome 2>/dev/null; then break; fi
+    if [ "$attempt" = 1 ]; then echo "the browser died at startup, launching it once more"; else echo "the browser died at startup twice"; kill $http 2>/dev/null || true; return 1; fi
+  done
+  # The recording starts once the browser is up, so a relaunch cannot
+  # eat into its window
   if [ -n "$wav" ]; then
     ffmpeg -loglevel error -f pulse -i virtual_speaker.monitor -t "$secs" -y "$wav" &
     rec=$!
   fi
-  "$CHROMIUM" --no-sandbox $CHROME_GL --autoplay-policy=no-user-gesture-required \
-    --no-first-run --no-default-browser-check --disable-sync --user-data-dir="$(mktemp -d "$OUT/chrome.XXXXXX")" \
-    --enable-logging=stderr --v=0 --window-size=640,480 --window-position=0,0 \
-    "http://localhost:$port/index.html?test=$state" > "$raw" 2>&1 &
-  chrome=$!
-  sleep 3
-  xdotool mousemove 320 240 click 1
+  xdotool mousemove 320 240 click 1 || { echo "xdotool could not click on $DISPLAY"; kill $chrome $http 2>/dev/null || true; return 1; }
   sleep 5
   xdotool mousemove 320 240 click 1
   for i in $(seq "$tmo"); do
@@ -238,7 +247,7 @@ run_browser_state() {
 }
 
 # Serves the html5 build and records the browser's audio for the main game
-# record_browser_game <port> <wav> <seconds> [console-log]
+# record_browser_game <port> <wav> <seconds> [console-log] [query]
 record_browser_game() {
   local port="$1" wav="$2" secs="$3" console="${4:-/dev/null}" query="${5:-}" http chrome rec attempt
   (cd "$WEB_BIN" && exec python3 -m http.server "$port" > /dev/null 2>&1) &
@@ -254,9 +263,9 @@ record_browser_game() {
     chrome=$!
     sleep 3
     if kill -0 $chrome 2>/dev/null; then break; fi
-    echo "the browser died at startup, launching it once more"
+    if [ "$attempt" = 1 ]; then echo "the browser died at startup, launching it once more"; else echo "the browser died at startup twice"; kill $http 2>/dev/null || true; return 1; fi
   done
-  xdotool mousemove 320 240 click 1
+  xdotool mousemove 320 240 click 1 || { echo "xdotool could not click on $DISPLAY"; kill $chrome $http 2>/dev/null || true; return 1; }
   sleep 1
   ffmpeg -loglevel error -f pulse -i virtual_speaker.monitor -t "$secs" -y "$wav" &
   rec=$!

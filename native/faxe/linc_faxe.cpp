@@ -641,7 +641,9 @@ static int collectSubsoundHandles(FMOD::Sound* parent, int* out, int cap) {
 
 // Closes what the game left open on a sound this shim is about to
 // release: the sample lock and the custom rolloff points FMOD reads.
-// Runs on live sounds only, from the game thread.
+// Runs on live sounds only, from the game thread. A lock is refused on
+// an owned sound, so the lock close is a guard for a subsound handed
+// back before the refusal rather than a path in use.
 static void lincOwnedSoundTeardown(void* ptr, int handle) {
     FMOD::Sound* sound = (FMOD::Sound*)ptr;
     soundLockClose(handle, sound);
@@ -4028,7 +4030,10 @@ int fmod_sys_unload_all() {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     lincStashAllBankPaths();
     gLastResult = gStudioSystem->unloadAll();
-    if (gLastResult == FMOD_OK) lincReclaimDeadLookups();
+    // A refused call can still have unloaded some banks, and the sweep
+    // frees only the slots FMOD reports dead, so it runs either way.
+    // Otherwise a stale slot at a reused address aliases a new object.
+    lincReclaimDeadLookups();
     return (int)gLastResult;
 }
 

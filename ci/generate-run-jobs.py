@@ -142,8 +142,10 @@ LINUX_HASHLINK = """
 AUDIO_SETUP = """      - name: Start display and audio
         run: |
           Xvfb :99 -screen 0 1024x768x24 &
+          XVFB_PID=$!
           export DISPLAY=:99
           sleep 1
+          kill -0 $XVFB_PID 2>/dev/null || { echo "FAIL: Xvfb did not start on :99"; exit 1; }
           pulseaudio --start --exit-idle-time=-1 || true
           pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
           pactl set-default-sink virtual_speaker
@@ -399,28 +401,34 @@ def serve(bindir, port):
           HTTP_PID=$!
           cd -
           sleep 1
-          PROFILE=$(mktemp -d)
 """
 
 
 def record_page_function(seconds):
     # The page launcher the two record steps share. A browser dead three
-    # seconds in, before the first click, reports failure so the caller
-    # launches it once more with a fresh profile. The runner's snap
-    # Chromium has died at startup on its GPU wrapper.
+    # seconds in, before the first click, returns 1 so the caller launches
+    # it once more with a fresh profile, after what the dead attempt left
+    # is reaped. The runner's snap Chromium has died at startup on its GPU
+    # wrapper. The caller's test disables errexit inside this body, so a
+    # click that fails is reported here and returns 2, which nothing
+    # retries.
     return f"""          record_page() {{
             PROFILE=$(mktemp -d)
             {CHROME}
               "$1" > "$2" 2>&1 &
             CHROME_PID=$!
             sleep 3
-            if ! kill -0 $CHROME_PID 2>/dev/null; then return 1; fi
-            xdotool mousemove 320 240 click 1
+            if ! kill -0 $CHROME_PID 2>/dev/null; then
+              pkill -f "$PROFILE" || true
+              rm -rf "$PROFILE"
+              return 1
+            fi
+            xdotool mousemove 320 240 click 1 || {{ echo "::error ::xdotool could not click on $DISPLAY"; kill $CHROME_PID || true; return 2; }}
             sleep 1
             ffmpeg -f pulse -i virtual_speaker.monitor -t {seconds} -y "$3" &
             RECORD_PID=$!
             sleep 4
-            xdotool mousemove 320 240 click 1
+            xdotool mousemove 320 240 click 1 || {{ echo "::error ::xdotool could not click on $DISPLAY"; kill $CHROME_PID $RECORD_PID || true; return 2; }}
             sleep {seconds - 3}
             kill $CHROME_PID || true
             pkill -f "$PROFILE" || true
@@ -431,12 +439,34 @@ def record_page_function(seconds):
 
 
 def record_page_call(url, console, wav):
-    return f"""          if ! record_page {url} {console} {wav}; then
+    # Two dead browsers fail the step here, where the cause is printed
+    return f"""          record_page {url} {console} {wav} && STATUS=0 || STATUS=$?
+          if [ "$STATUS" = 1 ]; then
             echo "::notice ::the browser died at startup, launching it once more"
             cp {console} "$(dirname {console})/first-attempt-$(basename {console})" || true
-            record_page {url} {console} {wav} || echo "the browser died at startup twice"
+            record_page {url} {console} {wav} && STATUS=0 || STATUS=$?
+            if [ "$STATUS" = 1 ]; then echo "::error ::the browser died at startup twice"; fi
           fi
           kill $HTTP_PID || true
+          [ "$STATUS" = 0 ]
+"""
+
+
+def launch_page_function():
+    # The state page launcher. A browser dead three seconds in reports
+    # failure so the caller launches it once more with a fresh profile,
+    # after what the dead attempt left is reaped.
+    return f"""          launch_page() {{
+            PROFILE=$(mktemp -d)
+            {CHROME}
+              "http://localhost:8182/index.html?test=$STATE" > "$RAW" 2>&1 &
+            CHROME_PID=$!
+            sleep 3
+            if kill -0 $CHROME_PID 2>/dev/null; then return 0; fi
+            pkill -f "$PROFILE" || true
+            rm -rf "$PROFILE"
+            return 1
+          }}
 """
 
 
@@ -465,14 +495,15 @@ def browser_steps(j):
           GATE="${{{{ matrix.gate }}}}"
           RAW=/tmp/$STATE-{j.name}.log.raw
           LOG=/tmp/$STATE-{j.name}.log
-{serve(j.bindir, 8182)}          if [ "$STATE" = synth-test ]; then
+{serve(j.bindir, 8182)}{launch_page_function()}          if ! launch_page; then
+            echo "::notice ::the browser died at startup, launching it once more"
+            cp "$RAW" "$(dirname "$RAW")/first-attempt-$(basename "$RAW")" || true
+            launch_page || {{ echo "::error ::the browser died at startup twice"; kill $HTTP_PID || true; exit 1; }}
+          fi
+          if [ "$STATE" = synth-test ]; then
             ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-{j.name}.wav &
             RECORD_PID=$!
           fi
-          {CHROME}
-            "http://localhost:8182/index.html?test=$STATE" > "$RAW" 2>&1 &
-          CHROME_PID=$!
-          sleep 3
           xdotool mousemove 320 240 click 1
           sleep 5
           xdotool mousemove 320 240 click 1
@@ -536,12 +567,17 @@ def run_job(j, text):
     steps = browser_steps(j) if j.browser else native_steps(j)
     # macOS writes a diagnostic report for every crashed process. A run
     # that dies with a signal has no stack in the game log, the report
-    # carries it.
+    # carries it. The report lands a few seconds after the process dies,
+    # and an immediate copy found none for a probe segfault.
     crash = f"""
       - name: Collect crash reports
         if: failure()
         run: |
           mkdir -p /tmp/crash-{j.name}
+          for i in $(seq 20); do
+            ls ~/Library/Logs/DiagnosticReports/*.ips >/dev/null 2>&1 && break
+            sleep 1
+          done
           cp ~/Library/Logs/DiagnosticReports/*.ips /tmp/crash-{j.name}/ 2>/dev/null || true
           ls /tmp/crash-{j.name} 2>/dev/null || true
 """ if j.mac else ""

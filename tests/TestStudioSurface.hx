@@ -433,11 +433,21 @@ class TestStudioSurface {
 	static function testCoreSurface():Void {
 		var stream = PcmStream.create(48000, 1);
 		assert(stream.isNull(), "pcm stream null");
-		assert(stream.write(haxe.io.Bytes.alloc(16)) == 0, "pcm write default");
-		assert(stream.write(haxe.io.Bytes.alloc(16), 8) == 0, "pcm write with length");
-		assert(stream.write(haxe.io.Bytes.alloc(16), 1 << 20) == 0, "pcm write oversized length clamped");
-		assert(stream.write(null) == 0, "pcm write null data");
-		assert(stream.write(haxe.io.Bytes.alloc(16), -8) == 0, "pcm write bad negative count");
+		// The stub records the count the wrapper hands the native layer,
+		// which is the clamp the HashLink shim cannot make on its own
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		stub.testLastPcmWriteLen = -1;
+		stream.write(haxe.io.Bytes.alloc(16));
+		assert(stub.testLastPcmWriteLen == 16, "pcm write default length");
+		stream.write(haxe.io.Bytes.alloc(16), 8);
+		assert(stub.testLastPcmWriteLen == 8, "pcm write with length");
+		stream.write(haxe.io.Bytes.alloc(16), 1 << 20);
+		assert(stub.testLastPcmWriteLen == 16, "pcm write oversized length clamped");
+		stub.testLastPcmWriteLen = -1;
+		assert(stream.write(null) == 0 && stub.testLastPcmWriteLen == -1, "pcm write null data");
+		stream.write(haxe.io.Bytes.alloc(16), -8);
+		assert(stub.testLastPcmWriteLen == -8, "pcm write bad negative count reaches the native layer");
+		stub.testLastPcmWriteLen = -1;
 		assert(stream.space() == 0, "pcm space default");
 		assert(stream.takeUnderruns() == 0, "pcm underruns default");
 		assert(!stream.release().isOk(), "pcm release result");
@@ -1379,6 +1389,11 @@ class TestStudioSurface {
 		PcmStream.clearAllReadCallbacks();
 		assert(!stream.hasReadCallback() && CallbackDispatcher.frameHook == null,
 			"clearing every read callback drops the hook");
+		// The manager's clear-all reaches the read callbacks too
+		stream.setReadCallback(function(s, data, len) return FmodResult.FMOD_OK);
+		haxefmod.FmodManager.ClearAllCallbacks();
+		assert(!stream.hasReadCallback() && CallbackDispatcher.frameHook == null,
+			"ClearAllCallbacks drops the read callbacks and the frame hook");
 		PcmStream.NULL.setReadCallback(function(s, data, len) return FmodResult.FMOD_OK);
 		assert(!PcmStream.NULL.hasReadCallback(), "null stream takes no read callback");
 		stub.testPcmSpace = 0;

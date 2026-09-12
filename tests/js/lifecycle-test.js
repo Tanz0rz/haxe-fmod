@@ -102,6 +102,43 @@ async function main() {
         `live=${jaxe.liveCount} baseline=${baseline}`);
     check('stale_handle_resolves_null', jaxe.handleResolve(inst1, jaxe.TYPE_EVI) == null, '');
 
+    // --- a refused bulk destroy keeps every callback ---
+    // FMOD accepts these calls on a live system, so the wrapper methods
+    // are shadowed to force the refusal the restore exists for
+    {
+        const kept = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_set_callback_mask(kept, 0x20 /* STOPPED */);
+        const before = JSON.stringify([jaxe.cbMasks, jaxe.psKeys, jaxe.pluginSeen]);
+        const evdWrapper = jaxe.handleResolve(evd, jaxe.TYPE_EVD);
+        const realReleaseAll = evdWrapper.releaseAllInstances;
+        evdWrapper.releaseAllInstances = () => 40;
+        const refused = jaxe.fmod_evd_release_all_instances(evd);
+        evdWrapper.releaseAllInstances = realReleaseAll;
+        check('refused_release_all_reports', refused === 40, `result=${refused}`);
+        check('refused_release_all_keeps_state', JSON.stringify([jaxe.cbMasks, jaxe.psKeys, jaxe.pluginSeen]) === before, '');
+        check('refused_release_all_keeps_instance', jaxe.handleResolve(kept, jaxe.TYPE_EVI) != null, '');
+        const realUnloadAll = jaxe.gSystem.unloadAll;
+        jaxe.gSystem.unloadAll = () => 40;
+        const refusedAll = jaxe.fmod_sys_unload_all();
+        jaxe.gSystem.unloadAll = realUnloadAll;
+        check('refused_unload_all_reports', refusedAll === 40, `result=${refusedAll}`);
+        check('refused_unload_all_keeps_state', JSON.stringify([jaxe.cbMasks, jaxe.psKeys, jaxe.pluginSeen]) === before, '');
+        check('refused_unload_all_keeps_instance', jaxe.handleResolve(kept, jaxe.TYPE_EVI) != null, '');
+        // The reinstalled callback still delivers
+        jaxe.fmod_evi_start(kept);
+        await pump(3);
+        jaxe.fmod_evi_stop(kept, 1);
+        let sawStopped = false;
+        for (let i = 0; i < 100 && !sawStopped; i++) {
+            await pump(1);
+            for (const ev of drainEvents()) if (ev.handle === kept && ev.type === 0x20) sawStopped = true;
+        }
+        check('refused_destroy_callback_still_delivers', sawStopped, '');
+        jaxe.fmod_evi_release(kept);
+        await pump(2);
+        drainEvents();
+    }
+
     // --- release on an already-destroyed instance frees the slot anyway ---
     const inst3 = jaxe.fmod_evd_create_instance(evd);
     const wrapper = jaxe.handleResolve(inst3, jaxe.TYPE_EVI);
