@@ -134,10 +134,7 @@ abstract Bus(Int) from Int to Int {
         // The unlock can destroy the group. The handler and user data of
         // every group handle that no longer resolves go with it. The check
         // mints no handle and leaves the last result alone.
-        if (result.isOk()) {
-            haxefmod.core.ChannelCallbacks.forgetDeadGroups();
-            UserData.clearDead(UserDataKind.ChannelGroup);
-        }
+        if (result.isOk()) EventInstance.dropDeadGroups();
         return result;
     }
 

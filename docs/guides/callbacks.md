@@ -28,7 +28,7 @@ import haxefmod.studio.Callbacks;
 instance.setCallback(handler, EventCallbackType.TIMELINE_BEAT | EventCallbackType.STOPPED);
 ```
 
-Each instance has one handler. A second registration replaces the first. `release()` removes the handler on every target. Put cleanup code there. A `Destroyed` case never runs on HTML5. See [Limitations](../limitations.md#html5).
+Each instance has one handler. A second registration replaces the first. `release()` removes the handler on every target once FMOD accepts the call. Put cleanup code there. A `Destroyed` case never runs on HTML5. See [Limitations](../limitations.md#html5).
 
 `EventDescription.setCallback(handler, ?mask)` stores a handler. From then on `createInstance` installs it on every new instance of that description. Instances created before the call keep their handler. An instance's own `setCallback` replaces the inherited handler. `clearCallback()` removes the description's handler and leaves existing instances unchanged.
 

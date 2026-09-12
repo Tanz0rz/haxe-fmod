@@ -211,6 +211,28 @@ async function main() {
     check('debug_handle_is_live', jaxe.fmod_debug_handle_is_live(master) === true
         && jaxe.fmod_debug_handle_is_live(0x7fff0001) === false && jaxe.fmod_debug_handle_is_live(0) === false
         && jaxe.lastResult === lastBefore, `last=${jaxe.lastResult}`);
+    // A slot at its last generation retires, so a stale handle from an
+    // earlier generation never resolves again
+    {
+        const liveBefore = jaxe.fmod_debug_live_handle_count();
+        const marker = {};
+        const seed = jaxe.handleAlloc(marker, jaxe.TYPE_EVI);
+        const idx = seed & 0xFFFF;
+        jaxe.slots[idx].gen = 0x7FFF;
+        const stale = (0x7FFF << 16) | idx;
+        jaxe.handleFree(stale);
+        const next = jaxe.handleAlloc(marker, jaxe.TYPE_EVI);
+        check('handle_slot_retires_at_last_generation',
+            jaxe.freeList.indexOf(idx) === -1 && (next & 0xFFFF) !== idx
+            && jaxe.handleResolve(stale, jaxe.TYPE_EVI) === null
+            && jaxe.handleIsLive(stale) === false && jaxe.handleIsLive(next) === true,
+            `stale=${stale} next=${next} free=${jaxe.freeList.join('|')}`);
+        jaxe.handleFree(next);
+        check('handle_retirement_leaks_nothing',
+            jaxe.fmod_debug_live_handle_count() === liveBefore,
+            `live=${jaxe.fmod_debug_live_handle_count()} before=${liveBefore}`);
+    }
+
     jaxe.fmod_cg_release(other);
     jaxe.fmod_cg_release(parent);
     check('no_handle_leaks', jaxe.fmod_debug_live_handle_count() === baseline,

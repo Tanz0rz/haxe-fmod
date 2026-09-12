@@ -256,7 +256,7 @@ def check_row(fixture_dir, index, row):
         code, output = compile_fixture(fixture_dir, main, extra)
         if must_compile:
             if code != 0:
-                failures.append("%s [%s] should compile:\n%s" % (label, mode, output.strip()))
+                failures.append("%s [%s] fails to compile:\n%s" % (label, mode, output.strip()))
         else:
             if code == 0:
                 failures.append("%s [%s] compiled, the gate is missing" % (label, mode))

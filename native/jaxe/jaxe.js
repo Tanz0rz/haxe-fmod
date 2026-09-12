@@ -52,7 +52,7 @@ class jaxe {
     static TYPE_REPLAY = 14;
     static TYPE_GEOMETRY = 15;
     static LIST_MAX = 1024;
-    static slots = [];       // {ptr, raw, gen, type, alive}
+    static slots = [];       // {ptr, raw, gen, type, alive, owned, parent}
     static freeList = [];    // stack of free slot indices
     static liveCount = 0;
 
@@ -331,8 +331,8 @@ class jaxe {
         s.type = 0;
         jaxe.liveCount--;
         // A generation that wraps would let a retained stale handle resolve
-        // again, so a slot at the last generation retires instead of going
-        // back on the free list. The table then grows past it.
+        // again. A slot at the last generation retires and stays off the
+        // free list. The table then grows past it.
         if (s.gen >= 0x7FFF) return;
         s.gen = s.gen + 1;
         jaxe.freeList.push(idx);
@@ -463,9 +463,9 @@ class jaxe {
         delete jaxe.pluginSeen[handle];
     }
 
-    // The per-handle callback state before a bulk destroy, so a refused
-    // destroy puts every callback back on the instances FMOD kept. The
-    // caller adds the instance group callbacks it takes off.
+    // The per-handle callback state before a bulk destroy, so every
+    // instance FMOD kept gets its callback back. The caller adds the
+    // instance group callbacks it takes off.
     static saveCallbackState() {
         return {
             masks: Object.assign({}, jaxe.cbMasks),
@@ -1384,7 +1384,7 @@ class jaxe {
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return jaxe.lastResult; }
         // All bank content is going away. Uninstall every callback first or
         // the FMOD JS module is corrupted. The per-handle state is kept
-        // aside, so a refused unload puts every callback back.
+        // aside, so every survivor of the unload gets its callback back.
         var saved = jaxe.saveCallbackState();
         jaxe.uninstallCallbacksFor(null);
         saved.groups = jaxe.uninstallInstanceGroupCallbacks(null);
@@ -1731,7 +1731,7 @@ class jaxe {
         jaxe.cacheBankPath(bank);
         // Unloading destroys the bank's event instances. Uninstall their
         // callbacks first or the FMOD JS module is corrupted. The state is
-        // kept aside, so a refused unload puts every callback back.
+        // kept aside, so every survivor of the unload gets its callback back.
         var saved = jaxe.saveCallbackState();
         var cnt = {};
         // A count the bank refuses leaves the scope unknown, so every
@@ -2106,15 +2106,14 @@ class jaxe {
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         // Uninstall callbacks on this event's instances first: destroying an
         // instance with a callback installed corrupts the FMOD JS module.
-        // The state is kept aside, so a refused release puts them back.
+        // The state is kept aside, so every survivor of the release gets it back.
         var saved = jaxe.saveCallbackState();
         jaxe.uninstallCallbacksFor(new Set([jaxe.rawPtr(evd)]));
         saved.groups = jaxe.uninstallInstanceGroupCallbacks(new Set([jaxe.rawPtr(evd)]));
         jaxe.lastResult = evd.releaseAllInstances();
-        // With no DESTROYED events on this target, the sweep is what
-        // reclaims the destroyed instances' handle slots
-        // Every survivor gets its callback back. The restore sweeps first
-        // and skips the dead.
+        // The restore sweeps first, which is what reclaims the destroyed
+        // instances' handle slots with no DESTROYED events here. Every
+        // survivor then gets its callback back.
         jaxe.restoreCallbackState(saved);
         return jaxe.lastResult;
     }

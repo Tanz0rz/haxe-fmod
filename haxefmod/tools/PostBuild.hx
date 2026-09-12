@@ -486,7 +486,10 @@ class PostBuild {
 		// install_name_tool reports that as an error.
 		if (target != "hl") {
 			var exe = findExecutable(dest, [".dylib", ".ndll", ".hdll"]);
-			if (exe != null) {
+			if (exe == null) {
+				log('WARNING: no executable found in $dest, so no dylib search path was added');
+				log("  A game launched from there fails at startup with: Library not loaded: @rpath/libfmod.dylib");
+			} else {
 				try {
 					var proc = new sys.io.Process("install_name_tool", ["-add_rpath", "@executable_path", exe]);
 					var out = proc.stdout.readAll().toString();
@@ -516,7 +519,10 @@ class PostBuild {
 						Sys.exit(1);
 					}
 				} catch (e:Dynamic) {
-					log('WARNING: install_name_tool could not run: $e');
+					log('ERROR: install_name_tool could not run on $exe: $e');
+					log("  The game then fails at startup with: Library not loaded: @rpath/libfmod.dylib");
+					log("  Install the Xcode command line tools (xcode-select --install) and rebuild.");
+					Sys.exit(1);
 				}
 			}
 		}

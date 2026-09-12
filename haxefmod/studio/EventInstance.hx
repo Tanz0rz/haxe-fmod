@@ -16,8 +16,38 @@ import haxefmod.studio.native.Scratch;
  */
 abstract EventInstance(Int) from Int to Int {
     // The group handle each instance handed out, so a release drops its
-    // Haxe handler and user data with the instance, and mints nothing
+    // Haxe handler and user data with the instance, and mints nothing.
+    // A bulk destroy drops the entries of every group that died with it.
     static var walkedGroups:Map<Int, Int> = new Map();
+
+    /** Forgets every handed-out group, with the dispatcher's clear-all. */
+    public static function clearWalkedGroups():Void {
+        walkedGroups = new Map();
+    }
+
+    /**
+     * Drops the handler, user data, and walked-group entry of every group
+     * whose handle does not resolve. Every bulk destroy calls this once
+     * FMOD accepted it, since the native side sweeps the dead groups first.
+     */
+    public static function dropDeadGroups():Void {
+        haxefmod.core.ChannelCallbacks.forgetDeadGroups();
+        UserData.clearDead(UserDataKind.ChannelGroup);
+        var dead = [for (instance in walkedGroups.keys()) if (!NativeStudio.debug_handle_is_live(walkedGroups.get(instance))) instance];
+        for (instance in dead) walkedGroups.remove(instance);
+    }
+
+    /**
+     * Drops the handler and user data of the group one destroyed instance
+     * handed out. The release path and the DESTROYED drain both call this.
+     */
+    public static function forgetInstance(instance:Int):Void {
+        var group = walkedGroups.get(instance);
+        if (group == null) return;
+        walkedGroups.remove(instance);
+        haxefmod.core.ChannelCallbacks.forgetGroup(group);
+        UserData.clear(UserDataKind.ChannelGroup, group);
+    }
 
     /** The null handle. Every call on it is a safe no-op. */
     public static inline var NULL:EventInstance = cast 0;
@@ -69,7 +99,8 @@ abstract EventInstance(Int) from Int to Int {
     /**
      * Releases the instance. FMOD destroys it once it stops. Once FMOD
      * accepted the call, the handle is dead and the registered callback
-     * and user data are dropped. A refused release keeps both.
+     * and user data are dropped. The handler and user data of the group
+     * this instance handed out go too. A refused release keeps all of them.
      * The HTML5 backend cannot deliver events after release, so the
      * cleanup happens here on every target for consistent behavior.
      */
@@ -80,12 +111,7 @@ abstract EventInstance(Int) from Int to Int {
             UserData.clear(UserDataKind.EventInstance, this);
             // The instance's group dies with it, so its handler and user
             // data go too
-            var group = walkedGroups.get(this);
-            walkedGroups.remove(this);
-            if (group != null) {
-                haxefmod.core.ChannelCallbacks.forgetGroup(group);
-                UserData.clear(UserDataKind.ChannelGroup, group);
-            }
+            forgetInstance(this);
         }
         return result;
     }

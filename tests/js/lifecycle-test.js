@@ -521,6 +521,59 @@ async function main() {
         drainEvents();
     }
 
+    // A restore skips a group its instance does not own, so a new group
+    // at a recycled address never inherits the old callback
+    {
+        const ownInst = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_start(ownInst);
+        const otherInst = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_start(otherInst);
+        await pump(3);
+        const ownGroup = jaxe.fmod_evi_get_channel_group(ownInst);
+        const otherGroup = jaxe.fmod_evi_get_channel_group(otherInst);
+        check('ownership_groups_differ', ownGroup > 0 && otherGroup > 0 && ownGroup !== otherGroup,
+            `own=${ownGroup} other=${otherGroup}`);
+        check('ownership_group_callback_installed', jaxe.fmod_cg_set_callback(ownGroup, true) === 0, '');
+        const ownGroupW = jaxe.resolveCg(ownGroup);
+        const ownRaw = jaxe.rawPtr(ownGroupW);
+        const taken = jaxe.uninstallInstanceGroupCallbacks(null);
+        check('ownership_uninstall_took_the_group',
+            taken.length === 1 && taken[0].raw === ownRaw && taken[0].inst === ownInst
+            && !jaxe.chanCallbackHandles.has(ownRaw),
+            `taken=${taken.length} inst=${taken.length ? taken[0].inst : 0} own=${ownInst}`);
+        // The instance answers with another event's group here, as it
+        // would after FMOD destroyed its own and handed the address on
+        const ownW = jaxe.handleResolve(ownInst, jaxe.TYPE_EVI);
+        const otherW = jaxe.handleResolve(otherInst, jaxe.TYPE_EVI);
+        const realOwnGet = ownW.getChannelGroup;
+        ownW.getChannelGroup = o => otherW.getChannelGroup(o);
+        const restoreCalls = [];
+        const realOwnSet = ownGroupW.setCallback;
+        ownGroupW.setCallback = function (cb) {
+            restoreCalls.push(cb === null ? 'off' : 'on');
+            return realOwnSet.call(ownGroupW, cb);
+        };
+        jaxe.restoreInstanceGroupCallbacks(taken);
+        ownGroupW.setCallback = realOwnSet;
+        ownW.getChannelGroup = realOwnGet;
+        check('restore_skips_a_group_the_instance_no_longer_owns',
+            restoreCalls.length === 0 && !jaxe.chanCallbackHandles.has(ownRaw),
+            `calls=${restoreCalls.join(',')} mapped=${jaxe.chanCallbackHandles.get(ownRaw)}`);
+        // The same restore puts the callback back once the instance owns
+        // the group again
+        jaxe.restoreInstanceGroupCallbacks(taken);
+        check('restore_reinstalls_a_group_the_instance_still_owns',
+            jaxe.chanCallbackHandles.get(ownRaw) === ownGroup,
+            `mapped=${jaxe.chanCallbackHandles.get(ownRaw)}`);
+        jaxe.fmod_cg_set_callback(ownGroup, false);
+        jaxe.fmod_evi_stop(ownInst, 1);
+        jaxe.fmod_evi_stop(otherInst, 1);
+        jaxe.fmod_evi_release(ownInst);
+        jaxe.fmod_evi_release(otherInst);
+        await pump(3);
+        drainEvents();
+    }
+
     // --- DSP connection handles die with graph teardown ---
     const dsp = jaxe.fmod_dsp_create_by_type(3 /* echo */);
     check('dsp_created', dsp > 0, `handle=${dsp}`);

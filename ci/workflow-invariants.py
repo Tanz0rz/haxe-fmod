@@ -41,8 +41,9 @@ leans on:
      goes through the local action with the retry. The macOS jobs
      install Haxe through Homebrew, which retries on its own.
   14. Every haxelib install, git clone, fetch, pull, and submodule
-     update, npm install, playwright install, brew install, pip install,
-     curl, wget, ssh, rsync, and gh api call goes through ci/retry.sh.
+     update, npm install or ci, playwright install, brew install, pip
+     install, curl, wget, ssh, rsync, and gh api or release download
+     call goes through ci/retry.sh.
      That covers the workflows, the composite actions, and the run job
      generator. Every apt-get carries its retry option.
   15. The steps gated on a stale pre-built hdll are the known few, so a
@@ -256,10 +257,14 @@ else:
 # from an action directory, is exit 127 on the runner. The path check
 # is what catches both. Every apt-get carries its retry option, and a
 # comment or echo naming one is skipped.
-# A command name counts at a command position only, so a path such as
-# .ssh/config or an env value never reads as a fetch
-FETCH_RE = re.compile(r"(?<![\w./-])(haxelib install|git (?:clone|fetch|pull|submodule)|npm (?:install|ci)|npx playwright install|curl\s|wget\s|brew install|pip\"? install|ssh\s|rsync\s|gh (?:api|release download))")
+# The lookbehind rejects a name inside a longer word or after a dot. An
+# .ssh/config path or an env value never reads as a fetch, and a pip
+# reached by its path still does. A wrapper covers the command it
+# starts, so each segment between the shell's list and pipe operators
+# is checked on its own
+FETCH_RE = re.compile(r"(?<![\w.])(haxelib install|git (?:clone|fetch|pull|submodule)|npm (?:install|ci)|npx playwright install|curl\s|wget\s|brew install|pip\"? install|ssh\s|rsync\s|gh (?:api|release download))")
 WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)ci/retry\.sh\1")
+SEGMENT_RE = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")
 fetch_files = [os.path.join(os.path.dirname(PATH), wf) for wf in sorted(os.listdir(os.path.dirname(PATH))) if wf.endswith(".yml")]
 actions_dir = os.path.join(ROOT, ".github", "actions")
 fetch_files += [os.path.join(actions_dir, a, "action.yml") for a in sorted(os.listdir(actions_dir))]
@@ -272,20 +277,27 @@ for path in fetch_files:
     with open(path) as fh:
         raw_lines = fh.readlines()
     # A command that continues over a backslash is one logical line, so a
-    # wrapper on the first line covers the whole fetch
+    # wrapper on the first line covers the whole fetch. Each logical line
+    # reports the number of its first physical line
     lines = []
     carry = ""
-    for raw in raw_lines:
+    carrying = False
+    start = 0
+    for lineno, raw in enumerate(raw_lines, 1):
+        if not carrying:
+            start = lineno
         if raw.rstrip("\n").endswith("\\"):
             carry += raw.rstrip("\n")[:-1]
+            carrying = True
             continue
-        lines.append(carry + raw)
+        lines.append((start, carry + raw))
         carry = ""
-    if carry:
-        lines.append(carry + "\n")
+        carrying = False
+    if carrying:
+        lines.append((start, carry + "\n"))
     block_indent = None
     moved = False
-    for n, line in enumerate(lines, 1):
+    for n, line in lines:
         stripped = line.strip()
         indent = len(line) - len(line.lstrip(" "))
         if re.match(r"run: \|", stripped) or re.match(r"return f?" + chr(34) * 3, stripped):
@@ -313,10 +325,13 @@ for path in fetch_files:
                 unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} relative wrapper after a cd")
             elif m.group(2) != "$GITHUB_ACTION_PATH" and not os.path.exists(os.path.join(ROOT, "ci", "retry.sh")):
                 unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} ci/retry.sh is missing")
-            if FETCH_RE.search(line):
+        for segment in SEGMENT_RE.split(line):
+            if not FETCH_RE.search(segment):
+                continue
+            if "retry.sh" in segment:
                 wrapped += 1
-        elif FETCH_RE.search(line):
-            bare.append(f"{os.path.relpath(path, ROOT)}:{n}")
+            else:
+                bare.append(f"{os.path.relpath(path, ROOT)}:{n}")
 if bare or unresolved or unretried or wrapped < 150:
     fail(f"network fetches outside ci/retry.sh: {bare}, wrapper paths that do not resolve: {unresolved}, apt-get without retries: {unretried} ({wrapped} wrapped)")
 else:

@@ -191,6 +191,7 @@ async function main() {
     }));
     const covered = Object.keys(examples).length;
     console.log('guide: ' + guide.lone + ' lone blocks, ' + guide.selectors + ' added selectors, ' + guide.blocks + ' haxe blocks, ' + covered + ' translations');
+    if (covered === 0) fail('no studio-guide translations in examples-data.js');
     if (guide.blocks !== covered || guide.tabs !== covered) fail('guide page should get one Haxe block per translated example');
     if (covered > 0) {
         const first = await page.evaluate(() => {

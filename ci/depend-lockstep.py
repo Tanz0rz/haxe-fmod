@@ -7,7 +7,7 @@ header linc_faxe.cpp includes without a matching <depend> in
 linc_faxe.xml reopens a stale-object hole where header-only edits
 reuse outdated cached objects. That bit us once already, so it fails
 the build here. A header that only another shared header includes is
-hashed the same way, so every file under native/shared/ needs an entry
+hashed the same way, so every header under native/shared/ needs an entry
 too.
 
 Run: python3 ci/depend-lockstep.py

@@ -475,7 +475,7 @@ jobs:
             '{from: $from, to: [$to], subject: $subject, text: $text}' \
             > /tmp/resend-payload.json
 
-          HTTP_CODE=$(bash ci/retry.sh curl -sS -o /tmp/resend-response.json -w "%{http_code}" \
+          HTTP_CODE=$(bash ci/retry.sh curl -sS --retry 3 --retry-delay 15 -o /tmp/resend-response.json -w "%{http_code}" \
             -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer $RESEND_API_KEY" \
             -H "Content-Type: application/json" \

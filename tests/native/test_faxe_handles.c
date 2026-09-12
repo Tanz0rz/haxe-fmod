@@ -279,6 +279,10 @@ int main(void) {
     assert(h2 != h1);                          /* different generation */
     assert(faxe_handle_resolve(h1, FAXE_TYPE_EVI) == NULL);
     assert(faxe_handle_resolve(h2, FAXE_TYPE_EVI) == &dummy2);
+    /* The liveness check reads the generation, so a stale handle on a
+     * recycled slot is dead while the slot's current handle is live */
+    assert(!faxe_handle_is_live(h1) && faxe_handle_is_live(h2));
+    assert(!faxe_handle_is_live(0) && !faxe_handle_is_live(-1));
 
     /* growth beyond the initial 64 slots */
     int handles[500];

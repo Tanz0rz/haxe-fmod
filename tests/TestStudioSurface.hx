@@ -958,6 +958,68 @@ class TestStudioSurface {
 		haxefmod.studio.CallbackDispatcher.deliver((ownedGroup : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
 		assert(ownedSeen.length == 0, "an instance release drops its group's handler");
 		assert(ownedGroup.getUserData() == null, "an instance release drops its group's user data");
+
+		// An instance FMOD tore down on its own drops its group's handler
+		// and user data through the DESTROYED record
+		var torn:EventInstance = cast 4325;
+		haxefmod.studio.native.NativeStudioStub.testEviChannelGroup = 4326;
+		var tornGroup = torn.getChannelGroup();
+		haxefmod.studio.native.NativeStudioStub.testEviChannelGroup = 0;
+		var tornSeen:Array<haxefmod.core.ChannelEvent> = [];
+		tornGroup.setCallback(function(e) tornSeen.push(e));
+		tornGroup.setUserData("torn-group");
+		haxefmod.studio.CallbackDispatcher.deliver((torn : Int), haxefmod.studio.Callbacks.EventCallbackType.DESTROYED, 0, 0, 0, 0, 0, 0, "");
+		haxefmod.studio.CallbackDispatcher.deliver((tornGroup : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
+		assert(tornSeen.length == 0, "a destroyed instance drops its group's handler");
+		assert(tornGroup.getUserData() == null, "a destroyed instance drops its group's user data");
+
+		// A bank unload, a release of every instance, and unloadAll drop
+		// the handler and user data of every group that died with them
+		var bankGroup:ChannelGroup = cast 4327;
+		var bankSeen:Array<haxefmod.core.ChannelEvent> = [];
+		bankGroup.setCallback(function(e) bankSeen.push(e));
+		bankGroup.setUserData("bank-group");
+		haxefmod.studio.native.NativeStudioStub.testDeadHandles = [(bankGroup : Int)];
+		var unloadedBank:Bank = cast 4328;
+		// The stub refuses the unload by default, and a refusal keeps the entries
+		unloadedBank.unload();
+		assert(bankGroup.getUserData() == "bank-group", "a refused bank unload keeps every group entry");
+		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 0;
+		unloadedBank.unload();
+		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 68;
+		haxefmod.studio.CallbackDispatcher.deliver((bankGroup : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
+		assert(bankSeen.length == 0, "a bank unload drops the handler of a group that died with it");
+		assert(bankGroup.getUserData() == null, "a bank unload drops the user data of a group that died with it");
+
+		var allGroup:ChannelGroup = cast 4329;
+		var allSeen:Array<haxefmod.core.ChannelEvent> = [];
+		allGroup.setCallback(function(e) allSeen.push(e));
+		var releasedDescription:EventDescription = cast 4330;
+		haxefmod.studio.native.NativeStudioStub.testDeadHandles = [(allGroup : Int)];
+		releasedDescription.releaseAllInstances();
+		haxefmod.studio.CallbackDispatcher.deliver((allGroup : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
+		assert(allSeen.length == 1, "a refused release of every instance keeps the group handlers");
+		haxefmod.studio.native.NativeStudioStub.testEvdReleaseAllResult = 0;
+		releasedDescription.releaseAllInstances();
+		haxefmod.studio.native.NativeStudioStub.testEvdReleaseAllResult = 68;
+		haxefmod.studio.CallbackDispatcher.deliver((allGroup : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
+		assert(allSeen.length == 1, "a release of every instance drops the handler of a group that died with it");
+
+		var survivor:ChannelGroup = cast 4331;
+		var survivorSeen:Array<haxefmod.core.ChannelEvent> = [];
+		survivor.setCallback(function(e) survivorSeen.push(e));
+		var gone:ChannelGroup = cast 4332;
+		var goneSeen:Array<haxefmod.core.ChannelEvent> = [];
+		gone.setCallback(function(e) goneSeen.push(e));
+		haxefmod.studio.native.NativeStudioStub.testDeadHandles = [(gone : Int)];
+		haxefmod.studio.native.NativeStudioStub.testUnloadAllResult = 0;
+		assert(StudioSystem.unloadAll().isOk(), "unloadAll reports the native result");
+		haxefmod.studio.native.NativeStudioStub.testUnloadAllResult = 68;
+		haxefmod.studio.native.NativeStudioStub.testDeadHandles = [];
+		haxefmod.studio.CallbackDispatcher.deliver((survivor : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
+		haxefmod.studio.CallbackDispatcher.deliver((gone : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
+		assert(survivorSeen.length == 1, "unloadAll keeps the handler of a group that survived");
+		assert(goneSeen.length == 0, "unloadAll drops the handler of a group that died with a bank");
 		ChannelCallbacks.clearAll();
 	}
 
@@ -1461,7 +1523,7 @@ class TestStudioSurface {
 		assert(stub.testLastPcmWriteLen == -1, "a declining read callback writes nothing");
 		stream.setReadCallback(function(s, data, len) { s.clearReadCallback(); return FmodResult.FMOD_OK; });
 		PcmStream.pump();
-		assert(!stream.hasReadCallback(), "read callback may remove itself");
+		assert(!stream.hasReadCallback(), "a read callback that removes itself is out");
 		stream.setReadCallback(function(s, data, len) throw "boom");
 		PcmStream.pump();
 		assert(stream.hasReadCallback(), "a throwing read callback is contained");

@@ -60,6 +60,29 @@ if [ -n "$release" ]; then
   esac
 fi
 
+# A release ships no hdll behind the tree. A branch build warns, since a
+# shim change lands before update-hdlls can rebuild the hdlls.
+abi=$(grep -m1 '^# abi-version:' native/manifest/studio_api.txt | grep -o '[0-9][0-9]*' | head -1 || true)
+src=$(python3 ci/hlaxe-src-hash.py)
+for platform in Linux64 Mac64 Windows64; do
+  hdll="templates/bin/hl/$platform/hlaxe_fmod.hdll"
+  if ! python3 - "$hdll" "$abi" "$src" <<'PY'
+import re, sys
+data = open(sys.argv[1], "rb").read()
+abi = re.search(rb"hlaxe_fmod_abi=([0-9]+)", data)
+src = re.search(rb"hlaxe_fmod_src=([0-9a-f]+)", data)
+sys.exit(0 if abi and src and abi.group(1).decode() == sys.argv[2] and src.group(1).decode() == sys.argv[3] else 1)
+PY
+  then
+    if [ -n "$release" ]; then
+      echo "ERROR: $hdll is behind the tree (the tree is at ABI $abi, source $src)"
+      echo "Wait for the update-hdlls auto-commit and package that tip."
+      exit 1
+    fi
+    echo "WARNING: $hdll is behind the tree (the tree is at ABI $abi, source $src)"
+  fi
+done
+
 rm -f haxefmod.zip
 
 zip -r haxefmod.zip \

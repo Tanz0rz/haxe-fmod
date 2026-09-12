@@ -775,8 +775,8 @@ conn_get_mix_matrix i32 fbuf ibuf i32 -> i32
 ## Debug
 debug_live_handle_count -> i32
 # whether a handle of any type still resolves, with no FMOD call and no
-# change to the last result. The Haxe side drops the entries of a group
-# handle a bus unlock destroyed with it.
+# change to the last result. A bus unlock reads it to drop the handler
+# and user data of every group handle the unlock destroyed.
 debug_handle_is_live i32 -> bool
 binding_abi_version -> i32
 

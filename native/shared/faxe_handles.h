@@ -11,8 +11,9 @@
  * - handle value 0 is always invalid (generation can never be 0)
  *
  * Generations catch use-after-release. Freeing a slot bumps its generation,
- * so any retained stale handle fails to resolve. Callers then return
- * FMOD_ERR_INVALID_HANDLE instead of touching freed memory.
+ * so any retained stale handle fails to resolve. A slot at the last
+ * generation retires, and the table grows past it. Callers then return
+ * FMOD_ERR_INVALID_HANDLE and never touch freed memory.
  *
  * Threading: the table must only be mutated from the Haxe thread. FMOD
  * callback threads must never call these functions. They receive handles
@@ -227,7 +228,8 @@ static void* faxe_handle_resolve(int handle, unsigned char type) {
     return s->ptr;
 }
 
-/* Frees the slot and bumps its generation so stale handles stop resolving. */
+/* Frees the slot and bumps its generation, or retires it, so stale handles
+ * stop resolving. */
 static void faxe_handle_free(int handle) {
     int idx;
     unsigned short gen;
@@ -250,8 +252,8 @@ static void faxe_handle_free(int handle) {
     s->type = FAXE_TYPE_NONE;
     gFaxeLiveCount--;
     /* A generation that wraps would let a retained stale handle resolve
-     * again, so a slot at the last generation retires instead of going
-     * back on the free list. The table then grows past it. */
+     * again. A slot at the last generation retires and stays off the
+     * free list. The table then grows past it. */
     if (s->gen >= FAXE_GEN_MAX) return;
     s->gen = (unsigned short)(s->gen + 1);
     s->next_free = gFaxeFreeHead;

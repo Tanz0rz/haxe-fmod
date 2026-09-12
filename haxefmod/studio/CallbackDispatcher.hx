@@ -100,6 +100,7 @@ class CallbackDispatcher {
     public static function clearAll():Void {
         for (handle in handlers.keys()) NativeStudio.evi_set_callback_mask(handle, 0);
         handlers = new Map();
+        haxefmod.studio.EventInstance.clearWalkedGroups();
     }
 
     public static function hasHandler(handle:Int):Bool {
@@ -162,6 +163,8 @@ class CallbackDispatcher {
             // FMOD tore the instance down on its own, so release() never
             // ran and its userdata entry would otherwise outlive it
             UserData.clear(UserDataKind.EventInstance, handle);
+            // The group the instance handed out died with it
+            haxefmod.studio.EventInstance.forgetInstance(handle);
         }
     }
 

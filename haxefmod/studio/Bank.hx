@@ -44,7 +44,8 @@ abstract Bank(Int) from Int to Int {
      * description/instance handle that came from it). The userdata and
      * the description-level callbacks of those descriptions are dropped,
      * for the first 1024 events of the bank. A larger bank keeps the
-     * rest until StudioSystem.unloadAll.
+     * rest until StudioSystem.unloadAll. The handler and user data of
+     * every channel group that died with the bank go too.
      */
     public function unload():FmodResult {
         // The descriptions are read while the bank is loaded, and their
@@ -57,6 +58,7 @@ abstract Bank(Int) from Int to Int {
                 description.clearCallback();
             }
             UserData.clear(UserDataKind.Bank, this);
+            EventInstance.dropDeadGroups();
         }
         return result;
     }

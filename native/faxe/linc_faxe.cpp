@@ -2284,11 +2284,12 @@ int fmod_sys_set_studio_callback_mask(int mask) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     if (mask == 0) {
         gLastResult = gStudioSystem->setCallback(NULL, 0);
-        faxe_bankpath_clear();
     } else {
         gLastResult = gStudioSystem->setCallback(lincStudioSystemCallback, (FMOD_STUDIO_SYSTEM_CALLBACK_TYPE)mask);
     }
     gSystemCallbackMask = (gLastResult == FMOD_OK) ? (unsigned int)mask : 0u;
+    // The path stash serves the unload record alone, so it goes with that bit
+    if (!(gSystemCallbackMask & FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD)) faxe_bankpath_clear();
     return (int)gLastResult;
 }
 
@@ -4102,8 +4103,8 @@ static void lincReclaimDeadChannels() {
 
 // The group callbacks the game installed on instance groups, taken off
 // before a call that destroys instances. FMOD must not free a group with
-// the shim callback on it. A refused call puts each one back whose group
-// still answers, the way the HTML5 shim restores instance callbacks.
+// the shim callback on it. Every call puts each one back whose group
+// still answers and whose instance still owns it.
 struct LincGroupCallbackStash {
     FMOD::ChannelGroup** groups;
     void** userData;
@@ -4114,7 +4115,7 @@ struct LincGroupCallbackStash {
 // descs names the descriptions whose instances the call destroys, or
 // NULL for every instance. A group outside that set keeps its callback,
 // since the call leaves its instance alive. Without memory for the
-// stash the callbacks still come off, and a refusal cannot restore them.
+// stash the callbacks still come off, and no restore can put them back.
 static LincGroupCallbackStash lincUninstallInstanceGroupCallbacks(FMOD::Studio::EventDescription** descs, int descCount) {
     LincGroupCallbackStash stash;
     stash.groups = (FMOD::ChannelGroup**)malloc(sizeof(FMOD::ChannelGroup*) * (size_t)(gFaxeSlotCap > 0 ? gFaxeSlotCap : 1));
@@ -4169,17 +4170,15 @@ static int lincBankDescriptions(FMOD::Studio::Bank* bank, FMOD::Studio::EventDes
 // and whose instance still owns it. The caller sweeps first, so a group
 // FMOD destroyed lost its slot. A new group at the same address belongs
 // to another instance, which the ownership check tells apart.
-static void lincRestoreInstanceGroupCallbacks(LincGroupCallbackStash* stash, bool restore) {
-    if (restore) {
-        for (int i = 0; i < stash->count; i++) {
-            int gh = (int)(intptr_t)stash->userData[i];
-            FMOD::Studio::EventInstance* instance = (FMOD::Studio::EventInstance*)faxe_handle_resolve(stash->instances[i], FAXE_TYPE_EVI);
-            FMOD::ChannelGroup* current = NULL;
-            if (!gh || faxe_handle_resolve(gh, FAXE_TYPE_CHANGROUP) != stash->groups[i]) continue;
-            if (!instance || instance->getChannelGroup(&current) != FMOD_OK || current != stash->groups[i]) continue;
-            stash->groups[i]->setUserData(stash->userData[i]);
-            stash->groups[i]->setCallback(lincChannelCallback);
-        }
+static void lincRestoreInstanceGroupCallbacks(LincGroupCallbackStash* stash) {
+    for (int i = 0; i < stash->count; i++) {
+        int gh = (int)(intptr_t)stash->userData[i];
+        FMOD::Studio::EventInstance* instance = (FMOD::Studio::EventInstance*)faxe_handle_resolve(stash->instances[i], FAXE_TYPE_EVI);
+        FMOD::ChannelGroup* current = NULL;
+        if (!gh || faxe_handle_resolve(gh, FAXE_TYPE_CHANGROUP) != stash->groups[i]) continue;
+        if (!instance || instance->getChannelGroup(&current) != FMOD_OK || current != stash->groups[i]) continue;
+        stash->groups[i]->setUserData(stash->userData[i]);
+        stash->groups[i]->setCallback(lincChannelCallback);
     }
     free(stash->groups);
     free(stash->userData);
@@ -4195,7 +4194,7 @@ int fmod_sys_unload_all() {
     // frees only the slots FMOD reports dead, so it runs either way.
     // Otherwise a stale slot at a reused address aliases a new object.
     lincReclaimDeadLookups();
-    lincRestoreInstanceGroupCallbacks(&stash, true);
+    lincRestoreInstanceGroupCallbacks(&stash);
     return (int)gLastResult;
 }
 
@@ -4486,7 +4485,7 @@ int fmod_bank_unload(int h) {
     }
     // Every group that survived the unload gets its callback back, on
     // every path: the restore skips a group that died or changed owner.
-    lincRestoreInstanceGroupCallbacks(&stash, true);
+    lincRestoreInstanceGroupCallbacks(&stash);
     return (int)gLastResult;
 }
 
@@ -4815,7 +4814,7 @@ int fmod_evd_release_all_instances(int h) {
     gLastResult = desc->releaseAllInstances();
     // The sweep makes a destroyed group lose its slot before the restore
     lincReclaimDeadLookups();
-    lincRestoreInstanceGroupCallbacks(&stash, true);
+    lincRestoreInstanceGroupCallbacks(&stash);
     return (int)gLastResult;
 }
 

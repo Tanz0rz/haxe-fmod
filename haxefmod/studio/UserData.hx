@@ -38,8 +38,8 @@ class UserDataKind {
  * The store drops an entry when the handle is released through the
  * abstract (release, stop, unload). FMOD has to accept the release or
  * report the handle dead already. A refused release keeps the object,
- * so the entry stays with it. An event instance or a channel drops its
- * entry before the call, since those calls fail on a dead handle only.
+ * so the entry stays with it. A channel drops its entry before the call,
+ * since that call fails on a dead handle only.
  * It also drops the entry when the dispatcher delivers Destroyed for an
  * event instance FMOD tore down on its own. End does the same for a
  * channel with a handler. On HTML5 Destroyed never arrives, so the
@@ -88,7 +88,6 @@ class UserData {
         return result.isOk() || result == FmodResult.FMOD_ERR_INVALID_HANDLE;
     }
 
-    /** Drops every entry of one family. */
     /** Drops the entries of one kind whose handle no longer resolves. */
     public static function clearDead(kind:Int):Void {
         var map = maps[kind];
@@ -96,6 +95,7 @@ class UserData {
         for (handle in dead) map.remove(handle);
     }
 
+    /** Drops every entry of one family. */
     public static function clearKind(kind:Int):Void {
         maps[kind] = new Map();
     }

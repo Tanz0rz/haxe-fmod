@@ -174,9 +174,11 @@ abstract EventDescription(Int) from Int to Int {
         return [for (i in 0...count) (Scratch.readI(i) : EventInstance)];
     }
 
-    /** Stops and releases all instances of this event. */
-    public inline function releaseAllInstances():FmodResult {
-        return NativeStudio.evd_release_all_instances(this);
+    /** Stops and releases all instances of this event. The handler and user data of every group that died go too. */
+    public function releaseAllInstances():FmodResult {
+        var result:FmodResult = NativeStudio.evd_release_all_instances(this);
+        if (result.isOk()) EventInstance.dropDeadGroups();
+        return result;
     }
 
     /** Loads non-streaming sample data ahead of time (refcounted by FMOD). */

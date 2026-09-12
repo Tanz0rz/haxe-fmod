@@ -195,7 +195,9 @@ class NativeStudioStub {
         for (i in 0...testInstanceList.length) haxefmod.studio.native.Scratch.writeI(i, testInstanceList[i]);
         return testInstanceList.length;
     }
-    public static function evd_release_all_instances(handle:Int):Int return ERR_UNSUPPORTED;
+    /** The result evd_release_all_instances reports. Tests toggle it. */
+    public static var testEvdReleaseAllResult:Int = ERR_UNSUPPORTED;
+    public static function evd_release_all_instances(handle:Int):Int return testEvdReleaseAllResult;
     public static function evd_load_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
     public static function evd_unload_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
     public static function evd_get_sample_loading_state(handle:Int):Int return 1;
@@ -406,10 +408,9 @@ class NativeStudioStub {
 
     // Studio bus to core group bridge
     public static var testBusUnlockResult:Int = ERR_UNSUPPORTED;
-    public static var testBusChannelGroup:Int = 0;
     public static function bus_lock_channel_group(handle:Int):Int return ERR_UNSUPPORTED;
     public static function bus_unlock_channel_group(handle:Int):Int return testBusUnlockResult;
-    public static function bus_get_channel_group(handle:Int):Int return testBusChannelGroup;
+    public static function bus_get_channel_group(handle:Int):Int return 0;
 
     // Core system extras
     public static function sys_play_dsp(dspHandle:Int, group:Int, startPaused:Bool):Int {
