@@ -96,6 +96,10 @@ async function main() {
     const format = [];
     jaxe.fmod_sound_get_format(raw, format);
     check('exinfo_memory_format', format[1] === F.SOUND_FORMAT_PCM16 && format[2] === 1, `format=${format[1]} channels=${format[2]}`);
+    // A sound group the game created stays releasable when reached
+    // through a walk: the walk finds its slot instead of minting an
+    // owned one, the way the channel group walks do
+    check('exinfo_sound_group_walk_unowned', !jaxe.isOwned(group), '');
     check('exinfo_initial_sound_group', jaxe.fmod_sound_get_sound_group(raw) === group,
         `group=${group} got=${jaxe.fmod_sound_get_sound_group(raw)}`);
     const badGuid = jaxe.fmod_core_create_sound_memory_ex(pcm, pcm.byteLength, F.OPENRAW >>> 0,
@@ -110,7 +114,7 @@ async function main() {
         && jaxe.lastResult === F.ERR_INVALID_PARAM, `result=${jaxe.lastResult}`);
     jaxe.fmod_core_release_sound(goodGuid);
     jaxe.fmod_core_release_sound(raw);
-    jaxe.fmod_sg_release(group);
+    check('exinfo_sound_group_release', jaxe.fmod_sg_release(group) === F.OK, `result=${jaxe.lastResult}`);
 
     // Sync point handles: indices in offset order, so an earlier point
     // pushes the later ones up

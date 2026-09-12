@@ -217,7 +217,7 @@ def setup_steps(j):
 {LINUX_HASHLINK if j.hashlink else ""}
 {AUDIO_SETUP}"""
     if j.mac:
-        brew = ("brew install ffmpeg " + j.brew).rstrip()
+        brew = ("bash ci/retry.sh brew install ffmpeg " + j.brew).rstrip()
         return f"""      - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true

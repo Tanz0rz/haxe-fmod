@@ -35,16 +35,18 @@ leans on:
   11. Every other workflow that repeats HASHLINK_COMMIT, HAXELIB_PINS,
      or HAXE_VERSION carries the same value. Every other workflow's
      pinned installs are in the pins, with or without the variable.
-  12. The six manifest ABI parses across the workflows are the same
+  12. The seven manifest ABI parses across the workflows are the same
      line, and a guard that refuses a non-number follows each one.
   13. No workflow uses krdlab/setup-haxe directly, so every such install
      goes through the local action with the retry. The macOS jobs
      install Haxe through Homebrew, which retries on its own.
   14. Every haxelib install, git clone, npm install, playwright install,
-     and curl health check goes through ci/retry.sh. That covers the
-     workflows, the composite actions, and the run job generator.
+     brew install, pip install, and curl health check goes through
+     ci/retry.sh. That covers the workflows, the composite actions, and
+     the run job generator. Every apt-get carries its retry option.
   15. The steps gated on a stale pre-built hdll are the known few, so a
-     new gate cannot hide behind the branch escape hatch unnoticed.
+     new gate cannot hide behind the branch escape hatch unnoticed. The
+     three HashLink build gates read both hdll markers.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -213,9 +215,9 @@ for other in sorted(os.listdir(os.path.dirname(PATH))):
     elif other_installs:
         ok(f"{other} installs {len(other_installs)} pinned versions the pins name")
 
-# 12. The six ABI parses of the manifest header are one line each, and a
-# numeric guard follows each. None of them can fail open again. Every
-# workflow is scanned, and the count is held, so a seventh parse under
+# 12. The seven ABI parses of the manifest header are one line each, and
+# a numeric guard follows each. None of them can fail open again. Every
+# workflow is scanned, and the count is held, so an eighth parse under
 # another name or in another file is noticed.
 ABI_PARSE_COUNT = 7
 abi_parse = 'ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)'
@@ -250,8 +252,9 @@ else:
 # 14. Every network fetch goes through the retry wrapper, and every
 # wrapper path resolves. A relative path after a cd, or a wrong depth
 # from an action directory, is exit 127 on the runner. The path check
-# is what catches both. Every apt-get carries its retry option.
-FETCH_RE = re.compile(r"(haxelib install|git clone|npm install|npx playwright install|curl -fsS)")
+# is what catches both. Every apt-get carries its retry option, and a
+# comment or echo naming one is skipped.
+FETCH_RE = re.compile(r"(haxelib install|git clone|npm install|npx playwright install|curl -fsS|brew install|pip\"? install)")
 WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)ci/retry\.sh\1")
 fetch_files = [os.path.join(os.path.dirname(PATH), wf) for wf in sorted(os.listdir(os.path.dirname(PATH))) if wf.endswith(".yml")]
 actions_dir = os.path.join(ROOT, ".github", "actions")
@@ -259,6 +262,7 @@ fetch_files += [os.path.join(actions_dir, a, "action.yml") for a in sorted(os.li
 fetch_files.append(os.path.join(ROOT, "ci", "generate-run-jobs.py"))
 bare = []
 unresolved = []
+unretried = []
 wrapped = 0
 for path in fetch_files:
     with open(path) as fh:
@@ -276,6 +280,8 @@ for path in fetch_files:
             block_indent = None
         if stripped.startswith("#") or stripped.startswith("echo "):
             continue
+        if re.search(r"\bapt-get\b", line) and not re.search(r"Acquire::Retries=[1-9]", line):
+            unretried.append(f"{os.path.relpath(path, ROOT)}:{n}")
         if re.match(r"cd ", stripped) and not stripped.startswith("cd -"):
             moved = True
         if "retry.sh" in line:
@@ -295,10 +301,8 @@ for path in fetch_files:
                 wrapped += 1
         elif FETCH_RE.search(line):
             bare.append(f"{os.path.relpath(path, ROOT)}:{n}")
-        if re.search(r"apt-get (update|install)", line) and "Acquire::Retries=" not in line:
-            bare.append(f"{os.path.relpath(path, ROOT)}:{n} apt-get without retries")
-if bare or unresolved or wrapped < 100:
-    fail(f"network fetches outside ci/retry.sh: {bare}, wrapper paths that do not resolve: {unresolved} ({wrapped} wrapped)")
+if bare or unresolved or unretried or wrapped < 100:
+    fail(f"network fetches outside ci/retry.sh: {bare}, wrapper paths that do not resolve: {unresolved}, apt-get without retries: {unretried} ({wrapped} wrapped)")
 else:
     ok(f"{wrapped} network fetches go through ci/retry.sh, none bare, every wrapper path resolves, apt retries")
 
@@ -311,7 +315,7 @@ stale_refs = len(re.findall(r"steps\.abi\.outputs\.stale", text))
 # The three HashLink build jobs gate inside their run block. Each of
 # those blocks reads both markers, so no inline hatch reads the ABI alone.
 inline_blocks = re.findall(r"\n[ ]*STALE=0\n(?:[^\n]*\n)*?[ ]*if \[ \"\$STALE\" = \"1\" \]", text)
-inline_half = [b for b in inline_blocks if "hlaxe_fmod_src=" not in b or "hlaxe_fmod_abi=" not in b]
+inline_half = [b for b in inline_blocks if '[ "$SRCMARK" != "$SRC" ]' not in b or '[ "$MARK" != "$ABI" ]' not in b]
 if gated != STALE_GATED or stale_refs != STALE_REFERENCES or len(inline_blocks) != STALE_INLINE or inline_half:
     fail(f"stale-hdll gates out of step: steps {gated}, {stale_refs} references of {STALE_REFERENCES}, {len(inline_blocks)} inline gates of {STALE_INLINE}, {len(inline_half)} reading one marker")
 else:

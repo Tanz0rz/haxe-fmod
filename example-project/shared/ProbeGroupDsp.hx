@@ -15,6 +15,9 @@ import haxefmod.studio.StudioSystem;
  */
 class ProbeGroupDsp {
     public static function run(state:ApiProbeScenario):Void {
+        // The master lookup mints a persistent handle: warm it before the
+        // baseline, so the leak check counts the fader alone
+        ChannelGroup.master();
         var baseline = StudioSystem.liveHandleCount();
         var master = ChannelGroup.master();
 
@@ -58,7 +61,7 @@ class ProbeGroupDsp {
             'result=${StudioSystem.lastResult().toString()}');
 
         @:privateAccess state.check("no_handle_leaks_group_dsp", StudioSystem.liveHandleCount() == afterLookup
-            && afterLookup <= baseline + 1,
+            && afterLookup == baseline + 1,
             'baseline=$baseline afterLookup=$afterLookup now=${StudioSystem.liveHandleCount()}');
     }
 }

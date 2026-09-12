@@ -726,7 +726,7 @@ jobs:
           else
             for platform in Linux64 Mac64 Windows64; do
               unzip -p haxefmod.zip "templates/bin/hl/$platform/hlaxe_fmod.hdll" \
-                | grep -aq "hlaxe_fmod_abi=$ABI" || {
+                | python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_abi=([0-9]+)", sys.stdin.buffer.read()); sys.exit(0 if m and m.group(1).decode() == sys.argv[1] else 1)' "$ABI" || {
                 echo "FAIL: $platform hdll in the zip lacks the hlaxe_fmod_abi=$ABI marker"
                 exit 1
               }
@@ -1233,8 +1233,8 @@ jobs:
       - name: Build HashLink target (pre-built hdll)
         run: |
           set -o pipefail
-          # A binding ABI bump lands before update-hdlls can rebuild the
-          # shipped hdlls. A stale marker then skips this verification, and
+          # A shim change lands before update-hdlls can rebuild the shipped
+          # hdlls. Either marker behind the tree then skips this verification, and
           # the fresh hdll from build-hdll carries the rest of the job.
           # update-hdlls refreshes the templates once the HL jobs pass and
           # the next run verifies the pre-built one again.
@@ -1251,7 +1251,7 @@ jobs:
           done
           # A tag keeps the hard failure: a release ships no stale hdll
           if [ "$STALE" = "1" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
-            echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
+            echo "Pre-built hdlls are behind the tree, skipping the pre-built build until update-hdlls refreshes them"
             exit 0
           fi
           cd example-project/EZPlatformer
@@ -1704,7 +1704,7 @@ jobs:
           # The runner image ships a pre-tapped aws/tap that current
           # Homebrew distrusts. untap it to keep installs warning-free
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko ffmpeg
+          bash ci/retry.sh brew install haxe neko ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
           # Homebrew ships one Haxe series. A roll to another fails here
           # rather than switching the macOS compiler in silence.
@@ -1814,7 +1814,7 @@ jobs:
           # The runner image ships a pre-tapped aws/tap that current
           # Homebrew distrusts. untap it to keep installs warning-free
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko hashlink ffmpeg
+          bash ci/retry.sh brew install haxe neko hashlink ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
           # Homebrew ships one Haxe series. A roll to another fails here
           # rather than switching the macOS compiler in silence.
@@ -1845,8 +1845,8 @@ jobs:
       - name: Build HashLink target (pre-built hdll)
         run: |
           set -o pipefail
-          # A binding ABI bump lands before update-hdlls can rebuild the
-          # shipped hdlls. A stale marker then skips this verification, and
+          # A shim change lands before update-hdlls can rebuild the shipped
+          # hdlls. Either marker behind the tree then skips this verification, and
           # the fresh hdll from build-hdll carries the rest of the job.
           # update-hdlls refreshes the templates once the HL jobs pass and
           # the next run verifies the pre-built one again.
@@ -1863,7 +1863,7 @@ jobs:
           done
           # A tag keeps the hard failure: a release ships no stale hdll
           if [ "$STALE" = "1" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
-            echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
+            echo "Pre-built hdlls are behind the tree, skipping the pre-built build until update-hdlls refreshes them"
             exit 0
           fi
           cd example-project/EZPlatformer
@@ -2131,8 +2131,8 @@ jobs:
       - name: Build HashLink target (pre-built hdll)
         run: |
           set -o pipefail
-          # A binding ABI bump lands before update-hdlls can rebuild the
-          # shipped hdlls. A stale marker then skips this verification, and
+          # A shim change lands before update-hdlls can rebuild the shipped
+          # hdlls. Either marker behind the tree then skips this verification, and
           # the fresh hdll from build-hdll carries the rest of the job.
           # update-hdlls refreshes the templates once the HL jobs pass and
           # the next run verifies the pre-built one again.
@@ -2149,7 +2149,7 @@ jobs:
           done
           # A tag keeps the hard failure: a release ships no stale hdll
           if [ "$STALE" = "1" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
-            echo "Pre-built hdlls are behind the binding ABI, skipping the pre-built build until update-hdlls refreshes them"
+            echo "Pre-built hdlls are behind the tree, skipping the pre-built build until update-hdlls refreshes them"
             exit 0
           fi
           cd example-project/EZPlatformer
@@ -2498,7 +2498,7 @@ jobs:
           # The runner image ships a pre-tapped aws/tap that current
           # Homebrew distrusts. untap it to keep installs warning-free
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko hashlink ffmpeg
+          bash ci/retry.sh brew install haxe neko hashlink ffmpeg
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
           # Homebrew ships one Haxe series. A roll to another fails here
           # rather than switching the macOS compiler in silence.
@@ -3160,7 +3160,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko hashlink libuv
+          bash ci/retry.sh brew install haxe neko hashlink libuv
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
           # Homebrew ships one Haxe series. A roll to another fails here
           # rather than switching the macOS compiler in silence.
@@ -3624,7 +3624,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko
+          bash ci/retry.sh brew install haxe neko
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
           # Homebrew ships one Haxe series. A roll to another fails here
           # rather than switching the macOS compiler in silence.
@@ -3702,7 +3702,7 @@ jobs:
       - name: Setup Haxe via Homebrew
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install haxe neko
+          bash ci/retry.sh brew install haxe neko
           echo "HAXE_STD_PATH=$(brew --prefix)/lib/haxe/std" >> $GITHUB_ENV
           # Homebrew ships one Haxe series. A roll to another fails here
           # rather than switching the macOS compiler in silence.
@@ -4633,7 +4633,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg
+          bash ci/retry.sh brew install ffmpeg
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -4852,7 +4852,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg
+          bash ci/retry.sh brew install ffmpeg
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -5952,7 +5952,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg hashlink libuv
+          bash ci/retry.sh brew install ffmpeg hashlink libuv
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -7034,7 +7034,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg
+          bash ci/retry.sh brew install ffmpeg
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -7253,7 +7253,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install ffmpeg
+          bash ci/retry.sh brew install ffmpeg
 
       - name: Record audio
         if: matrix.state == 'game-audio'
@@ -7858,8 +7858,10 @@ jobs:
             case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
             SRC=$(python3 ci/hlaxe-src-hash.py)
             for hdll in templates/bin/hl/*/hlaxe_fmod.hdll; do
-              if grep -aq "hlaxe_fmod_abi=$ABI" "$hdll" && grep -aq "hlaxe_fmod_src=$SRC" "$hdll"; then continue; fi
-              echo "::notice ::the branch moved under this run and $hdll no longer matches the tree (abi $ABI, source $SRC), the commit is dropped"
+              MARK=$(python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_abi=([0-9]+)", open(sys.argv[1], "rb").read()); print(m.group(1).decode() if m else "")' "$hdll")
+              SRCMARK=$(python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_src=([0-9a-f]+)", open(sys.argv[1], "rb").read()); print(m.group(1).decode() if m else "")' "$hdll")
+              if [ "$MARK" = "$ABI" ] && [ "$SRCMARK" = "$SRC" ]; then echo "$hdll matches the tree (abi $ABI, source $SRC)"; continue; fi
+              echo "::notice ::the branch moved under this run and $hdll does not match the tree (abi $ABI, source $SRC), the commit is dropped"
               git reset --hard HEAD~1
               exit 1
             done

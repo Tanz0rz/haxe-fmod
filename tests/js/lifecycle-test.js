@@ -146,6 +146,43 @@ async function main() {
         check('refused_bank_unload_keeps_state',
             JSON.stringify([jaxe.cbMasks, jaxe.psKeys, jaxe.pluginSeen]) === before, '');
         check('refused_bank_unload_keeps_instance', jaxe.handleResolve(kept, jaxe.TYPE_EVI) != null, '');
+        // The unloadAll and bank-unload paths destroy instances too, so
+        // they take the shim callback off every instance group in scope
+        // first and put it back when FMOD refuses
+        const wide = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_start(wide);
+        await pump(3);
+        const wideGroup = jaxe.fmod_evi_get_channel_group(wide);
+        check('wide_group_handle', wideGroup > 0, `handle=${wideGroup}`);
+        check('wide_group_callback_installed', jaxe.fmod_cg_set_callback(wideGroup, true) === 0, '');
+        const wideWrapper = jaxe.resolveCg(wideGroup);
+        const wideCalls = [];
+        const realWideSet = wideWrapper.setCallback;
+        wideWrapper.setCallback = function (cb) {
+            wideCalls.push(cb === null ? 'off' : 'on');
+            return realWideSet.call(wideWrapper, cb);
+        };
+        jaxe.gSystem.unloadAll = () => 40;
+        const refusedAll2 = jaxe.fmod_sys_unload_all();
+        jaxe.gSystem.unloadAll = realUnloadAll;
+        check('refused_unload_all_cycles_group_callback',
+            refusedAll2 === 40 && wideCalls.join(',') === 'off,on',
+            `result=${refusedAll2} calls=${wideCalls.join(',')}`);
+        wideCalls.length = 0;
+        bankWrapper.unload = () => 40;
+        const refusedBank2 = jaxe.fmod_bank_unload(masterBank);
+        bankWrapper.unload = realBankUnload;
+        wideWrapper.setCallback = realWideSet;
+        check('refused_bank_unload_cycles_group_callback',
+            refusedBank2 === 40 && wideCalls.join(',') === 'off,on',
+            `result=${refusedBank2} calls=${wideCalls.join(',')}`);
+        check('refused_bulk_destroy_keeps_group_map',
+            jaxe.chanCallbackHandles.get(jaxe.rawPtr(wideWrapper)) === wideGroup, '');
+        jaxe.fmod_cg_set_callback(wideGroup, false);
+        jaxe.fmod_evi_stop(wide, 1);
+        jaxe.fmod_evi_release(wide);
+        await pump(3);
+        drainEvents();
         jaxe.fmod_evi_release(kept);
         await pump(2);
         drainEvents();
@@ -286,7 +323,7 @@ async function main() {
     check('instGroup_channel_group', groupH > 0 && jaxe.liveCount === beforeGroup + 1, `handle=${groupH} live=${jaxe.liveCount}`);
     check('instGroup_channel_group_stable', jaxe.fmod_evi_get_channel_group(instGroup) === groupH, '');
     // An instance's group cannot be released by the game
-    check('instGroup_release_refused', jaxe.fmod_cg_release(groupH) === 31 && jaxe.resolveCg(groupH) != null,
+    check('instGroup_release_refused', jaxe.fmod_cg_release(groupH) === jaxe.ERR_INVALID_PARAM && jaxe.resolveCg(groupH) != null,
         `result=${jaxe.lastResult}`);
     // A callback on the instance's group comes off before FMOD destroys
     // the group, and the freed slot takes its map entry with it, so a new

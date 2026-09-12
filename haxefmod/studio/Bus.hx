@@ -124,7 +124,10 @@ abstract Bus(Int) from Int to Int {
         return NativeStudio.bus_lock_channel_group(this);
     }
 
-    /** Releases the lock from lockChannelGroup, so FMOD can destroy the channel group when it is not needed. */
+    /**
+     * Releases the lock from lockChannelGroup, so FMOD can destroy the channel group when it is not needed. A
+     * callback on that group stays while the group survives the unlock.
+     */
     public inline function unlockChannelGroup():FmodResult {
         return NativeStudio.bus_unlock_channel_group(this);
     }

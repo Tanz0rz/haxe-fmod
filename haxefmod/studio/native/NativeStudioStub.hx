@@ -370,6 +370,8 @@ class NativeStudioStub {
     public static function cg_create(name:String):Int return 0;
     public static var testCgCallLog:Array<String> = [];
     public static function cg_release(handle:Int):Int {
+        // A group the game did not create is refused before the native call
+        if (testOwnedHandles.indexOf(handle) >= 0) return ERR_INVALID_PARAM;
         testCgCallLog.push("release:" + handle);
         return testReleaseResult;
     }
@@ -506,7 +508,10 @@ class NativeStudioStub {
     // Sound groups
     public static function sys_create_sound_group(name:String):Int return 0;
     public static function sys_get_master_sound_group():Int return 0;
-    public static function sg_release(handle:Int):Int return testReleaseResult;
+    public static function sg_release(handle:Int):Int {
+        if (testOwnedHandles.indexOf(handle) >= 0) return ERR_INVALID_PARAM;
+        return testReleaseResult;
+    }
     public static function sg_set_max_audible(handle:Int, maxAudible:Int):Int return ERR_UNSUPPORTED;
     public static function sg_get_max_audible(handle:Int):Int return 0;
     public static function sg_set_max_audible_behavior(handle:Int, behavior:Int):Int return ERR_UNSUPPORTED;

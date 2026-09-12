@@ -126,45 +126,27 @@ class jaxe {
         return jaxe.handleAlloc(ptr, type);
     }
 
+    // A group the game did not create is owned: the master, a bus's, an
+    // instance's, or one first reached through a walk. Its release is
+    // refused. A group the game created stays releasable through a walk,
+    // since its slot is found rather than minted here.
+    static mintWalkedGroup(ptr, type) {
+        var raw = jaxe.rawPtr(ptr);
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (s.alive && s.type === type && raw !== 0 && s.raw === raw && jaxe.lookupSlotUsable(s)) {
+                if (s.ptr !== ptr) jaxe.dropWrapper(ptr);
+                return (s.gen << 16) | i;
+            }
+        }
+        var handle = jaxe.handleOrMemory(ptr, type);
+        if (handle !== 0) jaxe.markOwned(handle);
+        return handle;
+    }
+
     // A lookup that cannot get a slot reports it. The table is full, so
     // the caller sees ERR_MEMORY instead of a silent zero. The JS twin of
     // lincHandleOrMemory.
-    // A group the game did not create is owned: the master, a bus's, an
-    // instance's, or one first reached through a walk. Its release is
-    // refused. A group the game created stays releasable through a walk,
-    // since its slot is found rather than minted here.
-    static mintWalkedGroup(ptr, type) {
-        var raw = jaxe.rawPtr(ptr);
-        for (var i = 0; i < jaxe.slots.length; i++) {
-            var s = jaxe.slots[i];
-            if (s.alive && s.type === type && raw !== 0 && s.raw === raw && jaxe.lookupSlotUsable(s)) {
-                jaxe.dropWrapper(ptr);
-                return (s.gen << 16) | i;
-            }
-        }
-        var handle = jaxe.handleOrMemory(ptr, type);
-        if (handle !== 0) jaxe.markOwned(handle);
-        return handle;
-    }
-
-    // A group the game did not create is owned: the master, a bus's, an
-    // instance's, or one first reached through a walk. Its release is
-    // refused. A group the game created stays releasable through a walk,
-    // since its slot is found rather than minted here.
-    static mintWalkedGroup(ptr, type) {
-        var raw = jaxe.rawPtr(ptr);
-        for (var i = 0; i < jaxe.slots.length; i++) {
-            var s = jaxe.slots[i];
-            if (s.alive && s.type === type && raw !== 0 && s.raw === raw && jaxe.lookupSlotUsable(s)) {
-                jaxe.dropWrapper(ptr);
-                return (s.gen << 16) | i;
-            }
-        }
-        var handle = jaxe.handleOrMemory(ptr, type);
-        if (handle !== 0) jaxe.markOwned(handle);
-        return handle;
-    }
-
     static handleOrMemory(ptr, type) {
         var h = jaxe.handleFindOrAlloc(ptr, type);
         if (h === 0 && ptr) {
@@ -266,6 +248,16 @@ class jaxe {
         }
     }
 
+    // The channel group slots FMOD reports dead, with no Studio flush.
+    // The native shims sweep the same type before a group mint.
+    static sweepDeadGroups() {
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (!s.alive || s.type != jaxe.TYPE_CHANGROUP) continue;
+            if (!jaxe.lookupSlotUsable(s)) jaxe.handleFree((s.gen << 16) | i);
+        }
+    }
+
     // Graph changes invalidate connection objects on the mixer's schedule,
     // so graph-changing calls drop every connection handle deterministically.
     // Mirrors faxe_handles_free_type in the native shims.
@@ -286,9 +278,10 @@ class jaxe {
     }
 
     // Marks a handle whose object the game does not own. That is a
-    // programmer sound this shim created and releases, or a plugin
-    // instrument's DSP that FMOD destroys with its event. The public
-    // release entry points refuse it.
+    // programmer sound this shim created and releases, a plugin
+    // instrument's DSP that FMOD destroys with its event, or a channel
+    // group or sound group the game did not create. The public release
+    // entry points refuse it.
     static markOwned(handle) {
         if (handle > 0) jaxe.slots[handle & 0xFFFF].owned = true;
     }
@@ -487,9 +480,11 @@ class jaxe {
             if (descPtrs != null) {
                 var inst = jaxe.handleResolve(key | 0, jaxe.TYPE_EVI);
                 if (!inst) continue;
+                // An instance whose description is unknown stays in scope
                 var d = {};
-                var inScope = inst.getDescription(d) == jaxe.FMOD.OK && descPtrs.has(jaxe.rawPtr(d.val));
-                jaxe.dropWrapper(d.val);
+                var known = inst.getDescription(d) == jaxe.FMOD.OK;
+                var inScope = !known || descPtrs.has(jaxe.rawPtr(d.val));
+                if (known) jaxe.dropWrapper(d.val);
                 if (!inScope) continue;
             }
             group.setCallback(null);
@@ -1716,7 +1711,11 @@ class jaxe {
         // kept aside, so a refused unload puts every callback back.
         var saved = jaxe.saveCallbackState();
         var cnt = {};
-        if (bank.getEventCount(cnt) == jaxe.FMOD.OK && cnt.val > 0) {
+        // A count the bank refuses leaves the scope unknown, so every
+        // instance group callback comes off, the way the native shims do
+        var counted = bank.getEventCount(cnt) == jaxe.FMOD.OK;
+        var scoped = false;
+        if (counted && cnt.val > 0) {
             var list = {};
             var listed = {};
             if (bank.getEventList(list, cnt.val, listed) == jaxe.FMOD.OK && list.val) {
@@ -1728,7 +1727,17 @@ class jaxe {
                 }
                 jaxe.uninstallCallbacksFor(ptrs);
                 saved.groups = jaxe.uninstallInstanceGroupCallbacks(ptrs);
+                scoped = true;
             }
+        } else if (counted) {
+            // A bank with no events destroys no instance
+            scoped = true;
+        }
+        if (!scoped) {
+            // The scope is unknown, so every callback comes off, the way
+            // the native shims fall back
+            jaxe.uninstallCallbacksFor(null);
+            saved.groups = jaxe.uninstallInstanceGroupCallbacks(null);
         }
         var raw = jaxe.rawPtr(bank);
         jaxe.lastResult = bank.unload();
@@ -3269,7 +3278,7 @@ class jaxe {
         var out = {};
         // A group FMOD destroyed can hold a slot at the address the new one
         // gets, so the dead slots go before the mint
-        jaxe.sweepDeadLookups();
+        jaxe.sweepDeadGroups();
         jaxe.lastResult = jaxe.gSystemCore.createChannelGroup(name, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_CHANGROUP);
@@ -3505,7 +3514,8 @@ class jaxe {
         var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
         if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         // The unlock can destroy the group, so the shim callback comes off
-        // first. A refused unlock puts it back.
+        // first. A group that survives the unlock gets it back, and a
+        // group that died takes its map entry along.
         var out = {};
         var groupHandle;
         var groupRaw = 0;
@@ -3520,7 +3530,11 @@ class jaxe {
         // The group can be destroyed once unlocked: reclaim its cached
         // handle before a recycled address can alias it
         if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.sweepDeadLookups();
-        else if (group) group.setCallback(jaxe.channelCallback);
+        if (group) {
+            var survivor = jaxe.resolveCg(groupHandle);
+            if (survivor && jaxe.lookupSlotUsable(jaxe.slots[groupHandle & 0xFFFF])) survivor.setCallback(jaxe.channelCallback);
+            else jaxe.chanCallbackHandles.delete(groupRaw);
+        }
         return jaxe.lastResult;
     }
 
@@ -4447,8 +4461,8 @@ class jaxe {
         var group = jaxe.resolveSoundGroup(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         // The master sound group is FMOD's. FMOD answers INVALID_HANDLE for
-        // it and keeps it, and a sound group is not handle-validated, so no
-        // getter can tell a refusal from a freed group. The owned mark does.
+        // it and keeps it. A sound group is not handle-validated, so no
+        // getter tells a refusal from a freed group. The owned mark does.
         if (jaxe.isOwned(handle)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         jaxe.lastResult = group.release();
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too

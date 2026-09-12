@@ -65,9 +65,9 @@ typedef struct {
     unsigned char type;
     unsigned char alive;
     /* 1 when the game does not own the object. That is a programmer sound
-     * the library created and releases, or a plugin instrument's DSP that
-     * FMOD destroys with its event. The public release entry points
-     * refuse such a handle. */
+     * the library created and releases, a plugin instrument's DSP that FMOD
+     * destroys with its event, or a channel group or sound group the game
+     * did not create. The public release entry points refuse such a handle. */
     unsigned char owned;
     /* The handle of the owned sound this subsound was taken from, or 0.
      * Such a child dies with its parent (see faxe_handles_free_children). */
@@ -253,8 +253,8 @@ static void faxe_handle_free(int handle) {
     gFaxeLiveCount--;
 }
 
-/* Marks the object behind a live handle as owned by the library, or
- * clears the mark. The handle must resolve (callers check first). */
+/* Marks the object behind a live handle as one the game does not own,
+ * or clears the mark. The handle must resolve (callers check first). */
 static void faxe_handle_set_owned(int handle, int owned) {
     gFaxeSlots[handle & 0xFFFF].owned = (unsigned char)(owned ? 1 : 0);
 }

@@ -33,7 +33,7 @@ FMOD objects have two kinds of lifetime.
 
 **Looked-up handles** (`EventDescription`, `Bus`, `Vca`, `Bank`) refer to objects that live as long as their bank is loaded. `StudioSystem.getBus` caches one handle per path, so repeated bus lookups return the same handle. `getEvent`, `getVCA`, and `getBank` look the object up on each call. The game never releases these handles.
 
-**Created handles** (`EventInstance`, `Sound`, `Dsp`, custom `ChannelGroup`, `SoundGroup`, `CommandReplay`) are yours until you release them. `release()` on an event instance lets FMOD destroy it once it stops. The handle becomes invalid immediately and the library removes any registered callback. The instance plays out unless you stopped it first. Fire-and-forget playback is start followed by release.
+**Created handles** (`EventInstance`, `Sound`, `Dsp`, custom `ChannelGroup`, `SoundGroup`, `CommandReplay`) are yours until you release them. `release()` on an event instance lets FMOD destroy it once it stops. The handle becomes invalid immediately and the library removes any registered callback. The instance plays out unless you stopped it first. Fire-and-forget playback is start followed by release. A group the game did not create is FMOD's. The master group, a bus's group, an instance's group, and a group first reached through a walk refuse `release()` with `FMOD_ERR_INVALID_PARAM` and keep their handle.
 
 ```haxe
 var description = StudioSystem.getEvent("event:/SFX/Explosion");

@@ -90,7 +90,7 @@ sys_get_param_by_id_final i32 i32 -> f64
 sys_set_param_by_id i32 i32 f64 bool -> i32
 sys_set_param_by_id_with_label i32 i32 str bool -> i32
 sys_get_parameter_description_count -> i32
-# returns param name; fbuf: [0]=min [1]=max [2]=default; ibuf: [0]=type [1]=flags [2]=id1 [3]=id2
+# returns param name. fbuf: [0]=min [1]=max [2]=default. ibuf: [0]=type [1]=flags [2]=id1 [3]=id2
 sys_get_parameter_description_by_index i32 fbuf ibuf -> str
 sys_get_parameter_description_by_name str fbuf ibuf -> str
 # GUID of the parameter description read last, formatted like lookup_id
@@ -112,9 +112,9 @@ sys_load_bank_file str i32 -> i32
 sys_unload_all -> i32
 sys_flush_commands -> i32
 sys_flush_sample_loading -> i32
-# profiling; fbuf: [0]=studio update percent of one core, [1..6]=core dsp/stream/geometry/update/conv1/conv2 percent
+# profiling. fbuf: [0]=studio update percent of one core, [1..6]=core dsp/stream/geometry/update/conv1/conv2 percent
 sys_get_cpu_usage fbuf -> i32
-# ibuf: [0..3]=cmdqueue cur/peak/cap/stall [4..7]=handle cur/peak/cap/stall; fbuf: [0]=cmd stalltime [1]=handle stalltime
+# ibuf: [0..3]=cmdqueue cur/peak/cap/stall [4..7]=handle cur/peak/cap/stall. fbuf: [0]=cmd stalltime [1]=handle stalltime
 sys_get_buffer_usage ibuf fbuf -> i32
 sys_reset_buffer_usage -> i32
 # ibuf: [0]=exclusive [1]=inclusive [2]=sampledata. ERR_UNSUPPORTED on js
@@ -191,7 +191,7 @@ evd_load_sample_data i32 -> i32
 evd_unload_sample_data i32 -> i32
 evd_get_sample_loading_state i32 -> i32
 evd_get_parameter_description_count i32 -> i32
-# returns param name; fbuf: [0]=min [1]=max [2]=default; ibuf: [0]=type [1]=flags [2]=id1 [3]=id2
+# returns param name. fbuf: [0]=min [1]=max [2]=default. ibuf: [0]=type [1]=flags [2]=id1 [3]=id2
 evd_get_parameter_description_by_index i32 i32 fbuf ibuf -> str
 evd_get_parameter_description_by_name i32 str fbuf ibuf -> str
 # (paramName, labelIndex) -> label
@@ -254,7 +254,7 @@ evi_get_memory_usage i32 ibuf -> i32
 ## Runtime init
 # Settings-driven init: (numChannels, sampleRate, speakerMode, studioFlags,
 # dspBufferLength, dspNumBuffers, softwareChannels, streamBufferSize, initFlags).
-# sampleRate 0 = FMOD default; speakerMode 0 = default (FMOD_SPEAKERMODE);
+# sampleRate 0 = FMOD default. speakerMode 0 = default (FMOD_SPEAKERMODE).
 # studioFlags bit0 = live update. dspBufferLength/dspNumBuffers 0 = FMOD
 # default (js ignores them, the web build fixes 2048x2). softwareChannels 0 =
 # default. streamBufferSize is bytes, 0 = default. initFlags bit0 = profiling

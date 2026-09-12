@@ -879,12 +879,21 @@ class TestStudioSurface {
 		group.release();
 		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, 0, 0, 0, 0, 0, 0.5, "");
 		assert(received.length == 3, "cg refused release keeps the handler");
+		// A group the game did not create is refused with INVALID_PARAM
+		haxefmod.studio.native.NativeStudioStub.testOwnedHandles = [(group : Int)];
+		haxefmod.studio.native.NativeStudioStub.testCgCallLog = [];
+		assert(group.release() == FmodResult.FMOD_ERR_INVALID_PARAM
+			&& haxefmod.studio.native.NativeStudioStub.testCgCallLog.length == 0,
+			"an owned group release is refused before the native call");
+		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, 0, 0, 0, 0, 0, 0.5, "");
+		assert(received.length == 4, "an owned group release keeps the handler");
+		haxefmod.studio.native.NativeStudioStub.testOwnedHandles = [];
 		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 0;
 		haxefmod.studio.native.NativeStudioStub.testCgCallLog = [];
 		group.release();
 		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 68;
 		haxefmod.studio.CallbackDispatcher.deliver((group : Int), ChannelCallbacks.TYPE_OCCLUSION, 0, 0, 0, 0, 0, 0.5, "");
-		assert(received.length == 3, "cg release removes the handler");
+		assert(received.length == 4, "cg release removes the handler");
 		// The native release uninstalls the callback itself, so no call on
 		// the freed handle follows and the last result stays the release's
 		assert(haxefmod.studio.native.NativeStudioStub.testCgCallLog.join(",") == 'release:${(group : Int)}',

@@ -34,7 +34,6 @@ import datetime
 import json
 import re
 import subprocess
-import sys
 
 SHA_SUFFIX = re.compile(r"-[0-9a-f]{40}$")
 
@@ -217,17 +216,31 @@ def selftest():
     if sorted(e["id"] for e in doomed) != [1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13]:
         print("selftest FAIL: branch close kept {}".format(sorted(e["id"] for e in doomed)))
         sys.exit(1)
-    # The family regex against the keys the workflow makes today, so a
-    # reordered pins string cannot switch the rule off unnoticed
-    workflow = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows", "audio-test.yml")
-    with open(workflow) as fh:
-        text = fh.read()
+    # The family regex runs against the keys the workflow makes today, so
+    # a reordered pins string cannot switch the rule off unnoticed
+    workflows = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows")
+    text = ""
+    for name in sorted(os.listdir(workflows)):
+        if name.endswith(".yml"):
+            with open(os.path.join(workflows, name)) as fh:
+                text += fh.read()
     pins = re.search(r"HAXELIB_PINS: (\S+)", text).group(1)
-    haxe = re.search(r"HAXE_VERSION: (\S+)", text).group(1)
-    live_keys = ["haxelib-{}-Linux-{}-{}".format(label, haxe, pins)
-                 for label in ("hl", "cpp", "docs", "doctor", "html5", "package")]
-    live_keys.append("haxelib-docs-Linux-{}-flixel-heaps-{}".format(haxe, pins))
-    families = [family(key) for key in live_keys]
+    haxe = re.search(r"\bHAXE_VERSION: (\S+)", text).group(1)
+    mac = re.search(r"MAC_HAXE_VERSION: (\S+)", text)
+    mac = mac.group(1) if mac else haxe
+    # The key templates as the workflows write them, with each expression
+    # filled in, so a reshaped key is noticed here
+    live_keys = set()
+    for template in re.findall(r"key: (haxelib-[^\n]+)", text):
+        template = template.strip()
+        key = template.replace("${{ env.HAXELIB_PINS }}", pins).replace("${{ env.HAXE_VERSION }}", haxe)
+        os_name = "macOS" if "MAC_HAXE_VERSION" in key else "Linux"
+        key = key.replace("${{ env.MAC_HAXE_VERSION }}", mac).replace("${{ runner.os }}", os_name)
+        if "${{" in key:
+            print("selftest FAIL: a haxelib key template holds an expression the selftest does not fill: {}".format(template))
+            sys.exit(1)
+        live_keys.add(key)
+    families = [family(key) for key in sorted(live_keys)]
     if any(f is None for f in families) or len(set(families)) != len(families):
         print("selftest FAIL: the family regex does not fit the workflow's keys: {}".format(families))
         sys.exit(1)
@@ -256,9 +269,10 @@ def main():
     live = fetch_live_branches(options.repo) if options.branch is None else set()
     default_branch = fetch_default_branch(options.repo) if options.branch is None else ""
     # An empty branch listing reads as every branch gone, which condemns
-    # the whole store. A listing that empty is an API failure, so stop.
+    # the whole store. An empty listing or an empty default branch is an
+    # API failure, so stop.
     if options.branch is None and (not live or not default_branch):
-        print("refusing to prune: the branch listing came back empty")
+        print("refusing to prune: the branch listing or the default branch came back empty")
         sys.exit(1)
     total = sum(entry["size_in_bytes"] for entry in caches)
     print("store: {:.0f} MB across {} caches".format(mb(total), len(caches)))

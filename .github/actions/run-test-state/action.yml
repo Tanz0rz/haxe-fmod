@@ -98,6 +98,9 @@ runs:
             fi
             ;;
         esac
+        # A build that moved or lost its executable is a build failure,
+        # reported here instead of as a state that never completed
+        [ -n "$EXE" ] || { echo "FAIL: no game executable found in $BIN_DIR"; ls -la; exit 1; }
         echo "Running state ${{ inputs.state }} via $EXE"
 
         # Runs the game to its exit or the timeout. Returns 0 when the

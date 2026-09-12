@@ -255,7 +255,47 @@ function testBusBridge() {
     check('bus_group_remove_dsp', jaxe.fmod_cg_remove_dsp(group, lowpass) === jaxe.FMOD.OK);
     jaxe.fmod_dsp_release(lowpass);
 
+    // The bus owns its channel group: FMOD frees it under Studio, so the
+    // shim refuses the release before the call and keeps the handle and
+    // its channel callback mapping.
+    const busGroupRaw = jaxe.rawPtr(jaxe.resolveCg(group));
+    check('bus_group_callback_installed', jaxe.fmod_cg_set_callback(group, true) === jaxe.FMOD.OK
+        && jaxe.chanCallbackHandles.get(busGroupRaw) === group, `result=${jaxe.lastResult}`);
+    const liveBeforeBusGroup = jaxe.fmod_debug_live_handle_count();
+    check('bus_group_release_refused', jaxe.fmod_cg_release(group) === jaxe.ERR_INVALID_PARAM,
+        `result=${jaxe.lastResult}`);
+    check('bus_group_release_keeps_handle', jaxe.resolveCg(group) != null
+        && jaxe.chanCallbackHandles.get(busGroupRaw) === group
+        && jaxe.fmod_debug_live_handle_count() === liveBeforeBusGroup,
+        `live=${jaxe.fmod_debug_live_handle_count()} before=${liveBeforeBusGroup}`);
+
+    // The unlock can destroy the group, so the shim callback comes off
+    // before the call. A refused unlock puts it back, and so does a
+    // successful unlock the group survives.
+    const busGroupWrapper = jaxe.resolveCg(group);
+    const busGroupCalls = [];
+    const realBusGroupSet = busGroupWrapper.setCallback;
+    busGroupWrapper.setCallback = function (cb) {
+        busGroupCalls.push(cb === null ? 'off' : 'on');
+        return realBusGroupSet.call(busGroupWrapper, cb);
+    };
+    const busWrapper = jaxe.handleResolve(bus, jaxe.TYPE_BUS);
+    const realUnlock = busWrapper.unlockChannelGroup;
+    busWrapper.unlockChannelGroup = () => 40;
+    const refusedUnlock = jaxe.fmod_bus_unlock_channel_group(bus);
+    busWrapper.unlockChannelGroup = realUnlock;
+    check('refused_bus_unlock_cycles_group_callback',
+        refusedUnlock === 40 && busGroupCalls.join(',') === 'off,on',
+        `result=${refusedUnlock} calls=${busGroupCalls.join(',')}`);
+    busGroupCalls.length = 0;
     check('bus_unlock_channel_group', jaxe.fmod_bus_unlock_channel_group(bus) === jaxe.FMOD.OK);
+    busGroupWrapper.setCallback = realBusGroupSet;
+    const survived = jaxe.resolveCg(group) != null;
+    check('bus_unlock_takes_group_callback_off',
+        busGroupCalls.join(',') === (survived ? 'off,on' : 'off')
+        && jaxe.chanCallbackHandles.has(busGroupRaw) === survived,
+        `calls=${busGroupCalls.join(',')} survived=${survived} mapped=${jaxe.chanCallbackHandles.has(busGroupRaw)}`);
+    if (survived) jaxe.fmod_cg_set_callback(group, false);
     pump(5);
 }
 
@@ -510,9 +550,9 @@ function testSoundGroupsAndSystem() {
     check('s4_sg_master_dedup', master !== 0 && master === jaxe.fmod_sys_get_master_sound_group(),
         `handle=${master}`);
     jaxe.fmod_sound_set_sound_group(snd, master);
-    // The master sound group cannot be released either: FMOD answers
-    // INVALID_HANDLE and keeps it, so the shim refuses with INVALID_PARAM
-    // and the handle stays usable.
+    // The master sound group cannot be released either. The shim marks it
+    // owned and refuses with INVALID_PARAM before the FMOD call, so the
+    // handle stays usable.
     const liveBeforeMasterSg = jaxe.fmod_debug_live_handle_count();
     check('s4_sg_master_release_refused', jaxe.fmod_sg_release(master) === jaxe.ERR_INVALID_PARAM,
         `result=${jaxe.lastResult}`);
