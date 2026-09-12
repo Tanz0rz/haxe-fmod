@@ -40,7 +40,7 @@ runs:
     - name: Run ${{ inputs.state }}
       shell: bash
       run: |
-        # bin-dir may be a glob (linux exports land in linux64/ or linux/).
+        # bin-dir can be a glob (linux exports land in linux64/ or linux/).
         # The || true keeps set -e from killing the step when a glob misses.
         BIN_DIR=$(ls -d ${{ inputs.bin-dir }} 2>/dev/null | head -1 || true)
         if [ -z "$BIN_DIR" ]; then
@@ -62,6 +62,9 @@ runs:
         fi
 
         export HAXEFMOD_TEST_STATE="${{ inputs.state }}"
+        # GUI executables on Windows have no stdout: the examples mirror
+        # their traces into this file
+        export HAXEFMOD_LOG_FILE="$LOG_FILE"
         if [ "${{ inputs.use-wavwriter }}" = "true" ]; then
           export FMOD_WAVWRITER="${RUNNER_TEMP}/state-${{ inputs.state }}.wav"
         fi
@@ -73,29 +76,68 @@ runs:
             export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
             # The game binary directly. PostBuild's run.sh is only a fallback
             # (on HL builds it can point at hlboot.dat instead of the exe)
-            EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" -print -quit)
+            EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" ! -name "*.hl" ! -name "*.ndll" ! -name "*.bank" -print -quit)
             if [ -z "$EXE" ] && [ -f run.sh ]; then
               EXE=./run.sh
             fi
             ;;
           Darwin*)
-            EXE=$(find . -maxdepth 1 -type f ! -name "*.dylib" ! -name "*.hdll" ! -name "*.ndll" ! -name "*.so*" -print -quit)
+            # Executable bit required: the api-probe leaves data files in
+            # the bin dir (probe-lastseven.cmd.txt) that would match otherwise
+            EXE=$(find . -maxdepth 1 -type f -perm -u+x ! -name "*.dylib" ! -name "*.hdll" ! -name "*.ndll" ! -name "*.so*" ! -name "*.hl" ! -name "run.sh" ! -name "*.bank" -print -quit)
+            # A HashLink bytecode build has no executable, only the launcher
+            # the stage command wrote
+            if [ -z "$EXE" ] && [ -f run.sh ]; then
+              EXE=./run.sh
+            fi
             ;;
           *)
             EXE=$(find . -maxdepth 1 -name "*.exe" -print -quit)
+            if [ -z "$EXE" ] && [ -f run.cmd ]; then
+              EXE=./run.cmd
+            fi
             ;;
         esac
+        # A build that moved or lost its executable is a build failure,
+        # reported here instead of as a state that never completed
+        [ -n "$EXE" ] || { echo "FAIL: no game executable found in $BIN_DIR"; ls -la; exit 1; }
         echo "Running state ${{ inputs.state }} via $EXE"
 
-        "$EXE" > "$LOG_FILE" 2>&1 &
-        GAME_PID=$!
+        # Runs the game to its exit or the timeout. Returns 0 when the
+        # game died on its own within five seconds with no state output.
+        # That is a crash at startup rather than a test result.
+        run_game() {
+          "$EXE" > "$LOG_FILE" 2>&1 &
+          GAME_PID=$!
+          STARTED=$(date +%s)
+          for i in $(seq "${{ inputs.timeout }}"); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          ALIVE=0
+          kill -0 $GAME_PID 2>/dev/null && ALIVE=1
+          kill $GAME_PID 2>/dev/null || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
+          # The Windows launcher is cmd.exe, and a signal to it leaves the
+          # game behind. The game is the only hl.exe on the runner.
+          case "$EXE" in ./run.cmd) taskkill //F //T //IM hl.exe >/dev/null 2>&1 || true;; esac
+          wait $GAME_PID 2>/dev/null || true
+          [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -q "$GATE:" "$LOG_FILE"
+        }
+        if run_game; then
+          # The window can come up with no size on a fresh runner and
+          # the preloader faults before the state starts. One more launch
+          # separates that from a real failure.
+          echo "The game exited within five seconds with no state output. Launching once more."
+          cp "$LOG_FILE" "$(dirname "$LOG_FILE")/first-attempt-$(basename "$LOG_FILE")"
+          run_game || true
+        fi
         cd - > /dev/null
-        for i in $(seq "${{ inputs.timeout }}"); do
-          kill -0 $GAME_PID 2>/dev/null || break
-          sleep 1
-        done
-        kill $GAME_PID 2>/dev/null || true
-        wait $GAME_PID 2>/dev/null || true
 
         grep "$GATE:" "$LOG_FILE" || true
         fail() {

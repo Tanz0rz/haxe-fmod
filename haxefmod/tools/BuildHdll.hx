@@ -7,8 +7,9 @@ import haxe.io.Path;
 /**
  * Compiles hlaxe_fmod.hdll from source against the user's FMOD SDK.
  *
- * For users whose FMOD version differs from the pre-built hdlls
- * (which target 2.03.12) to compile a compatible hdll for HashLink builds.
+ * The pre-built hdlls target the version in fmod_expected_version. A user on
+ * a different FMOD version runs this command to get a matching hdll for
+ * HashLink builds.
  *
  * Usage: haxelib run haxefmod build-hdll
  *
@@ -27,8 +28,10 @@ class BuildHdll {
 		var fmodSdk = Sys.getEnv("FMOD_SDK");
 		if (fmodSdk == null || fmodSdk == "") {
 			error("FMOD_SDK environment variable is not set.");
+			var digits = PostBuild.packageDigits(PostBuild.expectedFmodVersion(libRoot));
 			Sys.println("  Set it to point to your FMOD Engine SDK directory:");
-			Sys.println("  export FMOD_SDK=/path/to/fmodstudioapi");
+			Sys.println('  export FMOD_SDK=/path/to/fmodstudioapi$digits');
+			Sys.println('  set FMOD_SDK=C:\\path\\to\\fmodstudioapi$digits   (Windows)');
 			Sys.exit(1);
 		}
 
@@ -105,7 +108,8 @@ class BuildHdll {
 		Sys.println("");
 		info("Compiling hlaxe_fmod.hdll...");
 
-		var args = buildCompilerArgs(platform, sourceFile, outputFile, fmodSdk, coreInc, studioInc, hlInclude);
+		var args = buildCompilerArgs(platform, sourceFile, outputFile, fmodSdk, coreInc, studioInc, hlInclude,
+			sourceHash(libRoot));
 		info('Running: $compiler ${args.join(" ")}');
 		Sys.println("");
 
@@ -116,7 +120,7 @@ class BuildHdll {
 			Sys.exit(1);
 		}
 
-		// 7. Verify output exists
+		// 8. Verify output exists
 		if (!FileSystem.exists(outputFile)) {
 			error("Compilation appeared to succeed but output file not found.");
 			Sys.exit(1);
@@ -189,7 +193,7 @@ class BuildHdll {
 			proc.stderr.readAll();
 			var code = proc.exitCode();
 			proc.close();
-			// cl.exe with no args exits non-zero but that's fine - it ran
+			// cl.exe with no args exits non-zero. The compiler still ran.
 			return platform == "windows" || code == 0;
 		} catch (e:Dynamic) {
 			return false;
@@ -202,7 +206,7 @@ class BuildHdll {
 		if (hlDir != null && hlDir != "") {
 			var inc = Path.join([hlDir, "include"]);
 			if (FileSystem.exists(Path.join([inc, "hl.h"]))) return inc;
-			// Maybe headers are directly in HASHLINK_DIR
+			// Maybe headers are directly in HASHLINK_DIR.
 			if (FileSystem.exists(Path.join([hlDir, "hl.h"]))) return hlDir;
 		}
 
@@ -220,8 +224,11 @@ class BuildHdll {
 				"/usr/include",
 			];
 			case "windows": [
-				// Common Windows HL install locations
+				// Common Windows HL install locations, headers beside the
+				// binaries or under include/
+				"C:\\HaxeToolkit\\hashlink\\include",
 				"C:\\HaxeToolkit\\hashlink",
+				"C:\\hashlink\\include",
 				"C:\\hashlink",
 			];
 			default: [];
@@ -244,14 +251,42 @@ class BuildHdll {
 		return "/opt/homebrew";
 	}
 
+	static function macArch():String {
+		var arch = Sys.getEnv("HAXEFMOD_HDLL_ARCH");
+		return arch == null || arch == "" ? "x86_64" : arch;
+	}
+
+	/**
+	 * The hash of the shim sources, carried by the hdll as its
+	 * hlaxe_fmod_src marker. ci/hlaxe-src-hash.py computes the same one.
+	 * It is SHA-1 over the shim source, the shared headers in sorted order,
+	 * and the manifest. Each file enters as its path, a newline, its bytes
+	 * with CRLF folded to LF, and a newline. A Windows checkout then hashes
+	 * the same as a Linux one.
+	 */
+	public static function sourceHash(libRoot:String):String {
+		var files = ["native/hlaxe/hlaxe_fmod.c"];
+		var shared = [for (f in FileSystem.readDirectory(Path.join([libRoot, "native", "shared"]))) if (StringTools.endsWith(f, ".h")) f];
+		shared.sort(Reflect.compare);
+		for (f in shared) files.push("native/shared/" + f);
+		files.push("native/manifest/studio_api.txt");
+		var buffer = new haxe.io.BytesBuffer();
+		for (rel in files) {
+			buffer.addString(rel + "\n");
+			buffer.addString(StringTools.replace(File.getContent(Path.join([libRoot, rel])), "\r\n", "\n"));
+			buffer.addString("\n");
+		}
+		return haxe.crypto.Sha1.make(buffer.getBytes()).toHex();
+	}
+
 	static function buildCompilerArgs(platform:String, source:String, output:String, fmodSdk:String, coreInc:String,
-			studioInc:String, hlInclude:String):Array<String> {
+			studioInc:String, hlInclude:String, srcHash:String):Array<String> {
 		return switch (platform) {
 			case "linux":
 				var coreLib = Path.join([fmodSdk, "api", "core", "lib", "x86_64"]);
 				var studioLib = Path.join([fmodSdk, "api", "studio", "lib", "x86_64"]);
 				[
-					"-shared", "-fPIC", "-O2",
+					"-shared", "-fPIC", "-O2", '-DHLAXE_SRC_HASH=$srcHash',
 					"-Wl,-rpath,$ORIGIN",
 					"-o", output,
 					source,
@@ -266,8 +301,10 @@ class BuildHdll {
 				var coreLib = Path.join([fmodSdk, "api", "core", "lib"]);
 				var studioLib = Path.join([fmodSdk, "api", "studio", "lib"]);
 				[
-					"-dynamiclib", "-O2",
-					"-arch", "x86_64",
+					"-dynamiclib", "-O2", '-DHLAXE_SRC_HASH=$srcHash',
+					// x86_64 matches lime's bundled HashLink VM. An arm64 HashLink
+					// (Homebrew's libhl, HL/C builds) needs HAXEFMOD_HDLL_ARCH=arm64.
+					"-arch", macArch(),
 					"-install_name", "@executable_path/hlaxe_fmod.hdll",
 					"-o", output,
 					source,
@@ -284,11 +321,11 @@ class BuildHdll {
 				// Find libhl.lib
 				var hlLib = findHashlinkLib(hlInclude);
 				var args = [
-					"/LD", "/O2", "/DWIN32",
+					"/LD", "/O2", "/DWIN32", '/DHLAXE_SRC_HASH=$srcHash',
 					source,
 					// cl writes the .obj into the process cwd by default,
 					// which under haxelib run is the installed library
-					// directory (possibly read-only)
+					// directory (possibly read-only).
 					"/Fo" + Path.join([Path.directory(output), "hlaxe_fmod.obj"]),
 					'/I$hlInclude',
 					'/I$coreInc',
@@ -298,10 +335,13 @@ class BuildHdll {
 					'/LIBPATH:$studioLib',
 					"fmod_vc.lib", "fmodstudio_vc.lib",
 				];
+				// The shim uses only the HL_PRIM thunks, which need no
+				// runtime symbols. libhl.lib is linked when it was found,
+				// the way the Linux and macOS links leave it out.
 				if (hlLib != null) {
 					args.push('/LIBPATH:$hlLib');
+					args.push("libhl.lib");
 				}
-				args.push("libhl.lib");
 				args.push('/OUT:$output');
 				args;
 			default: [];

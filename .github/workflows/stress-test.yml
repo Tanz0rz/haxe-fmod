@@ -6,6 +6,10 @@ name: Stress Test
 # rare races), so this runs on a weekly schedule and on demand instead of
 # gating every push.
 
+# Every job reads only.
+permissions:
+  contents: read
+
 on:
   schedule:
     - cron: "0 5 * * 1"
@@ -17,6 +21,8 @@ on:
         default: "300"
 
 env:
+  # The pre-SDL3 HashLink commit every job builds, named once
+  HASHLINK_COMMIT: 781960a5daca32ad6d5cea87b255fe8b5872551e
   HAXE_VERSION: 4.3.6
   FMOD_SDK: ${{ github.workspace }}/fmod-sdk
 
@@ -36,37 +42,39 @@ jobs:
           token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v2
+        uses: ./.github/actions/setup-haxe
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Build and install HashLink
         run: |
+          # tee returns its own status, so a failed make needs pipefail
+          set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          git checkout "$HASHLINK_COMMIT"
+          set -o pipefail
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
             echo "=== MAKE FAILED - retrying single-threaded ==="
-            make 2>&1 | tee -a /tmp/hashlink-build.log
-            exit 1
+            make 2>&1 | tee -a /tmp/hashlink-build.log || exit 1
           }
           sudo make install
           sudo ldconfig
@@ -78,11 +86,15 @@ jobs:
           haxelib run lime build hl -Daudio_test
 
       - name: Run stress state
+        env:
+          STRESS_SECONDS_INPUT: ${{ github.event.inputs.stress-seconds }}
         run: |
           # Virtual display + audio sink (FMOD routes ALSA through Pulse)
           Xvfb :99 -screen 0 1024x768x24 &
+          XVFB_PID=$!
           export DISPLAY=:99
           sleep 1
+          kill -0 $XVFB_PID 2>/dev/null || { echo "FAIL: Xvfb did not start on :99"; exit 1; }
           pulseaudio --start --exit-idle-time=-1 || true
           pactl load-module module-null-sink sink_name=virtual_speaker sink_properties=device.description=VirtualSpeaker
           pactl set-default-sink virtual_speaker
@@ -96,13 +108,15 @@ jobs:
           ALSA_EOF
 
           BIN_DIR="example-project/EZPlatformer/export/hl/bin"
-          SECONDS_BUDGET="${{ github.event.inputs.stress-seconds || '300' }}"
+          SECONDS_BUDGET="${STRESS_SECONDS_INPUT:-300}"
+          case "$SECONDS_BUDGET" in ''|*[!0-9]*) echo "stress-seconds must be a whole number, got '$SECONDS_BUDGET'"; exit 1 ;; esac
 
           export HAXEFMOD_TEST_STATE=stress-test
           export STRESS_SECONDS="$SECONDS_BUDGET"
           cd "$BIN_DIR"
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
           EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "*.sh" ! -name "*.dat" -print -quit)
+          [ -n "$EXE" ] || { echo "FAIL: no game executable found in $(pwd)"; ls -la; exit 1; }
           "$EXE" > /tmp/stress-test.log 2>&1 &
           GAME_PID=$!
           cd -
@@ -113,7 +127,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          # A game that ignores SIGTERM must not hold the job until its
+          # timeout, so a KILL follows after ten seconds
           kill $GAME_PID 2>/dev/null || true
+          for i in $(seq 10); do
+            kill -0 $GAME_PID 2>/dev/null || break
+            sleep 1
+          done
+          kill -9 $GAME_PID 2>/dev/null || true
           wait $GAME_PID 2>/dev/null || true
 
           grep "STRESS_TEST:" /tmp/stress-test.log || true
@@ -139,8 +160,8 @@ jobs:
 
   # The shared-header unit tests run under sanitizers every push, but the
   # real shim translation unit (linc_faxe.cpp) only ever runs bare. This
-  # job runs the full api-probe suite through it under valgrind memcheck:
-  # invalid reads/writes and use-after-free in the shim or its FMOD calls
+  # job runs the full api-probe suite through it under valgrind memcheck.
+  # Invalid reads/writes and use-after-free in the shim or its FMOD calls
   # fail the run. Leak checking stays off (the game exits via Sys.exit
   # without teardown by design, so exit-time leak reports are all noise).
   valgrind-linux-cpp:
@@ -158,23 +179,23 @@ jobs:
           token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v2
+        uses: ./.github/actions/setup-haxe
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y valgrind xvfb \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y valgrind xvfb \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -183,16 +204,32 @@ jobs:
           cd example-project/EZPlatformer
           haxelib run lime build linux -64 -Daudio_test
 
-      - name: Patch FMOD libraries
+      - name: Verify FMOD libraries have no executable stack
         run: |
-          for lib in example-project/EZPlatformer/export/linux*/bin/*.so*; do
+          BIN_DIR=$(ls -d example-project/EZPlatformer/export/linux*/bin | head -1)
+          FOUND=0
+          for lib in "$BIN_DIR"/libfmod*.so*; do
+            [ -L "$lib" ] && continue
+            FOUND=1
+            LINE=$(readelf -lW "$lib" | grep GNU_STACK) || {
+              echo "FAIL: $lib has no GNU_STACK header"; exit 1; }
+            FLAGS=$(echo "$LINE" | awk '{print $7}')
+            echo "$lib: GNU_STACK $FLAGS"
+            case "$FLAGS" in *E*)
+              echo "FAIL: $lib still has an executable stack (PostBuild should have cleared it)"
+              exit 1;;
+            esac
           done
+          [ "$FOUND" = "1" ] || { echo "FAIL: no FMOD libraries found in $BIN_DIR"; exit 1; }
+          echo "All FMOD libraries are loadable on modern kernels"
 
       - name: Run api-probe under valgrind
         run: |
           Xvfb :99 -screen 0 640x480x24 &
+          XVFB_PID=$!
           export DISPLAY=:99
           sleep 1
+          kill -0 $XVFB_PID 2>/dev/null || { echo "FAIL: Xvfb did not start on :99"; exit 1; }
           BIN_DIR=$(ls -d example-project/EZPlatformer/export/linux*/bin | head -1)
           cd "$BIN_DIR"
           # Memory errors only: --error-exitcode makes any invalid
@@ -203,12 +240,23 @@ jobs:
             --track-origins=yes --log-file=/tmp/valgrind.log \
             ./run.sh > /tmp/api-probe-valgrind.log 2>&1 &
           PROBE_PID=$!
+          COMPLETE=0
           for i in $(seq 2400); do
+            if grep -q "API_PROBE: COMPLETE" /tmp/api-probe-valgrind.log 2>/dev/null; then
+              COMPLETE=1
+              break
+            fi
             kill -0 $PROBE_PID 2>/dev/null || break
-            grep -q "API_PROBE: COMPLETE" /tmp/api-probe-valgrind.log 2>/dev/null && break
             sleep 1
           done
-          kill $PROBE_PID 2>/dev/null || true
+          # After COMPLETE the probe shuts FMOD down and exits by itself.
+          # Valgrind prints its summary and its exit code at that point,
+          # so let it finish. The timeout above caps the wait.
+          # A probe that never prints COMPLETE is hung, so stop it.
+          if [ "$COMPLETE" = "0" ] && kill -0 $PROBE_PID 2>/dev/null; then
+            echo "Probe never printed COMPLETE, stopping it"
+            kill $PROBE_PID 2>/dev/null || true
+          fi
           STATUS=0
           wait $PROBE_PID || STATUS=$?
           grep -oE "API_PROBE: .*" /tmp/api-probe-valgrind.log | tail -5 || true

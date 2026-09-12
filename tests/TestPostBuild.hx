@@ -15,8 +15,11 @@ class TestPostBuild {
 
 		testRunShContent();
 		testCustomHdllMarkerCheck();
+		testSourceHashParity();
 		testClearExecstack();
 		testSdkPackageDetection();
+		testStage();
+		testRpathToRewrite();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -48,7 +51,7 @@ class TestPostBuild {
 
 	static function writeTemp(name:String, bytes:haxe.io.Bytes):String {
 		// Gitignored scratch space: the runner's cwd is the repo root and
-		// nothing here may ever end up tracked
+		// nothing here must ever end up tracked
 		var dir = "tests/.tmp";
 		if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
 		var path = dir + "/" + name;
@@ -107,6 +110,41 @@ class TestPostBuild {
 		if (pass) passed++ else { failed++; Sys.println('  FAIL: $name'); }
 	}
 
+	// build-hdll and the package check must compute one hash. The exit
+	// code and stderr reach the message, so a missing python3 reads as such.
+	static function testSourceHashParity():Void {
+		var process = new sys.io.Process("python3", ["ci/hlaxe-src-hash.py", "."]);
+		var scripted = StringTools.trim(process.stdout.readAll().toString());
+		var err = StringTools.trim(process.stderr.readAll().toString());
+		var code = process.exitCode();
+		process.close();
+		var built = haxefmod.tools.BuildHdll.sourceHash(".");
+		assert(code == 0 && scripted.length == 40 && scripted == built,
+			'source hash parity: exit=$code script=$scripted tool=$built stderr=$err');
+
+		// A Windows checkout carries CRLF, and both sides must hash it the same
+		// Gitignored scratch space, like every other temporary tree here
+		var crlfRoot = "tests/.tmp/crlf-root";
+		for (rel in ["native/hlaxe/hlaxe_fmod.c", "native/manifest/studio_api.txt"].concat(
+				[for (f in sys.FileSystem.readDirectory("native/shared")) if (StringTools.endsWith(f, ".h")) "native/shared/" + f])) {
+			var target = '$crlfRoot/$rel';
+			var dir = haxe.io.Path.directory(target);
+			if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
+			// A working tree that already holds CRLF is folded first
+			var content = StringTools.replace(sys.io.File.getContent(rel), "\r\n", "\n");
+			sys.io.File.saveContent(target, StringTools.replace(content, "\n", "\r\n"));
+		}
+		var crlfBuilt = haxefmod.tools.BuildHdll.sourceHash(crlfRoot);
+		var crlfProcess = new sys.io.Process("python3", ["ci/hlaxe-src-hash.py", crlfRoot]);
+		var crlfScripted = StringTools.trim(crlfProcess.stdout.readAll().toString());
+		var crlfErr = StringTools.trim(crlfProcess.stderr.readAll().toString());
+		var crlfCode = crlfProcess.exitCode();
+		crlfProcess.close();
+		assert(crlfCode == 0 && crlfBuilt == built && crlfScripted == built,
+			'source hash ignores line endings: exit=$crlfCode tool=$crlfBuilt script=$crlfScripted lf=$built stderr=$crlfErr');
+		removeTree(crlfRoot);
+	}
+
 	/**
 	 * A project-local custom hdll is trusted only while its version marker
 	 * matches the SDK in use. A leftover build for a different FMOD version
@@ -114,7 +152,7 @@ class TestPostBuild {
 	 * mismatched runtime libraries.
 	 */
 	static function testCustomHdllMarkerCheck():Void {
-		var base = "tests/fixtures/tmp-hdll-marker";
+		var base = "tests/.tmp/hdll-marker";
 		var projectDir = '$base/project';
 		var sdkDir = '$base/sdk';
 		var savedSdk = Sys.getEnv("FMOD_SDK");
@@ -137,8 +175,7 @@ class TestPostBuild {
 		assert(!PostBuild.customHdllMatchesSdk(projectDir),
 			"stale marker rejects the custom hdll");
 
-		// Marker markers written by older build-hdll versions may be absent:
-		// the old trust-the-custom-hdll behavior applies then
+		// A custom hdll can lack the marker. The build then trusts the custom hdll
 		sys.FileSystem.deleteFile('$projectDir/.haxefmod/hlaxe_fmod.version');
 		assert(PostBuild.customHdllMatchesSdk(projectDir),
 			"missing marker keeps the old trusting behavior");
@@ -165,11 +202,46 @@ class TestPostBuild {
 		rmTree(base);
 	}
 
+	static function removeTree(path:String):Void {
+		if (!sys.FileSystem.exists(path)) return;
+		if (sys.FileSystem.isDirectory(path)) {
+			for (f in sys.FileSystem.readDirectory(path)) removeTree('$path/$f');
+			sys.FileSystem.deleteDirectory(path);
+		} else {
+			sys.FileSystem.deleteFile(path);
+		}
+	}
+
 	static function assert(condition:Bool, name:String):Void {
 		if (condition) passed++ else {
 			failed++;
 			Sys.println('  FAIL: $name');
 		}
+	}
+
+	static function testRpathToRewrite():Void {
+		// otool -l output for a fat binary lists the load commands per slice
+		var slice = "Load command 14\n          cmd LC_RPATH\n      cmdsize 72\n         path /Users/runner/work/fmod-sdk/api/core/lib (offset 12)\n"
+			+ "Load command 15\n          cmd LC_RPATH\n      cmdsize 80\n         path /Users/runner/work/fmod-sdk/api/studio/lib (offset 12)\n"
+			+ "Load command 16\n          cmd LC_LOAD_DYLIB\n      cmdsize 48\n         name @rpath/libfmod.dylib (offset 24)\n";
+		var fat = "KhaPlatformer (architecture x86_64):\n" + slice + "KhaPlatformer (architecture arm64):\n" + slice;
+		check("the SDK search path is the one rewritten", PostBuild.rpathToRewrite(fat, "/Users/runner/work/fmod-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		check("a trailing slash on the SDK path is fine", PostBuild.rpathToRewrite(fat, "/Users/runner/work/fmod-sdk/") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		check("a path shaped like an SDK lib directory serves without the SDK prefix", PostBuild.rpathToRewrite(fat, "/opt/other-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		var foreign = "          cmd LC_RPATH\n      cmdsize 40\n         path /opt/homebrew/lib (offset 12)\n";
+		check("a search path the game needs is never rewritten", PostBuild.rpathToRewrite(foreign, "/opt/other-sdk") == null);
+		var short = "          cmd LC_RPATH\n      cmdsize 24\n         path /usr/lib (offset 12)\n";
+		check("a path shorter than the new value is left alone", PostBuild.rpathToRewrite(short, "/opt/sdk") == null);
+		var relative = "          cmd LC_RPATH\n      cmdsize 40\n         path @loader_path/../Frameworks (offset 12)\n";
+		check("a relative search path is left alone", PostBuild.rpathToRewrite(relative, "/opt/sdk") == null);
+		var present = slice + "          cmd LC_RPATH\n      cmdsize 32\n         path @executable_path (offset 12)\n";
+		check("an executable that has the search path needs no rewrite", PostBuild.rpathToRewrite(present, "/Users/runner/work/fmod-sdk") == null);
+		var dylibOnly = "          cmd LC_LOAD_DYLIB\n      cmdsize 48\n         name @rpath/libfmod.dylib (offset 24)\n         path /not/an/rpath/entry (offset 12)\n";
+		check("a path line outside an LC_RPATH command is skipped", PostBuild.rpathToRewrite(dylibOnly, "/opt/sdk") == null);
+		check("no load commands gives null", PostBuild.rpathToRewrite("", "/opt/sdk") == null);
+		var mixed = "          cmd LC_RPATH\n      cmdsize 40\n         path /usr/local/lib/elsewhere (offset 12)\n" + slice;
+		check("the SDK search path wins over an earlier absolute one", PostBuild.rpathToRewrite(mixed, "/Users/runner/work/fmod-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		check("a trailing slash on the SDK path still prefers the SDK", PostBuild.rpathToRewrite(mixed, "/Users/runner/work/fmod-sdk/") == "/Users/runner/work/fmod-sdk/api/core/lib");
 	}
 
 	static function testRunShContent():Void {
@@ -180,8 +252,16 @@ class TestPostBuild {
 		assert(script.indexOf("export LD_LIBRARY_PATH=\"$(pwd):$LD_LIBRARY_PATH\"") >= 0, "run.sh library path");
 		// The exe invocation is quoted, so a name with spaces launches
 		assert(script.indexOf("\"./My Game\" \"$@\"") >= 0, "run.sh quoted exe invocation");
+		assert(script.indexOf("\nexec \"./My Game\"") >= 0, "run.sh execs the game so the launcher pid is the game");
 		assert(script.indexOf("cd \"$(dirname \"$0\")\"") >= 0, "run.sh cd to script dir");
 
+		var mac = PostBuild.runShContent("game.hl", true, true);
+		check("mac launcher runs the bytecode through hl", mac.indexOf('hl "./game.hl"') != -1);
+		check("mac launcher sets DYLD_LIBRARY_PATH", mac.indexOf("export DYLD_LIBRARY_PATH") != -1 && mac.indexOf("export LD_LIBRARY_PATH") == -1);
+		var cmd = PostBuild.runCmdContent("game.hl");
+		check("windows launcher changes to its own directory", cmd.indexOf('cd /d "%~dp0"') != -1);
+		check("windows launcher runs the bytecode through hl", cmd.indexOf('hl "game.hl" %*') != -1);
+		check("windows launcher uses CRLF", cmd.indexOf("\r\n") != -1);
 		var plain = PostBuild.runShContent("Game");
 		assert(plain.indexOf("\"./Game\" \"$@\"") >= 0, "run.sh plain name quoted too");
 	}
@@ -202,9 +282,9 @@ class TestPostBuild {
 
 	/**
 	 * Telling the two FMOD packages apart. The HTML5 package ships the same
-	 * api/core/inc headers as the desktop one, so a header check passes on
-	 * both and a native build got as far as copying a library that was
-	 * never there. The core library is what actually separates them.
+	 * api/core/inc headers as the desktop one. A header check therefore
+	 * passes on both. A native build got as far as copying a library that
+	 * was never there. The core library is what actually separates them.
 	 */
 	static function testSdkPackageDetection():Void {
 		var root = "tests/.tmp/sdk";
@@ -225,15 +305,131 @@ class TestPostBuild {
 		assert(!PostBuild.looksLikeWebSdk(desktop), "desktop package not mistaken for html5");
 		assert(!PostBuild.looksLikeWebSdk(root + "/missing"), "absent path is not the html5 package");
 
-		// The header both packages share cannot separate them
-		assert(sys.FileSystem.exists(web + "/api/core/inc/fmod_common.h"),
-			"html5 package ships the core headers too");
+		// The per-platform core library path, the file the package check
+		// looks for
+		assert(PostBuild.nativeCoreLib("mac").join("/") == "api/core/lib/libfmod.dylib", "mac core library path");
+		assert(PostBuild.nativeCoreLib("windows").join("/") == "api/core/lib/x64/fmod.dll", "windows core library path");
+		assert(PostBuild.nativeCoreLib("linux").join("/") == "api/core/lib/x86_64/libfmod.so", "linux core library path");
+	}
 
-		for (platform in ["mac", "windows", "linux"]) {
-			var marker = haxe.io.Path.join([desktop].concat(PostBuild.nativeCoreLib(platform)));
-			assert(sys.FileSystem.exists(marker), 'desktop package has the $platform core library');
-			var missing = haxe.io.Path.join([web].concat(PostBuild.nativeCoreLib(platform)));
-			assert(!sys.FileSystem.exists(missing), 'html5 package has no $platform core library');
+	/**
+	 * stage() copies into the directory it is given with no lime layout
+	 * involved. A HashLink VM output (bytecode, no executable) gets a
+	 * launcher that runs the bytecode through hl. The web trio includes
+	 * jaxe.js, which lime bundles on its own.
+	 */
+	static function testStage():Void {
+		// cp -P and test -L run here, and the symlink layout is the Linux
+		// SDK's. The Windows runner never executes this file.
+		if (Sys.systemName() == "Windows") return;
+		var base = "tests/.tmp/stage";
+		var libRoot = '$base/lib';
+		var projectDir = '$base/project';
+		var sdk = '$base/sdk';
+		var savedSdk = Sys.getEnv("FMOD_SDK");
+		var savedWeb = Sys.getEnv("FMOD_SDK_WEB");
+
+		function write(path:String, content:String):Void {
+			var dir = haxe.io.Path.directory(path);
+			if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
+			sys.io.File.saveContent(path, content);
 		}
+		function writeBytes(path:String, bytes:haxe.io.Bytes):Void {
+			var dir = haxe.io.Path.directory(path);
+			if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
+			sys.io.File.saveBytes(path, bytes);
+		}
+		function rmTree(path:String):Void {
+			if (!sys.FileSystem.exists(path)) return;
+			for (name in sys.FileSystem.readDirectory(path)) {
+				var child = '$path/$name';
+				if (sys.FileSystem.isDirectory(child)) rmTree(child) else sys.FileSystem.deleteFile(child);
+			}
+			sys.FileSystem.deleteDirectory(path);
+		}
+		rmTree(base);
+
+		// Library side: version marker, the manifest header, a pre-built
+		// hdll carrying the matching ABI marker, jaxe.js
+		write('$libRoot/fmod_expected_version', "0x00020312\n");
+		write('$libRoot/native/manifest/studio_api.txt', "# abi-version: 13\n");
+		write('$libRoot/templates/bin/hl/Linux64/hlaxe_fmod.hdll', "hdll bytes hlaxe_fmod_abi=13");
+		write('$libRoot/native/jaxe/jaxe.js', "// jaxe");
+
+		// Desktop SDK: header plus versioned .so files with the symlinks
+		// FMOD ships, executable stack flag set like the real ones
+		write('$sdk/api/core/inc/fmod_common.h', "#define FMOD_VERSION 0x00020312\n");
+		var coreDir = '$sdk/api/core/lib/x86_64';
+		var studioDir = '$sdk/api/studio/lib/x86_64';
+		writeBytes('$coreDir/libfmod.so.14.12', fakeElf(7));
+		writeBytes('$studioDir/libfmodstudio.so.14.12', fakeElf(7));
+		Sys.command("ln", ["-s", "libfmod.so.14.12", '$coreDir/libfmod.so.14']);
+		Sys.command("ln", ["-s", "libfmod.so.14", '$coreDir/libfmod.so']);
+		Sys.command("ln", ["-s", "libfmodstudio.so.14.12", '$studioDir/libfmodstudio.so']);
+
+		var out = '$projectDir/build/hl';
+		write('$out/main.hl', "bytecode");
+		Sys.putEnv("FMOD_SDK", sdk);
+		PostBuild.stage("linux", "hl", libRoot, projectDir, out);
+
+		check("stage copies libfmod.so", sys.FileSystem.exists('$out/libfmod.so'));
+		check("stage copies libfmodstudio.so", sys.FileSystem.exists('$out/libfmodstudio.so'));
+		check("stage copies the versioned library", sys.FileSystem.exists('$out/libfmod.so.14.12'));
+		check("stage copies the pre-built hdll", sys.FileSystem.exists('$out/hlaxe_fmod.hdll')
+			&& sys.io.File.getContent('$out/hlaxe_fmod.hdll') == "hdll bytes hlaxe_fmod_abi=13");
+		check("stage clears the executable stack flag",
+			sys.io.File.getBytes('$out/libfmod.so.14.12').getInt32(124) & 1 == 0);
+		var runSh = '$out/run.sh';
+		check("stage writes an hl launcher for a bytecode build", sys.FileSystem.exists(runSh)
+			&& sys.io.File.getContent(runSh).indexOf('hl "./main.hl"') != -1);
+		// A stale native build and a Windows launcher in the same directory
+		// never displace the bytecode
+		write('$out/game', "stale native build");
+		Sys.command("chmod", ["+x", '$out/game']);
+		write('$out/run.cmd', "@echo off");
+		sys.FileSystem.deleteFile(runSh);
+		PostBuild.stage("linux", "hl", libRoot, projectDir, out);
+		check("stage keeps the bytecode launcher over a stale executable", sys.FileSystem.exists(runSh)
+			&& sys.io.File.getContent(runSh).indexOf('hl "./main.hl"') != -1);
+
+		// A project-local custom hdll wins when its marker matches the SDK
+		write('$projectDir/.haxefmod/hlaxe_fmod.hdll', "custom hdll hlaxe_fmod_abi=13");
+		write('$projectDir/.haxefmod/hlaxe_fmod.version', "0x00020312\n");
+		PostBuild.stage("linux", "hl", libRoot, projectDir, out);
+		check("stage prefers the custom hdll",
+			sys.io.File.getContent('$out/hlaxe_fmod.hdll') == "custom hdll hlaxe_fmod_abi=13");
+
+		// cpp target: libraries only, no hdll, and the directory is created
+		var cppOut = '$projectDir/build/cpp';
+		PostBuild.stage("linux", "cpp", libRoot, projectDir, cppOut);
+		check("stage creates the output directory", sys.FileSystem.isDirectory(cppOut));
+		check("stage cpp copies libfmod.so", sys.FileSystem.exists('$cppOut/libfmod.so'));
+		check("stage cpp skips the hdll", !sys.FileSystem.exists('$cppOut/hlaxe_fmod.hdll'));
+		check("stage cpp writes no launcher without an executable", !sys.FileSystem.exists('$cppOut/run.sh'));
+		// A data file without the executable bit is never taken for the game
+		write('$cppOut/notes', "a data file");
+		PostBuild.stage("linux", "cpp", libRoot, projectDir, cppOut);
+		check("stage cpp skips a file without the executable bit", !sys.FileSystem.exists('$cppOut/run.sh'));
+		write('$cppOut/game', "native build");
+		Sys.command("chmod", ["+x", '$cppOut/game']);
+		PostBuild.stage("linux", "cpp", libRoot, projectDir, cppOut);
+		check("stage cpp launches the executable", sys.FileSystem.exists('$cppOut/run.sh')
+			&& sys.io.File.getContent('$cppOut/run.sh').indexOf('"./game"') != -1);
+
+		// Web SDK: the engine pair plus jaxe.js land side by side
+		var web = '$base/web';
+		write('$web/api/core/inc/fmod_common.h', "#define FMOD_VERSION 0x00020312\n");
+		write('$web/api/studio/lib/wasm/fmodstudio.js', "// engine");
+		write('$web/api/studio/lib/wasm/fmodstudio.wasm', "wasm");
+		var webOut = '$projectDir/build/html5/lib';
+		Sys.putEnv("FMOD_SDK_WEB", web);
+		PostBuild.stage("html5", "ignored", libRoot, projectDir, webOut);
+		for (name in ["fmodstudio.js", "fmodstudio.wasm", "jaxe.js"]) {
+			check('stage html5 copies $name', sys.FileSystem.exists('$webOut/$name'));
+		}
+
+		Sys.putEnv("FMOD_SDK", savedSdk);
+		Sys.putEnv("FMOD_SDK_WEB", savedWeb);
+		rmTree(base);
 	}
 }

@@ -2,6 +2,8 @@ package haxefmod.core;
 
 import haxefmod.core.Reverb;
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 import haxefmod.studio.native.Scratch;
 
@@ -70,11 +72,15 @@ abstract Reverb3D(Int) from Int to Int {
         return NativeStudio.r3d_set_active(this, active);
     }
 
+    /**
+     * True while this reverb sphere affects the mix. Returns false both on failure and for a sphere switched
+     * off. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getActive():Bool {
         return NativeStudio.r3d_get_active(this);
     }
 
-    public function get3DAttributes():Null<{x:Float, y:Float, z:Float, minDistance:Float, maxDistance:Float}> {
+    public function get3DAttributes():Null<FmodReverb3DAttributes> {
         var result:FmodResult = NativeStudio.r3d_get_3d_attributes(this);
         if (!result.isOk()) return null;
         return {x: Scratch.readF(0), y: Scratch.readF(1), z: Scratch.readF(2),
@@ -83,6 +89,24 @@ abstract Reverb3D(Int) from Int to Int {
 
     /** Frees the zone and invalidates this handle. */
     public inline function release():FmodResult {
-        return NativeStudio.r3d_release(this);
+        var result:FmodResult = NativeStudio.r3d_release(this);
+        if (UserData.releaseTookEffect(result)) UserData.clear(UserDataKind.Reverb3D, this);
+        return result;
+    }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int. Thus a stale entry does not show up on the next handle
+     * in that slot.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.Reverb3D, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.Reverb3D, this);
     }
 }

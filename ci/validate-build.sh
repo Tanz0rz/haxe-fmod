@@ -1,7 +1,7 @@
 #!/bin/bash
 # Validate that a build output directory has all required files.
 # Usage: ./ci/validate-build.sh <bin-dir> <target>
-# target: "cpp" or "hl"
+# target: "cpp" or "hl", named in the report. Both validate the same way.
 # Exits 0 if valid, 1 if validation fails.
 
 BIN_DIR="$1"
@@ -60,7 +60,7 @@ fi
 # 4. Check FMOD bank files present
 echo -n "  [4/5] FMOD bank files .............. "
 BANKS_DIR="$BIN_DIR/assets/fmod/Desktop"
-# Mac .app bundles: assets are in Contents/Resources/, not Contents/MacOS/
+# Mac .app bundles: assets are in Contents/Resources/ rather than Contents/MacOS/
 if [ ! -d "$BANKS_DIR" ] && [[ "$BIN_DIR" == *Contents/MacOS* ]]; then
   RESOURCES_DIR="${BIN_DIR%/Contents/MacOS*}/Contents/Resources"
   BANKS_DIR="$RESOURCES_DIR/assets/fmod/Desktop"
@@ -82,6 +82,9 @@ else
 fi
 
 # 5. Check manifest (lime asset library)
+# Every caller validates a lime build of the example game, and lime writes
+# the asset library manifest next to the executable. The game reads its
+# assets through that manifest, so a build without one is broken.
 echo -n "  [5/5] Lime asset manifest .......... "
 MANIFEST_DIR="$BIN_DIR/manifest"
 # Mac .app bundles: manifest is in Contents/Resources/
@@ -93,7 +96,8 @@ if [ -d "$MANIFEST_DIR" ]; then
 elif [ -f "$MANIFEST_DIR" ]; then
   echo "OK (file)"
 else
-  echo "WARN (no manifest directory - may still work)"
+  echo "FAIL (no manifest at $MANIFEST_DIR)"
+  PASS=false
 fi
 
 echo ""

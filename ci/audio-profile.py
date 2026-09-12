@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Deep audio profile of a recorded WAV: windowed RMS analysis that separates
+# Deep audio profile of a recorded WAV. A windowed RMS analysis separates
 # the recording envelope (leading/trailing silence from recorder slack and
-# game boot time) from the actual audio, then gates on properties of the
+# game boot time) from the actual audio. It then gates on properties of the
 # active region that a whole-file mean-volume check cannot see:
 #
 #   - enough ACTIVE audio (a 30s recording of 3s of sound must fail)
@@ -12,12 +12,19 @@
 #
 # Usage:
 #   audio-profile.py <wav> [--min-active S] [--max-gap S] [--max-lead S]
-#                    [--min-channels N] [--no-gate]
+#                    [--min-channels N] [--no-gate] [--synth]
 #
-# Handles FMOD WAVWRITER quirks: an unfinalized data chunk (size 0) is read
-# to end of file, and a malformed fmt chunk (0 channels, from Sys.exit on
-# Windows) falls back to the known CI format of 48kHz 16-bit stereo.
-# Prints measurements and a one-char-per-second profile strip either way;
+# --synth adds the synth-test tone sequence gate (see SynthScenario.hx).
+# It then applies four of the five gates above. The dropout gate is left
+# out. That state stops one tone before it starts the next, so the segment
+# seams read as internal silence. Each segment has to meet its own
+# minimum length inside the sequence gate.
+#
+# Handles FMOD WAVWRITER quirks. An unfinalized data chunk (size 0) is read
+# to end of file. A malformed fmt chunk (0 channels, from Sys.exit on
+# Windows) keeps its rate and bit depth. The channel count falls back
+# to the CI format's stereo.
+# Prints measurements and a one-char-per-second profile strip either way.
 # --no-gate reports without failing (used for the volume test, whose muted
 # phase is intentional silence).
 import math
@@ -121,10 +128,12 @@ def read_wav(path):
             if chunk_id == b"fmt " and size >= 16:
                 _, fmt_channels, fmt_rate, _, _, fmt_bits = struct.unpack(
                     "<HHIIHH", data[pos + 8:pos + 24])
-                # A zero channel count is the Windows WAVWRITER header bug;
-                # keep the CI-format defaults in that case
+                # A zero channel count is the Windows WAVWRITER header bug.
+                # The rate and the bit depth next to it are intact, so only
+                # the channel count keeps the CI-format default.
+                rate, bits = fmt_rate, fmt_bits
                 if fmt_channels > 0:
-                    channels, rate, bits = fmt_channels, fmt_rate, fmt_bits
+                    channels = fmt_channels
             elif chunk_id == b"data":
                 # size 0 = unfinalized WAVWRITER header. data runs to EOF
                 pcm = data[pos + 8:pos + 8 + size] if size > 0 else data[pos + 8:]
@@ -273,8 +282,8 @@ def synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs):
             else:
                 failures.append("fade segment too short to analyze the ramp")
 
-        # Distance attenuation on PcmStream.create3d: both 3D segments are
-        # written at the same amplitude and played straight ahead, so the
+        # Distance attenuation on PcmStream.create3d. Both 3D segments are
+        # written at the same amplitude and played straight ahead. The
         # only thing that can separate their levels is the 3D rolloff.
         near_run = runs[SYNTH_3D_NEAR_INDEX]
         far_run = runs[SYNTH_3D_FAR_INDEX]
@@ -370,7 +379,6 @@ def main():
 
     if options["synth"]:
         synth_gate(channels, rate, pcm, window_count, window_frames, window_dbs)
-        return
 
     if not options["gate"]:
         print("  (profile only - no gating)")
@@ -380,7 +388,9 @@ def main():
     if active_duration < options["min_active"]:
         failures.append("active audio {:.2f}s < required {:.2f}s".format(
             active_duration, options["min_active"]))
-    if longest_gap > options["max_gap"]:
+    # Segment seams in the synth recording are real silence, so the
+    # dropout gate does not apply there
+    if not options["synth"] and longest_gap > options["max_gap"]:
         failures.append("internal silent gap {:.2f}s > allowed {:.2f}s (dropout)".format(
             longest_gap, options["max_gap"]))
     if lead > options["max_lead"]:
@@ -388,9 +398,11 @@ def main():
             lead, options["max_lead"]))
     live_channels = sum(1 for value in channel_active
                         if value >= options["min_active"] / 2)
-    if live_channels < min(options["min_channels"], channels):
-        failures.append("only {} of {} channels carry signal".format(
-            live_channels, channels))
+    # A recording with fewer channels than required fails outright: a mono
+    # file is the downmix bug this gate exists for
+    if channels < options["min_channels"] or live_channels < options["min_channels"]:
+        failures.append("only {} of {} channels carry signal (need {})".format(
+            live_channels, channels, options["min_channels"]))
     if clip_window_count >= CLIP_WINDOWS:
         failures.append("sustained clipping in {} windows".format(clip_window_count))
 

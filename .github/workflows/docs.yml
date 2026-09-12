@@ -1,0 +1,169 @@
+name: Docs
+
+# Builds the documentation site: the guides from docs/ plus the dox API
+# reference under /api/. It runs on every push to the default branch,
+# the 3.0.0 branch, and release tags, and publishes the site to
+# https://www.tanz0rz.com/haxe-fmod/. The site is rsynced from the self-hosted runner
+# to the docs host and swapped in atomically. GitHub Pages keeps serving a
+# redirect to www.tanz0rz.com for links made before the move.
+
+# A paths filter under push covers the tag entry too, and a release tag
+# whose commit touched nothing under docs/ would then skip the build. The
+# trigger carries no paths filter for that reason. Nearly every tracked
+# path feeds this site anyway, so the filter saved little.
+on:
+  push:
+    branches: [master, 3.0.0]
+    tags: ["*"]
+  workflow_dispatch:
+
+env:
+  # The pinned libraries, part of every haxelib cache key so a bump rotates it
+  HAXELIB_PINS: lime8.3.0-openfl9.5.0-flixel6.1.2-heaps2.1.0-hxcpp4.3.2-hashlink1.15.0-hlsdl1.15.0-hldx1.15.0-dox1.6.0
+  HAXE_VERSION: 4.3.6
+
+# The build job reads only. The deploy job raises its own grant for Pages.
+permissions:
+  contents: read
+
+# Every ref publishes the same site, so the deploys serialize in push
+# order rather than racing the symlink swap. One run waits per group,
+# and a newer push cancels the run still waiting. The release list
+# pushes nothing after the tag until the tag run has started.
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: self-hosted
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Haxe
+        uses: ./.github/actions/setup-haxe
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache haxelib
+        uses: actions/cache@v5
+        with:
+          path: ~/haxelib
+          key: haxelib-docs-${{ runner.os }}-${{ env.HAXE_VERSION }}-flixel-heaps-${{ env.HAXELIB_PINS }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          bash ci/retry.sh haxelib install dox 1.6.0 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install heaps 2.1.0 --always --quiet
+
+      - name: Check the generated bindings table and example translations
+        run: |
+          python3 ci/haxe-bindings.py --check
+          python3 ci/haxe-catalog.py --check
+
+      - name: Check every docs-tab entry is reviewed
+        run: python3 ci/example-ledger.py --status --require-all
+
+      - name: Check every line-count difference against the site is waived
+        run: python3 ci/example-line-counts.py
+
+      - name: Compile the guide examples
+        run: python3 ci/check-readme-snippets.py docs extension/haxe extension/functions.md
+
+      - name: Drive the extension over the fixture matrix
+        run: |
+          bash ci/retry.sh npm install playwright@1.63.0 > /dev/null
+          # The runner has chromium's system libraries preinstalled, and
+          # --with-deps would need apt and root
+          bash ci/retry.sh npx playwright install chromium
+          node extension/test/run.js --headless --all
+
+      - name: Generate type XML
+        run: |
+          mkdir -p /tmp/haxefmod-docs
+          # One compile typed as an HTML5 build with every engine library
+          # on the path. The flixel, Heaps, and Kha packages then all land
+          # in the reference. Kha compiles against the stubs the snippet
+          # checker keeps, since Kha only exists as a checkout. The CLI
+          # (sys-only) and the native shim package are internal and stay
+          # out of the reference.
+          python3 ci/check-readme-snippets.py --kha-stubs /tmp/haxefmod-kha-stubs
+          haxe -cp . -cp /tmp/haxefmod-kha-stubs \
+            -lib flixel -lib openfl -lib lime -lib heaps \
+            -D FLX_STANDARD_ASSETS_DIRECTORY -D openfl-html5 -D html5 \
+            --no-output -js /dev/null \
+            --macro "include('haxefmod', true, ['haxefmod.tools', 'haxefmod.studio.native'])" \
+            --xml /tmp/haxefmod-docs/types.xml
+
+      - name: Render the API reference
+        run: |
+          haxelib run dox -i /tmp/haxefmod-docs -o site-api -in haxefmod --title "haxefmod API reference"
+          python3 ci/api-module-pages.py /tmp/haxefmod-docs/types.xml site-api
+
+      - name: Install MkDocs
+        # The runner's system Python through a venv: setup-python has no
+        # prebuilt interpreters for Debian
+        run: |
+          python3 -m venv "$RUNNER_TEMP/mkdocs-venv"
+          bash ci/retry.sh "$RUNNER_TEMP/mkdocs-venv/bin/pip" install --quiet -r ci/docs-requirements.txt
+          echo "$RUNNER_TEMP/mkdocs-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Build the site
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          # The edit link points at the branch this build came from. A tag
+          # has no edit view, so a tag build points at the default branch.
+          EDIT_REF="${GITHUB_REF_NAME}"
+          case "$GITHUB_REF" in refs/tags/*) EDIT_REF="${DEFAULT_BRANCH}" ;; esac
+          DOCS_EDIT_URI="edit/${EDIT_REF}/docs/" DOCS_BRANCH="${GITHUB_REF_NAME}" mkdocs build --strict
+          # The dox output takes the api/ path, so a docs/api page cannot exist
+          if [ -e site/api ]; then echo "FAIL: site/api exists before the API reference is moved in"; exit 1; fi
+          mv site-api site/api
+          python3 ci/check-site-links.py site
+
+      - name: Ship the site to www.tanz0rz.com
+        # The self-hosted runner holds the SSH config and key for the docs
+        # host, and the docs host holds the publish script. The release
+        # lands under a fresh directory and goes live with one symlink swap.
+        env:
+          RELEASE: ${{ github.run_id }}-${{ github.run_attempt }}
+          SSH_CONFIG: /home/runner/.ssh/tanz0rz_deploy_config
+        run: |
+          bash ci/retry.sh ssh -F "$SSH_CONFIG" deploy-target "mkdir -p /var/www/releases/$RELEASE"
+          bash ci/retry.sh rsync -az --delete --link-dest=/var/www/tanz0rz/haxe-fmod/ \
+            -e "ssh -F $SSH_CONFIG" \
+            site/ "deploy-target:/var/www/releases/$RELEASE/haxe-fmod/"
+          bash ci/retry.sh ssh -F "$SSH_CONFIG" deploy-target "bash /var/www/releases/publish.sh /var/www/releases/$RELEASE"
+          bash ci/retry.sh curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/
+          bash ci/retry.sh curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/api/
+
+      - name: Upload the GitHub Pages redirect
+        # The redirect is static, and the Pages environment allows
+        # branches only, so a tag run skips it
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ci/pages-redirect
+
+  deploy:
+    # Keeps the GitHub Pages address alive as a redirect to www.tanz0rz.com
+    needs: build
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+    permissions:
+      pages: write
+      id-token: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

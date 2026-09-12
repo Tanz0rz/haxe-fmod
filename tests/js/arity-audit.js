@@ -1,5 +1,6 @@
-// Exercises EVERY jaxe.js public function against the real wasm to catch
-// embind arity errors (BindingError) anywhere in the bound surface.
+// Exercises the instance lifecycle calls of jaxe.js against the real wasm
+// to catch embind arity errors (BindingError) on that path. The other
+// harnesses in this directory cover the rest of the bound surface.
 
 // Path resolution: the FMOD html5 SDK comes from $FMOD_SDK_WEB (the same
 // variable lime builds use). The shim and banks are found relative to this
@@ -38,10 +39,23 @@ jaxe.onRuntimeInitialized = function () {
 };
 
 let failures = 0;
-function check(label, fn) {
-    try { const r = fn(); console.log(`OK   ${label} -> ${r}`); return r; }
+// A call that throws is the arity error this file exists for. A call
+// that returns an FMOD error code is a failure too. A wrong argument
+// order reaches FMOD as a refused call rather than a throw. A getter
+// returns its error value in band, so its predicate reads the last
+// result as well.
+function check(label, fn, ok) {
+    try {
+        const r = fn();
+        if (ok !== undefined && !ok(r)) { console.log(`FAIL ${label} -> ${r}`); failures++; return r; }
+        console.log(`OK   ${label} -> ${r}`);
+        return r;
+    }
     catch (e) { console.log(`FAIL ${label} -> ${e.constructor.name}: ${e.message}`); failures++; return null; }
 }
+const isOk = r => r === 0;
+const isHandle = r => typeof r === 'number' && r > 0;
+const lastOk = () => jaxe.fmod_sys_last_result() === 0;
 
 async function main() {
     jaxe.FMOD['preRun'] = jaxe.preRun;
@@ -53,21 +67,25 @@ async function main() {
     const SONG = 'event:/Music/MainLevel';
 
     // System basics through the raw layer
-    check('fmod_sys_is_initialized', () => jaxe.fmod_sys_is_initialized());
+    check('fmod_sys_is_initialized', () => jaxe.fmod_sys_is_initialized(), r => r === true);
     check('fmod_sys_update', () => { jaxe.fmod_sys_update(); return 'ok'; });
     // Instance lifecycle goes through the domain-prefixed API
-    const evd = check('fmod_sys_get_event', () => jaxe.fmod_sys_get_event(SONG));
-    const h = check('fmod_evd_create_instance', () => jaxe.fmod_evd_create_instance(evd));
-    check('fmod_evi_start', () => jaxe.fmod_evi_start(h));
+    const evd = check('fmod_sys_get_event', () => jaxe.fmod_sys_get_event(SONG), isHandle);
+    const h = check('fmod_evd_create_instance', () => jaxe.fmod_evd_create_instance(evd), isHandle);
+    check('fmod_evi_start', () => jaxe.fmod_evi_start(h), isOk);
+    // The instance reaches PLAYING (0) within a few updates, then plays on
+    // for a while so the timeline has moved
+    for (let i = 0; i < 200 && jaxe.fmod_evi_get_playback_state(h) !== 0; i++) { jaxe.fmod_sys_update(); await new Promise(r => setTimeout(r, 10)); }
     for (let i = 0; i < 10; i++) { jaxe.fmod_sys_update(); await new Promise(r => setTimeout(r, 10)); }
-    check('fmod_evi_get_playback_state', () => jaxe.fmod_evi_get_playback_state(h));
-    check('fmod_evi_get_timeline_position', () => jaxe.fmod_evi_get_timeline_position(h));
-    check('fmod_evi_set_param_by_name', () => jaxe.fmod_evi_set_param_by_name(h, 'AreaOneUnderWater', 0.5, false));
-    check('fmod_evi_get_param_by_name', () => jaxe.fmod_evi_get_param_by_name(h, 'AreaOneUnderWater'));
-    check('fmod_evi_set_paused(true)', () => jaxe.fmod_evi_set_paused(h, true));
-    check('fmod_evi_set_paused(false)', () => jaxe.fmod_evi_set_paused(h, false));
-    check('fmod_evi_set_callback_mask', () => jaxe.fmod_evi_set_callback_mask(h, 0x7FFFF));
-    check('fmod_evi_stop soft', () => jaxe.fmod_evi_stop(h, 0));
+    check('fmod_evi_get_playback_state', () => jaxe.fmod_evi_get_playback_state(h), r => r === 0 && lastOk());
+    check('fmod_evi_get_timeline_position', () => jaxe.fmod_evi_get_timeline_position(h), r => r > 0 && lastOk());
+    // HighPass is a parameter the example's music event carries
+    check('fmod_evi_set_param_by_name', () => jaxe.fmod_evi_set_param_by_name(h, 'HighPass', 0.5, false), isOk);
+    check('fmod_evi_get_param_by_name', () => jaxe.fmod_evi_get_param_by_name(h, 'HighPass'), r => Math.abs(r - 0.5) < 1e-6 && lastOk());
+    check('fmod_evi_set_paused(true)', () => jaxe.fmod_evi_set_paused(h, true), isOk);
+    check('fmod_evi_set_paused(false)', () => jaxe.fmod_evi_set_paused(h, false), isOk);
+    check('fmod_evi_set_callback_mask', () => jaxe.fmod_evi_set_callback_mask(h, 0x7FFFF), isOk);
+    check('fmod_evi_stop soft', () => jaxe.fmod_evi_stop(h, 0), isOk);
     let saw = false;
     for (let i = 0; i < 300 && !saw; i++) {
         jaxe.fmod_sys_update();
@@ -76,7 +94,7 @@ async function main() {
     }
     console.log('Stopped delivered:', saw);
     if (!saw) failures++;
-    check('fmod_evi_release', () => jaxe.fmod_evi_release(h));
+    check('fmod_evi_release', () => jaxe.fmod_evi_release(h), isOk);
 
     console.log(failures ? `AUDIT FAILED: ${failures} failures` : 'AUDIT CLEAN');
     process.exit(failures ? 1 : 0);

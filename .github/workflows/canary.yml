@@ -2,8 +2,12 @@ name: Canary
 
 # Canary builds against moving targets: latest haxelib releases, HashLink
 # master, and (on dispatch) a new FMOD SDK version. A failure here is an
-# early-warning signal to investigate upstream changes - it does NOT mean
-# main is broken and must not be treated as a broken-main page.
+# early-warning signal to investigate upstream changes. It does NOT mean
+# main is broken, and it is no broken-main page.
+
+# Every job reads only.
+permissions:
+  contents: read
 
 on:
   schedule:
@@ -16,6 +20,8 @@ on:
         default: "2.03.12"
 
 env:
+  # The pre-SDL3 HashLink commit every job builds, named once
+  HASHLINK_COMMIT: 781960a5daca32ad6d5cea87b255fe8b5872551e
   HAXE_VERSION: 4.3.6
   FMOD_SDK: ${{ github.workspace }}/fmod-sdk
 
@@ -38,7 +44,7 @@ jobs:
           token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v2
+        uses: ./.github/actions/setup-haxe
         with:
           # krdlab/setup-haxe only accepts exact versions (no "latest"), so
           # this pins the newest 4.3.x release. bump it manually as new Haxe
@@ -48,10 +54,10 @@ jobs:
       - name: Install Haxe libraries (latest, unpinned)
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime --always --quiet
-          haxelib install openfl --always --quiet
-          haxelib install flixel --always --quiet
-          haxelib install hxcpp --always --quiet
+          bash ci/retry.sh haxelib install lime --always --quiet
+          bash ci/retry.sh haxelib install openfl --always --quiet
+          bash ci/retry.sh haxelib install flixel --always --quiet
+          bash ci/retry.sh haxelib install hxcpp --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -62,7 +68,7 @@ jobs:
         env:
           FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
         run: |
-          # html5 needs no native toolchain and still compiles the flixel
+          # HTML5 needs no native toolchain and compiles the flixel
           # components against the latest flixel
           cd example-project/EZPlatformer
           haxelib run lime build html5 -Daudio_test
@@ -71,9 +77,9 @@ jobs:
   # HashLink master (unpinned)
   # Tracks HashLink master so breakage against haxefmod surfaces weekly.
   # HashLink master needs SDL3 since the SDL3 port (hashlink #830), and
-  # ubuntu-latest has no libsdl3-dev package yet, so SDL3 is built from
+  # ubuntu-latest has no libsdl3-dev package yet. SDL3 is built from
   # source (cached) whenever apt cannot provide it. The apt check emits the
-  # signal for the pre-SDL3 HashLink pin in audio-test.yml: a notice means
+  # signal for the pre-SDL3 HashLink pin in audio-test.yml. A notice means
   # the pin can be dropped, a warning means keep it.
   # ===========================================================================
   hashlink-master:
@@ -93,30 +99,34 @@ jobs:
           token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v2
+        uses: ./.github/actions/setup-haxe
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Check apt for libsdl3-dev
         id: sdl3-apt
         run: |
-          if sudo apt-get install -y libsdl3-dev; then
+          # The package index says whether the package exists. A download
+          # that fails afterwards is a step failure. The verdict comes
+          # from the index alone.
+          if apt-cache policy libsdl3-dev | grep -q "Candidate: [0-9]"; then
+            sudo apt-get -o Acquire::Retries=3 install -y libsdl3-dev
             echo "available=true" >> "$GITHUB_OUTPUT"
             echo "::notice ::libsdl3-dev is now available on ubuntu-latest. The pre-SDL3 HashLink pin in audio-test.yml can be dropped."
           else
@@ -124,22 +134,28 @@ jobs:
             echo "::warning ::libsdl3-dev is still unavailable on ubuntu-latest. SDL3 will be built from source. Keep the pre-SDL3 HashLink pin in audio-test.yml."
           fi
 
+      - name: Name the runner image for the cache key
+        if: steps.sdl3-apt.outputs.available == 'false'
+        # The install tree was built against one image's toolchain, so an
+        # image roll gets a fresh build
+        run: echo "RUNNER_IMAGE=${ImageOS:-unknown}-${ImageVersion:-0}" >> "$GITHUB_ENV"
+
       - name: Restore SDL3 build cache
         if: steps.sdl3-apt.outputs.available == 'false'
         id: sdl3-cache
         uses: actions/cache@v5
         with:
           path: /tmp/sdl3-install
-          key: sdl3-${{ env.SDL3_VERSION }}
+          key: sdl3-${{ runner.os }}-${{ env.RUNNER_IMAGE }}-${{ env.SDL3_VERSION }}
 
       - name: Build SDL3 from source
         if: steps.sdl3-apt.outputs.available == 'false' && steps.sdl3-cache.outputs.cache-hit != 'true'
         run: |
           # SDL requires the dev package of every X11 component it detects,
           # and the runner image does not ship all of them
-          sudo apt-get install -y libxext-dev libxrandr-dev libxcursor-dev \
+          sudo apt-get -o Acquire::Retries=3 install -y libxext-dev libxrandr-dev libxcursor-dev \
             libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev
-          curl -fsSL -o /tmp/sdl3.tar.gz \
+          bash ci/retry.sh curl -fsSL -o /tmp/sdl3.tar.gz \
             "https://github.com/libsdl-org/SDL/releases/download/release-${SDL3_VERSION}/SDL3-${SDL3_VERSION}.tar.gz"
           tar -xzf /tmp/sdl3.tar.gz -C /tmp
           cmake -S "/tmp/SDL3-${SDL3_VERSION}" -B /tmp/sdl3-build -DCMAKE_BUILD_TYPE=Release
@@ -155,15 +171,17 @@ jobs:
 
       - name: Build and install HashLink (master, unpinned)
         run: |
+          # tee returns its own status, so a failed make needs pipefail
+          set -o pipefail
           # Intentionally unpinned: this canary tracks HashLink master so a
           # green run signals the pre-SDL3 pin in audio-test.yml can go away
-          git clone --depth 1 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone --depth 1 https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git rev-parse HEAD
+          set -o pipefail
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
             echo "=== MAKE FAILED - retrying single-threaded ==="
-            make 2>&1 | tee -a /tmp/hashlink-build.log
-            exit 1
+            make 2>&1 | tee -a /tmp/hashlink-build.log || exit 1
           }
           sudo make install
           sudo ldconfig
@@ -171,14 +189,11 @@ jobs:
 
       - name: Build HashLink target (pre-built hdll)
         run: |
+          set -o pipefail
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-prebuilt.log
           grep -q "(pre-built)" /tmp/build-prebuilt.log
           echo "Verified: pre-built hdll was used"
-
-      - name: Patch FMOD libraries
-        run: |
-          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
 
       - name: Validate build output
         run: |
@@ -188,8 +203,10 @@ jobs:
         run: |
           # Start virtual display
           Xvfb :99 -screen 0 1024x768x24 &
+          XVFB_PID=$!
           export DISPLAY=:99
           sleep 1
+          kill -0 $XVFB_PID 2>/dev/null || { echo "FAIL: Xvfb did not start on :99"; exit 1; }
 
           # Start PulseAudio with virtual sink
           pulseaudio --start --exit-idle-time=-1 || true
@@ -211,8 +228,10 @@ jobs:
           cd "$BIN_DIR"
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
           EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          [ -n "$EXE" ] || { echo "FAIL: no game executable found in $(pwd)"; ls -la; exit 1; }
           chmod +x "$EXE"
-          timeout 20 "$EXE" > /tmp/game-canary-hl.log 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 20 "$EXE" > /tmp/game-canary-hl.log 2>&1 || true
           cd -
 
           echo "=== Game log ==="
@@ -225,9 +244,9 @@ jobs:
   # ===========================================================================
   # New FMOD version (workflow_dispatch only)
   # One-click testing of a new FMOD release once its tag exists in the
-  # fmod-sdk-cache repo: linux-cpp compiles the C++ binding against the new
-  # headers, linux-hl goes through the build-hdll flow (a version mismatch
-  # against the pre-built hdll is expected for anything newer than 2.03.12).
+  # fmod-sdk-cache repo. linux-cpp compiles the C++ binding against the new
+  # headers, and linux-hl goes through the build-hdll flow. A version mismatch
+  # against the pre-built hdll is expected for anything newer than 2.03.12.
   # Runs only after latest-deps and hashlink-master pass. When either of
   # those fails the run stops early instead of spending 30 minutes here.
   # ===========================================================================
@@ -248,38 +267,40 @@ jobs:
           token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v2
+        uses: ./.github/actions/setup-haxe
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
-          haxelib install hxcpp 4.3.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install hxcpp 4.3.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Build and install HashLink
         run: |
+          # tee returns its own status, so a failed make needs pipefail
+          set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          git checkout "$HASHLINK_COMMIT"
+          set -o pipefail
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
             echo "=== MAKE FAILED - retrying single-threaded ==="
-            make 2>&1 | tee -a /tmp/hashlink-build.log
-            exit 1
+            make 2>&1 | tee -a /tmp/hashlink-build.log || exit 1
           }
           sudo make install
           sudo ldconfig
@@ -300,6 +321,7 @@ jobs:
 
       - name: Build HashLink target (mismatch expected against pre-built hdll)
         run: |
+          set -o pipefail
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-mismatch.log || true
           if grep -q "ERROR: FMOD SDK version mismatch" /tmp/build-mismatch.log; then
@@ -318,15 +340,12 @@ jobs:
 
       - name: Rebuild HashLink target (custom hdll)
         run: |
+          set -o pipefail
           rm -rf example-project/EZPlatformer/export/hl
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/build-custom.log
           grep -q "(custom-compiled from .haxefmod/)" /tmp/build-custom.log
           echo "Verified: custom-compiled hdll from .haxefmod/ was used"
-
-      - name: Patch FMOD libraries
-        run: |
-          BIN_DIR="example-project/EZPlatformer/export/hl/bin"
 
       - name: Validate build output
         run: |
@@ -336,8 +355,10 @@ jobs:
         run: |
           # Start virtual display
           Xvfb :99 -screen 0 1024x768x24 &
+          XVFB_PID=$!
           export DISPLAY=:99
           sleep 1
+          kill -0 $XVFB_PID 2>/dev/null || { echo "FAIL: Xvfb did not start on :99"; exit 1; }
 
           # Start PulseAudio with virtual sink
           pulseaudio --start --exit-idle-time=-1 || true
@@ -364,8 +385,10 @@ jobs:
           cd "$BIN_DIR"
           export LD_LIBRARY_PATH="$(pwd):$LD_LIBRARY_PATH"
           EXE=$(find . -maxdepth 1 -type f -executable ! -name "*.so*" ! -name "*.hdll" ! -name "run.sh" -print -quit)
+          [ -n "$EXE" ] || { echo "FAIL: no game executable found in $(pwd)"; ls -la; exit 1; }
           chmod +x "$EXE"
-          timeout 30 "$EXE" > /tmp/game-canary-fmod.log 2>&1 || true
+          # A game that ignores SIGTERM gets ten seconds, then SIGKILL
+          timeout -k 10 30 "$EXE" > /tmp/game-canary-fmod.log 2>&1 || true
           cd -
 
           echo "=== Game log ==="
@@ -390,11 +413,11 @@ jobs:
   # ===========================================================================
   # Failure alert email (Resend)
   # Emails the maintainer when any canary job fails. Configuration lives
-  # outside the workflow: the RESEND_API_KEY secret holds the Resend API key,
-  # the CANARY_ALERT_TO repository variable holds the recipient address, and
-  # the optional CANARY_ALERT_FROM variable overrides the sender address.
+  # outside the workflow. The RESEND_API_KEY secret holds the Resend API key,
+  # and the CANARY_ALERT_TO repository variable holds the recipient address.
+  # The optional CANARY_ALERT_FROM variable overrides the sender address.
   # When the secret or recipient is missing the step logs a notice and exits
-  # cleanly so the alert never turns a canary run red on its own.
+  # cleanly. The alert never turns a canary run red on its own.
   # ===========================================================================
   notify-failure:
     runs-on: ubuntu-latest
@@ -452,11 +475,11 @@ jobs:
             '{from: $from, to: [$to], subject: $subject, text: $text}' \
             > /tmp/resend-payload.json
 
-          HTTP_CODE=$(curl -sS -o /tmp/resend-response.json -w "%{http_code}" \
+          HTTP_CODE=$(bash ci/retry.sh curl -sS --retry 3 --retry-delay 15 -o /tmp/resend-response.json -w "%{http_code}" \
             -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer $RESEND_API_KEY" \
             -H "Content-Type: application/json" \
-            --data @/tmp/resend-payload.json)
+            --data @/tmp/resend-payload.json | tail -c 3)
 
           cat /tmp/resend-response.json
           echo ""

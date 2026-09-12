@@ -13,9 +13,9 @@ STOPPED, DESTROY_PROGRAMMER_SOUND) are ever delivered to this instance.
 Without the sound assignment the same event plays normally.
 
 To run: serve this file next to fmodstudio.js, fmodstudio.wasm, and a
-Master.bank/Master.strings.bank pair containing an event with an async
-programmer instrument at event:/Dialogue/Speak and an audio table entry
-keyed "hello", then open it in a browser and watch the console.
+Master.bank/Master.strings.bank pair. The banks need an event with an
+async programmer instrument at event:/Dialogue/Speak and an audio table
+entry keyed "hello". Then open it in a browser and watch the console.
 
 Expected (native backends behave this way): STARTED, then the sound
 plays, then DESTROY_PROGRAMMER_SOUND and STOPPED at region end.

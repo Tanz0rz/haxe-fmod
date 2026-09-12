@@ -1,8 +1,12 @@
 name: Release Smoke Test
 
-# Post-release verification: installs haxefmod from lib.haxe.org (never from
-# the checkout) and builds the example project with it, proving that what
-# users actually download works end to end.
+# Post-release verification. It installs haxefmod from lib.haxe.org (never
+# from the checkout) and builds the example project with it. That proves
+# what users actually download works end to end.
+
+# Every job reads only.
+permissions:
+  contents: read
 
 on:
   workflow_dispatch:
@@ -13,6 +17,8 @@ on:
         default: ""
 
 env:
+  # The pre-SDL3 HashLink commit every job builds, named once
+  HASHLINK_COMMIT: 781960a5daca32ad6d5cea87b255fe8b5872551e
   HAXE_VERSION: 4.3.6
   FMOD_SDK: ${{ github.workspace }}/fmod-sdk
 
@@ -34,49 +40,74 @@ jobs:
           token: ${{ secrets.FMOD_SDK_TOKEN }}
 
       - name: Setup Haxe
-        uses: krdlab/setup-haxe@v2
+        uses: ./.github/actions/setup-haxe
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
       - name: Install Haxe libraries
         run: |
           haxelib setup ~/haxelib
-          haxelib install lime 8.3.0 --always --quiet
-          haxelib install openfl 9.5.0 --always --quiet
-          haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
           yes | haxelib run lime setup || true
 
       - name: Install haxefmod from lib.haxe.org
+        env:
+          VERSION: ${{ github.event.inputs.version }}
         run: |
           # Never resolve haxefmod from the checkout - remove any dev/local
           # state, then install the release under test
           haxelib remove haxefmod || true
-          VERSION="${{ github.event.inputs.version }}"
           if [ -n "$VERSION" ]; then
-            haxelib install haxefmod "$VERSION" --always --quiet
+            bash ci/retry.sh haxelib install haxefmod "$VERSION" --always --quiet
           else
-            haxelib install haxefmod --always --quiet
+            bash ci/retry.sh haxelib install haxefmod --always --quiet
           fi
           haxelib path haxefmod
 
+      - name: Verify the installed version
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          # An empty dispatch input installs the latest release, and that
+          # must be the version this checkout declares.
+          EXPECTED="$VERSION"
+          if [ -z "$EXPECTED" ]; then
+            EXPECTED=$(grep '"version"' haxelib.json | sed 's/.*: *"\([^"]*\)".*/\1/')
+          fi
+          INSTALLED=$(haxelib list haxefmod | sed -n 's/^haxefmod: .*\[\([^]]*\)\].*/\1/p')
+          if [ -z "$INSTALLED" ]; then
+            echo "FAIL: haxelib reports no installed haxefmod"
+            haxelib list haxefmod
+            exit 1
+          fi
+          if [ "$INSTALLED" != "$EXPECTED" ]; then
+            echo "FAIL: lib.haxe.org served haxefmod $INSTALLED, expected $EXPECTED"
+            exit 1
+          fi
+          echo "OK: installed haxefmod $INSTALLED"
+
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y xvfb \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Build and install HashLink
         run: |
+          # tee returns its own status, so a failed make needs pipefail
+          set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
           # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
-          git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
+          bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
-          git checkout 781960a5daca32ad6d5cea87b255fe8b5872551e
+          git checkout "$HASHLINK_COMMIT"
+          set -o pipefail
           make -j$(nproc) 2>&1 | tee /tmp/hashlink-build.log || {
             echo "=== MAKE FAILED - retrying single-threaded ==="
-            make 2>&1 | tee -a /tmp/hashlink-build.log
-            exit 1
+            make 2>&1 | tee -a /tmp/hashlink-build.log || exit 1
           }
           sudo make install
           sudo ldconfig
@@ -84,6 +115,7 @@ jobs:
 
       - name: Build HashLink target from the installed release
         run: |
+          set -o pipefail
           cd example-project/EZPlatformer
           haxelib run lime build hl 2>&1 | tee /tmp/release-build.log
           grep -q "(pre-built)" /tmp/release-build.log

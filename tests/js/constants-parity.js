@@ -1,8 +1,11 @@
-// Parity test between the two constants generators: the FMOD Studio-side
-// script (fmod-scripts/ExportHaxeConstants.js, runs inside Studio on every
-// export) and the CLI (haxelib run haxefmod generate, parses the built
-// strings bank). Both must emit byte-identical files or projects that mix
-// the workflows drift.
+// Parity test between the two constants generators.
+// The first is the FMOD Studio-side script
+// (fmod-scripts/ExportHaxeConstants.js), which runs inside Studio on every
+// export.
+// The second is the CLI (haxelib run haxefmod generate), which parses the
+// built strings bank.
+// Both must emit byte-identical files or projects that mix the workflows
+// drift.
 //
 // Usage: node tests/js/constants-parity.js <dir-with-cli-generated-files>
 // The directory comes from running the CLI generator against the checked-in

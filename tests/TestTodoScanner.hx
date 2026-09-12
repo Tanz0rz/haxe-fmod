@@ -127,15 +127,18 @@ class TestTodoScanner {
 	}
 
 	static function testRootResolution() {
-		// A relative directory argument is the caller's, not the process
+		// A relative directory argument is the caller's rather than the process
 		// cwd (haxelib run leaves the process inside the library root)
 		var cwd = Sys.getCwd();
-		var resolved = Todos.resolveRoot(["tests"], cwd);
+		// The caller cwd differs from the process cwd, so a resolver that
+		// used the process cwd would land somewhere else
+		var caller = haxe.io.Path.join([cwd, "tests"]);
+		var resolved = Todos.resolveRoot(["fixtures"], caller);
 		assert("relative arg resolves against the caller cwd",
-			StringTools.replace(resolved, "\\", "/") == StringTools.replace(haxe.io.Path.join([cwd, "tests"]), "\\", "/"));
+			StringTools.replace(resolved, "\\", "/") == StringTools.replace(haxe.io.Path.join([caller, "fixtures"]), "\\", "/"));
 		assert("absolute arg kept", Todos.resolveRoot([cwd], "/somewhere/else") == cwd);
-		assert("missing arg falls back to the caller cwd",
-			Todos.resolveRoot(["no-such-dir-here"], cwd) == cwd);
+		assert("missing directory resolves to null",
+			Todos.resolveRoot(["no-such-dir-here"], cwd) == null);
 		assert("no arg falls back to the caller cwd", Todos.resolveRoot([], cwd) == cwd);
 		assert("json flag is not a directory", Todos.resolveRoot(["--json"], cwd) == cwd);
 	}

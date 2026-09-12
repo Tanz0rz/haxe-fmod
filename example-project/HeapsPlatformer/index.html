@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>HeapsPlatformer</title>
+	<style>body { margin: 0; background: #000; } canvas { display: block; margin: 0 auto; }</style>
+</head>
+<body>
+	<canvas id="webgl" width="640" height="480"></canvas>
+	<script>
+		// CI diagnostics for the test states: whether the browser thinks the
+		// page is visible and focused, and whether the frame loop runs
+		if (location.search.indexOf("test=") !== -1) {
+			window.__frames = 0;
+			setInterval(function () {
+				console.log("HEAPS_PAGE: hidden=" + document.hidden + " focus=" + document.hasFocus()
+					+ " frames=" + window.__frames + " size=" + innerWidth + "x" + innerHeight);
+			}, 5000);
+		}
+	</script>
+	<script src="lib/fmodstudio.js"></script>
+	<script src="lib/jaxe.js"></script>
+	<script src="game.js"></script>
+</body>
+</html>

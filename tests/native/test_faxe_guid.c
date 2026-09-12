@@ -2,12 +2,12 @@
  * Unit tests for native/shared/faxe_guid.h (GUID string formatting and
  * strict parsing shared by the C++ and HashLink shims).
  *
- * Compiled and run in CI in both C99 and C++ modes:
- *   gcc -std=c99 -Wall -Wextra -Werror -o t_c   tests/native/test_faxe_guid.c && ./t_c
- *   g++ -x c++   -Wall -Wextra -Werror -o t_cpp tests/native/test_faxe_guid.c && ./t_cpp
- *
  * The unit-test job has no FMOD SDK, so FMOD_GUID is declared locally under
  * fmod_common.h's include guard. The layout matches the header exactly.
+ * CI compiles and runs the file in both C99 and C++ modes. The exact
+ * commands:
+ *   gcc -std=c99 -Wall -Wextra -Werror -o t_c   tests/native/test_faxe_guid.c && ./t_c
+ *   g++ -x c++   -Wall -Wextra -Werror -o t_cpp tests/native/test_faxe_guid.c && ./t_cpp
  */
 #include <stdio.h>
 #include <assert.h>

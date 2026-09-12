@@ -1,0 +1,134 @@
+# loading-and-playing-sounds-in-the-core-api
+
+## 4.1.1 Non-blocking Sound Creation
+verdict: bound
+```haxe
+import haxefmod.core.ChannelMode;
+import haxefmod.core.Sound;
+
+var sound = Sound.create("../media/wave.mp3", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING); // Creates a handle to a stream then commands the FMOD Async loader to open the stream in the background.
+if (sound.isNull()) trace(StudioSystem.lastResult());
+```
+
+## 4.1.1 Non-blocking Sound Creation#2
+verdict: cannot FMOD calls the callback on its async loader thread. No Haxe target can run code there. Poll Sound.getOpenState each frame instead. It reports READY once the sound can play and ERROR when the load failed.
+
+## 4.1.1 Non-blocking Sound Creation#3
+verdict: bound
+waive: extra-calls the nonblock callback cannot be hosted, readiness is polled with getOpenState
+```haxe
+import haxefmod.core.ChannelMode;
+import haxefmod.core.Sound;
+import haxefmod.studio.Types.FmodOpenState;
+
+var sound = Sound.create("../media/wave.mp3", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING);
+if (sound.isNull()) trace(StudioSystem.lastResult());
+
+// There is no nonblock callback to host, poll each frame until the sound is ready
+if (sound.getOpenState() == FmodOpenState.READY) {
+    startGame();
+}
+```
+
+## 4.2 Playing a sound
+verdict: bound
+```haxe
+import haxefmod.core.Sound;
+import haxefmod.core.Channel;
+
+var sound:Sound;
+var channel:Channel;
+
+sound = Sound.create("../media/wave.mp3");
+if (sound.isNull()) trace(StudioSystem.lastResult());
+
+channel = sound.play();
+if (channel.isNull()) trace(StudioSystem.lastResult());
+```
+
+## 4.3.1 Creating a Sound from memory
+verdict: bound
+```haxe
+import haxefmod.core.Sound;
+
+var sound:Sound;
+var buffer:haxe.io.Bytes = null;
+
+//
+// Load your audio data to the "buffer" bytes here
+//
+
+sound = Sound.fromMemory(buffer);
+// The audio data stored by the "buffer" bytes has been duplicated into FMOD's buffers, and can now be freed
+```
+
+## 4.3.1 Creating a Sound from memory#2
+verdict: covered there is no point-to-memory mode. Sound.fromMemory and Sound.fromPcm always copy the bytes, so nothing stays pinned and the buffer is free after the call.
+
+## 4.3.2 Creating a Sound from PCM data
+verdict: bound
+```haxe
+import haxefmod.core.ChannelMode;
+import haxefmod.core.Sound;
+import haxefmod.studio.Types;
+
+var sound:Sound;
+var exinfo:FmodCreateSoundExInfo;
+
+// Create extended sound info struct
+exinfo = {
+    numChannels: 2,                      // Number of channels in the sound
+    defaultFrequency: 44100,             // Default playback rate of sound
+    format: FmodSoundFormat.PCM16        // Data format of sound
+};
+
+sound = Sound.create("./Your/File/Path/Here.raw", false, false, ChannelMode.OPENRAW, -1, exinfo);
+```
+
+## 4.3.3 Creating a Sound by manually providing sample data
+verdict: bound
+```haxe
+import haxefmod.core.PcmStream;
+
+var stream = PcmStream.create(
+    44100,                   // Playback rate of sound
+    2,                       // Number of channels in the sound
+    44100 * 2 * 2 * 5);      // Ring size in bytes. 2 = bytes per sample and 5 = seconds
+
+// Each frame, write sample data instead of a read callback
+var buffer = haxe.io.Bytes.alloc(stream.space());
+for (i in 0...Std.int(buffer.length / 2)) {
+    buffer.setUInt16(i * 2, nextSample() & 0xFFFF);
+}
+stream.write(buffer);
+```
+
+## 4.3.4 Creating the Sound as a Streamed FSB File
+verdict: bound
+```haxe
+import haxefmod.core.ChannelMode;
+import haxefmod.core.Sound;
+
+var sound:Sound;
+
+sound = Sound.create("../media/sounds.fsb", false, false, ChannelMode.CREATESTREAM | ChannelMode.NONBLOCKING, 1);
+if (sound.isNull()) trace(StudioSystem.lastResult());
+```
+
+## 4.5.1 Setup : Override FMOD's file system with callbacks
+verdict: cannot file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
+
+## 4.5.1 Setup : Override FMOD's file system with callbacks#2
+verdict: cannot async file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
+
+## 4.5.2 Defining the basics - opening and closing the file handle.
+verdict: cannot file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
+
+## 4.5.3 Defining 'userasyncread'
+verdict: cannot async file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
+
+## 4.5.4 Defining 'userasynccancel'
+verdict: cannot async file callbacks run on FMOD's file threads. No Haxe target can run code there. Sound.create and StudioSystem.loadBankFile read the platform file system and StudioSystem.loadBankMemory takes bytes the game loaded itself.
+
+## 4.5.5 Filling out the FMOD_ASYNCREADINFO structure when performing a deferred read
+verdict: cannot the payload of an async read callback, which runs on FMOD's file threads and carries raw buffer pointers. Custom file systems are not exposed.

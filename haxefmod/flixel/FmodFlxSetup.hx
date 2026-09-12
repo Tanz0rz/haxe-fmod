@@ -2,47 +2,59 @@ package haxefmod.flixel;
 
 import flixel.FlxG;
 import haxefmod.FmodManager;
+import haxefmod.runtime.FmodRuntime;
 import haxefmod.runtime.FmodSettings;
 
 /**
     One-call FMOD setup for HaxeFlixel games. Call init() once from the
-    first state's create():
+    first state's create(). init() does the following.
 
-    - initializes FMOD (settings pass through to FmodManager.Initialize;
-      first initialization wins, so settings are ignored if something
-      already initialized FMOD, like an html5 preloader)
-    - adds FmodFlxUpdater so FmodManager.Update() runs every frame
-    - routes FlxG.sound volume and mute changes (the plus, minus, and
-      zero keys and the sound tray) to the FMOD master bus
-    - silences the sound tray's own beep so all audio comes from FMOD
+    It initializes FMOD. Settings pass through to FmodManager.Initialize.
+    The first initialization wins. Settings are ignored if something
+    already initialized FMOD, like an HTML5 preloader.
+
+    It adds FmodFlxUpdater so FmodManager.Update() runs after every frame.
+
+    It reports window focus changes to FmodRuntime.setWindowFocused, so
+    the muteWhenUnfocused setting takes effect.
+
+    It routes FlxG.sound volume and mute changes to the FMOD master bus.
+    The plus, minus, and zero keys and the sound tray drive those changes.
+
+    It silences the sound tray's own beep so all audio comes from FMOD.
 
     The sound tray stays visible as the volume UI. To bring its beep
     back, set FlxG.sound.soundTray.silent = false after init(). To hide
     the tray entirely, set FlxG.sound.soundTrayEnabled = false.
 
-    Requires flixel 5.9.0 or newer (FlxG.sound.onVolumeChange). Calling
+    Requires flixel 5.9.0 or later (FlxG.sound.onVolumeChange). Calling
     init() again is safe and rewires a recreated FlxGame.
 **/
 class FmodFlxSetup {
     #if FLX_SOUND_SYSTEM
     static var volumeHandler:Float->Void = _ -> applyVolume();
     static var readyHandler:Void->Void = () -> applyVolume();
+    // FlxG.sound.muted is a plain field with no signal, so a direct
+    // assignment is picked up once per frame instead
+    static var syncHandler:Void->Void = () -> syncVolume();
+    static var lastVolume:Float = -1;
+    static var lastMuted:Null<Bool> = null;
     #end
 
-    static var focusGainedHandler:Void->Void = () -> FmodManager.SetWindowFocused(true);
-    static var focusLostHandler:Void->Void = () -> FmodManager.SetWindowFocused(false);
+    static var focusGainedHandler:Void->Void = () -> FmodRuntime.setWindowFocused(true);
+    static var focusLostHandler:Void->Void = () -> FmodRuntime.setWindowFocused(false);
 
+    /** Initializes FMOD and wires the updater, focus, and volume hooks. **/
     public static function init(?settings:FmodSettings):Void {
         FmodManager.Initialize(settings);
         FmodFlxUpdater.init();
 
         // Keep FMOD's focus state in sync so the master output mutes while
-        // the window is backgrounded (no audio to an unfocused window, and no
-        // burst on refocus). Remove-then-add keeps a single wiring across
-        // repeated init calls and a recreated FlxGame (fresh signals).
-        FlxG.signals.focusGained.remove(focusGainedHandler);
+        // the window is backgrounded. That means no audio to an unfocused
+        // window, and no burst on refocus. add() keeps a single wiring
+        // across repeated init calls. It is also safe from inside a
+        // dispatch, where a remove is deferred past the add.
         FlxG.signals.focusGained.add(focusGainedHandler);
-        FlxG.signals.focusLost.remove(focusLostHandler);
         FlxG.signals.focusLost.add(focusLostHandler);
 
         #if FLX_SOUND_SYSTEM
@@ -51,12 +63,11 @@ class FmodFlxSetup {
             FlxG.sound.soundTray.silent = true;
         }
         #end
-        // Remove-then-add keeps exactly one wiring across repeated init
-        // calls and across a destroyed-and-recreated FlxGame (fresh signal)
-        FlxG.sound.onVolumeChange.remove(volumeHandler);
+        // add() keeps exactly one wiring across repeated init calls
         FlxG.sound.onVolumeChange.add(volumeHandler);
+        FlxG.signals.postUpdate.add(syncHandler);
         applyVolume();
-        // html5 initializes asynchronously, so the volume and mute applied
+        // HTML5 initializes asynchronously, so the volume and mute applied
         // above can land before the master bus exists. Replaying once ready
         // makes a persisted volume (or mute) stick on every target.
         haxefmod.runtime.FmodRuntime.onceReady(readyHandler);
@@ -65,11 +76,19 @@ class FmodFlxSetup {
 
     #if FLX_SOUND_SYSTEM
     // Reads muted and volume from the front end instead of using the
-    // dispatched value, so mute maps to the bus mute flag and the volume
-    // survives a mute/unmute round trip
+    // dispatched value. Mute then maps to the bus mute flag, and the
+    // volume survives a mute/unmute round trip.
     static function applyVolume():Void {
-        FmodManager.SetBusVolumeMaster(FlxG.sound.volume);
-        FmodManager.SetBusMuteMaster(FlxG.sound.muted);
+        lastVolume = FlxG.sound.volume;
+        lastMuted = FlxG.sound.muted;
+        FmodManager.SetMasterVolume(lastVolume);
+        FmodManager.SetMasterMute(lastMuted);
+    }
+
+    // One comparison per frame, and the two calls only on a change
+    static function syncVolume():Void {
+        if (FlxG.sound.volume == lastVolume && FlxG.sound.muted == lastMuted) return;
+        applyVolume();
     }
     #end
 }

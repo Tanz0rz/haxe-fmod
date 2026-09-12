@@ -5,7 +5,7 @@
  * jaxe.js re-implements the same contract with a typed array (JS is
  * single-threaded, so it needs no locking).
  *
- * The game thread writes PCM bytes from Haxe; FMOD's mixer thread drains
+ * The game thread writes PCM bytes from Haxe. FMOD's mixer thread drains
  * them inside the pcmread callback, which is plain C and never touches
  * Haxe/HL/hxcpp values. Both sides take a per-ring mutex for a short
  * memcpy, the same discipline the callback queue uses.

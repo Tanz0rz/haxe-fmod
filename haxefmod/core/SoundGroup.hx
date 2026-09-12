@@ -1,25 +1,27 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.Types.SoundGroupBehavior;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
 
 /**
- * A handle to an FMOD sound group: polyphony caps and behaviors across any
- * set of sounds (e.g. at most three footstep sounds at once, stealing the
- * quietest). Assign sounds with CoreSound.setSoundGroup. Every sound
+ * A handle to an FMOD sound group. It sets polyphony caps and behaviors
+ * across any set of sounds (e.g. at most three footstep sounds at once,
+ * stealing the quietest). Assign sounds with Sound.setSoundGroup. Every sound
  * belongs to the master group until moved.
  */
 abstract SoundGroup(Int) from Int to Int {
     public static inline var NULL:SoundGroup = cast 0;
 
-    /** Behaviors when a group is past maxAudible (FMOD_SOUNDGROUP_BEHAVIOR). */
-    public static inline var BEHAVIOR_FAIL:Int = 0;
-    public static inline var BEHAVIOR_MUTE:Int = 1;
-    public static inline var BEHAVIOR_STEAL_LOWEST:Int = 2;
+    /** Behaviors when a group is past maxAudible, the same values as SoundGroupBehavior. */
+    public static inline var BEHAVIOR_FAIL:SoundGroupBehavior = SoundGroupBehavior.FAIL;
+    public static inline var BEHAVIOR_MUTE:SoundGroupBehavior = SoundGroupBehavior.MUTE;
+    public static inline var BEHAVIOR_STEAL_LOWEST:SoundGroupBehavior = SoundGroupBehavior.STEALLOWEST;
 
     /** Creates a group. Returns SoundGroup.NULL on failure. */
     public static inline function create(name:String):SoundGroup {
-        return NativeStudio.sys_create_sound_group(name);
+        return NativeStudio.sys_create_sound_group(name == null ? "" : name);
     }
 
     /** The master group every sound starts in. One shared handle per session. */
@@ -36,16 +38,21 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_set_max_audible(this, maxAudible);
     }
 
+    /**
+     * Most sounds from this group audible at once (-1 = unlimited). Returns 0 both on failure and for a group
+     * that allows none. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getMaxAudible():Int {
         return NativeStudio.sg_get_max_audible(this);
     }
 
-    /** One of the BEHAVIOR_* values. */
-    public inline function setMaxAudibleBehavior(behavior:Int):FmodResult {
+    /** What happens to a new sound once the group is at maxAudible. */
+    public inline function setMaxAudibleBehavior(behavior:SoundGroupBehavior):FmodResult {
         return NativeStudio.sg_set_max_audible_behavior(this, behavior);
     }
 
-    public inline function getMaxAudibleBehavior():Int {
+    /** The current behavior, FAIL on failure. StudioSystem.lastResult() holds the reason for a failure. */
+    public inline function getMaxAudibleBehavior():SoundGroupBehavior {
         return NativeStudio.sg_get_max_audible_behavior(this);
     }
 
@@ -59,20 +66,68 @@ abstract SoundGroup(Int) from Int to Int {
         return NativeStudio.sg_set_volume(this, volume);
     }
 
+    /**
+     * Volume scale over every sound in the group (linear, 1.0 = full). Returns 0.0 both on failure and for a
+     * silent group. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getVolume():Float {
         return NativeStudio.sg_get_volume(this);
     }
 
+    /**
+     * Fade time in seconds when BEHAVIOR_MUTE kicks in. Returns 0.0 both on failure and for an instant fade.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getMuteFadeSpeed():Float {
         return NativeStudio.sg_get_mute_fade_speed(this);
     }
 
+    /**
+     * How many sounds belong to this group. Returns 0 both on failure and for an empty group.
+     * StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getSoundCount():Int {
         return NativeStudio.sg_get_num_sounds(this);
     }
 
-    /** Sounds from this group audible right now. */
+    /**
+     * The name given at create(), "FMOD master" for the master group. Returns "" on failure, with the reason in
+     * StudioSystem.lastResult().
+     */
+    public inline function getName():String {
+        return NativeStudio.sg_get_name(this);
+    }
+
+    /**
+     * The sound at position index in this group (a known sound returns its existing handle). Sound.NULL past
+     * the end. The group does not own the sound, so do not release a handle obtained this way. Any other
+     * failure reports Sound.NULL as well, with the reason in StudioSystem.lastResult().
+     */
+    public inline function getSound(index:Int):haxefmod.core.Sound {
+        return NativeStudio.sg_get_sound(this, index);
+    }
+
+    /**
+     * Sounds from this group audible at this moment. Returns 0 both on failure and for a group with nothing
+     * audible. StudioSystem.lastResult() tells the two apart.
+     */
     public inline function getPlayingCount():Int {
+        return NativeStudio.sg_get_num_playing(this);
+    }
+
+    /**
+     * The same count as getSoundCount under FMOD's name. Returns 0 both on failure and for an empty group.
+     * StudioSystem.lastResult() tells the two apart.
+     */
+    public inline function getNumSounds():Int {
+        return NativeStudio.sg_get_num_sounds(this);
+    }
+
+    /**
+     * The same count as getPlayingCount under FMOD's name. Returns 0 both on failure and for a group with
+     * nothing audible. StudioSystem.lastResult() tells the two apart.
+     */
+    public inline function getNumPlaying():Int {
         return NativeStudio.sg_get_num_playing(this);
     }
 
@@ -83,9 +138,29 @@ abstract SoundGroup(Int) from Int to Int {
 
     /**
      * Frees a group made with create() and invalidates this handle. Its
-     * sounds move back to the master group. Do not release the master.
+     * sounds move back to the master group. Every other group refuses
+     * with `FMOD_ERR_INVALID_PARAM` and keeps its handle: the master, or
+     * one first reached through a walk.
      */
     public inline function release():FmodResult {
-        return NativeStudio.sg_release(this);
+        var result:FmodResult = NativeStudio.sg_release(this);
+        if (UserData.releaseTookEffect(result)) UserData.clear(UserDataKind.SoundGroup, this);
+        return result;
+    }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int. Thus a stale entry does not show up on the next handle
+     * in that slot.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.SoundGroup, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.SoundGroup, this);
     }
 }

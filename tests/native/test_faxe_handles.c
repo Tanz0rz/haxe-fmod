@@ -2,17 +2,38 @@
  * Unit tests for native/shared/faxe_handles.h (the generational handle table
  * shared by the C++ and HashLink shims. jaxe.js mirrors the same logic).
  *
- * Compiled and run in CI in both C99 and C++ modes:
+ * CI compiles and runs the file in both C99 and C++ modes. Both
+ * invocations:
  *   gcc -std=c99 -Wall -Wextra -Werror -o test_c   tests/native/test_faxe_handles.c && ./test_c
  *   g++ -x c++   -Wall -Wextra -Werror -o test_cpp tests/native/test_faxe_handles.c && ./test_cpp
  */
 #include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
 #include "../../native/shared/faxe_handles.h"
 
 static int sweep_all_valid(void* ptr, unsigned char type) {
     (void)ptr; (void)type;
     return 1;
+}
+
+static void* gRejected = NULL;
+static int sweep_reject_one(void* ptr, unsigned char type) {
+    (void)type;
+    return ptr != gRejected;
+}
+
+static void* gHookPtr = NULL;
+static int gHookHandle = 0;
+static int gHookCalls = 0;
+static unsigned char gHookExpectType = FAXE_TYPE_NONE;
+static void sweep_note_free(void* ptr, int handle) {
+    /* the hook runs while the slot still resolves to that object, as the
+     * type the caller expects */
+    assert(faxe_handle_resolve(handle, gHookExpectType) == ptr);
+    gHookPtr = ptr;
+    gHookHandle = handle;
+    gHookCalls++;
 }
 
 static int sweep_all_dead(void* ptr, unsigned char type) {
@@ -22,11 +43,12 @@ static int sweep_all_dead(void* ptr, unsigned char type) {
 
 
 /* Seeded pseudo-random fuzz with a shadow model. Arbitrary integers into
- * resolve and free must behave exactly like the model predicts: a random
+ * resolve and free must behave exactly like the model predicts. A random
  * int resolves to a live slot's pointer only when it IS that slot's
- * current handle with the right type, frees only that exact handle, and
- * never corrupts unrelated live entries. Deterministic (fixed seed), and
- * run under ASan/UBSan in CI so a wild read or overflow fails loudly. */
+ * current handle with the right type. It frees only that exact handle,
+ * and it never corrupts unrelated live entries. Deterministic (fixed
+ * seed), and run under ASan/UBSan in CI so a wild read or overflow fails
+ * loudly. */
 #define FUZZ_OPS 200000
 #define FUZZ_LIVE_MAX 512
 #define FUZZ_TYPES 4
@@ -134,12 +156,122 @@ int main(void) {
     assert(faxe_handle_resolve(h1, FAXE_TYPE_BUS) == NULL); /* type tag mismatch */
     assert(faxe_live_handle_count() == 1);
 
+    /* find reports the live handle for a known pointer and type, 0 for
+     * anything else, and never allocates */
+    assert(faxe_handle_find(&dummy1, FAXE_TYPE_EVI) == h1);
+    assert(faxe_handle_find(&dummy1, FAXE_TYPE_BUS) == 0);
+    assert(faxe_handle_find(&dummy2, FAXE_TYPE_EVI) == 0);
+    assert(faxe_handle_find(NULL, FAXE_TYPE_EVI) == 0);
+    assert(faxe_live_handle_count() == 1);
+    assert(faxe_handle_find_or_alloc(&dummy1, FAXE_TYPE_EVI) == h1);
+    assert(faxe_live_handle_count() == 1);
+
     /* free -> stale handle stops resolving */
     faxe_handle_free(h1);
     assert(faxe_handle_resolve(h1, FAXE_TYPE_EVI) == NULL);
+    assert(faxe_handle_find(&dummy1, FAXE_TYPE_EVI) == 0);
     assert(faxe_live_handle_count() == 0);
     faxe_handle_free(h1); /* double free is a safe no-op */
     assert(faxe_live_handle_count() == 0);
+
+    /* aux memory dies with the handle and is replaced on a second set */
+    {
+        int ha = faxe_handle_alloc(&dummy3, FAXE_TYPE_CHAN);
+        int idx = ha & 0xFFFF;
+        void* first = malloc(16);
+        void* second = malloc(16);
+        assert(faxe_handle_get_aux(ha) == NULL);  /* nothing parked on a fresh slot */
+        faxe_handle_set_aux(ha, first);
+        assert(gFaxeSlots[idx].aux == first);
+        assert(faxe_handle_get_aux(ha) == first);
+        faxe_handle_set_aux(ha, second);          /* frees first */
+        assert(gFaxeSlots[idx].aux == second);
+        assert(faxe_handle_get_aux(ha) == second);
+        faxe_handle_set_aux(ha, NULL);            /* frees second, leaves nothing */
+        assert(gFaxeSlots[idx].aux == NULL);
+        assert(faxe_handle_get_aux(ha) == NULL);
+        faxe_handle_set_aux(ha, malloc(16));
+        faxe_handle_free(ha);                     /* free releases the block */
+        assert(gFaxeSlots[idx].aux == NULL);
+        assert(faxe_live_handle_count() == 0);
+    }
+
+    /* the owned mark lives with the slot: clear on alloc, gone on free */
+    {
+        int ho = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);
+        int again;
+        assert(!faxe_handle_is_owned(ho));
+        faxe_handle_set_owned(ho, 1);
+        assert(faxe_handle_is_owned(ho));
+        assert(!faxe_handle_is_owned(0) && !faxe_handle_is_owned(-1));
+        assert(!faxe_handle_is_owned(ho + 0x10000)); /* another generation */
+        faxe_handle_free(ho);
+        assert(!faxe_handle_is_owned(ho)); /* a stale handle is never owned */
+        again = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);
+        assert((again & 0xFFFF) == (ho & 0xFFFF) && !faxe_handle_is_owned(again));
+        faxe_handle_set_owned(again, 1);
+        faxe_handle_set_owned(again, 0);
+        assert(!faxe_handle_is_owned(again));
+        faxe_handle_free(again);
+        assert(faxe_live_handle_count() == 0);
+    }
+
+    /* children linked to an owned parent go with it, other slots stay */
+    {
+        int parent = faxe_handle_alloc(&dummy1, FAXE_TYPE_SOUND);
+        int childA = faxe_handle_alloc(&dummy2, FAXE_TYPE_SOUND);
+        int childB = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);
+        int other = faxe_handle_alloc(&dummy1, FAXE_TYPE_DSP);
+        int idx = childA & 0xFFFF;
+        assert(gFaxeSlots[idx].parent == 0); /* a fresh slot has no parent */
+        faxe_handle_set_parent(childA, parent);
+        faxe_handle_set_parent(childB, parent);
+        int grandchild = faxe_handle_alloc(&dummy2, FAXE_TYPE_SOUND);
+        faxe_handle_set_parent(grandchild, childA);
+        faxe_handles_free_children(0, NULL); /* no parent frees nothing */
+        assert(faxe_live_handle_count() == 5);
+        gHookCalls = 0;
+        gHookPtr = NULL;
+        gHookExpectType = FAXE_TYPE_SOUND;
+        faxe_handles_free_children(parent, sweep_note_free); /* the walk reaches the grandchild */
+        assert(faxe_handle_resolve(childA, FAXE_TYPE_SOUND) == NULL);
+        assert(faxe_handle_resolve(childB, FAXE_TYPE_SOUND) == NULL);
+        assert(faxe_handle_resolve(grandchild, FAXE_TYPE_SOUND) == NULL);
+        /* the hook ran three times, each on a slot that still resolved
+         * (the hook asserts that itself) */
+        assert(gHookCalls == 3 && gHookPtr != NULL);
+        /* a slot that names itself as parent is skipped rather than looped */
+        {
+            int loop = faxe_handle_alloc(&dummy2, FAXE_TYPE_SOUND);
+            faxe_handle_set_parent(loop, loop);
+            faxe_handles_free_children(loop, NULL);
+            assert(faxe_handle_resolve(loop, FAXE_TYPE_SOUND) == &dummy2);
+            faxe_handle_free(loop);
+        }
+        assert(faxe_handle_resolve(parent, FAXE_TYPE_SOUND) == &dummy1);
+        assert(faxe_handle_resolve(other, FAXE_TYPE_DSP) == &dummy1);
+        assert(gFaxeSlots[idx].parent == 0); /* the link goes with the slot */
+        faxe_handle_free(other);
+        faxe_handle_free(parent); /* last, so the free list head is where it was */
+        assert(faxe_live_handle_count() == 0);
+    }
+
+    /* the lock record is a second owned block with the same lifetime */
+    {
+        int hl = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);
+        int idx = hl & 0xFFFF;
+        void* rec = malloc(32);
+        assert(faxe_handle_get_lock(hl) == NULL);
+        faxe_handle_set_lock(hl, rec);
+        assert(faxe_handle_get_lock(hl) == rec);
+        assert(gFaxeSlots[idx].aux == NULL);      /* aux is untouched */
+        faxe_handle_set_lock(hl, NULL);           /* frees rec */
+        assert(faxe_handle_get_lock(hl) == NULL);
+        faxe_handle_set_lock(hl, malloc(32));
+        faxe_handle_free(hl);                     /* free releases the record */
+        assert(gFaxeSlots[idx].lock == NULL);
+        assert(faxe_live_handle_count() == 0);
+    }
 
     /* slot reuse bumps generation */
     int h2 = faxe_handle_alloc(&dummy2, FAXE_TYPE_EVI);
@@ -147,6 +279,10 @@ int main(void) {
     assert(h2 != h1);                          /* different generation */
     assert(faxe_handle_resolve(h1, FAXE_TYPE_EVI) == NULL);
     assert(faxe_handle_resolve(h2, FAXE_TYPE_EVI) == &dummy2);
+    /* The liveness check reads the generation, so a stale handle on a
+     * recycled slot is dead while the slot's current handle is live */
+    assert(!faxe_handle_is_live(h1) && faxe_handle_is_live(h2));
+    assert(!faxe_handle_is_live(0) && !faxe_handle_is_live(-1));
 
     /* growth beyond the initial 64 slots */
     int handles[500];
@@ -175,8 +311,11 @@ int main(void) {
     faxe_handle_free(f2);
     faxe_handle_free(f3);
 
-    /* generation wrap: recycle one slot many times, gen stays in 1..0x7FFF */
+    /* generation exhaustion: a slot recycled to its last generation retires,
+     * so a stale handle from any earlier generation never resolves again */
     int h = h2;
+    int firstIdx = h2 & 0xFFFF;
+    int stale = h2;
     for (int i = 0; i < 40000; i++) {
         faxe_handle_free(h);
         h = faxe_handle_alloc(&dummy2, FAXE_TYPE_EVI);
@@ -185,9 +324,13 @@ int main(void) {
         assert(gen >= 1 && gen <= 0x7FFF);
     }
     assert(faxe_handle_resolve(h, FAXE_TYPE_EVI) == &dummy2);
+    assert((h & 0xFFFF) != firstIdx);
+    assert(stale != 0 && faxe_handle_resolve(stale, FAXE_TYPE_EVI) == NULL);
+    assert(!faxe_handle_is_live(stale) && faxe_handle_is_live(h));
 
-    /* sweep of dead lookup slots: only BUS/VCA/EVD slots the validator
-     * rejects are freed, other types are untouched even when "dead" */
+    /* sweep of dead lookup slots: the BUS/VCA/EVD/BANK slots the
+     * validator rejects are freed, other types are untouched even when
+     * "dead" */
     {
         static int busObj, vcaObj, evdObj, eviObj, bankObj;
         int hb = faxe_handle_find_or_alloc(&busObj, FAXE_TYPE_BUS);
@@ -202,17 +345,21 @@ int main(void) {
         assert(gFaxeLiveCount == liveBefore);
         assert(faxe_handle_resolve(hb, FAXE_TYPE_BUS) == &busObj);
 
-        /* everything dead: sweep frees exactly the three lookup slots */
+        /* everything dead: sweep frees the three lookup slots and the
+         * bank slot. A stale bank handle cannot resurrect onto a
+         * reloaded bank at the same address. */
         faxe_handles_sweep_lookups(sweep_all_dead);
-        assert(gFaxeLiveCount == liveBefore - 3);
+        assert(gFaxeLiveCount == liveBefore - 4);
         assert(faxe_handle_resolve(hb, FAXE_TYPE_BUS) == NULL);
         assert(faxe_handle_resolve(hv, FAXE_TYPE_VCA) == NULL);
         assert(faxe_handle_resolve(he, FAXE_TYPE_EVD) == NULL);
         assert(faxe_handle_resolve(hi, FAXE_TYPE_EVI) == &eviObj);
-        assert(faxe_handle_resolve(hk, FAXE_TYPE_BANK) == &bankObj);
+        assert(faxe_handle_resolve(hk, FAXE_TYPE_BANK) == NULL);
+        assert(faxe_handle_find_or_alloc(&bankObj, FAXE_TYPE_BANK) != hk);
 
-        /* the freed slot recycles under a new generation, so a fresh lookup
-         * for a reused address gets a NEW handle and the stale one stays dead */
+        /* the freed slot recycles under a new generation. A fresh lookup
+         * for a reused address gets a NEW handle, and the stale one stays
+         * dead */
         int hb2 = faxe_handle_find_or_alloc(&busObj, FAXE_TYPE_BUS);
         assert(hb2 > 0 && hb2 != hb);
         assert(faxe_handle_resolve(hb, FAXE_TYPE_BUS) == NULL);
@@ -245,6 +392,36 @@ int main(void) {
     }
 
     test_fuzz_against_model();
+
+    /* a typed sweep frees the rejected slots of that type only */
+    {
+        int objA = 1, objB = 2, objC = 3;
+        int c1 = faxe_handle_alloc(&objA, FAXE_TYPE_CHAN);
+        int c2 = faxe_handle_alloc(&objB, FAXE_TYPE_CHAN);
+        int other = faxe_handle_alloc(&objC, FAXE_TYPE_SOUND);
+        gRejected = &objA;
+        gHookExpectType = FAXE_TYPE_CHAN;
+        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one, sweep_note_free);
+        assert(faxe_handle_resolve(c1, FAXE_TYPE_CHAN) == NULL);
+        assert(faxe_handle_resolve(c2, FAXE_TYPE_CHAN) == &objB);
+        /* the hook saw the rejected slot while it still resolved */
+        assert(gHookPtr == &objA && gHookHandle == c1);
+        gRejected = &objC;
+        gHookPtr = NULL;
+        gHookHandle = 0;
+        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one, sweep_note_free);
+        /* a sweep of another type touches nothing */
+        assert(faxe_handle_resolve(other, FAXE_TYPE_SOUND) == &objC);
+        assert(faxe_handle_resolve(c2, FAXE_TYPE_CHAN) == &objB);
+        assert(gHookPtr == NULL && gHookHandle == 0);
+        /* a NULL hook frees the slot without a call */
+        gRejected = &objB;
+        faxe_handles_sweep_type(FAXE_TYPE_CHAN, sweep_reject_one, NULL);
+        assert(faxe_handle_resolve(c2, FAXE_TYPE_CHAN) == NULL);
+        assert(faxe_handle_resolve(other, FAXE_TYPE_SOUND) == &objC);
+        assert(gHookPtr == NULL && gHookHandle == 0);
+        faxe_handle_free(other);
+    }
 
     printf("faxe_handles: all assertions passed\n");
     return 0;

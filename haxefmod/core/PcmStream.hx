@@ -1,7 +1,18 @@
 package haxefmod.core;
 
 import haxefmod.studio.FmodResult;
+import haxefmod.studio.UserData;
 import haxefmod.studio.native.NativeStudio;
+
+/**
+ * FMOD_SOUND_PCMREAD_CALLBACK as game code holds it. FMOD's version runs
+ * on the mixer thread, where no Haxe code can run. This one runs on the
+ * game thread from FmodManager.Update whenever the stream's ring has
+ * room, through PcmStream.setReadCallback. Fill data with dataLen bytes
+ * of 16-bit PCM and return FmodResult.FMOD_OK. Any other result skips
+ * the write for that frame.
+ */
+typedef PcmReadCallback = (stream:PcmStream, data:haxe.io.Bytes, dataLen:Int)->FmodResult;
 
 /**
  * A stream for playing audio generated at runtime.
@@ -44,6 +55,70 @@ abstract PcmStream(Int) from Int to Int {
         return this == 0;
     }
 
+    // Read callbacks keyed by handle, pumped once per frame after the
+    // callback drain. One buffer per stream grows to the largest fill.
+    static var readers:Map<Int, PcmReadCallback> = new Map();
+    static var buffers:Map<Int, haxe.io.Bytes> = new Map();
+
+    /**
+     * Installs a callback that fills the ring from the game thread. Every
+     * frame the ring has room, the callback receives a buffer and the
+     * byte count to fill. The bytes go into the ring when it returns
+     * FMOD_OK. Replaces any earlier callback, null removes it.
+     */
+    public function setReadCallback(callback:PcmReadCallback):Void {
+        if (this == 0) return;
+        if (callback == null) {
+            clearReadCallback();
+            return;
+        }
+        readers.set(this, callback);
+        haxefmod.studio.CallbackDispatcher.frameHook = pump;
+    }
+
+    /** Removes the read callback. release() does this too. */
+    public function clearReadCallback():Void {
+        readers.remove(this);
+        buffers.remove(this);
+        // The frame hook goes with the last reader
+        if (!readers.keys().hasNext()) haxefmod.studio.CallbackDispatcher.frameHook = null;
+    }
+
+    /** True while a read callback is installed on this stream. */
+    public inline function hasReadCallback():Bool {
+        return readers.exists(this);
+    }
+
+    /** Drops every read callback. FmodManager.ClearAllCallbacks calls this. */
+    public static function clearAllReadCallbacks():Void {
+        readers = new Map();
+        buffers = new Map();
+        haxefmod.studio.CallbackDispatcher.frameHook = null;
+    }
+
+    /** Fills every stream with a read callback. Public for tests, runs from the frame drain otherwise. */
+    public static function pump():Void {
+        // A callback can remove itself, so walk a copy of the keys
+        for (handle in [for (k in readers.keys()) k]) {
+            if (!readers.exists(handle)) continue;
+            var stream:PcmStream = handle;
+            var room = stream.space();
+            if (room <= 0) continue;
+            var buffer = buffers.get(handle);
+            if (buffer == null || buffer.length < room) {
+                buffer = haxe.io.Bytes.alloc(room);
+                buffers.set(handle, buffer);
+            }
+            var result:FmodResult = FmodResult.FMOD_ERR_INVALID_PARAM;
+            try {
+                result = readers.get(handle)(stream, buffer, room);
+            } catch (e:haxe.Exception) {
+                trace('Warn: FMOD - a PCM read callback threw: ${e.details()}');
+            }
+            if (result == FmodResult.FMOD_OK) stream.write(buffer, room);
+        }
+    }
+
     /**
      * Queues PCM bytes for the mixer. Returns how many were accepted.
      * When the ring is full the rest are dropped, so hold on to anything
@@ -56,13 +131,13 @@ abstract PcmStream(Int) from Int to Int {
         // a miscomputed count surfaces instead of writing everything.
         var len = length == -1 ? data.length : length;
         // Clamp to the real buffer size. The HashLink shim receives a bare
-        // byte pointer with no length of its own, so an oversized count
+        // byte pointer with no length of its own. An oversized count
         // would read past the buffer without this guard.
         if (len > data.length) len = data.length;
         return NativeStudio.core_pcm_write(this, data, len);
     }
 
-    /** Bytes that can be written right now. */
+    /** Bytes that can be written at this moment. */
     public inline function space():Int {
         return NativeStudio.core_pcm_space(this);
     }
@@ -75,13 +150,42 @@ abstract PcmStream(Int) from Int to Int {
         return NativeStudio.core_pcm_underruns(this);
     }
 
-    /** Starts playback. Returns Channel.NULL on failure. */
-    public inline function play(startPaused:Bool = false):Channel {
-        return NativeStudio.core_pcm_play(this, startPaused);
+    /**
+     * Starts playback. Returns Channel.NULL on failure. group routes the
+     * new channel into a ChannelGroup from the first sample, null means
+     * the master group.
+     */
+    public inline function play(startPaused:Bool = false, ?group:ChannelGroup):Channel {
+        return NativeStudio.core_pcm_play(this, group == null ? 0 : (group : Int), startPaused);
     }
 
-    /** Stops playback, frees the stream, and invalidates this handle. */
-    public inline function release():FmodResult {
-        return NativeStudio.core_pcm_release(this);
+    /**
+     * Stops playback, frees the stream, and invalidates this handle. A
+     * refused release leaves the stream as it was, unless FMOD reports
+     * the handle dead already.
+     */
+    public function release():FmodResult {
+        var result:FmodResult = NativeStudio.core_pcm_release(this);
+        if (UserData.releaseTookEffect(result)) {
+            clearReadCallback();
+            UserData.clear(UserDataKind.PcmStream, this);
+        }
+        return result;
+    }
+
+    /**
+     * Attaches a Haxe value to this handle. The value lives on the Haxe
+     * side keyed by the handle and is dropped when the handle is released.
+     * A recycled native slot gets a new generation and therefore a new
+     * handle int. Thus a stale entry does not show up on the next handle
+     * in that slot.
+     */
+    public inline function setUserData(value:Dynamic):Void {
+        UserData.set(UserDataKind.PcmStream, this, value);
+    }
+
+    /** The value attached with setUserData, or null. */
+    public inline function getUserData():Dynamic {
+        return UserData.get(UserDataKind.PcmStream, this);
     }
 }

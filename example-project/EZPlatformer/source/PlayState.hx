@@ -23,17 +23,17 @@ class PlayState extends FlxState {
 
     override public function onFocus() {
         super.onFocus();
-        FmodManager.SetEventParameterOnSong("HighPass", 0);
+        FmodManager.SetSongParameter("HighPass", 0);
     }
 
     override public function onFocusLost() {
         super.onFocusLost();
-        FmodManager.SetEventParameterOnSong("HighPass", 1);
+        FmodManager.SetSongParameter("HighPass", 1);
     }
 
     override public function create():Void {
-        // One-call flixel setup: FmodFlxUpdater plugin (drives
-        // FmodManager.Update) plus FlxG.sound volume routing to FMOD
+        // One-call flixel setup. It installs the FmodFlxUpdater hook that
+        // drives FmodManager.Update, and routes FlxG.sound volume to FMOD
         haxefmod.flixel.FmodFlxSetup.init();
         FmodManager.EnableDebugMessages();
         FmodManager.PlaySong(FmodEvents.MusicMainLevel);
@@ -76,7 +76,7 @@ class PlayState extends FlxState {
     }
 
     override public function update(elapsed:Float):Void {
-        // FmodManager.Update() runs via the FmodFlxUpdater plugin
+        // FmodManager.Update() runs via the FmodFlxUpdater hook
 
         if (!_started) {
             _startDelay += elapsed;
@@ -92,10 +92,10 @@ class PlayState extends FlxState {
             _winTimer += elapsed;
             if (_winTimer >= 3.0 && !_fadedOut) {
                 _fadedOut = true;
-                FmodManager.SetEventParameterOnSong("FadeArpIn", 0);
+                FmodManager.SetSongParameter("FadeArpIn", 0);
             }
             if (_winTimer >= 6.0) {
-                FlxG.switchState(new PlayState2());
+                FlxG.switchState(PlayState2.new);
             }
         }
 
@@ -112,8 +112,8 @@ class PlayState extends FlxState {
     }
 
     function getCoin(Coin:FlxObject, Player:FlxObject):Void {
-        FmodManager.SetEventParameterOnSong("FadeArpIn", 1.0);
-        FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
+        FmodManager.SetSongParameter("FadeArpIn", 1.0);
+        FmodManager.PlayOneShot(FmodEvents.SFXCoin);
         Coin.kill();
         _status.text = "You win!";
         _winTimer = 0;

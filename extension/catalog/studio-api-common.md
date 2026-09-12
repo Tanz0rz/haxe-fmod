@@ -1,0 +1,306 @@
+# studio-api-common
+
+## FMOD_STUDIO_LOADING_STATE
+kind: example
+index: 0
+heading: FMOD_STUDIO_LOADING_STATE
+tabbed: yes
+
+### C/C++
+```cpp
+typedef enum FMOD_STUDIO_LOADING_STATE {
+  FMOD_STUDIO_LOADING_STATE_UNLOADING,
+  FMOD_STUDIO_LOADING_STATE_UNLOADED,
+  FMOD_STUDIO_LOADING_STATE_LOADING,
+  FMOD_STUDIO_LOADING_STATE_LOADED,
+  FMOD_STUDIO_LOADING_STATE_ERROR
+} FMOD_STUDIO_LOADING_STATE;
+```
+
+### C#
+```csharp
+enum Studio.LOADING_STATE
+{
+    UNLOADING,
+    UNLOADED,
+    LOADING,
+    LOADED,
+    ERROR,
+}
+```
+
+### JavaScript
+```javascript
+STUDIO_LOADING_STATE_UNLOADING
+STUDIO_LOADING_STATE_UNLOADED
+STUDIO_LOADING_STATE_LOADING
+STUDIO_LOADING_STATE_LOADED
+STUDIO_LOADING_STATE_ERROR
+```
+
+## FMOD_STUDIO_MEMORY_USAGE
+kind: example
+index: 1
+heading: FMOD_STUDIO_MEMORY_USAGE
+tabbed: yes
+
+### C/C++
+```cpp
+typedef struct FMOD_STUDIO_MEMORY_USAGE {
+  int exclusive;
+  int inclusive;
+  int sampledata;
+} FMOD_STUDIO_MEMORY_USAGE;
+```
+
+### C#
+```csharp
+struct Studio.MEMORY_USAGE
+{
+  int exclusive;
+  int inclusive;
+  int sampledata;
+}
+```
+
+## FMOD_STUDIO_PARAMETER_DESCRIPTION
+kind: example
+index: 2
+heading: FMOD_STUDIO_PARAMETER_DESCRIPTION
+tabbed: yes
+
+### C/C++
+```cpp
+typedef struct FMOD_STUDIO_PARAMETER_DESCRIPTION {
+  const char                  *name;
+  FMOD_STUDIO_PARAMETER_ID     id;
+  float                        minimum;
+  float                        maximum;
+  float                        defaultvalue;
+  FMOD_STUDIO_PARAMETER_TYPE   type;
+  FMOD_STUDIO_PARAMETER_FLAGS  flags;
+  FMOD_GUID                    guid;
+} FMOD_STUDIO_PARAMETER_DESCRIPTION;
+```
+
+### C#
+```csharp
+struct PARAMETER_DESCRIPTION
+{
+    StringWrapper name;
+    PARAMETER_ID id;
+    float minimum;
+    float maximum;
+    float defaultvalue;
+    PARAMETER_TYPE type;
+    PARAMETER_FLAGS flags;
+    Guid guid;
+}
+```
+
+### JavaScript
+```javascript
+FMOD_STUDIO_PARAMETER_DESCRIPTION
+{
+  name,
+  id,
+  minimum,
+  maximum,
+  defaultvalue,
+  type,
+  flags,
+  guid
+};
+```
+
+## FMOD_STUDIO_PARAMETER_FLAGS
+kind: example
+index: 3
+heading: FMOD_STUDIO_PARAMETER_FLAGS
+tabbed: yes
+
+### C/C++
+```cpp
+#define FMOD_STUDIO_PARAMETER_READONLY              0x00000001
+#define FMOD_STUDIO_PARAMETER_AUTOMATIC             0x00000002
+#define FMOD_STUDIO_PARAMETER_GLOBAL                0x00000004
+#define FMOD_STUDIO_PARAMETER_DISCRETE              0x00000008
+#define FMOD_STUDIO_PARAMETER_LABELED               0x00000010
+```
+
+### C#
+```csharp
+public enum PARAMETER_FLAGS : uint
+{
+    READONLY  = 0x00000001,
+    AUTOMATIC = 0x00000002,
+    GLOBAL    = 0x00000004,
+    DISCRETE  = 0x00000008,
+    LABELED   = 0x00000010,
+}
+```
+
+### JavaScript
+```javascript
+STUDIO_PARAMETER_READONLY   0x00000001
+STUDIO_PARAMETER_AUTOMATIC  0x00000002
+STUDIO_PARAMETER_GLOBALS    0x00000004
+STUDIO_PARAMETER_DISCRETE   0x00000008
+STUDIO_PARAMETER_LABELED    0x00000010
+```
+
+## FMOD_STUDIO_PARAMETER_ID
+kind: example
+index: 4
+heading: FMOD_STUDIO_PARAMETER_ID
+tabbed: yes
+
+### C/C++
+```cpp
+typedef struct FMOD_STUDIO_PARAMETER_ID
+{
+    unsigned int data1;
+    unsigned int data2;
+} FMOD_STUDIO_PARAMETER_ID;
+```
+
+### C#
+```csharp
+struct PARAMETER_ID
+{
+    uint data1;
+    uint data2;
+}
+```
+
+### JavaScript
+```javascript
+FMOD_STUDIO_PARAMETER_ID
+{
+    data1,
+    data2
+};
+```
+
+## FMOD_STUDIO_PARAMETER_TYPE
+kind: example
+index: 5
+heading: FMOD_STUDIO_PARAMETER_TYPE
+tabbed: yes
+
+### C/C++
+```cpp
+typedef enum FMOD_STUDIO_PARAMETER_TYPE {
+  FMOD_STUDIO_PARAMETER_GAME_CONTROLLED,
+  FMOD_STUDIO_PARAMETER_AUTOMATIC_DISTANCE,
+  FMOD_STUDIO_PARAMETER_AUTOMATIC_EVENT_CONE_ANGLE,
+  FMOD_STUDIO_PARAMETER_AUTOMATIC_EVENT_ORIENTATION,
+  FMOD_STUDIO_PARAMETER_AUTOMATIC_DIRECTION,
+  FMOD_STUDIO_PARAMETER_AUTOMATIC_ELEVATION,
+  FMOD_STUDIO_PARAMETER_AUTOMATIC_LISTENER_ORIENTATION,
+  FMOD_STUDIO_PARAMETER_AUTOMATIC_SPEED,
+  FMOD_STUDIO_PARAMETER_AUTOMATIC_SPEED_ABSOLUTE,
+  FMOD_STUDIO_PARAMETER_AUTOMATIC_DISTANCE_NORMALIZED,
+  FMOD_STUDIO_PARAMETER_MAX
+} FMOD_STUDIO_PARAMETER_TYPE;
+```
+
+### C#
+```csharp
+enum PARAMETER_TYPE
+{
+    GAME_CONTROLLED,
+    AUTOMATIC_DISTANCE,
+    AUTOMATIC_EVENT_CONE_ANGLE,
+    AUTOMATIC_EVENT_ORIENTATION,
+    AUTOMATIC_DIRECTION,
+    AUTOMATIC_ELEVATION,
+    AUTOMATIC_LISTENER_ORIENTATION,
+    AUTOMATIC_SPEED,
+    AUTOMATIC_SPEED_ABSOLUTE,
+    AUTOMATIC_DISTANCE_NORMALIZED,
+    MAX
+}
+```
+
+### JavaScript
+```javascript
+STUDIO_PARAMETER_GAME_CONTROLLED
+STUDIO_PARAMETER_AUTOMATIC_DISTANCE
+STUDIO_PARAMETER_AUTOMATIC_EVENT_CONE_ANGLE
+STUDIO_PARAMETER_AUTOMATIC_EVENT_ORIENTATION
+STUDIO_PARAMETER_AUTOMATIC_DIRECTION
+STUDIO_PARAMETER_AUTOMATIC_ELEVATION
+STUDIO_PARAMETER_AUTOMATIC_LISTENER_ORIENTATION
+STUDIO_PARAMETER_AUTOMATIC_SPEED
+STUDIO_PARAMETER_AUTOMATIC_SPEED_ABSOLUTE
+STUDIO_PARAMETER_AUTOMATIC_DISTANCE_NORMALIZED
+STUDIO_PARAMETER_MAX
+```
+
+## studio_parseid
+kind: function
+index: 6
+
+### C++
+```cpp
+FMOD_RESULT Studio::parseID(
+  const char *idstring,
+  FMOD_GUID *id
+);
+```
+
+### C
+```c
+FMOD_RESULT FMOD_Studio_ParseID(
+  const char *idstring,
+  FMOD_GUID *id
+);
+```
+
+### C#
+```csharp
+static RESULT Studio.Util.parseID(
+  string idstring,
+  out Guid id
+);
+```
+
+## FMOD_STUDIO_PLAYBACK_STATE
+kind: example
+index: 7
+heading: FMOD_STUDIO_PLAYBACK_STATE
+tabbed: yes
+
+### C/C++
+```cpp
+typedef enum FMOD_STUDIO_PLAYBACK_STATE {
+  FMOD_STUDIO_PLAYBACK_PLAYING,
+  FMOD_STUDIO_PLAYBACK_SUSTAINING,
+  FMOD_STUDIO_PLAYBACK_STOPPED,
+  FMOD_STUDIO_PLAYBACK_STARTING,
+  FMOD_STUDIO_PLAYBACK_STOPPING
+} FMOD_STUDIO_PLAYBACK_STATE;
+```
+
+### C#
+```csharp
+enum Studio.PLAYBACK_STATE
+{
+    PLAYING,
+    SUSTAINING,
+    STOPPED,
+    STARTING,
+    STOPPING,
+}
+```
+
+### JavaScript
+```javascript
+STUDIO_PLAYBACK_PLAYING
+STUDIO_PLAYBACK_SUSTAINING
+STUDIO_PLAYBACK_STOPPED
+STUDIO_PLAYBACK_STARTING
+STUDIO_PLAYBACK_STOPPING
+```
+

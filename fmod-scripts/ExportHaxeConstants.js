@@ -4,12 +4,15 @@
 
    Generates the same files as `haxelib run haxefmod generate`
    (FmodEvents.hx, FmodBuses.hx, FmodVCAs.hx, FmodSnapshots.hx,
-   FmodParameters.hx) directly from the open FMOD Studio project, then
+   FmodParameters.hx, FmodEventEnum.hx) directly from the open FMOD Studio project, then
    builds the banks. Because it runs as part of the export itself, the
    constants can never drift from the project - this is the recommended
    workflow. The CLI generator produces byte-identical output from a built
    strings bank (a parity test in CI keeps the two in lockstep), so either
    tool can regenerate the files.
+
+   The package field in the export dialog matches the CLI's --package
+   flag. It emits the same package line and it defaults to empty.
 
    The generation core below must mirror haxefmod/tools/Generate.hx
    exactly: same categories, same identifier mangling, same collision
@@ -76,11 +79,16 @@ var HaxefmodConstants = {
         return String(s).split("\\").join("\\\\").split('"').join('\\"');
     },
 
-    // Mirrors Generate.emitClass byte for byte (LF line endings, tabs)
-    emitClass: function (className, prefix, entries) {
+    // Mirrors Generate.emitClass byte for byte (LF line endings, tabs).
+    // pkg is the Haxe package, "" for no package line.
+    emitClass: function (className, prefix, entries, pkg) {
         var lines = [];
         lines.push(this.header);
         lines.push("");
+        if (pkg) {
+            lines.push("package " + pkg + ";");
+            lines.push("");
+        }
         var paths = [];
         for (var i = 0; i < entries.length; i++) paths.push(entries[i].path);
         var names = this.identifiersFor(paths, prefix);
@@ -105,7 +113,7 @@ var HaxefmodConstants = {
     // covering every event (values named exactly like the FmodEvents
     // constants) plus FmodEventTools.path()/guid() mappers. Returns null
     // when there are no events.
-    generateEventEnums: function (entries) {
+    generateEventEnums: function (entries, pkg) {
         var matched = [];
         for (var i = 0; i < entries.length; i++) {
             if (entries[i].path.indexOf("event:/") === 0) {
@@ -123,6 +131,10 @@ var HaxefmodConstants = {
         var lines = [];
         lines.push(this.header);
         lines.push("");
+        if (pkg) {
+            lines.push("package " + pkg + ";");
+            lines.push("");
+        }
         lines.push("enum FmodEventEnum {");
         for (var n = 0; n < names.length; n++) lines.push("\t" + names[n] + ";");
         lines.push("}");
@@ -152,8 +164,9 @@ var HaxefmodConstants = {
 
     // entries: [{path, guid}] in any order. Returns {"FmodEvents.hx": text, ...}
     // with entries sorted by path and GUIDs normalized to lowercase, exactly
-    // like the CLI generator
-    generate: function (entries) {
+    // like the CLI generator. pkg matches the CLI's --package flag and
+    // defaults to no package line.
+    generate: function (entries, pkg) {
         var files = {};
         for (var c = 0; c < this.categories.length; c++) {
             var cat = this.categories[c];
@@ -167,7 +180,7 @@ var HaxefmodConstants = {
             matched.sort(function (a, b) {
                 return a.path < b.path ? -1 : (a.path > b.path ? 1 : 0);
             });
-            files[cat.className + ".hx"] = this.emitClass(cat.className, cat.prefix, matched);
+            files[cat.className + ".hx"] = this.emitClass(cat.className, cat.prefix, matched, pkg);
         }
         return files;
     }
@@ -190,7 +203,7 @@ if (typeof studio !== "undefined") {
     var cacheFileName = "CachedHaxeConstantsOutputLocation";
 
     function displayDirectoryPickerModal() {
-        var outputPathDir = readOutputPathFromFile();
+        var cached = readCachedSettings();
         studio.ui.showModalDialog({
             windowTitle: "Select your Haxe project's source folder",
             windowWidth: 800,
@@ -204,7 +217,16 @@ if (typeof studio !== "undefined") {
                     contentsMargins: { left: 0, top: 0, right: 0, bottom: 0 },
                     items: [
                         { widgetType: studio.ui.widgetType.Spacer, sizePolicy: { horizontalPolicy: studio.ui.sizePolicy.MinimumExpanding } },
-                        { widgetType: studio.ui.widgetType.PathLineEdit, stretchFactor: 1, widgetId: "m_directoryPicker", text: outputPathDir, pathType: studio.ui.pathType.Directory },
+                        { widgetType: studio.ui.widgetType.PathLineEdit, stretchFactor: 1, widgetId: "m_directoryPicker", text: cached.path, pathType: studio.ui.pathType.Directory }
+                    ]
+                },
+                {
+                    widgetType: studio.ui.widgetType.Layout,
+                    layout: studio.ui.layoutType.HBoxLayout,
+                    contentsMargins: { left: 0, top: 0, right: 0, bottom: 0 },
+                    items: [
+                        { widgetType: studio.ui.widgetType.Label, text: "Haxe package (optional, the CLI calls it --package):" },
+                        { widgetType: studio.ui.widgetType.LineEdit, stretchFactor: 1, widgetId: "m_packageName", text: cached.pkg },
                         { widgetType: studio.ui.widgetType.PushButton, text: "Save", onClicked: function () { createConstantsFiles(this); this.closeDialog(); } }
                     ]
                 }
@@ -213,19 +235,25 @@ if (typeof studio !== "undefined") {
     }
 
     // Collects {path, guid} entries from the open project: the same set the
-    // built strings bank will contain (events, snapshots, buses incl. the
+    // built strings bank contains (events, snapshots, buses incl. the
     // master "bus:/", VCAs, and global parameters)
+    var MODEL_CLASSES = ["Event", "Snapshot", "MixerGroup", "MixerReturn", "MixerMaster", "MixerVCA", "ParameterPreset"];
+
+    // Another Studio version can drop or rename a model class. The lookup
+    // that fails names itself in the log and the rest of the export runs.
+    function findInstances(className) {
+        try {
+            return studio.project.model[className].findInstances();
+        } catch (e) {
+            console.error("studio.project.model." + className + ".findInstances() failed: " + e);
+            return [];
+        }
+    }
+
     function collectEntries() {
         var entries = [];
-        var sources = [
-            studio.project.model.Event.findInstances(),
-            studio.project.model.Snapshot.findInstances(),
-            studio.project.model.MixerGroup.findInstances(),
-            studio.project.model.MixerReturn.findInstances(),
-            studio.project.model.MixerMaster.findInstances(),
-            studio.project.model.MixerVCA.findInstances(),
-            studio.project.model.ParameterPreset.findInstances()
-        ];
+        var sources = [];
+        for (var m = 0; m < MODEL_CLASSES.length; m++) sources.push(findInstances(MODEL_CLASSES[m]));
         for (var s = 0; s < sources.length; s++) {
             var objects = sources[s];
             for (var i = 0; i < objects.length; i++) {
@@ -249,18 +277,74 @@ if (typeof studio !== "undefined") {
         return entries;
     }
 
-    function createConstantsFiles(directoryPickerWidget) {
-        var outputPath = directoryPickerWidget.findWidget("m_directoryPicker").text();
+    // Haxe reads a package from the folder structure, so the chosen
+    // folder must end with the package's own folders. The CLI appends
+    // them to --out for the same reason.
+    var PACKAGE_NAME = /^[a-z_][a-zA-Z0-9_]*(\.[a-z_][a-zA-Z0-9_]*)*$/;
+
+    function packageProblem(outputPath, pkg) {
+        if (pkg === "") return null;
+        if (!PACKAGE_NAME.test(pkg)) {
+            return "\"" + pkg + "\" is not a valid Haxe package name.";
+        }
+        var parts = pkg.split(".");
+        var dirs = outputPath.replace(/[\\/]+$/, "").split(/[\\/]/);
+        for (var i = 0; i < parts.length; i++) {
+            if (dirs[dirs.length - parts.length + i] !== parts[i]) {
+                return "The output folder must end with " + parts.join("/") + " for the package " + pkg + ".";
+            }
+        }
+        return null;
+    }
+
+    function createConstantsFiles(dialogWidget) {
+        var outputPath = dialogWidget.findWidget("m_directoryPicker").text();
+        var pkg = String(dialogWidget.findWidget("m_packageName").text()).replace(/^\s+|\s+$/g, "");
+
+        if (outputPath.replace(/^\s+|\s+$/g, "") === "") {
+            alert("Choose the folder to write the Haxe constants into.");
+            console.error("No output folder was chosen");
+            return;
+        }
+
+        var packageError = packageProblem(outputPath, pkg);
+        if (packageError !== null) {
+            alert(packageError);
+            console.error(packageError);
+            return;
+        }
 
         var entries = collectEntries();
-        var files = HaxefmodConstants.generate(entries);
-        var enumsText = HaxefmodConstants.generateEventEnums(entries);
+        var files = HaxefmodConstants.generate(entries, pkg);
+        var enumsText = HaxefmodConstants.generateEventEnums(entries, pkg);
         if (enumsText !== null) files["FmodEventEnum.hx"] = enumsText;
+
+        var names = [];
+        for (var name in files) names.push(name);
+        if (names.length === 0) {
+            var empty = "No event:/, bus:/, vca:/, snapshot:/ or parameter:/ paths found - nothing to generate.";
+            console.log(empty);
+            console.log("Building banks...");
+            studio.project.build();
+            alert(empty + "\n\nBanks built.");
+            return;
+        }
+
+        // The folder comes from the picker or from the cache of an
+        // earlier run, and either one can point at a folder that is
+        // gone. The first constants file is the probe.
+        if (!openForWrite(outputPath + "/" + names[0])) {
+            alert("Cannot write into:\n\n" + outputPath + "\n\nCheck the folder exists and is not read-only.");
+            console.error("Cannot write into " + outputPath);
+            return;
+        }
+
         var written = [];
-        for (var fileName in files) {
+        for (var f = 0; f < names.length; f++) {
+            var fileName = names[f];
             var fullPath = outputPath + "/" + fileName;
-            var file = studio.system.getFile(fullPath);
-            if (!file.open(studio.system.openMode.WriteOnly)) {
+            var file = openForWrite(fullPath);
+            if (file === null) {
                 alert("Failed to open constants file for writing: " + fullPath + "\n\nCheck the file is not read-only.");
                 console.error("Failed to open constants file for writing: " + fullPath);
                 return;
@@ -271,7 +355,7 @@ if (typeof studio !== "undefined") {
             console.log("Wrote " + fullPath);
         }
 
-        saveOutputPathToFile(outputPath);
+        saveCachedSettings(outputPath, pkg);
 
         console.log("Building banks...");
         studio.project.build();
@@ -279,26 +363,38 @@ if (typeof studio !== "undefined") {
         alert("Haxe constants written to:\n\n" + outputPath + "\n\nBanks built.");
     }
 
-    function readOutputPathFromFile() {
-        var location = studio.project.filePath.substr(0, studio.project.filePath.lastIndexOf("/") + 1) + cacheFileName;
-        var file = studio.system.getFile(location);
+    // The open file on success, null when the path cannot be written.
+    function openForWrite(fullPath) {
+        var file = studio.system.getFile(fullPath);
+        return file.open(studio.system.openMode.WriteOnly) ? file : null;
+    }
+
+    function cacheLocation() {
+        return studio.project.filePath.substr(0, studio.project.filePath.lastIndexOf("/") + 1) + cacheFileName;
+    }
+
+    // The cache holds the folder on the first line and the package on the
+    // second. A file from an earlier run holds the folder alone.
+    function readCachedSettings() {
+        var file = studio.system.getFile(cacheLocation());
         if (!file.open(studio.system.openMode.ReadOnly)) {
-            return "";
+            return { path: "", pkg: "" };
         }
         var fileData = file.readText(10000);
         file.close();
-        return fileData;
+        var lines = String(fileData).split("\n");
+        return { path: lines[0], pkg: lines.length > 1 ? lines[1] : "" };
     }
 
-    function saveOutputPathToFile(outputDir) {
-        var location = studio.project.filePath.substr(0, studio.project.filePath.lastIndexOf("/") + 1) + cacheFileName;
-        var file = studio.system.getFile(location);
-        if (!file.open(studio.system.openMode.WriteOnly)) {
+    function saveCachedSettings(outputDir, pkg) {
+        var location = cacheLocation();
+        var file = openForWrite(location);
+        if (file === null) {
             alert("Failed to open file to cache the selected directory: " + location);
             console.error("Failed to open file to cache the selected directory: " + location);
             return;
         }
-        file.writeText(outputDir);
+        file.writeText(pkg === "" ? outputDir : outputDir + "\n" + pkg);
         file.close();
     }
 }

@@ -11,7 +11,7 @@ import sys.FileSystem;
  * mangling used by the generate command.
  *
  * The expected path/GUID pairs are the exact set the FMOD 2.03.12 runtime
- * reports for this bank via Bank::getStringInfo, so the parser is held to
+ * reports for this bank via Bank::getStringInfo. The parser is held to
  * byte-for-byte parity with FMOD's own string table decoding.
  */
 class TestStringsBankParser {
@@ -111,8 +111,8 @@ class TestStringsBankParser {
 
 	static function testHostileChunkSize() {
 		// A chunk whose size field reads as a negative signed int must stop
-		// the scan (the old scan looped forever because the pointer never
-		// advanced past such a chunk)
+		// the scan. A scan that never advances the pointer loops forever.
+		// The pointer never advanced past such a chunk.
 		var bytes = haxe.io.Bytes.alloc(28);
 		bytes.blit(0, haxe.io.Bytes.ofString("RIFF"), 0, 4);
 		bytes.setInt32(4, 20); // riff size
@@ -128,13 +128,11 @@ class TestStringsBankParser {
 		}
 	}
 
-	//// identifier mangling
-
 	// Seeded pseudo-random corpus: mutated copies of the real fixture
 	// (bit flips, scrambled size fields, truncations) and pure noise.
 	// The parser's contract under hostile bytes is return-or-throw -
-	// never an uncaught error, never a hang (the old non-advancing scan
-	// hung, and in CI the job timeout turns a regression into a failure).
+	// never an uncaught error, never a hang. A non-advancing scan hangs,
+	// and in CI the job timeout turns a regression into a failure.
 	static function testHostileCorpus() {
 		var fixtureBytes = File.getBytes(fixture);
 		var seed = 0x9E3779B9;
@@ -142,7 +140,8 @@ class TestStringsBankParser {
 			seed = (seed * 1103515245 + 12345) & 0x7FFFFFFF;
 			return seed;
 		}
-		var completed = 0;
+		var returned = 0;
+		var threw = 0;
 		for (i in 0...300) {
 			var mutated = haxe.io.Bytes.alloc(fixtureBytes.length);
 			mutated.blit(0, fixtureBytes, 0, fixtureBytes.length);
@@ -164,9 +163,9 @@ class TestStringsBankParser {
 			}
 			try {
 				StringsBankParser.parse(mutated, 'fuzz-$i.bank');
-				completed++;
+				returned++;
 			} catch (e:haxe.Exception) {
-				completed++;
+				threw++;
 			}
 		}
 		for (i in 0...100) {
@@ -174,13 +173,41 @@ class TestStringsBankParser {
 			for (at in 0...noise.length) noise.set(at, nextRand() % 256);
 			try {
 				StringsBankParser.parse(noise, 'noise-$i.bank');
-				completed++;
+				returned++;
 			} catch (e:haxe.Exception) {
-				completed++;
+				threw++;
 			}
 		}
-		assert("hostile corpus: every input returned or threw", completed == 400);
+		assert("hostile corpus: every input returned or threw", returned + threw == 400);
+		// A parser that threw on every input would hide a crash behind
+		// the catch, so some corrupt banks must come back as a result
+		Sys.println('  hostile corpus: returned=$returned threw=$threw');
+		assert("hostile corpus: some inputs return a result", returned > 0);
+
+		// A crafted bank nests one LIST chunk per twelve bytes. The walk is
+		// recursive, so the parser reports the depth instead of overflowing
+		// the stack.
+		var levels = 2000;
+		var nested = new haxe.io.BytesBuffer();
+		nested.addString("RIFF");
+		nested.addInt32(4 + levels * 12);
+		nested.addString("FEV ");
+		for (level in 0...levels) {
+			nested.addString("LIST");
+			nested.addInt32((levels - level) * 12 - 8);
+			nested.addString("xxxx");
+		}
+		var deepMessage = "";
+		try {
+			StringsBankParser.parse(nested.getBytes(), "deep.bank");
+		} catch (e:haxe.Exception) {
+			deepMessage = e.message;
+		}
+		assert("deeply nested LIST chunks are reported instead of overflowing the stack",
+			deepMessage.indexOf("corrupt chunk layout") >= 0 && deepMessage.indexOf("nested deeper") >= 0);
 	}
+
+	//// identifier mangling
 
 	static function testMangling() {
 		assert("basic path", Generate.mangle("event:/Music/MainLevel", "event:/") == "MusicMainLevel");

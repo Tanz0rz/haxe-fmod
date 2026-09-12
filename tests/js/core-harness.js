@@ -1,8 +1,8 @@
 // Prototype rig for the Core dynamic-audio surface, run against the real
-// FMOD 2.03.12 wasm build under Node. This is the phase-1 gate for the Core
-// bindings: it has to prove the embind surface actually behaves (created
-// sounds play, the pcmread callback fires with sane sizes, channels respond,
-// DSP types exist) before any Haxe API gets designed around it.
+// FMOD 2.03.12 wasm build under Node. It proves the embind surface behaves.
+// Created sounds play, the pcmread callback fires with sane sizes, channels
+// respond, and DSP types exist.
+// The Haxe Core API can then rely on that surface.
 // Usage: node core-harness.js  (needs FMOD_SDK_WEB)
 
 const path = require('path');
@@ -36,7 +36,13 @@ function info(label, detail) {
 
 const FMOD = {};
 FMOD['onRuntimeInitialized'] = main;
-FMODModule(FMOD);
+// A module that never calls back would end the process with no check run
+// and exit code 0. The run fails on its own after a minute instead.
+const watchdog = setTimeout(() => { console.log('CORE_TEST: INIT TIMEOUT'); process.exit(1); }, 60000);
+const bootstrap = FMODModule(FMOD);
+if (bootstrap && typeof bootstrap.catch === 'function') {
+    bootstrap.catch(e => { console.log('CORE_TEST: MODULE REJECTED', e); process.exit(1); });
+}
 
 let gCore = null;
 
@@ -46,6 +52,7 @@ function ok(r, what) {
 }
 
 function main() {
+    clearTimeout(watchdog);
     try {
         const out = {};
         ok(FMOD.Studio_System_Create(out), 'Studio_System_Create');
@@ -73,9 +80,10 @@ function main() {
         testChannelCallbacks(studio);
         testSoundGroups();
         testSystemSettingsAndGetters(studio);
+        testGroupDspChain(studio);
 
         console.log(`CORE_TEST: failures = ${failures}`);
-        console.log('CORE_TEST: COMPLETE');
+        console.log('CORE_TEST: COMPLETE' + (failures ? ' (WITH FAILURES)' : ''));
         process.exit(failures ? 1 : 0);
     } catch (e) {
         console.log(`CORE_TEST: FATAL ${e.message}`);
@@ -207,7 +215,7 @@ function testChannelControl(studio) {
     check('channel_stop', ch.stop() === FMOD.OK);
     pump(studio, 5);
 
-    // A stopped channel handle must fail with a channel error, not throw
+    // A stopped channel handle must fail with a channel error rather than throw
     let stale;
     try {
         stale = ch.setVolume(1.0);
@@ -220,11 +228,11 @@ function testChannelControl(studio) {
     pump(studio, 5);
 }
 
-//// DSP type enumeration: the golden list defines what slice 2 may bind
+//// DSP type enumeration: the golden list defines what slice 2 can bind
 
 function testDspEnumeration() {
     // FMOD_DSP_TYPE from the 2.03.12 SDK's own fmod_dsp_effects.h: a
-    // contiguous enum. The 1.x-era plugin host types no longer exist.
+    // contiguous enum. The plugin host types of FMOD 1.x do not exist in 2.03.
     const DSP_TYPES = {
         MIXER: 1, OSCILLATOR: 2, LOWPASS: 3, ITLOWPASS: 4, HIGHPASS: 5,
         ECHO: 6, FADER: 7, FLANGE: 8, DISTORTION: 9, NORMALIZE: 10,
@@ -256,7 +264,7 @@ function testDspEnumeration() {
 
     // Frozen from the verified 2.03.12 run: every type in the enum is
     // supported by the wasm build. A diff here means the FMOD web build
-    // changed what it ships, which changes what the Core bindings may
+    // changed what it ships, which changes what the Core bindings can
     // expose on html5.
     const GOLDEN = 'MIXER,OSCILLATOR,LOWPASS,ITLOWPASS,HIGHPASS,ECHO,FADER,FLANGE,'
         + 'DISTORTION,NORMALIZE,LIMITER,PARAMEQ,PITCHSHIFT,CHORUS,ITECHO,'
@@ -266,8 +274,9 @@ function testDspEnumeration() {
     check('dsp_golden_list', supported.join(',') === GOLDEN, supported.join(','));
 
     // Round-trip a lowpass cutoff to prove DSP parameters work.
-    // getParameterInfo is not usable on html5 (embind has no binding for
-    // FMOD_DSP_PARAMETER_DESC), so parameter metadata is native-only.
+    // The html5 target cannot use getParameterInfo, because embind has no
+    // binding for FMOD_DSP_PARAMETER_DESC.
+    // Parameter metadata stays native-only.
     const out = {};
     if (gCore.createDSPByType(DSP_TYPES.LOWPASS_SIMPLE, out) === FMOD.OK) {
         const dsp = out.val;
@@ -328,7 +337,7 @@ function testDspParamsMeteringFft(studio) {
     check('dsp_set_metering', fft.setMeteringEnabled(true, true) === FMOD.OK);
     pump(studio, 40);
 
-    // 2.03 moved the FFT param indices: SPECTRUMDATA is 4 (1.x-era 2 is
+    // 2.03 moved the FFT param indices: SPECTRUMDATA is 4 (FMOD 1.x used 2, which is
     // BAND_START_FREQ, a float, and data-reading it must fail)
     const bad = {};
     let badResult;
@@ -338,7 +347,7 @@ function testDspParamsMeteringFft(studio) {
 
     const d = {};
     const dr = fft.getParameterData(4 /* SPECTRUMDATA */, d, null, null);
-    // The struct lands as flat keys on the out object, not on .val
+    // The struct lands as flat keys on the out object rather than on .val
     check('fft_spectrumdata', dr === FMOD.OK && typeof d.length === 'number'
         && d.spectrum && d.spectrum[0] && d.spectrum[0].length > 0,
         `result=${dr} length=${d.length} ch=${d.numchannels}`);
@@ -808,5 +817,44 @@ function testSystemSettingsAndGetters(studio) {
     check('dsp_get_metering_enabled', dsp.getMeteringEnabled(mi, mo) === FMOD.OK
         && mi.val === true && mo.val === false, `in=${mi.val} out=${mo.val}`);
     dsp.release();
+    pump(studio, 5);
+}
+
+// Walking a channel group's DSP chain.
+// The fader sits at the tail, and an added unit comes back by index as the
+// same object.
+// Removal restores the count.
+// Every getDSP call hands out a fresh wrapper, so identity is the FMOD pointer
+// stored in the wrapper's first word, which is what jaxe.rawPtr compares.
+function fmodPtr(obj) {
+    return obj && obj.$$ ? FMOD.HEAPU32[obj.$$.ptr >> 2] : 0;
+}
+
+function testGroupDspChain(studio) {
+    const mOut = {};
+    ok(gCore.getMasterChannelGroup(mOut), 'getMasterChannelGroup');
+    const master = mOut.val;
+    const n = {};
+    check('cg_get_num_dsps', master.getNumDSPs(n) === FMOD.OK && n.val >= 1, `count=${n.val}`);
+    const before = n.val;
+    const fader = {}, tail = {};
+    check('cg_get_dsp_fader', master.getDSP(-2, fader) === FMOD.OK && typeof fader.val === 'object', '');
+    check('cg_get_dsp_tail_is_fader', master.getDSP(-3, tail) === FMOD.OK
+        && fmodPtr(tail.val) !== 0 && fmodPtr(tail.val) === fmodPtr(fader.val), '');
+    const lpOut = {};
+    gCore.createDSPByType(18, lpOut);
+    const lp = lpOut.val;
+    check('cg_add_dsp_head', master.addDSP(-1, lp) === FMOD.OK);
+    master.getNumDSPs(n);
+    check('cg_get_num_dsps_grew', n.val === before + 1, `before=${before} after=${n.val}`);
+    const head = {};
+    check('cg_get_dsp_index', master.getDSP(0, head) === FMOD.OK && fmodPtr(head.val) === fmodPtr(lp), '');
+    const oor = {};
+    const oorResult = master.getDSP(n.val + 5, oor);
+    check('cg_get_dsp_out_of_range', oorResult === FMOD.ERR_DSP_NOTFOUND, `result=${oorResult}`);
+    check('cg_remove_dsp', master.removeDSP(lp) === FMOD.OK);
+    master.getNumDSPs(n);
+    check('cg_get_num_dsps_restored', n.val === before, `count=${n.val}`);
+    lp.release();
     pump(studio, 5);
 }

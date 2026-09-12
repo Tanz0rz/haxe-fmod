@@ -6,7 +6,9 @@ cache key hashes source contents plus declared <depend> files ONLY. A
 header linc_faxe.cpp includes without a matching <depend> in
 linc_faxe.xml reopens a stale-object hole where header-only edits
 reuse outdated cached objects. That bit us once already, so it fails
-the build here.
+the build here. A header that only another shared header includes is
+hashed the same way, so every header under native/shared/ needs an entry
+too.
 
 Run: python3 ci/depend-lockstep.py
 """
@@ -34,17 +36,30 @@ for include in includes:
     if normalized not in depends:
         failures.append(f"{include} (expected <depend> for {normalized})")
 
+# A header a shared header includes is a dependency too. Every header
+# under native/shared/ needs its entry, whether or not the shim
+# includes it directly
+shared_dir = os.path.join(ROOT, "native", "shared")
+shared_checked = 0
+for name in sorted(os.listdir(shared_dir)):
+    if not name.endswith(".h"):
+        continue
+    normalized = "native/shared/" + name
+    shared_checked += 1
+    if normalized not in depends:
+        failures.append(f"{name} (expected <depend> for {normalized})")
+
 stale = [d for d in depends
          if not os.path.exists(os.path.join(ROOT, d))]
 
-print(f"depend-lockstep: {checked} includes in linc_faxe.cpp, {len(depends)} depends declared")
+print(f"depend-lockstep: {checked} includes in linc_faxe.cpp, {shared_checked} shared headers, {len(depends)} depends declared")
 if failures:
     for failure in failures:
-        print(f"FAIL: linc_faxe.cpp includes a header with no <depend>: {failure}")
+        print(f"FAIL: a header the compile cache hashes has no <depend>: {failure}")
 if stale:
     for entry in stale:
         print(f"FAIL: linc_faxe.xml declares a <depend> for a missing file: {entry}")
 if failures or stale:
     print(f"\ndepend-lockstep: {len(failures) + len(stale)} FAILURE(S)")
     sys.exit(1)
-print("depend-lockstep: every included header is a declared depend")
+print("depend-lockstep: every header checked is a declared depend")

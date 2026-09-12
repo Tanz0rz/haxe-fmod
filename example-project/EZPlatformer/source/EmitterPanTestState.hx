@@ -19,11 +19,13 @@ import haxefmod.studio.Types;
  * CI test state for the flixel attachment components. Logs one "PAN_TEST:"
  * line per check. CI gates on "PAN_TEST: COMPLETE" with no "pass=false".
  *
- * Validates the attachment machinery end to end (FmodFlxEmitter follows a
- * sprite's midpoint, detach/release on destroy, FmodFlxListener driving
- * the listener position) and real spatialization: the 3D Spatial event
- * from the Extras bank, metered on its channel group, must favor the left
- * channel while the emitter sits left of the listener and flip when it
+ * Validates the attachment machinery end to end. FmodFlxEmitter follows a
+ * sprite's midpoint. A destroy call detaches and releases the instance.
+ * FmodFlxListener drives the listener position.
+ *
+ * Spatialization runs for real. The 3D Spatial event from the Extras bank
+ * is metered on its channel group. The meter favors the left channel while
+ * the emitter sits left of the listener. The meter flips when the emitter
  * moves right.
  *
  * Select via HAXEFMOD_TEST_STATE=pan-test (native) or ?test=pan-test (HTML5).
@@ -34,7 +36,8 @@ class EmitterPanTestState extends FlxState {
     var _done:Bool = false;
     var _framesWaited:Int = 0;
 
-    static inline function log(message:String):Void {
+    /** Also used by PanTestDoneState below. */
+    public static inline function log(message:String):Void {
         #if js
         js.Browser.console.log(message);
         #else
@@ -63,10 +66,10 @@ class EmitterPanTestState extends FlxState {
 
         log("PAN_TEST: Starting");
 
-        // Warm the event description cache (the lookup allocates one
-        // persistent deduped handle), then capture the leak baseline: the
-        // emitter's instance is the only allocation after this point and
-        // destroy() must release it.
+        // Warm the event description cache. The lookup allocates one
+        // persistent deduped handle. Then capture the leak baseline. After
+        // this point the emitter's instance is the only allocation, and
+        // destroy() releases it.
         StudioSystem.getEvent(FmodEvents.MusicMainLevel);
         var baseline = StudioSystem.liveHandleCount();
 
@@ -102,6 +105,10 @@ class EmitterPanTestState extends FlxState {
                 approx(attributes.velocity.x, 40) && approx(attributes.velocity.y, -20),
                 'velocity=(${attributes.velocity.x}, ${attributes.velocity.y})');
         }
+        // The velocity served that check only. A listener follows this
+        // sprite later, and a constant velocity would add Doppler there.
+        sprite.velocity.x = 0;
+        sprite.velocity.y = 0;
 
         check("attached_count_one", FmodRuntime.attachedCount() == 1,
             'count=${FmodRuntime.attachedCount()}');
@@ -181,9 +188,9 @@ class EmitterPanTestState extends FlxState {
 
     /**
      * Runs the culling flow against a looping event with an explicit cull
-     * distance (the example bank has no authored 3D distances): cull when
-     * far, restart when near, restart when culling is disabled mid-cull,
-     * and leave one-shots alone entirely.
+     * distance. The example bank has no authored 3D distances. The flow
+     * covers four cases: cull when far, restart when near, restart when
+     * culling is disabled mid-cull, and leave one-shots alone entirely.
      */
     var _cullBaseline:Int = 0;
 
@@ -259,7 +266,10 @@ class EmitterPanTestState extends FlxState {
                 }
             case "oneshot_plays_out":
                 if (cullState() == FmodPlaybackState.STOPPED || timedOut) {
-                    check("cull_oneshot_played_out", !timedOut, 'frames=$_phaseFrames');
+                    // A cull stop lands on the first check, one or two
+                    // frames in. A natural end takes the jump sound's
+                    // length, which is several frames at any frame rate.
+                    check("cull_oneshot_played_out", !timedOut && _phaseFrames > 3, 'frames=$_phaseFrames');
                     // Re-entering range must not replay a finished one-shot
                     _cullSprite.x = _listenerSprite.x;
                     _cullSprite.y = _listenerSprite.y;
@@ -284,11 +294,11 @@ class EmitterPanTestState extends FlxState {
         check("no_handle_leaks_cull", StudioSystem.liveHandleCount() == _cullBaseline,
             'baseline=$_cullBaseline now=${StudioSystem.liveHandleCount()}');
 
-        // Utilities wrapper: attach-and-forget playback through the facade.
+        // Utilities wrapper: attach-and-forget playback through the helper class.
         // The next phase waits for playout so the auto-release branch runs
         // under the leak gate instead of outliving the state.
         _utilBaseline = FmodRuntime.attachedCount();
-        haxefmod.flixel.FmodFlxUtilities.PlaySoundOneShotAttached(FmodEvents.SFXJump, _listenerSprite);
+        haxefmod.flixel.FmodFlxUtilities.PlayOneShotAttached(FmodEvents.SFXJump, _listenerSprite);
         check("utilities_oneshot_attached", FmodRuntime.attachedCount() == _utilBaseline + 1,
             'count=${FmodRuntime.attachedCount()}');
         enterPhase("util_oneshot_playout");
@@ -399,11 +409,11 @@ class EmitterPanTestState extends FlxState {
     var _peakR:Float = 0;
 
     /**
-     * Plays the looping 3D Spatial event 10 units left of the listener
-     * (which follows the listener sprite's midpoint at 308, 228) and
-     * meters the instance's channel group. The metering DSP sits at the
-     * head of the group's chain, after the spatializer, so its input peaks
-     * are the panned stereo image.
+     * Plays the looping 3D Spatial event 10 units left of the listener.
+     * The listener follows the listener sprite's midpoint at 308, 228.
+     * The check meters the instance's channel group. The metering DSP sits
+     * at the head of the group's chain, after the spatializer, so its
+     * input peaks are the panned stereo image.
      */
     function startSpatialEmitter():Void {
         _spatialSprite = new FlxSprite(290, 220);
@@ -430,9 +440,9 @@ class EmitterPanTestState extends FlxState {
 
     function trackSpatialPeaks():Void {
         var metering = _spatialMeter.getMetering();
-        if (metering == null || metering.peak.length < 2) return;
-        if (metering.peak[0] > _peakL) _peakL = metering.peak[0];
-        if (metering.peak[1] > _peakR) _peakR = metering.peak[1];
+        if (metering == null || metering.peakLevel.length < 2) return;
+        if (metering.peakLevel[0] > _peakL) _peakL = metering.peakLevel[0];
+        if (metering.peakLevel[1] > _peakR) _peakR = metering.peakLevel[1];
     }
 
     function finishSpatial():Void {
@@ -471,6 +481,11 @@ class EmitterPanTestState extends FlxState {
         var camera = FlxG.camera;
         var savedX = camera.scroll.x;
         var savedY = camera.scroll.y;
+        // A half-width camera, so the view center differs from the game
+        // center and a formula built on FlxG.width fails
+        var savedWidth = camera.width;
+        var savedHeight = camera.height;
+        camera.setSize(Std.int(savedWidth / 2), savedHeight);
         var cameraListener = new FmodFlxListener();
         cameraListener.update(0.5); // seeds tracking, pushes zero velocity
         camera.scroll.x = savedX + 30;
@@ -479,9 +494,9 @@ class EmitterPanTestState extends FlxState {
         check("camera_listener_attributes_readable", attributes != null, "");
         if (attributes != null) {
             check("camera_listener_position_is_center",
-                approx(attributes.position.x, camera.scroll.x + camera.width / 2)
-                && approx(attributes.position.y, camera.scroll.y + camera.height / 2),
-                'position=(${attributes.position.x}, ${attributes.position.y})');
+                approx(attributes.position.x, camera.scroll.x + savedWidth / 4)
+                && approx(attributes.position.y, camera.scroll.y + savedHeight / 2),
+                'position=(${attributes.position.x}, ${attributes.position.y}) width=${camera.width}');
             check("camera_listener_velocity_from_movement",
                 approx(attributes.velocity.x, 60) && approx(attributes.velocity.y, 0),
                 'velocity=(${attributes.velocity.x}, ${attributes.velocity.y})');
@@ -496,24 +511,28 @@ class EmitterPanTestState extends FlxState {
             attributes != null && approx(attributes.velocity.x, 0) && approx(attributes.velocity.y, 0),
             attributes == null ? "unreadable" : 'velocity=(${attributes.velocity.x}, ${attributes.velocity.y})');
 
-        // resetMotion: the next frame reads as a fresh seed, not movement
-        camera.scroll.x = savedX;
-        camera.scroll.y = savedY;
+        // resetMotion: a small move right after it reads as a fresh seed
+        // instead of movement. The move stays under teleportDistance, so
+        // only the reset can zero the velocity.
+        camera.scroll.x -= 30;
         cameraListener.resetMotion();
         cameraListener.update(0.5);
         attributes = StudioSystem.getListenerAttributes(0);
         check("camera_listener_reset_motion_seeds",
             attributes != null && approx(attributes.velocity.x, 0),
             attributes == null ? "unreadable" : 'velocity=(${attributes.velocity.x})');
+        camera.scroll.x = savedX;
+        camera.scroll.y = savedY;
+        camera.setSize(savedWidth, savedHeight);
         cameraListener.destroy();
     }
 
     /**
-     * A real zone crossing driving a real event parameter through the
-     * trigger's instance variant, plus the contract that manual changes
-     * between crossings are not fought over. The global path runs both
-     * ways: the missing-name negative in create(), and a real crossing on
-     * the authored Intensity parameter below.
+     * A real zone crossing drives a real event parameter through the
+     * trigger's instance variant. The contract also holds that manual
+     * changes between crossings are not fought over. The global path runs
+     * both ways: the missing-name negative in create(), and a real
+     * crossing on the authored Intensity parameter below.
      */
     function runParameterTriggerChecks():Void {
         var sprite = _listenerSprite; // sits at (300, 220)
@@ -598,20 +617,12 @@ class PanTestDoneState extends FlxState {
         super.create();
         var passed = EmitterPanTestState.finalPassCount + 1;
         var failed = EmitterPanTestState.finalFailCount;
-        log2('PAN_TEST: transition_switched_state pass=true ');
-        log2('PAN_TEST: COMPLETE passed=$passed failed=$failed');
+        EmitterPanTestState.log('PAN_TEST: transition_switched_state pass=true');
+        EmitterPanTestState.log('PAN_TEST: COMPLETE passed=$passed failed=$failed');
         var label = new FlxText(0, 0, FlxG.width, 'PAN_TEST complete: $passed passed, $failed failed');
         label.setFormat(null, 16, FlxColor.WHITE, FlxTextAlign.CENTER, NONE, FlxColor.BLACK);
         label.y = (FlxG.height / 2) - (label.height / 2);
         add(label);
-    }
-
-    static inline function log2(message:String):Void {
-        #if js
-        js.Browser.console.log(message);
-        #else
-        trace(message);
-        #end
     }
 
     override public function update(elapsed:Float):Void {
