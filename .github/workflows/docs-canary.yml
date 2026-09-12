@@ -72,7 +72,7 @@ jobs:
           CODE=$(bash ci/retry.sh curl -sS -o /tmp/resend-response.json -w "%{http_code}" -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer $RESEND_API_KEY" \
             -H "Content-Type: application/json" \
-            -d "$PAYLOAD")
+            -d "$PAYLOAD" | tail -c 3)
           if [ "$CODE" != "200" ]; then
             echo "Resend refused the alert (HTTP $CODE)"
             cat /tmp/resend-response.json

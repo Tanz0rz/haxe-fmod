@@ -1,6 +1,7 @@
 package haxefmod.studio;
 
 import haxefmod.core.Sound;
+import haxefmod.studio.native.NativeStudio;
 /**
  * The handle families that can carry user data. Each family has its own
  * map because handle ints from different native types can collide. Plain
@@ -88,6 +89,13 @@ class UserData {
     }
 
     /** Drops every entry of one family. */
+    /** Drops the entries of one kind whose handle no longer resolves. */
+    public static function clearDead(kind:Int):Void {
+        var map = maps[kind];
+        var dead = [for (handle in map.keys()) if (!NativeStudio.debug_handle_is_live(handle)) handle];
+        for (handle in dead) map.remove(handle);
+    }
+
     public static function clearKind(kind:Int):Void {
         maps[kind] = new Map();
     }

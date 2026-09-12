@@ -50,8 +50,8 @@ instance.setCallback(handler, EventCallbackType.STARTED | EventCallbackType.TIME
 - `Sound.getFormat` returns `type` and `format` next to `channels` and `bits`.
 - GUIDs are `FmodGuid`, an abstract over the braced text form. It converts to and from `String`, so string call sites keep compiling.
 - `haxefmod.studio.CoreSound` is deprecated. Use `haxefmod.core.Sound`.
-- The `FmodManager` mixer calls read as questions and name the master bus: `GetBusMute(path)` is now `IsBusMuted(path)`, and `SetBusVolumeMaster`, `GetBusVolumeMaster`, `SetBusMuteMaster`, and `GetBusMuteMaster` are now `SetMasterVolume`, `GetMasterVolume`, `SetMasterMute`, and `IsMasterMuted`. `SetBusVolume` and `SetBusMute` keep their names. The old names remain as deprecated aliases for this release and the compiler warns at every use.
-- The helper class uses FMOD's word for a playable thing. `FmodManager.PlaySound` is now `PlayEvent`, `CreateSound` is `CreateEvent`, `PlaySoundOneShot`, `PlaySoundOneShotAt`, and `PlaySoundOneShotAttached` are `PlayOneShot`, `PlayOneShotAt`, and `PlayOneShotAttached`, `StopAllSounds`, `PauseAllSounds`, and `UnpauseAllSounds` are `StopAllEvents`, `PauseAllEvents`, and `UnpauseAllEvents`, and the `FmodSound` handle type is `FmodEvent`. `FmodFlxUtilities.PlaySoundOneShotAttached` is `PlayOneShotAttached`. The old names remain as deprecated aliases for this release and the compiler warns at every use.
+- The `FmodManager` mixer calls read as questions and name the master bus. `GetBusMute(path)` is now `IsBusMuted(path)`. `SetBusVolumeMaster`, `GetBusVolumeMaster`, `SetBusMuteMaster`, and `GetBusMuteMaster` are now `SetMasterVolume`, `GetMasterVolume`, `SetMasterMute`, and `IsMasterMuted`. `SetBusVolume` and `SetBusMute` keep their names. The old names remain as deprecated aliases for this release and the compiler warns at every use.
+- The helper class uses FMOD's word for a playable thing. `FmodManager.PlaySound` is now `PlayEvent`, and `CreateSound` is `CreateEvent`. `PlaySoundOneShot`, `PlaySoundOneShotAt`, and `PlaySoundOneShotAttached` are `PlayOneShot`, `PlayOneShotAt`, and `PlayOneShotAttached`. `StopAllSounds`, `PauseAllSounds`, and `UnpauseAllSounds` are `StopAllEvents`, `PauseAllEvents`, and `UnpauseAllEvents`. The `FmodSound` handle type is `FmodEvent`. `FmodFlxUtilities.PlaySoundOneShotAttached` is `PlayOneShotAttached`. The old names remain as deprecated aliases for this release and the compiler warns at every use.
 - `FmodManager.SetEventParameterOnSong` and `GetEventParameterOnSong` are now `SetSongParameter` and `GetSongParameter`. `SetSongParameterWithLabel` sets a labeled parameter on the song. The old names remain as deprecated aliases for this release and the compiler warns at every use.
 - `FmodManager.SetWindowFocused(focused)` and `IsWindowFocused()` moved to `FmodRuntime.setWindowFocused(focused)` and `FmodRuntime.isWindowFocused()`. The engine setup calls already report focus there. A game that reported focus itself changes the two call sites. `FmodManager.SetMuteWhenUnfocused` stays.
 
@@ -70,7 +70,7 @@ Each returned `null` or `FMOD_ERR_UNSUPPORTED` in a 2.0 browser build. Remove th
 
 ## HashLink
 
-The binding ABI is 12. The build refuses a prebuilt `hlaxe_fmod.hdll` from 2.0 and prints instructions. Run `haxelib run haxefmod build-hdll` once, or use the hdlls shipped in the 3.0 package.
+The binding ABI is 13. The build refuses a prebuilt `hlaxe_fmod.hdll` from 2.0 and prints instructions. Run `haxelib run haxefmod build-hdll` once, or use the hdlls shipped in the 3.0 package.
 
 # Migrating from haxefmod 1.x to 2.0
 

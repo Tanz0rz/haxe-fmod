@@ -1189,9 +1189,9 @@ class ApiProbeScenario implements TestScenario {
         // handle is reclaimed with the instance (the DESTROYED drain on
         // native, the release-all sweep on html5). The timing of that
         // reclaim depends on the studio thread, so it happens
-        // deterministically here before the baseline snapshot. SFXJump,
-        // not the music event: releaseAllInstances on the music event
-        // would destroy the helper class song slot's retained instance behind
+        // deterministically here before the baseline snapshot. The probe
+        // uses SFXJump: releaseAllInstances on the music event would
+        // destroy the helper class song slot's retained instance behind
         // FmodManager's back.
         var desc = StudioSystem.getEvent(FmodEvents.SFXJump);
         var instance = desc.createInstance();
@@ -1211,6 +1211,9 @@ class ApiProbeScenario implements TestScenario {
         StudioSystem.flushCommands();
         CallbackDispatcher.update();
 
+        // The master sound group lookup mints a persistent handle: warm it
+        // before the baseline
+        SoundGroup.master();
         var baseline = StudioSystem.liveHandleCount();
 
         // Channel odds on a paused stream

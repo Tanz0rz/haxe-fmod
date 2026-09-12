@@ -479,7 +479,7 @@ jobs:
             -X POST https://api.resend.com/emails \
             -H "Authorization: Bearer $RESEND_API_KEY" \
             -H "Content-Type: application/json" \
-            --data @/tmp/resend-payload.json)
+            --data @/tmp/resend-payload.json | tail -c 3)
 
           cat /tmp/resend-response.json
           echo ""

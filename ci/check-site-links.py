@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Fails when a page of the built documentation site links to a file that
 is not in the site. Internal hrefs and srcs only, external URLs are not
-fetched. Absolute links are resolved under the site_url prefix mkdocs
-writes (/haxe-fmod/).
+fetched. A site with no HTML pages at all fails as well. Absolute links
+are resolved under the site_url prefix mkdocs writes (/haxe-fmod/).
 
 Usage: python3 ci/check-site-links.py <site dir> [prefix]
 """

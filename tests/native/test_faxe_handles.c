@@ -307,8 +307,11 @@ int main(void) {
     faxe_handle_free(f2);
     faxe_handle_free(f3);
 
-    /* generation wrap: recycle one slot many times, gen stays in 1..0x7FFF */
+    /* generation exhaustion: a slot recycled to its last generation retires,
+     * so a stale handle from any earlier generation never resolves again */
     int h = h2;
+    int firstIdx = h2 & 0xFFFF;
+    int stale = h2;
     for (int i = 0; i < 40000; i++) {
         faxe_handle_free(h);
         h = faxe_handle_alloc(&dummy2, FAXE_TYPE_EVI);
@@ -317,6 +320,9 @@ int main(void) {
         assert(gen >= 1 && gen <= 0x7FFF);
     }
     assert(faxe_handle_resolve(h, FAXE_TYPE_EVI) == &dummy2);
+    assert((h & 0xFFFF) != firstIdx);
+    assert(stale != 0 && faxe_handle_resolve(stale, FAXE_TYPE_EVI) == NULL);
+    assert(!faxe_handle_is_live(stale) && faxe_handle_is_live(h));
 
     /* sweep of dead lookup slots: the BUS/VCA/EVD/BANK slots the
      * validator rejects are freed, other types are untouched even when

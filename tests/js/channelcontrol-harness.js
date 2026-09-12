@@ -206,6 +206,11 @@ async function main() {
     const walked = jaxe.fmod_cg_get_group(parent, 0);
     check('cg_walk_finds_created_group', walked === other && !jaxe.isOwned(walked), `walked=${walked} other=${other}`);
     check('cg_walk_mints_owned_master', jaxe.isOwned(jaxe.fmod_cg_get_parent_group(parent)), '');
+    // The live-handle query answers for any type with no FMOD call
+    const lastBefore = jaxe.lastResult;
+    check('debug_handle_is_live', jaxe.fmod_debug_handle_is_live(master) === true
+        && jaxe.fmod_debug_handle_is_live(0x7fff0001) === false && jaxe.fmod_debug_handle_is_live(0) === false
+        && jaxe.lastResult === lastBefore, `last=${jaxe.lastResult}`);
     jaxe.fmod_cg_release(other);
     jaxe.fmod_cg_release(parent);
     check('no_handle_leaks', jaxe.fmod_debug_live_handle_count() === baseline,

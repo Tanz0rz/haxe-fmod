@@ -431,6 +431,96 @@ async function main() {
         drainEvents();
     }
 
+    // A refused instance release keeps the instance's callback state and
+    // its group's shim callback, and both still deliver
+    {
+        const relInst = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_start(relInst);
+        await pump(3);
+        check('refused_release_mask_installed', jaxe.fmod_evi_set_callback_mask(relInst, 0x22) === 0, '');
+        const relGroup = jaxe.fmod_evi_get_channel_group(relInst);
+        check('refused_release_group_callback_installed', jaxe.fmod_cg_set_callback(relGroup, true) === 0, '');
+        const relGroupW = jaxe.resolveCg(relGroup);
+        const relGroupRaw = jaxe.rawPtr(relGroupW);
+        const relCalls = [];
+        const realRelGroupSet = relGroupW.setCallback;
+        relGroupW.setCallback = function (cb) {
+            relCalls.push(cb === null ? 'off' : 'on');
+            return realRelGroupSet.call(relGroupW, cb);
+        };
+        const relW = jaxe.handleResolve(relInst, jaxe.TYPE_EVI);
+        const realRelRelease = relW.release;
+        relW.release = () => 40;
+        const refusedRel = jaxe.fmod_evi_release(relInst);
+        relW.release = realRelRelease;
+        relGroupW.setCallback = realRelGroupSet;
+        check('refused_instance_release_reports', refusedRel === 40, `result=${refusedRel}`);
+        check('refused_instance_release_keeps_slot', jaxe.handleResolve(relInst, jaxe.TYPE_EVI) != null, '');
+        check('refused_instance_release_keeps_mask', jaxe.cbMasks[relInst] === 0x22, `mask=${jaxe.cbMasks[relInst]}`);
+        check('refused_instance_release_cycles_group_callback',
+            relCalls.join(',') === 'off,on' && jaxe.chanCallbackHandles.get(relGroupRaw) === relGroup,
+            `calls=${relCalls.join(',')}`);
+        jaxe.fmod_evi_stop(relInst, 1);
+        let sawRelStop = false;
+        for (let i = 0; i < 100 && !sawRelStop; i++) {
+            await pump(1);
+            for (const ev of drainEvents()) if (ev.handle === relInst && ev.type === 0x20) sawRelStop = true;
+        }
+        check('refused_instance_release_callback_still_delivers', sawRelStop, '');
+        jaxe.fmod_cg_set_callback(relGroup, false);
+        jaxe.fmod_evi_release(relInst);
+        await pump(3);
+        drainEvents();
+    }
+
+    // A successful unload whose scope was unknown puts every survivor's
+    // callbacks back: the instance mask and the group's shim callback
+    {
+        const extrasBytes = fs.readFileSync(path.join(BANKS, 'Extras.bank'));
+        const extrasBuf = extrasBytes.buffer.slice(extrasBytes.byteOffset, extrasBytes.byteOffset + extrasBytes.length);
+        const extras = jaxe.fmod_sys_load_bank_memory(extrasBuf, extrasBytes.length, 0);
+        check('survivor_extras_bank_loaded', extras > 0, `handle=${extras}`);
+        const survInst = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_start(survInst);
+        await pump(3);
+        check('survivor_mask_installed', jaxe.fmod_evi_set_callback_mask(survInst, 0x22) === 0, '');
+        const survGroup = jaxe.fmod_evi_get_channel_group(survInst);
+        check('survivor_group_callback_installed', jaxe.fmod_cg_set_callback(survGroup, true) === 0, '');
+        const survGroupW = jaxe.resolveCg(survGroup);
+        const survGroupRaw = jaxe.rawPtr(survGroupW);
+        const survCalls = [];
+        const realSurvSet = survGroupW.setCallback;
+        survGroupW.setCallback = function (cb) {
+            survCalls.push(cb === null ? 'off' : 'on');
+            return realSurvSet.call(survGroupW, cb);
+        };
+        const extrasW = jaxe.handleResolve(extras, jaxe.TYPE_BANK);
+        const realExtrasCount = extrasW.getEventCount;
+        const realExtrasList = extrasW.getEventList;
+        extrasW.getEventCount = function (o) { o.val = 1; return jaxe.FMOD.OK; };
+        extrasW.getEventList = () => 40;
+        const okUnload = jaxe.fmod_bank_unload(extras);
+        extrasW.getEventCount = realExtrasCount;
+        extrasW.getEventList = realExtrasList;
+        survGroupW.setCallback = realSurvSet;
+        check('unlisted_bank_unload_succeeds', okUnload === 0, `result=${okUnload}`);
+        check('unlisted_unload_restores_survivor_mask', jaxe.cbMasks[survInst] === 0x22, `mask=${jaxe.cbMasks[survInst]}`);
+        check('unlisted_unload_restores_survivor_group_callback',
+            survCalls.join(',') === 'off,on' && jaxe.chanCallbackHandles.get(survGroupRaw) === survGroup,
+            `calls=${survCalls.join(',')} mapped=${jaxe.chanCallbackHandles.get(survGroupRaw)}`);
+        jaxe.fmod_evi_stop(survInst, 1);
+        let sawSurvStop = false;
+        for (let i = 0; i < 100 && !sawSurvStop; i++) {
+            await pump(1);
+            for (const ev of drainEvents()) if (ev.handle === survInst && ev.type === 0x20) sawSurvStop = true;
+        }
+        check('unlisted_unload_survivor_callback_still_delivers', sawSurvStop, '');
+        jaxe.fmod_cg_set_callback(survGroup, false);
+        jaxe.fmod_evi_release(survInst);
+        await pump(3);
+        drainEvents();
+    }
+
     // --- DSP connection handles die with graph teardown ---
     const dsp = jaxe.fmod_dsp_create_by_type(3 /* echo */);
     check('dsp_created', dsp > 0, `handle=${dsp}`);

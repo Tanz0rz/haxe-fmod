@@ -706,6 +706,7 @@ class NativeStudioJs {
 
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.fmod_debug_live_handle_count();
+    public static inline function debug_handle_is_live(handle:Int):Bool return Raw.fmod_debug_handle_is_live(handle);
     public static inline function binding_abi_version():Int return Raw.fmod_binding_abi_version();
 
     // System extras
@@ -1284,6 +1285,7 @@ private extern class Raw {
     static function fmod_conn_get_mix_matrix(handle:Int, fbuf:Array<Float>, ibuf:Array<Int>, inChannelHop:Int):Int;
 
     static function fmod_debug_live_handle_count():Int;
+    static function fmod_debug_handle_is_live(handle:Int):Bool;
     static function fmod_binding_abi_version():Int;
 
     static function fmod_replay_get_command_count(handle:Int):Int;

@@ -716,6 +716,7 @@ class NativeStudioCpp {
 
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.debug_live_handle_count();
+    public static inline function debug_handle_is_live(handle:Int):Bool return Raw.debug_handle_is_live(handle);
     public static inline function binding_abi_version():Int return Raw.binding_abi_version();
 
     // System extras
@@ -2247,6 +2248,8 @@ private extern class Raw {
 
     @:native("linc::faxe::fmod_debug_live_handle_count")
     static function debug_live_handle_count():Int;
+    @:native("linc::faxe::fmod_debug_handle_is_live")
+    static function debug_handle_is_live(handle:Int):Bool;
 
     @:native("linc::faxe::fmod_binding_abi_version")
     static function binding_abi_version():Int;

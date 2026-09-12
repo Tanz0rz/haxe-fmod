@@ -406,6 +406,7 @@ extern bool fmod_sys_is_recording(int id);
 extern int fmod_sys_get_record_position(int id);
 
 extern int fmod_debug_live_handle_count();
+extern bool fmod_debug_handle_is_live(int h);
 extern int fmod_binding_abi_version();
 
 // Channel callbacks and sync points

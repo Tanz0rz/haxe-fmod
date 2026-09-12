@@ -14,7 +14,7 @@ if [ "${1:-}" = "--clean" ]; then
   clean="$2"
   shift 2
 fi
-for attempt in 1 2 3; do
+for attempt in $(seq "$attempts"); do
   if [ "$attempt" != 1 ] && [ -n "$clean" ]; then rm -rf "$clean"; fi
   "$@" && exit 0
   status=$?
@@ -25,3 +25,4 @@ for attempt in 1 2 3; do
   echo "retry: '$1' failed with status $status, attempt $attempt of $attempts" >&2
   sleep $pause
 done
+exit "${status:-1}"

@@ -59,7 +59,7 @@ static void* gListBuf[FAXE_LIST_MAX];
 // the unreferenced string from the binary, erasing the marker the scan
 // depends on. Volatile reads cannot be folded, so the string survives any
 // optimization level.
-static const volatile char gAbiMarker[] = "hlaxe_fmod_abi=12";
+static const volatile char gAbiMarker[] = "hlaxe_fmod_abi=13";
 
 /* The hash of the shim sources this hdll was built from, passed in by
  * build-hdll (ci/hlaxe-src-hash.py computes the same one). The package
@@ -4597,6 +4597,7 @@ static void hlaxe_reclaim_dead_lookups(void) {
 typedef struct {
     FMOD_CHANNELGROUP** groups;
     void** userData;
+    int* instances;
     int count;
 } HlaxeGroupCallbackStash;
 
@@ -4611,8 +4612,9 @@ static HlaxeGroupCallbackStash hlaxe_uninstall_instance_group_callbacks(FMOD_STU
     size_t cap = (size_t)(gFaxeSlotCap > 0 ? gFaxeSlotCap : 1);
     stash.groups = (FMOD_CHANNELGROUP**)malloc(sizeof(FMOD_CHANNELGROUP*) * cap);
     stash.userData = (void**)malloc(sizeof(void*) * cap);
+    stash.instances = (int*)malloc(sizeof(int) * cap);
     stash.count = 0;
-    record = stash.groups && stash.userData;
+    record = stash.groups && stash.userData && stash.instances;
     for (i = 0; i < gFaxeSlotCap; i++) {
         FaxeSlot* s = &gFaxeSlots[i];
         FMOD_STUDIO_EVENTINSTANCE* instance;
@@ -4638,6 +4640,7 @@ static HlaxeGroupCallbackStash hlaxe_uninstall_instance_group_callbacks(FMOD_STU
         if (!record) continue;
         stash.groups[stash.count] = group;
         stash.userData[stash.count] = userData;
+        stash.instances[stash.count] = ((int)s->gen << 16) | i;
         stash.count++;
     }
     return stash;
@@ -4659,21 +4662,26 @@ static int hlaxe_bank_descriptions(FMOD_STUDIO_BANK* bank, FMOD_STUDIO_EVENTDESC
     return count;
 }
 
-/* The callback goes back on a group whose handle still resolves to it.
- * The caller sweeps first, so a group FMOD destroyed lost its slot and
- * a new group at the same address never answers for the old handle. */
+/* The callback goes back on a group whose handle still resolves to it
+ * and whose instance still owns it. The caller sweeps first, so a group
+ * FMOD destroyed lost its slot. A new group at the same address belongs
+ * to another instance, which the ownership check tells apart. */
 static void hlaxe_restore_instance_group_callbacks(HlaxeGroupCallbackStash* stash, int restore) {
     int i;
     if (restore) {
         for (i = 0; i < stash->count; i++) {
             int gh = (int)(intptr_t)stash->userData[i];
+            FMOD_STUDIO_EVENTINSTANCE* instance = (FMOD_STUDIO_EVENTINSTANCE*)faxe_handle_resolve(stash->instances[i], FAXE_TYPE_EVI);
+            FMOD_CHANNELGROUP* current = NULL;
             if (!gh || faxe_handle_resolve(gh, FAXE_TYPE_CHANGROUP) != (void*)stash->groups[i]) continue;
+            if (!instance || FMOD_Studio_EventInstance_GetChannelGroup(instance, &current) != FMOD_OK || current != stash->groups[i]) continue;
             FMOD_ChannelGroup_SetUserData(stash->groups[i], stash->userData[i]);
             FMOD_ChannelGroup_SetCallback(stash->groups[i], hlaxe_channel_callback);
         }
     }
     free(stash->groups);
     free(stash->userData);
+    free(stash->instances);
 }
 
 HL_PRIM int HL_NAME(sys_unload_all)() {
@@ -4686,7 +4694,7 @@ HL_PRIM int HL_NAME(sys_unload_all)() {
      * frees only the slots FMOD reports dead, so it runs either way.
      * Otherwise a stale slot at a reused address aliases a new object. */
     hlaxe_reclaim_dead_lookups();
-    hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK);
+    hlaxe_restore_instance_group_callbacks(&stash, 1);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, sys_unload_all, _NO_ARG);
@@ -5021,10 +5029,9 @@ HL_PRIM int HL_NAME(bank_unload)(int h) {
         faxe_handle_free(h);
         hlaxe_reclaim_dead_lookups();
     }
-    /* A refused unload puts every callback back. A walk with no scope
-     * took callbacks off instances of other banks, and the survivors get
-     * theirs back too. */
-    hlaxe_restore_instance_group_callbacks(&stash, !tookEffect || bankDescs == NULL);
+    /* Every group that survived the unload gets its callback back, on
+     * every path: the restore skips a group that died or changed owner. */
+    hlaxe_restore_instance_group_callbacks(&stash, 1);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, bank_unload, _I32);
@@ -5397,8 +5404,8 @@ HL_PRIM int HL_NAME(evd_release_all_instances)(int h) {
     stash = hlaxe_uninstall_instance_group_callbacks(&desc, 1);
     gLastResult = FMOD_Studio_EventDescription_ReleaseAllInstances(desc);
     /* The sweep makes a destroyed group lose its slot before the restore */
-    if (gLastResult != FMOD_OK) hlaxe_reclaim_dead_lookups();
-    hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK);
+    hlaxe_reclaim_dead_lookups();
+    hlaxe_restore_instance_group_callbacks(&stash, 1);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, evd_release_all_instances, _I32);
@@ -6881,6 +6888,11 @@ HL_PRIM int HL_NAME(debug_live_handle_count)() {
     return faxe_live_handle_count();
 }
 DEFINE_PRIM(_I32, debug_live_handle_count, _NO_ARG);
+
+HL_PRIM bool HL_NAME(debug_handle_is_live)(int h) {
+    return faxe_handle_is_live(h) != 0;
+}
+DEFINE_PRIM(_BOOL, debug_handle_is_live, _I32);
 
 // Reads the version out of the marker so the string is always retained in
 // the compiled hdll and the prim can never disagree with it. The digits are

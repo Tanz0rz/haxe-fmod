@@ -220,6 +220,7 @@ async function main() {
     // invariants.
     if (all && !live) {
         const fixtures = buildAll();
+        if (Object.keys(fixtures).length === 0) fail('no catalog pages under extension/catalog/');
         await context.unroute('https://www.fmod.com/**');
         await context.route('https://www.fmod.com/**', route => {
             const name = route.request().url().split('/').pop().split('#')[0].replace('.html', '');
@@ -311,6 +312,7 @@ async function main() {
             if (again.tabs !== expectedTabs || again.blocks !== expected) fail(name + ': re-render changed the page, ' + again.tabs + ' tabs and ' + again.blocks + ' blocks for ' + expectedTabs + ' and ' + expected);
             unitsChecked += expected;
         }
+        if (unitsChecked === 0) fail('the catalog matrix checked no units');
         console.log('matrix: ' + Object.keys(fixtures).length + ' pages, ' + unitsChecked + ' units held the invariants');
     }
 

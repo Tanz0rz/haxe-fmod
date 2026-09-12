@@ -329,9 +329,20 @@ class jaxe {
         s.ptr = null;
         s.raw = 0;
         s.type = 0;
-        s.gen = (s.gen % 0x7FFF) + 1; // wraps 1..0x7FFF, never 0
-        jaxe.freeList.push(idx);
         jaxe.liveCount--;
+        // A generation that wraps would let a retained stale handle resolve
+        // again, so a slot at the last generation retires instead of going
+        // back on the free list. The table then grows past it.
+        if (s.gen >= 0x7FFF) return;
+        s.gen = s.gen + 1;
+        jaxe.freeList.push(idx);
+    }
+
+    // Whether a handle of any type still resolves: alive, with its generation
+    static handleIsLive(handle) {
+        if (handle <= 0) return false;
+        var s = jaxe.slots[handle & 0xFFFF];
+        return !!(s && s.alive && s.gen == ((handle >> 16) & 0x7FFF));
     }
 
     //// System
@@ -488,16 +499,25 @@ class jaxe {
                 if (!inScope) continue;
             }
             group.setCallback(null);
-            taken.push({ cg: cg, raw: raw, handle: jaxe.chanCallbackHandles.get(raw) });
+            taken.push({ cg: cg, raw: raw, handle: jaxe.chanCallbackHandles.get(raw), inst: key | 0 });
             jaxe.chanCallbackHandles.delete(raw);
         }
         return taken;
     }
 
+    // The callback goes back on a group whose slot still answers and
+    // whose instance still owns it. A new group at the same address
+    // belongs to another instance, which the ownership check tells apart.
     static restoreInstanceGroupCallbacks(taken) {
         for (var i = 0; i < taken.length; i++) {
             var group = jaxe.resolveCg(taken[i].cg);
             if (!group || !jaxe.lookupSlotUsable(jaxe.slots[taken[i].cg & 0xFFFF])) continue;
+            var inst = jaxe.handleResolve(taken[i].inst, jaxe.TYPE_EVI);
+            if (!inst) continue;
+            var out = {};
+            var owns = inst.getChannelGroup(out) == jaxe.FMOD.OK && out.val && jaxe.rawPtr(out.val) === taken[i].raw;
+            if (out.val) jaxe.dropWrapper(out.val);
+            if (!owns) continue;
             jaxe.chanCallbackHandles.set(taken[i].raw, taken[i].handle);
             group.setCallback(jaxe.channelCallback);
         }
@@ -1370,8 +1390,9 @@ class jaxe {
         saved.groups = jaxe.uninstallInstanceGroupCallbacks(null);
         jaxe.cacheAllBankPaths();
         jaxe.lastResult = jaxe.gSystem.unloadAll();
-        if (jaxe.lastResult != jaxe.FMOD.OK) jaxe.restoreCallbackState(saved);
-        else jaxe.sweepDeadLookups();
+        // Every survivor gets its callback back. The restore sweeps first
+        // and skips the dead.
+        jaxe.restoreCallbackState(saved);
         // Every async-loaded bank that died here never passed through
         // fmod_bank_unload, so its MEMFS copy goes now. A refused call
         // can have unloaded some banks too, so the map is reconciled
@@ -1743,11 +1764,10 @@ class jaxe {
         }
         var raw = jaxe.rawPtr(bank);
         jaxe.lastResult = bank.unload();
-        // A refused unload puts every callback back. A walk with no scope
-        // took callbacks off instances of other banks, and the survivors
-        // get theirs back too. The restore sweeps first and skips the dead.
-        var bankTookEffect = jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE;
-        if (!bankTookEffect || !scoped) jaxe.restoreCallbackState(saved);
+        // Every instance and group that survived the unload gets its
+        // callback back, on every path. The restore sweeps first and skips
+        // the dead and a group that changed owner.
+        jaxe.restoreCallbackState(saved);
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
         if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
             // Async loads copied the bank into MEMFS. Delete the copy or
@@ -2093,8 +2113,9 @@ class jaxe {
         jaxe.lastResult = evd.releaseAllInstances();
         // With no DESTROYED events on this target, the sweep is what
         // reclaims the destroyed instances' handle slots
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.sweepDeadLookups();
-        else jaxe.restoreCallbackState(saved);
+        // Every survivor gets its callback back. The restore sweeps first
+        // and skips the dead.
+        jaxe.restoreCallbackState(saved);
         return jaxe.lastResult;
     }
 
@@ -4352,10 +4373,16 @@ class jaxe {
         } catch (e) {}
     }
 
+    // Every loaded bank, whether or not a slot holds it, like the native
+    // shims walk the bank list
     static cacheAllBankPaths() {
-        for (var i = 0; i < jaxe.slots.length; i++) {
-            var s = jaxe.slots[i];
-            if (s.alive && s.type === jaxe.TYPE_BANK) jaxe.cacheBankPath(s.ptr);
+        if ((jaxe.studioCallbackMask & jaxe.STUDIO_CB_BANK_UNLOAD) == 0) return;
+        var list = {};
+        var count = {};
+        if (jaxe.gSystem.getBankList(list, jaxe.LIST_MAX, count) != jaxe.FMOD.OK || !list.val) return;
+        for (var i = 0; i < list.val.length; i++) {
+            jaxe.cacheBankPath(list.val[i]);
+            jaxe.dropWrapper(list.val[i]);
         }
     }
 
@@ -5888,9 +5915,13 @@ class jaxe {
         return jaxe.liveCount;
     }
 
+    static fmod_debug_handle_is_live(handle) {
+        return jaxe.handleIsLive(handle);
+    }
+
     static fmod_binding_abi_version() {
         // Keep in lockstep with the manifest header "# abi-version:"
-        return 12;
+        return 13;
     }
 
     //// Initialization (Emscripten-specific, must stay here)

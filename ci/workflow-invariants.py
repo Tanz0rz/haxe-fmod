@@ -40,13 +40,15 @@ leans on:
   13. No workflow uses krdlab/setup-haxe directly, so every such install
      goes through the local action with the retry. The macOS jobs
      install Haxe through Homebrew, which retries on its own.
-  14. Every haxelib install, git clone, npm install, playwright install,
-     brew install, pip install, git fetch, submodule update, and curl
-     call goes through ci/retry.sh. That covers the workflows, the composite actions, and
-     the run job generator. Every apt-get carries its retry option.
+  14. Every haxelib install, git clone, fetch, pull, and submodule
+     update, npm install, playwright install, brew install, pip install,
+     curl, wget, ssh, rsync, and gh api call goes through ci/retry.sh.
+     That covers the workflows, the composite actions, and the run job
+     generator. Every apt-get carries its retry option.
   15. The steps gated on a stale pre-built hdll are the known few, so a
      new gate cannot hide behind the branch escape hatch unnoticed. The
-     three HashLink build gates and the two id abi gates read both hdll markers.
+     three HashLink build gates and the two hdll ABI check steps read
+     both hdll markers.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -254,7 +256,7 @@ else:
 # from an action directory, is exit 127 on the runner. The path check
 # is what catches both. Every apt-get carries its retry option, and a
 # comment or echo naming one is skipped.
-FETCH_RE = re.compile(r"(haxelib install|git clone|git fetch|git submodule update|npm install|npx playwright install|curl -f?sS|brew install|pip\"? install)")
+FETCH_RE = re.compile(r"(haxelib install|git (?:clone|fetch|pull|submodule)|npm (?:install|ci)|npx playwright install|curl(?![-\w])|wget(?![-\w])|brew install|pip\"? install|ssh(?![-\w])|rsync(?![-\w])|gh (?:api|release download))")
 WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)ci/retry\.sh\1")
 fetch_files = [os.path.join(os.path.dirname(PATH), wf) for wf in sorted(os.listdir(os.path.dirname(PATH))) if wf.endswith(".yml")]
 actions_dir = os.path.join(ROOT, ".github", "actions")
@@ -266,7 +268,19 @@ unretried = []
 wrapped = 0
 for path in fetch_files:
     with open(path) as fh:
-        lines = fh.readlines()
+        raw_lines = fh.readlines()
+    # A command that continues over a backslash is one logical line, so a
+    # wrapper on the first line covers the whole fetch
+    lines = []
+    carry = ""
+    for raw in raw_lines:
+        if raw.rstrip("\n").endswith("\\"):
+            carry += raw.rstrip("\n")[:-1]
+            continue
+        lines.append(carry + raw)
+        carry = ""
+    if carry:
+        lines.append(carry + "\n")
     block_indent = None
     moved = False
     for n, line in enumerate(lines, 1):
@@ -301,7 +315,7 @@ for path in fetch_files:
                 wrapped += 1
         elif FETCH_RE.search(line):
             bare.append(f"{os.path.relpath(path, ROOT)}:{n}")
-if bare or unresolved or unretried or wrapped < 100:
+if bare or unresolved or unretried or wrapped < 150:
     fail(f"network fetches outside ci/retry.sh: {bare}, wrapper paths that do not resolve: {unresolved}, apt-get without retries: {unretried} ({wrapped} wrapped)")
 else:
     ok(f"{wrapped} network fetches go through ci/retry.sh, none bare, every wrapper path resolves, apt retries")

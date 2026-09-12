@@ -248,10 +248,27 @@ static void faxe_handle_free(int handle) {
     if (s->aux) { free(s->aux); s->aux = NULL; }
     if (s->lock) { free(s->lock); s->lock = NULL; }
     s->type = FAXE_TYPE_NONE;
-    s->gen = (unsigned short)((s->gen % FAXE_GEN_MAX) + 1); /* wraps 1..FAXE_GEN_MAX, never 0 */
+    gFaxeLiveCount--;
+    /* A generation that wraps would let a retained stale handle resolve
+     * again, so a slot at the last generation retires instead of going
+     * back on the free list. The table then grows past it. */
+    if (s->gen >= FAXE_GEN_MAX) return;
+    s->gen = (unsigned short)(s->gen + 1);
     s->next_free = gFaxeFreeHead;
     gFaxeFreeHead = idx;
-    gFaxeLiveCount--;
+}
+
+/* Whether a handle of any type still resolves: alive, with its generation. */
+static int faxe_handle_is_live(int handle) {
+    int idx;
+    unsigned short gen;
+    FaxeSlot* s;
+    if (handle <= 0) return 0;
+    idx = handle & 0xFFFF;
+    gen = (unsigned short)((handle >> 16) & FAXE_GEN_MAX);
+    if (idx >= gFaxeSlotCap) return 0;
+    s = &gFaxeSlots[idx];
+    return s->alive && s->gen == gen;
 }
 
 /* Marks the object behind a live handle as one the game does not own,

@@ -11,7 +11,7 @@
 # Types are logical (exact FFI types differ per backend, e.g. f32 vs f64).
 # The checker verifies presence and arity rather than exact types.
 #
-# abi-version: 12
+# abi-version: 13
 # The binding ABI version covers the shape of the native surface. Bump it in
 # lockstep with the "hlaxe_fmod_abi=" marker in hlaxe_fmod.c, the constants in
 # the other two shims, and FmodRuntime.BINDING_ABI. That happens whenever
@@ -774,6 +774,10 @@ conn_get_mix_matrix i32 fbuf ibuf i32 -> i32
 
 ## Debug
 debug_live_handle_count -> i32
+# whether a handle of any type still resolves, with no FMOD call and no
+# change to the last result. The Haxe side drops the entries of a group
+# handle a bus unlock destroyed with it.
+debug_handle_is_live i32 -> bool
 binding_abi_version -> i32
 
 ## System extras (replay inspection, DSP lock, sound info, memory and file stats, network, speaker positions)

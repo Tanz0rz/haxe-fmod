@@ -15,6 +15,10 @@ import haxefmod.studio.native.Scratch;
  * FMOD_ERR_INVALID_HANDLE).
  */
 abstract EventInstance(Int) from Int to Int {
+    // The group handle each instance handed out, so a release drops its
+    // Haxe handler and user data with the instance, and mints nothing
+    static var walkedGroups:Map<Int, Int> = new Map();
+
     /** The null handle. Every call on it is a safe no-op. */
     public static inline var NULL:EventInstance = cast 0;
 
@@ -56,20 +60,34 @@ abstract EventInstance(Int) from Int to Int {
      * instance must be started. The instance owns the group, so its release is refused. Returns
      * ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
      */
-    public inline function getChannelGroup():haxefmod.core.ChannelGroup {
-        return NativeStudio.evi_get_channel_group(this);
+    public function getChannelGroup():haxefmod.core.ChannelGroup {
+        var group:haxefmod.core.ChannelGroup = NativeStudio.evi_get_channel_group(this);
+        if (!group.isNull()) walkedGroups.set(this, group);
+        return group;
     }
 
     /**
-     * Releases the instance. FMOD destroys it once it stops. The handle
-     * becomes invalid immediately and any registered callback is removed.
+     * Releases the instance. FMOD destroys it once it stops. Once FMOD
+     * accepted the call, the handle is dead and the registered callback
+     * and user data are dropped. A refused release keeps both.
      * The HTML5 backend cannot deliver events after release, so the
      * cleanup happens here on every target for consistent behavior.
      */
-    public inline function release():FmodResult {
-        CallbackDispatcher.remove(this);
-        UserData.clear(UserDataKind.EventInstance, this);
-        return NativeStudio.evi_release(this);
+    public function release():FmodResult {
+        var result:FmodResult = NativeStudio.evi_release(this);
+        if (UserData.releaseTookEffect(result)) {
+            CallbackDispatcher.remove(this);
+            UserData.clear(UserDataKind.EventInstance, this);
+            // The instance's group dies with it, so its handler and user
+            // data go too
+            var group = walkedGroups.get(this);
+            walkedGroups.remove(this);
+            if (group != null) {
+                haxefmod.core.ChannelCallbacks.forgetGroup(group);
+                UserData.clear(UserDataKind.ChannelGroup, group);
+            }
+        }
+        return result;
     }
 
     /**

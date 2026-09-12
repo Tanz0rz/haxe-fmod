@@ -135,11 +135,11 @@ jobs:
           RELEASE: ${{ github.run_id }}-${{ github.run_attempt }}
           SSH_CONFIG: /home/runner/.ssh/tanz0rz_deploy_config
         run: |
-          ssh -F "$SSH_CONFIG" deploy-target "mkdir -p /var/www/releases/$RELEASE"
-          rsync -az --delete --link-dest=/var/www/tanz0rz/haxe-fmod/ \
+          bash ci/retry.sh ssh -F "$SSH_CONFIG" deploy-target "mkdir -p /var/www/releases/$RELEASE"
+          bash ci/retry.sh rsync -az --delete --link-dest=/var/www/tanz0rz/haxe-fmod/ \
             -e "ssh -F $SSH_CONFIG" \
             site/ "deploy-target:/var/www/releases/$RELEASE/haxe-fmod/"
-          ssh -F "$SSH_CONFIG" deploy-target "bash /var/www/releases/publish.sh /var/www/releases/$RELEASE"
+          bash ci/retry.sh ssh -F "$SSH_CONFIG" deploy-target "bash /var/www/releases/publish.sh /var/www/releases/$RELEASE"
           bash ci/retry.sh curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/
           bash ci/retry.sh curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/api/
 

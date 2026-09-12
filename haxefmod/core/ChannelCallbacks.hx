@@ -87,6 +87,12 @@ class ChannelCallbacks {
         groups.remove(handle);
     }
 
+    /** Drops the handler of every group whose handle no longer resolves. */
+    public static function forgetDeadGroups():Void {
+        var dead = [for (handle in groups.keys()) if (!NativeStudio.debug_handle_is_live(handle)) handle];
+        for (handle in dead) forgetGroup(handle);
+    }
+
     /** Removes every handler and turns off each native subscription, like remove and removeGroup do. */
     public static function clearAll():Void {
         for (handle in handlers.keys()) {

@@ -4107,6 +4107,7 @@ static void lincReclaimDeadChannels() {
 struct LincGroupCallbackStash {
     FMOD::ChannelGroup** groups;
     void** userData;
+    int* instances;
     int count;
 };
 
@@ -4118,8 +4119,9 @@ static LincGroupCallbackStash lincUninstallInstanceGroupCallbacks(FMOD::Studio::
     LincGroupCallbackStash stash;
     stash.groups = (FMOD::ChannelGroup**)malloc(sizeof(FMOD::ChannelGroup*) * (size_t)(gFaxeSlotCap > 0 ? gFaxeSlotCap : 1));
     stash.userData = (void**)malloc(sizeof(void*) * (size_t)(gFaxeSlotCap > 0 ? gFaxeSlotCap : 1));
+    stash.instances = (int*)malloc(sizeof(int) * (size_t)(gFaxeSlotCap > 0 ? gFaxeSlotCap : 1));
     stash.count = 0;
-    bool record = stash.groups && stash.userData;
+    bool record = stash.groups && stash.userData && stash.instances;
     for (int i = 0; i < gFaxeSlotCap; i++) {
         FaxeSlot* s = &gFaxeSlots[i];
         if (!s->alive || s->type != FAXE_TYPE_EVI) continue;
@@ -4141,6 +4143,7 @@ static LincGroupCallbackStash lincUninstallInstanceGroupCallbacks(FMOD::Studio::
         if (!record) continue;
         stash.groups[stash.count] = group;
         stash.userData[stash.count] = userData;
+        stash.instances[stash.count] = ((int)s->gen << 16) | i;
         stash.count++;
     }
     return stash;
@@ -4162,20 +4165,25 @@ static int lincBankDescriptions(FMOD::Studio::Bank* bank, FMOD::Studio::EventDes
     return count;
 }
 
-// The callback goes back on a group whose handle still resolves to it.
-// The caller sweeps first, so a group FMOD destroyed lost its slot and
-// a new group at the same address never answers for the old handle.
+// The callback goes back on a group whose handle still resolves to it
+// and whose instance still owns it. The caller sweeps first, so a group
+// FMOD destroyed lost its slot. A new group at the same address belongs
+// to another instance, which the ownership check tells apart.
 static void lincRestoreInstanceGroupCallbacks(LincGroupCallbackStash* stash, bool restore) {
     if (restore) {
         for (int i = 0; i < stash->count; i++) {
             int gh = (int)(intptr_t)stash->userData[i];
+            FMOD::Studio::EventInstance* instance = (FMOD::Studio::EventInstance*)faxe_handle_resolve(stash->instances[i], FAXE_TYPE_EVI);
+            FMOD::ChannelGroup* current = NULL;
             if (!gh || faxe_handle_resolve(gh, FAXE_TYPE_CHANGROUP) != stash->groups[i]) continue;
+            if (!instance || instance->getChannelGroup(&current) != FMOD_OK || current != stash->groups[i]) continue;
             stash->groups[i]->setUserData(stash->userData[i]);
             stash->groups[i]->setCallback(lincChannelCallback);
         }
     }
     free(stash->groups);
     free(stash->userData);
+    free(stash->instances);
 }
 
 int fmod_sys_unload_all() {
@@ -4187,7 +4195,7 @@ int fmod_sys_unload_all() {
     // frees only the slots FMOD reports dead, so it runs either way.
     // Otherwise a stale slot at a reused address aliases a new object.
     lincReclaimDeadLookups();
-    lincRestoreInstanceGroupCallbacks(&stash, gLastResult != FMOD_OK);
+    lincRestoreInstanceGroupCallbacks(&stash, true);
     return (int)gLastResult;
 }
 
@@ -4476,10 +4484,9 @@ int fmod_bank_unload(int h) {
         faxe_handle_free(h);
         lincReclaimDeadLookups();
     }
-    // A refused unload puts every callback back. A walk with no scope
-    // took callbacks off instances of other banks, and the survivors get
-    // theirs back too.
-    lincRestoreInstanceGroupCallbacks(&stash, !tookEffect || bankDescs == NULL);
+    // Every group that survived the unload gets its callback back, on
+    // every path: the restore skips a group that died or changed owner.
+    lincRestoreInstanceGroupCallbacks(&stash, true);
     return (int)gLastResult;
 }
 
@@ -4807,8 +4814,8 @@ int fmod_evd_release_all_instances(int h) {
     LincGroupCallbackStash stash = lincUninstallInstanceGroupCallbacks(&desc, 1);
     gLastResult = desc->releaseAllInstances();
     // The sweep makes a destroyed group lose its slot before the restore
-    if (gLastResult != FMOD_OK) lincReclaimDeadLookups();
-    lincRestoreInstanceGroupCallbacks(&stash, gLastResult != FMOD_OK);
+    lincReclaimDeadLookups();
+    lincRestoreInstanceGroupCallbacks(&stash, true);
     return (int)gLastResult;
 }
 
@@ -6111,6 +6118,10 @@ int fmod_debug_live_handle_count() {
     return faxe_live_handle_count();
 }
 
+bool fmod_debug_handle_is_live(int h) {
+    return faxe_handle_is_live(h) != 0;
+}
+
 //// Sound extras: tracker music, subsounds, tags, and advanced settings readback
 
 int fmod_core_sound_get_music_num_channels(int h) {
@@ -6286,7 +6297,7 @@ int fmod_sys_get_studio_advanced_settings(::Array<int> ibuf) {
 
 int fmod_binding_abi_version() {
     // Keep in lockstep with the manifest header "# abi-version:"
-    return 12;
+    return 13;
 }
 
 //// System extras (replay inspection, DSP lock, sound info, memory and file stats, network, speaker positions)

@@ -715,6 +715,7 @@ class NativeStudioHl {
 
     // Debug
     public static inline function debug_live_handle_count():Int return Raw.debug_live_handle_count();
+    public static inline function debug_handle_is_live(handle:Int):Bool return Raw.debug_handle_is_live(handle);
     public static inline function binding_abi_version():Int return Raw.binding_abi_version();
 
     // System extras
@@ -1293,6 +1294,7 @@ private extern class Raw {
     static function conn_get_mix_matrix(handle:Int, fbuf:hl.Bytes, ibuf:hl.Bytes, inChannelHop:Int):Int;
 
     static function debug_live_handle_count():Int;
+    static function debug_handle_is_live(handle:Int):Bool;
     static function binding_abi_version():Int;
 
     static function replay_get_command_count(handle:Int):Int;

@@ -918,6 +918,46 @@ class TestStudioSurface {
 		// the freed handle follows and the last result stays the release's
 		assert(haxefmod.studio.native.NativeStudioStub.testCgCallLog.join(",") == 'release:${(group : Int)}',
 			"cg release makes no native callback call after the release");
+
+		// A bus unlock that destroys its channel group drops the group's
+		// Haxe handler and user data. A group that survives keeps both.
+		var busGroup:ChannelGroup = cast 4322;
+		var busSeen:Array<haxefmod.core.ChannelEvent> = [];
+		haxefmod.studio.native.NativeStudioStub.testBusUnlockResult = 0;
+		var lockedBus:Bus = cast 1;
+		busGroup.setCallback(function(e) busSeen.push(e));
+		busGroup.setUserData("bus-group");
+		assert(lockedBus.unlockChannelGroup().isOk(), "bus unlock reports the native result");
+		haxefmod.studio.CallbackDispatcher.deliver((busGroup : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
+		assert(busSeen.length == 1, "a bus group that survives the unlock keeps its handler");
+		assert(busGroup.getUserData() == "bus-group", "a bus group that survives the unlock keeps its user data");
+		haxefmod.studio.native.NativeStudioStub.testDeadHandles = [(busGroup : Int)];
+		assert(lockedBus.unlockChannelGroup().isOk(), "bus unlock reports the native result again");
+		haxefmod.studio.CallbackDispatcher.deliver((busGroup : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
+		assert(busSeen.length == 1, "a bus group the unlock destroyed drops its handler");
+		assert(busGroup.getUserData() == null, "a bus group the unlock destroyed drops its user data");
+		haxefmod.studio.native.NativeStudioStub.testDeadHandles = [];
+		haxefmod.studio.native.NativeStudioStub.testBusUnlockResult = 68;
+
+		// An instance release drops the handler and user data of the group
+		// it handed out, since the group dies with the instance
+		var owner:EventInstance = cast 4323;
+		haxefmod.studio.native.NativeStudioStub.testEviChannelGroup = 4324;
+		var ownedGroup = owner.getChannelGroup();
+		haxefmod.studio.native.NativeStudioStub.testEviChannelGroup = 0;
+		var ownedSeen:Array<haxefmod.core.ChannelEvent> = [];
+		ownedGroup.setCallback(function(e) ownedSeen.push(e));
+		ownedGroup.setUserData("instance-group");
+		// The stub refuses the release without synthetic handles
+		owner.release();
+		assert(ownedGroup.getUserData() == "instance-group", "a refused instance release keeps its group's user data");
+		haxefmod.studio.native.NativeStudioStub.testSyntheticHandles = true;
+		owner.release();
+		haxefmod.studio.native.NativeStudioStub.testSyntheticHandles = false;
+		haxefmod.studio.native.NativeStudioStub.testReleasedHandles = [];
+		haxefmod.studio.CallbackDispatcher.deliver((ownedGroup : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
+		assert(ownedSeen.length == 0, "an instance release drops its group's handler");
+		assert(ownedGroup.getUserData() == null, "an instance release drops its group's user data");
 		ChannelCallbacks.clearAll();
 	}
 

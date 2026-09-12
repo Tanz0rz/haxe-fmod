@@ -86,5 +86,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh api "repos/${{ github.repository }}/actions/cache/usage" \
+          bash ci/retry.sh gh api "repos/${{ github.repository }}/actions/cache/usage" \
             -q '"cache store: \(.active_caches_size_in_bytes/1073741824*100|round/100) GB across \(.active_caches_count) entries (10 GB cap)"'

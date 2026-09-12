@@ -405,9 +405,11 @@ class NativeStudioStub {
     public static function chan_set_reverb_wet(handle:Int, instance:Int, wet:Float):Int return ERR_UNSUPPORTED;
 
     // Studio bus to core group bridge
+    public static var testBusUnlockResult:Int = ERR_UNSUPPORTED;
+    public static var testBusChannelGroup:Int = 0;
     public static function bus_lock_channel_group(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function bus_unlock_channel_group(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function bus_get_channel_group(handle:Int):Int return 0;
+    public static function bus_unlock_channel_group(handle:Int):Int return testBusUnlockResult;
+    public static function bus_get_channel_group(handle:Int):Int return testBusChannelGroup;
 
     // Core system extras
     public static function sys_play_dsp(dspHandle:Int, group:Int, startPaused:Bool):Int {
@@ -557,7 +559,8 @@ class NativeStudioStub {
     }
 
     // Event instance core bridge
-    public static function evi_get_channel_group(handle:Int):Int return 0;
+    public static var testEviChannelGroup:Int = 0;
+    public static function evi_get_channel_group(handle:Int):Int return testEviChannelGroup;
 
     // Command capture and replay
     public static function sys_start_command_capture(path:String, flags:Int):Int return ERR_UNSUPPORTED;
@@ -767,6 +770,9 @@ class NativeStudioStub {
 
     // Debug
     public static function debug_live_handle_count():Int return 0;
+    // Every handle stays live unless a test lists it as dead
+    public static var testDeadHandles:Array<Int> = [];
+    public static function debug_handle_is_live(handle:Int):Bool return handle > 0 && testDeadHandles.indexOf(handle) < 0;
     public static function binding_abi_version():Int return 0;
 
     // System extras

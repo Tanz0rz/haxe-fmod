@@ -7883,11 +7883,11 @@ jobs:
             # Another push can have landed while this workflow ran (e.g. a
             # user commit or a concurrent job). Rebase onto the latest remote
             # branch before pushing and retry once if the push still races.
-            git pull --rebase origin "$BRANCH_NAME"
+            bash ci/retry.sh git pull --rebase origin "$BRANCH_NAME"
             check_markers
             if ! git push; then
               echo "Push rejected, rebasing and retrying once..."
-              git pull --rebase origin "$BRANCH_NAME"
+              bash ci/retry.sh git pull --rebase origin "$BRANCH_NAME"
               check_markers
               git push
             fi
