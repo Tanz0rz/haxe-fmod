@@ -129,6 +129,42 @@ class jaxe {
     // A lookup that cannot get a slot reports it. The table is full, so
     // the caller sees ERR_MEMORY instead of a silent zero. The JS twin of
     // lincHandleOrMemory.
+    // A group the game did not create is owned: the master, a bus's, an
+    // instance's, or one first reached through a walk. Its release is
+    // refused. A group the game created stays releasable through a walk,
+    // since its slot is found rather than minted here.
+    static mintWalkedGroup(ptr, type) {
+        var raw = jaxe.rawPtr(ptr);
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (s.alive && s.type === type && raw !== 0 && s.raw === raw && jaxe.lookupSlotUsable(s)) {
+                jaxe.dropWrapper(ptr);
+                return (s.gen << 16) | i;
+            }
+        }
+        var handle = jaxe.handleOrMemory(ptr, type);
+        if (handle !== 0) jaxe.markOwned(handle);
+        return handle;
+    }
+
+    // A group the game did not create is owned: the master, a bus's, an
+    // instance's, or one first reached through a walk. Its release is
+    // refused. A group the game created stays releasable through a walk,
+    // since its slot is found rather than minted here.
+    static mintWalkedGroup(ptr, type) {
+        var raw = jaxe.rawPtr(ptr);
+        for (var i = 0; i < jaxe.slots.length; i++) {
+            var s = jaxe.slots[i];
+            if (s.alive && s.type === type && raw !== 0 && s.raw === raw && jaxe.lookupSlotUsable(s)) {
+                jaxe.dropWrapper(ptr);
+                return (s.gen << 16) | i;
+            }
+        }
+        var handle = jaxe.handleOrMemory(ptr, type);
+        if (handle !== 0) jaxe.markOwned(handle);
+        return handle;
+    }
+
     static handleOrMemory(ptr, type) {
         var h = jaxe.handleFindOrAlloc(ptr, type);
         if (h === 0 && ptr) {
@@ -424,20 +460,23 @@ class jaxe {
     }
 
     // The per-handle callback state before a bulk destroy, so a refused
-    // destroy puts every callback back on the instances FMOD kept
+    // destroy puts every callback back on the instances FMOD kept. The
+    // caller adds the instance group callbacks it takes off.
     static saveCallbackState() {
         return {
             masks: Object.assign({}, jaxe.cbMasks),
             keys: Object.assign({}, jaxe.psKeys),
             plugins: Object.assign({}, jaxe.pluginSeen),
-            groups: jaxe.uninstallInstanceGroupCallbacks()
+            groups: []
         };
     }
 
-    // Takes the callback off every instance group that carries one, so
-    // FMOD never destroys a group with the shim callback installed.
-    // Returns the pairs a refused call puts back.
-    static uninstallInstanceGroupCallbacks() {
+    // Takes the callback off the instance groups a bulk destroy is about
+    // to free, so FMOD never destroys a group with the shim callback on.
+    // descPtrs names the descriptions the call destroys, null for every
+    // instance. A group outside that set keeps its callback. The map
+    // entry goes with the callback, and the restore puts both back.
+    static uninstallInstanceGroupCallbacks(descPtrs) {
         var taken = [];
         for (var key in jaxe.instCgHandles) {
             var cg = jaxe.instCgHandles[key];
@@ -445,8 +484,17 @@ class jaxe {
             if (!group) continue;
             var raw = jaxe.rawPtr(group);
             if (!jaxe.chanCallbackHandles.has(raw)) continue;
+            if (descPtrs != null) {
+                var inst = jaxe.handleResolve(key | 0, jaxe.TYPE_EVI);
+                if (!inst) continue;
+                var d = {};
+                var inScope = inst.getDescription(d) == jaxe.FMOD.OK && descPtrs.has(jaxe.rawPtr(d.val));
+                jaxe.dropWrapper(d.val);
+                if (!inScope) continue;
+            }
             group.setCallback(null);
             taken.push({ cg: cg, raw: raw, handle: jaxe.chanCallbackHandles.get(raw) });
+            jaxe.chanCallbackHandles.delete(raw);
         }
         return taken;
     }
@@ -1322,6 +1370,7 @@ class jaxe {
         // aside, so a refused unload puts every callback back.
         var saved = jaxe.saveCallbackState();
         jaxe.uninstallCallbacksFor(null);
+        saved.groups = jaxe.uninstallInstanceGroupCallbacks(null);
         jaxe.cacheAllBankPaths();
         jaxe.lastResult = jaxe.gSystem.unloadAll();
         if (jaxe.lastResult != jaxe.FMOD.OK) jaxe.restoreCallbackState(saved);
@@ -1678,6 +1727,7 @@ class jaxe {
                     jaxe.dropWrapper(list.val[i]);
                 }
                 jaxe.uninstallCallbacksFor(ptrs);
+                saved.groups = jaxe.uninstallInstanceGroupCallbacks(ptrs);
             }
         }
         var raw = jaxe.rawPtr(bank);
@@ -2024,6 +2074,7 @@ class jaxe {
         // The state is kept aside, so a refused release puts them back.
         var saved = jaxe.saveCallbackState();
         jaxe.uninstallCallbacksFor(new Set([jaxe.rawPtr(evd)]));
+        saved.groups = jaxe.uninstallInstanceGroupCallbacks(new Set([jaxe.rawPtr(evd)]));
         jaxe.lastResult = evd.releaseAllInstances();
         // With no DESTROYED events on this target, the sweep is what
         // reclaims the destroyed instances' handle slots
@@ -3209,13 +3260,16 @@ class jaxe {
         var out = {};
         jaxe.lastResult = jaxe.gSystemCore.getMasterChannelGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
+        return jaxe.mintWalkedGroup(out.val, jaxe.TYPE_CHANGROUP);
     }
 
     static fmod_cg_create(name) {
         if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
         var out = {};
+        // A group FMOD destroyed can hold a slot at the address the new one
+        // gets, so the dead slots go before the mint
+        jaxe.sweepDeadLookups();
         jaxe.lastResult = jaxe.gSystemCore.createChannelGroup(name, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var handle = jaxe.handleAlloc(out.val, jaxe.TYPE_CHANGROUP);
@@ -3231,18 +3285,16 @@ class jaxe {
     static fmod_cg_release(handle) {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        // The master, a bus's, and an instance's group are FMOD's to free.
+        // FMOD answers INVALID_HANDLE for the master and keeps it, and frees
+        // the other two under Studio, so the refusal comes before the call.
+        if (jaxe.isOwned(handle)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var raw = jaxe.rawPtr(group);
         // The callback comes off before the group can go, the way every
         // destruction path uninstalls first on this target
         var hadCallback = jaxe.chanCallbackHandles.has(raw);
         if (hadCallback) group.setCallback(null);
         jaxe.lastResult = group.release();
-        // FMOD answers INVALID_HANDLE for the master group too, and keeps
-        // it alive. A group that still answers a getter is a refusal,
-        // reported as INVALID_PARAM so the slot and the callback stay.
-        if (jaxe.lastResult == jaxe.ERR_INVALID_HANDLE && group.getVolume({}) != jaxe.ERR_INVALID_HANDLE) {
-            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
-        }
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too.
         // A refused release keeps the group and its channel callback mapping.
         if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
@@ -3452,10 +3504,23 @@ class jaxe {
     static fmod_bus_unlock_channel_group(handle) {
         var bus = jaxe.handleResolve(handle, jaxe.TYPE_BUS);
         if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        // The unlock can destroy the group, so the shim callback comes off
+        // first. A refused unlock puts it back.
+        var out = {};
+        var groupHandle;
+        var groupRaw = 0;
+        if (bus.getChannelGroup(out) == jaxe.FMOD.OK && out.val) {
+            groupRaw = jaxe.rawPtr(out.val);
+            jaxe.dropWrapper(out.val);
+            groupHandle = jaxe.chanCallbackHandles.get(groupRaw);
+        }
+        var group = groupHandle === undefined ? null : jaxe.resolveCg(groupHandle);
+        if (group) group.setCallback(null);
         jaxe.lastResult = bus.unlockChannelGroup();
         // The group can be destroyed once unlocked: reclaim its cached
         // handle before a recycled address can alias it
         if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.sweepDeadLookups();
+        else if (group) group.setCallback(jaxe.channelCallback);
         return jaxe.lastResult;
     }
 
@@ -3465,7 +3530,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = bus.getChannelGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
+        return jaxe.mintWalkedGroup(out.val, jaxe.TYPE_CHANGROUP);
     }
 
     //// Core system extras
@@ -3640,7 +3705,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = group.getGroup(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
+        return jaxe.mintWalkedGroup(out.val, jaxe.TYPE_CHANGROUP);
     }
 
     static fmod_cg_get_parent_group(handle) {
@@ -3652,7 +3717,7 @@ class jaxe {
         // The master group has no parent: the glue hands back a wrapper
         // around a null pointer, which is no group
         if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
-        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
+        return jaxe.mintWalkedGroup(out.val, jaxe.TYPE_CHANGROUP);
     }
 
     //// Core channel spatial and control extras
@@ -4375,19 +4440,17 @@ class jaxe {
         var out = {};
         jaxe.lastResult = jaxe.gSystemCore.getMasterSoundGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUNDGROUP);
+        return jaxe.mintWalkedGroup(out.val, jaxe.TYPE_SOUNDGROUP);
     }
 
     static fmod_sg_release(handle) {
         var group = jaxe.resolveSoundGroup(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        // The master sound group is FMOD's. FMOD answers INVALID_HANDLE for
+        // it and keeps it, and a sound group is not handle-validated, so no
+        // getter can tell a refusal from a freed group. The owned mark does.
+        if (jaxe.isOwned(handle)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         jaxe.lastResult = group.release();
-        // FMOD answers INVALID_HANDLE for the master sound group too, and
-        // keeps it alive. A group that still answers a getter is a
-        // refusal, reported as INVALID_PARAM so the slot stays.
-        if (jaxe.lastResult == jaxe.ERR_INVALID_HANDLE && group.getMaxAudible({}) != jaxe.ERR_INVALID_HANDLE) {
-            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
-        }
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
         if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) jaxe.handleFree(handle);
         return jaxe.lastResult;
@@ -4665,7 +4728,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = inst.getChannelGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        var cg = jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
+        var cg = jaxe.mintWalkedGroup(out.val, jaxe.TYPE_CHANGROUP);
         // A restarted instance gets a new group, so a differing previous
         // handle is dead and its slot goes now
         var prev = jaxe.instCgHandles[handle];
@@ -4910,7 +4973,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = sound.getSoundGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUNDGROUP);
+        return jaxe.mintWalkedGroup(out.val, jaxe.TYPE_SOUNDGROUP);
     }
 
     static fmod_sound_get_loop_count(handle) {
@@ -5635,7 +5698,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = ch.getChannelGroup(out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleOrMemory(out.val, jaxe.TYPE_CHANGROUP);
+        return jaxe.mintWalkedGroup(out.val, jaxe.TYPE_CHANGROUP);
     }
 
     static fmod_cg_set_dsp_index(handle, dspHandle, index) {

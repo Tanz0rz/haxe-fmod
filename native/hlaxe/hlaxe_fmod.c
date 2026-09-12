@@ -1045,6 +1045,19 @@ static int hlaxe_handle_or_memory(void* ptr, unsigned char type) {
     return handle;
 }
 
+/* A group the game did not create is owned: the master, a bus's, an
+ * instance's, or one first reached through a walk. Its release is
+ * refused. A group the game created stays releasable through a walk,
+ * since its slot is found rather than minted here. */
+static int hlaxe_mint_walked_group(void* ptr, unsigned char type) {
+    int found = faxe_handle_find(ptr, type);
+    int handle;
+    if (found) return found;
+    handle = hlaxe_handle_or_memory(ptr, type);
+    if (handle) faxe_handle_set_owned(handle, 1);
+    return handle;
+}
+
 static FMOD_DSP* resolve_dsp(int h) {
     return (FMOD_DSP*)faxe_handle_resolve(h, FAXE_TYPE_DSP);
 }
@@ -1264,7 +1277,7 @@ HL_PRIM int HL_NAME(cg_get_master)() {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_GetMasterChannelGroup(gCoreSystem, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return hlaxe_handle_or_memory(group, FAXE_TYPE_CHANGROUP);
+    return hlaxe_mint_walked_group(group, FAXE_TYPE_CHANGROUP);
 }
 DEFINE_PRIM(_I32, cg_get_master, _NO_ARG);
 
@@ -1272,6 +1285,9 @@ HL_PRIM int HL_NAME(cg_create)(vbyte* name) {
     FMOD_CHANNELGROUP* group = NULL;
     int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    /* A group FMOD destroyed can hold a slot at the address the new one
+     * gets, so the dead slots go before the mint */
+    faxe_handles_sweep_type(FAXE_TYPE_CHANGROUP, hlaxe_lookup_slot_valid, NULL);
     gLastResult = FMOD_System_CreateChannelGroup(gCoreSystem, (const char*)name, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
     handle = faxe_handle_alloc(group, FAXE_TYPE_CHANGROUP);
@@ -1288,6 +1304,10 @@ HL_PRIM int HL_NAME(cg_release)(int h) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     void* userData = NULL;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    /* The master, a bus's, and an instance's group are FMOD's to free.
+     * FMOD answers INVALID_HANDLE for the master and keeps it, and frees
+     * the other two under Studio, so the refusal comes before the call. */
+    if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     /* The shim's callback reads the group's user data on FMOD's thread,
      * so it comes off before the group can go. The user data is the
      * handle and is set only with the callback, so it marks one installed. */
@@ -1299,12 +1319,6 @@ HL_PRIM int HL_NAME(cg_release)(int h) {
     /* A refused release keeps the group and its rolloff points. A group
      * FMOD freed reads them no more, so they go with the slot below. */
     gLastResult = FMOD_ChannelGroup_Release(group);
-    /* FMOD answers INVALID_HANDLE for the master group too, and keeps it
-     * alive. A group that still answers a getter is a refusal, reported
-     * as INVALID_PARAM so the slot, its rolloff, and the callback stay. */
-    if (gLastResult == FMOD_ERR_INVALID_HANDLE && hlaxe_lookup_slot_valid(group, FAXE_TYPE_CHANGROUP)) {
-        gLastResult = FMOD_ERR_INVALID_PARAM;
-    }
     /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
@@ -1544,11 +1558,26 @@ DEFINE_PRIM(_I32, bus_lock_channel_group, _I32);
 
 HL_PRIM int HL_NAME(bus_unlock_channel_group)(int h) {
     FMOD_STUDIO_BUS* bus = (FMOD_STUDIO_BUS*)faxe_handle_resolve(h, FAXE_TYPE_BUS);
+    FMOD_CHANNELGROUP* group = NULL;
+    void* userData = NULL;
     if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    /* The unlock can destroy the group, so the shim callback comes off
+     * first. A refused unlock puts it back. */
+    if (FMOD_Studio_Bus_GetChannelGroup(bus, &group) != FMOD_OK) group = NULL;
+    if (group) FMOD_ChannelGroup_GetUserData(group, &userData);
+    if (userData) {
+        FMOD_ChannelGroup_SetCallback(group, NULL);
+        FMOD_ChannelGroup_SetUserData(group, NULL);
+    }
     gLastResult = FMOD_Studio_Bus_UnlockChannelGroup(bus);
-    // The group can be destroyed once unlocked: reclaim its cached handle
-    // before a recycled address can alias it
-    if (gLastResult == FMOD_OK) hlaxe_reclaim_dead_lookups();
+    /* The group can be destroyed once unlocked: reclaim its cached handle
+     * before a recycled address can alias it */
+    if (gLastResult == FMOD_OK) {
+        hlaxe_reclaim_dead_lookups();
+    } else if (userData) {
+        FMOD_ChannelGroup_SetUserData(group, userData);
+        FMOD_ChannelGroup_SetCallback(group, hlaxe_channel_callback);
+    }
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, bus_unlock_channel_group, _I32);
@@ -1559,7 +1588,7 @@ HL_PRIM int HL_NAME(bus_get_channel_group)(int h) {
     if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_Bus_GetChannelGroup(bus, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return hlaxe_handle_or_memory(group, FAXE_TYPE_CHANGROUP);
+    return hlaxe_mint_walked_group(group, FAXE_TYPE_CHANGROUP);
 }
 DEFINE_PRIM(_I32, bus_get_channel_group, _I32);
 
@@ -1772,7 +1801,7 @@ HL_PRIM int HL_NAME(cg_get_group)(int h, int index) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetGroup(group, index, &child);
     if (gLastResult != FMOD_OK || !child) return 0;
-    return hlaxe_handle_or_memory(child, FAXE_TYPE_CHANGROUP);
+    return hlaxe_mint_walked_group(child, FAXE_TYPE_CHANGROUP);
 }
 DEFINE_PRIM(_I32, cg_get_group, _I32 _I32);
 
@@ -1782,7 +1811,7 @@ HL_PRIM int HL_NAME(cg_get_parent_group)(int h) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetParentGroup(group, &parent);
     if (gLastResult != FMOD_OK || !parent) return 0;
-    return hlaxe_handle_or_memory(parent, FAXE_TYPE_CHANGROUP);
+    return hlaxe_mint_walked_group(parent, FAXE_TYPE_CHANGROUP);
 }
 DEFINE_PRIM(_I32, cg_get_parent_group, _I32);
 
@@ -2620,22 +2649,18 @@ HL_PRIM int HL_NAME(sys_get_master_sound_group)() {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_GetMasterSoundGroup(gCoreSystem, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return hlaxe_handle_or_memory(group, FAXE_TYPE_SOUNDGROUP);
+    return hlaxe_mint_walked_group(group, FAXE_TYPE_SOUNDGROUP);
 }
 DEFINE_PRIM(_I32, sys_get_master_sound_group, _NO_ARG);
 
 HL_PRIM int HL_NAME(sg_release)(int h) {
     FMOD_SOUNDGROUP* group = resolve_soundgroup(h);
-    int maxAudible = 0;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    /* The master sound group is FMOD's. FMOD answers INVALID_HANDLE for
+     * it and keeps it, and a sound group is not handle-validated, so no
+     * getter can tell a refusal from a freed group. The owned mark does. */
+    if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     gLastResult = FMOD_SoundGroup_Release(group);
-    /* FMOD answers INVALID_HANDLE for the master sound group too, and
-     * keeps it alive. A group that still answers a getter is a refusal,
-     * reported as INVALID_PARAM so the slot stays. */
-    if (gLastResult == FMOD_ERR_INVALID_HANDLE
-        && FMOD_SoundGroup_GetMaxAudible(group, &maxAudible) != FMOD_ERR_INVALID_HANDLE) {
-        gLastResult = FMOD_ERR_INVALID_PARAM;
-    }
     /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
@@ -2937,15 +2962,20 @@ HL_PRIM int HL_NAME(evi_get_channel_group)(int h) {
     FMOD_CHANNELGROUP* group = NULL;
     FaxeInstCtx* ctx;
     int cgHandle;
+    int found;
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_EventInstance_GetChannelGroup(instance, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
     ctx = instance_ctx(instance);
     /* Another instance's dead group can sit at this address until its
      * context drains. The validity sweep frees such a slot and keeps a
-     * live one the game reached through a group walk, with its rolloff. */
-    faxe_handles_sweep_type(FAXE_TYPE_CHANGROUP, hlaxe_lookup_slot_valid, NULL);
-    cgHandle = hlaxe_handle_or_memory(group, FAXE_TYPE_CHANGROUP);
+     * live one the game reached through a group walk, with its rolloff.
+     * The sweep runs only when a foreign slot holds the address. */
+    found = faxe_handle_find(group, FAXE_TYPE_CHANGROUP);
+    if (found != 0 && (!ctx || found != ctx->cgHandle)) {
+        faxe_handles_sweep_type(FAXE_TYPE_CHANGROUP, hlaxe_lookup_slot_valid, NULL);
+    }
+    cgHandle = hlaxe_mint_walked_group(group, FAXE_TYPE_CHANGROUP);
     /* The group dies with the instance, outside every sweep trigger. Record
      * the handle on the context so the DESTROYED drain reclaims the slot
      * before a recycled group address can alias it. A restarted instance
@@ -3224,7 +3254,7 @@ HL_PRIM int HL_NAME(sound_get_sound_group)(int h) {
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Sound_GetSoundGroup(sound, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return hlaxe_handle_or_memory(group, FAXE_TYPE_SOUNDGROUP);
+    return hlaxe_mint_walked_group(group, FAXE_TYPE_SOUNDGROUP);
 }
 DEFINE_PRIM(_I32, sound_get_sound_group, _I32);
 
@@ -4563,31 +4593,60 @@ typedef struct {
     int count;
 } HlaxeGroupCallbackStash;
 
-static HlaxeGroupCallbackStash hlaxe_uninstall_instance_group_callbacks(void) {
+/* descs names the descriptions whose instances the call destroys, or
+ * NULL for every instance. A group outside that set keeps its callback,
+ * since the call leaves its instance alive. Without memory for the
+ * stash the callbacks still come off, and a refusal cannot restore them. */
+static HlaxeGroupCallbackStash hlaxe_uninstall_instance_group_callbacks(FMOD_STUDIO_EVENTDESCRIPTION** descs, int descCount) {
     HlaxeGroupCallbackStash stash;
     int i;
+    int record;
     size_t cap = (size_t)(gFaxeSlotCap > 0 ? gFaxeSlotCap : 1);
     stash.groups = (FMOD_CHANNELGROUP**)malloc(sizeof(FMOD_CHANNELGROUP*) * cap);
     stash.userData = (void**)malloc(sizeof(void*) * cap);
     stash.count = 0;
-    if (!stash.groups || !stash.userData) return stash;
+    record = stash.groups && stash.userData;
     for (i = 0; i < gFaxeSlotCap; i++) {
         FaxeSlot* s = &gFaxeSlots[i];
+        FMOD_STUDIO_EVENTINSTANCE* instance;
         FaxeInstCtx* ctx;
         FMOD_CHANNELGROUP* group;
         void* userData = NULL;
         if (!s->alive || s->type != FAXE_TYPE_EVI) continue;
-        ctx = instance_ctx((FMOD_STUDIO_EVENTINSTANCE*)s->ptr);
+        instance = (FMOD_STUDIO_EVENTINSTANCE*)s->ptr;
+        ctx = instance_ctx(instance);
         if (!ctx || ctx->cgHandle == 0) continue;
+        if (descs) {
+            FMOD_STUDIO_EVENTDESCRIPTION* desc = NULL;
+            int inScope = 0;
+            int d;
+            if (FMOD_Studio_EventInstance_GetDescription(instance, &desc) != FMOD_OK) continue;
+            for (d = 0; d < descCount; d++) if (descs[d] == desc) { inScope = 1; break; }
+            if (!inScope) continue;
+        }
         group = resolve_changroup(ctx->cgHandle);
         if (!group || FMOD_ChannelGroup_GetUserData(group, &userData) != FMOD_OK || !userData) continue;
         FMOD_ChannelGroup_SetCallback(group, NULL);
         FMOD_ChannelGroup_SetUserData(group, NULL);
+        if (!record) continue;
         stash.groups[stash.count] = group;
         stash.userData[stash.count] = userData;
         stash.count++;
     }
     return stash;
+}
+
+/* The descriptions of one bank, for the scoped uninstall. A bank past
+ * the list cap falls back to every instance. */
+static int hlaxe_bank_descriptions(FMOD_STUDIO_BANK* bank, FMOD_STUDIO_EVENTDESCRIPTION*** out) {
+    FMOD_STUDIO_EVENTDESCRIPTION** descs = (FMOD_STUDIO_EVENTDESCRIPTION**)gListBuf;
+    int count = 0;
+    if (FMOD_Studio_Bank_GetEventList(bank, descs, FAXE_LIST_MAX, &count) != FMOD_OK || count > FAXE_LIST_MAX) {
+        *out = NULL;
+        return 0;
+    }
+    *out = descs;
+    return count;
 }
 
 static void hlaxe_restore_instance_group_callbacks(HlaxeGroupCallbackStash* stash, int restore) {
@@ -4607,7 +4666,7 @@ HL_PRIM int HL_NAME(sys_unload_all)() {
     HlaxeGroupCallbackStash stash;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     hlaxe_stash_all_bank_paths();
-    stash = hlaxe_uninstall_instance_group_callbacks();
+    stash = hlaxe_uninstall_instance_group_callbacks(NULL, 0);
     gLastResult = FMOD_Studio_System_UnloadAll(gStudioSystem);
     hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK);
     /* A refused call can still have unloaded some banks, and the sweep
@@ -4934,9 +4993,12 @@ DEFINE_PRIM(_BYTES, bank_get_path, _I32);
 HL_PRIM int HL_NAME(bank_unload)(int h) {
     FMOD_STUDIO_BANK* bank = resolve_bank(h);
     HlaxeGroupCallbackStash stash;
+    FMOD_STUDIO_EVENTDESCRIPTION** bankDescs = NULL;
+    int bankDescCount;
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     hlaxe_stash_bank_path(bank);
-    stash = hlaxe_uninstall_instance_group_callbacks();
+    bankDescCount = hlaxe_bank_descriptions(bank, &bankDescs);
+    stash = hlaxe_uninstall_instance_group_callbacks(bankDescs, bankDescCount);
     gLastResult = FMOD_Studio_Bank_Unload(bank);
     hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK && gLastResult != FMOD_ERR_INVALID_HANDLE);
     /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
@@ -5313,7 +5375,7 @@ HL_PRIM int HL_NAME(evd_release_all_instances)(int h) {
     FMOD_STUDIO_EVENTDESCRIPTION* desc = resolve_evd(h);
     HlaxeGroupCallbackStash stash;
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    stash = hlaxe_uninstall_instance_group_callbacks();
+    stash = hlaxe_uninstall_instance_group_callbacks(&desc, 1);
     gLastResult = FMOD_Studio_EventDescription_ReleaseAllInstances(desc);
     hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK);
     return (int)gLastResult;
@@ -6579,7 +6641,7 @@ HL_PRIM int HL_NAME(chan_get_channel_group)(int h) {
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Channel_GetChannelGroup(channel, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return hlaxe_handle_or_memory(group, FAXE_TYPE_CHANGROUP);
+    return hlaxe_mint_walked_group(group, FAXE_TYPE_CHANGROUP);
 }
 DEFINE_PRIM(_I32, chan_get_channel_group, _I32);
 

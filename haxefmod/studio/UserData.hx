@@ -40,8 +40,8 @@ class UserDataKind {
  * so the entry stays with it. An event instance or a channel drops its
  * entry before the call, since those calls fail on a dead handle only.
  * It also drops the entry when the dispatcher delivers Destroyed for an
- * event instance FMOD tore down on its own, or End for a channel with a
- * handler. On HTML5 Destroyed never arrives, so the dispatcher drops the
+ * event instance FMOD tore down on its own. End does the same for a
+ * channel with a handler. On HTML5 Destroyed never arrives, so the dispatcher drops the
  * entries of dead instance handles each update instead. The native handle
  * table recycles a slot with a new generation. A reused slot produces a
  * different handle int, so a stale entry does not show up on the next

@@ -217,7 +217,7 @@ for other in sorted(os.listdir(os.path.dirname(PATH))):
 # numeric guard follows each. None of them can fail open again. Every
 # workflow is scanned, and the count is held, so a seventh parse under
 # another name or in another file is noticed.
-ABI_PARSE_COUNT = 6
+ABI_PARSE_COUNT = 7
 abi_parse = 'ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)'
 abi_lines = []
 for wf in sorted(os.listdir(os.path.dirname(PATH))):
@@ -248,11 +248,11 @@ else:
     ok("no workflow uses krdlab/setup-haxe directly")
 
 # 14. Every network fetch goes through the retry wrapper, and every
-# wrapper path resolves: a relative path after a cd in the same run
-# block, or a wrong depth from an action directory, is exit 127 on the
-# runner and a green invariant here otherwise.
+# wrapper path resolves. A relative path after a cd, or a wrong depth
+# from an action directory, is exit 127 on the runner. The path check
+# is what catches both. Every apt-get carries its retry option.
 FETCH_RE = re.compile(r"(haxelib install|git clone|npm install|npx playwright install|curl -fsS)")
-WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)(?:ci/)?retry\.sh\1")
+WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)ci/retry\.sh\1")
 fetch_files = [os.path.join(os.path.dirname(PATH), wf) for wf in sorted(os.listdir(os.path.dirname(PATH))) if wf.endswith(".yml")]
 actions_dir = os.path.join(ROOT, ".github", "actions")
 fetch_files += [os.path.join(actions_dir, a, "action.yml") for a in sorted(os.listdir(actions_dir))]
@@ -289,24 +289,33 @@ for path in fetch_files:
                     unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} resolves to {os.path.relpath(target, ROOT)}")
             elif m.group(2) == "" and moved:
                 unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} relative wrapper after a cd")
+            elif m.group(2) != "$GITHUB_ACTION_PATH" and not os.path.exists(os.path.join(ROOT, "ci", "retry.sh")):
+                unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} ci/retry.sh is missing")
             if FETCH_RE.search(line):
                 wrapped += 1
         elif FETCH_RE.search(line):
             bare.append(f"{os.path.relpath(path, ROOT)}:{n}")
+        if re.search(r"apt-get (update|install)", line) and "Acquire::Retries=" not in line:
+            bare.append(f"{os.path.relpath(path, ROOT)}:{n} apt-get without retries")
 if bare or unresolved or wrapped < 100:
     fail(f"network fetches outside ci/retry.sh: {bare}, wrapper paths that do not resolve: {unresolved} ({wrapped} wrapped)")
 else:
-    ok(f"{wrapped} network fetches go through ci/retry.sh, none bare, every wrapper path resolves")
+    ok(f"{wrapped} network fetches go through ci/retry.sh, none bare, every wrapper path resolves, apt retries")
 
 # 15. The stale-hdll escape hatch gates the known steps only
 STALE_GATED = ["Doctor passes in a configured environment", "Build HashLink target from the installed package", "Validate build output"]
 STALE_REFERENCES = 5
+STALE_INLINE = 3
 gated = re.findall(r"- name: ([^\n]+)\n(?:[^\n]*\n){0,3}?[ ]*if: steps\.abi\.outputs\.stale != 'true'", text)
 stale_refs = len(re.findall(r"steps\.abi\.outputs\.stale", text))
-if gated != STALE_GATED or stale_refs != STALE_REFERENCES:
-    fail(f"stale-hdll gates out of step: steps {gated}, {stale_refs} references of {STALE_REFERENCES}")
+# The three HashLink build jobs gate inside their run block. Each of
+# those blocks reads both markers, so no inline hatch reads the ABI alone.
+inline_blocks = re.findall(r"\n[ ]*STALE=0\n(?:[^\n]*\n)*?[ ]*if \[ \"\$STALE\" = \"1\" \]", text)
+inline_half = [b for b in inline_blocks if "hlaxe_fmod_src=" not in b or "hlaxe_fmod_abi=" not in b]
+if gated != STALE_GATED or stale_refs != STALE_REFERENCES or len(inline_blocks) != STALE_INLINE or inline_half:
+    fail(f"stale-hdll gates out of step: steps {gated}, {stale_refs} references of {STALE_REFERENCES}, {len(inline_blocks)} inline gates of {STALE_INLINE}, {len(inline_half)} reading one marker")
 else:
-    ok(f"the stale-hdll gate covers the {len(gated)} known steps and {stale_refs} references")
+    ok(f"the stale-hdll gate covers the {len(gated)} known steps, {stale_refs} references, and {len(inline_blocks)} inline gates on both markers")
 
 # 8. The plain portability loops name every native test that needs no SDK
 # header, and the sanitizer loops name every native test

@@ -184,6 +184,28 @@ async function main() {
     cbCalls.length = 0;
     check('cg_release_with_callback', jaxe.fmod_cg_release(child) === OK && !jaxe.chanCallbackHandles.has(childPtr)
         && cbCalls.join(',') === 'off,release', `calls=${cbCalls.join(',')}`);
+    // The master group cannot be released. FMOD answers INVALID_HANDLE
+    // and keeps the object, so the shim refuses with INVALID_PARAM and
+    // keeps the slot and the channel callback mapping.
+    const master = jaxe.fmod_cg_get_master();
+    const masterPtr = jaxe.rawPtr(jaxe.resolveCg(master));
+    check('cg_master_callback_installed', jaxe.fmod_cg_set_callback(master, true) === OK
+        && jaxe.chanCallbackHandles.get(masterPtr) === master, `result=${jaxe.lastResult}`);
+    const liveBeforeMaster = jaxe.fmod_debug_live_handle_count();
+    check('cg_master_release_refused', jaxe.fmod_cg_release(master) === INVALID_PARAM,
+        `result=${jaxe.lastResult}`);
+    check('cg_master_release_keeps_handle', jaxe.resolveCg(master) != null
+        && jaxe.fmod_debug_live_handle_count() === liveBeforeMaster,
+        `live=${jaxe.fmod_debug_live_handle_count()} before=${liveBeforeMaster}`);
+    check('cg_master_release_keeps_callback', jaxe.chanCallbackHandles.get(masterPtr) === master, '');
+    check('cg_master_still_answers', jaxe.fmod_cg_get_volume(master) === 1 && jaxe.lastResult === OK,
+        `result=${jaxe.lastResult}`);
+    jaxe.fmod_cg_set_callback(master, false);
+    // A group the game created stays releasable when reached through a
+    // walk, since the walk finds its slot instead of minting an owned one
+    const walked = jaxe.fmod_cg_get_group(parent, 0);
+    check('cg_walk_finds_created_group', (walked === child || walked === other) && !jaxe.isOwned(walked), `walked=${walked} child=${child} other=${other}`);
+    check('cg_walk_mints_owned_master', jaxe.isOwned(jaxe.fmod_cg_get_parent_group(parent)), '');
     jaxe.fmod_cg_release(other);
     jaxe.fmod_cg_release(parent);
     check('no_handle_leaks', jaxe.fmod_debug_live_handle_count() === baseline,

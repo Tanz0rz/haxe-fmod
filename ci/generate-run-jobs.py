@@ -106,8 +106,8 @@ JOBS = [
 LINUX_HASHLINK = """
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \\
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \\
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Name the runner image for the cache key
@@ -198,7 +198,7 @@ def setup_steps(j):
             # returns, and a launch before the GPU slot is connected dies
             # at once. A headless probe waits for the first page to render.
             install = f"""          for attempt in 1 2 3; do
-            sudo apt-get install -y {pkgs} && break
+            sudo apt-get -o Acquire::Retries=3 install -y {pkgs} && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
@@ -209,10 +209,10 @@ def setup_steps(j):
             sleep 2
           done"""
         else:
-            install = f"          sudo apt-get install -y {pkgs}"
+            install = f"          sudo apt-get -o Acquire::Retries=3 install -y {pkgs}"
         return f"""      - name: Install runtime dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=3 update
 {install}
 {LINUX_HASHLINK if j.hashlink else ""}
 {AUDIO_SETUP}"""
@@ -590,7 +590,7 @@ def run_job(j, text):
           last=-1
           stable=0
           for i in $(seq 30); do
-            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            n=$( {{ find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null || true; }} | wc -l | tr -d ' ')
             if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
             last=$n
             [ "$stable" -ge 3 ] && break

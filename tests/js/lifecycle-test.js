@@ -285,11 +285,67 @@ async function main() {
     const groupH = jaxe.fmod_evi_get_channel_group(instGroup);
     check('instGroup_channel_group', groupH > 0 && jaxe.liveCount === beforeGroup + 1, `handle=${groupH} live=${jaxe.liveCount}`);
     check('instGroup_channel_group_stable', jaxe.fmod_evi_get_channel_group(instGroup) === groupH, '');
+    // An instance's group cannot be released by the game
+    check('instGroup_release_refused', jaxe.fmod_cg_release(groupH) === 31 && jaxe.resolveCg(groupH) != null,
+        `result=${jaxe.lastResult}`);
+    // A callback on the instance's group comes off before FMOD destroys
+    // the group, and the freed slot takes its map entry with it, so a new
+    // group at the same address cannot inherit one
+    const groupRaw = jaxe.rawPtr(jaxe.resolveCg(groupH));
+    check('instGroup_callback_installed', jaxe.fmod_cg_set_callback(groupH, true) === 0
+        && jaxe.chanCallbackHandles.get(groupRaw) === groupH, `result=${jaxe.lastResult}`);
     jaxe.fmod_evi_stop(instGroup, 1);
     jaxe.fmod_evi_release(instGroup);
     check('channel_group_freed_with_instance',
         jaxe.liveCount === beforeGroup - 1 && jaxe.handleResolve(groupH, jaxe.TYPE_CHANGROUP) == null,
         `live=${jaxe.liveCount} before=${beforeGroup}`);
+
+    check('instGroup_callback_map_pruned_with_slot', !jaxe.chanCallbackHandles.has(groupRaw),
+        `size=${jaxe.chanCallbackHandles.size}`);
+
+    // A bulk destroy takes the shim callback off every instance group in
+    // its scope first, and a refused call puts it back. FMOD must never
+    // free a group with the shim callback installed.
+    {
+        const instRefuse = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_start(instRefuse);
+        await pump(3);
+        const refuseGroup = jaxe.fmod_evi_get_channel_group(instRefuse);
+        check('refuse_group_handle', refuseGroup > 0, `handle=${refuseGroup}`);
+        check('refuse_group_callback_installed', jaxe.fmod_cg_set_callback(refuseGroup, true) === 0, '');
+        const refuseWrapper = jaxe.resolveCg(refuseGroup);
+        const groupCalls = [];
+        const realGroupSet = refuseWrapper.setCallback;
+        refuseWrapper.setCallback = function (cb) {
+            groupCalls.push(cb === null ? 'off' : 'on');
+            return realGroupSet.call(refuseWrapper, cb);
+        };
+        const evdW = jaxe.handleResolve(evd, jaxe.TYPE_EVD);
+        const realRA = evdW.releaseAllInstances;
+        evdW.releaseAllInstances = () => 40;
+        const refusedRA = jaxe.fmod_evd_release_all_instances(evd);
+        evdW.releaseAllInstances = realRA;
+        check('refused_release_all_cycles_group_callback',
+            refusedRA === 40 && groupCalls.join(',') === 'off,on',
+            `result=${refusedRA} calls=${groupCalls.join(',')}`);
+        check('refused_release_all_keeps_group_map',
+            jaxe.chanCallbackHandles.get(jaxe.rawPtr(refuseWrapper)) === refuseGroup, '');
+        // A bulk destroy scoped to another description leaves this
+        // instance's group callback installed: FMOD destroyed nothing here
+        const otherEvd = jaxe.fmod_sys_get_event('event:/SFX/Jump');
+        groupCalls.length = 0;
+        const okRA = jaxe.fmod_evd_release_all_instances(otherEvd);
+        refuseWrapper.setCallback = realGroupSet;
+        check('accepted_release_all_keeps_other_group_callback',
+            okRA === 0 && groupCalls.length === 0
+            && jaxe.chanCallbackHandles.get(jaxe.rawPtr(refuseWrapper)) === refuseGroup,
+            `result=${okRA} calls=${groupCalls.join(',')}`);
+        jaxe.fmod_cg_set_callback(refuseGroup, false);
+        jaxe.fmod_evi_stop(instRefuse, 1);
+        jaxe.fmod_evi_release(instRefuse);
+        await pump(3);
+        drainEvents();
+    }
 
     // --- DSP connection handles die with graph teardown ---
     const dsp = jaxe.fmod_dsp_create_by_type(3 /* echo */);

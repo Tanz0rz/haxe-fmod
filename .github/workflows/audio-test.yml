@@ -277,8 +277,8 @@ jobs:
           done
           if [ "$STALE" = true ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
             echo "stale=true" >> "$GITHUB_OUTPUT"
-            echo "::warning ::a pre-built hdll is behind the tree (ABI $ABI, source $SRC), the doctor check waits for update-hdlls"
-            echo "A pre-built hdll is behind the tree (ABI $ABI, source $SRC). The doctor steps are skipped until update-hdlls lands." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning ::a pre-built hdll is behind the tree (the tree is at ABI $ABI, source $SRC), the doctor check waits for update-hdlls"
+            echo "A pre-built hdll is behind the tree (the tree is at ABI $ABI, source $SRC). The doctor steps are skipped until update-hdlls lands." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "stale=false" >> "$GITHUB_OUTPUT"
           fi
@@ -660,8 +660,8 @@ jobs:
           done
           if [ "$STALE" = true ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
             echo "stale=true" >> "$GITHUB_OUTPUT"
-            echo "::warning ::a pre-built hdll is behind the tree (ABI $ABI, source $SRC), the hl package steps wait for update-hdlls"
-            echo "A pre-built hdll is behind the tree (ABI $ABI, source $SRC). The HashLink package steps are skipped until update-hdlls lands." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning ::a pre-built hdll is behind the tree (the tree is at ABI $ABI, source $SRC), the hl package steps wait for update-hdlls"
+            echo "A pre-built hdll is behind the tree (the tree is at ABI $ABI, source $SRC). The HashLink package steps are skipped until update-hdlls lands." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "stale=false" >> "$GITHUB_OUTPUT"
           fi
@@ -798,8 +798,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y xvfb \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -942,8 +942,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -999,8 +999,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dev
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dev
 
       # The cache key carries a flavour ('app'), keeping it clear of the
       # package-check-cpp job's 'pkg' cache. Two jobs on one OS sharing a
@@ -1111,8 +1111,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dev
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dev
 
       # The cache key carries a flavour ('app'), keeping it clear of the
       # package-check-cpp job's 'pkg' cache. Two jobs on one OS sharing a
@@ -1202,8 +1202,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -1241,11 +1241,13 @@ jobs:
           ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
           case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
           STALE=0
+          SRC=$(python3 ci/hlaxe-src-hash.py)
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
-            # BSD grep finds nothing inside a Mach-O file, so the marker is read in python
+            # BSD grep finds nothing inside a Mach-O file, so the markers are read in python
             MARK=$(python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_abi=([0-9]+)", open(sys.argv[1], "rb").read()); print(m.group(1).decode() if m else "")' "$HDLL")
-            echo "$HDLL marker abi=$MARK (library abi=$ABI)"
-            if [ "$MARK" != "$ABI" ]; then STALE=1; fi
+            SRCMARK=$(python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_src=([0-9a-f]+)", open(sys.argv[1], "rb").read()); print(m.group(1).decode() if m else "")' "$HDLL")
+            echo "$HDLL marker abi=$MARK src=$SRCMARK (tree abi=$ABI src=$SRC)"
+            if [ "$MARK" != "$ABI" ] || [ "$SRCMARK" != "$SRC" ]; then STALE=1; fi
           done
           # A tag keeps the hard failure: a release ships no stale hdll
           if [ "$STALE" = "1" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
@@ -1425,11 +1427,11 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=3 update
           # The chromium-browser package installs the snap, and the snap store
           # sometimes times out. Retry before the run fails on it.
           for attempt in 1 2 3; do
-            sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
@@ -1547,8 +1549,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio xvfb
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio xvfb
 
       - name: Build HTML5 target
         env:
@@ -1851,11 +1853,13 @@ jobs:
           ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
           case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
           STALE=0
+          SRC=$(python3 ci/hlaxe-src-hash.py)
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
-            # BSD grep finds nothing inside a Mach-O file, so the marker is read in python
+            # BSD grep finds nothing inside a Mach-O file, so the markers are read in python
             MARK=$(python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_abi=([0-9]+)", open(sys.argv[1], "rb").read()); print(m.group(1).decode() if m else "")' "$HDLL")
-            echo "$HDLL marker abi=$MARK (library abi=$ABI)"
-            if [ "$MARK" != "$ABI" ]; then STALE=1; fi
+            SRCMARK=$(python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_src=([0-9a-f]+)", open(sys.argv[1], "rb").read()); print(m.group(1).decode() if m else "")' "$HDLL")
+            echo "$HDLL marker abi=$MARK src=$SRCMARK (tree abi=$ABI src=$SRC)"
+            if [ "$MARK" != "$ABI" ] || [ "$SRCMARK" != "$SRC" ]; then STALE=1; fi
           done
           # A tag keeps the hard failure: a release ships no stale hdll
           if [ "$STALE" = "1" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
@@ -2135,11 +2139,13 @@ jobs:
           ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
           case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
           STALE=0
+          SRC=$(python3 ci/hlaxe-src-hash.py)
           for HDLL in templates/bin/hl/*/hlaxe_fmod.hdll; do
-            # BSD grep finds nothing inside a Mach-O file, so the marker is read in python
+            # BSD grep finds nothing inside a Mach-O file, so the markers are read in python
             MARK=$(python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_abi=([0-9]+)", open(sys.argv[1], "rb").read()); print(m.group(1).decode() if m else "")' "$HDLL")
-            echo "$HDLL marker abi=$MARK (library abi=$ABI)"
-            if [ "$MARK" != "$ABI" ]; then STALE=1; fi
+            SRCMARK=$(python3 -c 'import re, sys; m = re.search(rb"hlaxe_fmod_src=([0-9a-f]+)", open(sys.argv[1], "rb").read()); print(m.group(1).decode() if m else "")' "$HDLL")
+            echo "$HDLL marker abi=$MARK src=$SRCMARK (tree abi=$ABI src=$SRC)"
+            if [ "$MARK" != "$ABI" ] || [ "$SRCMARK" != "$SRC" ]; then STALE=1; fi
           done
           # A tag keeps the hard failure: a release ships no stale hdll
           if [ "$STALE" = "1" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
@@ -2242,8 +2248,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -2918,8 +2924,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Name the runner image for the cache key
@@ -3013,8 +3019,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Name the runner image for the cache key
@@ -3336,8 +3342,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
             libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
 
       - name: Build test variant
@@ -3417,8 +3423,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
             libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
 
       - name: Build test variant
@@ -3495,8 +3501,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
             libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
 
       - name: Build test variant
@@ -3955,8 +3961,8 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
       - name: Start display and audio
         run: |
@@ -4165,8 +4171,8 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
       - name: Start display and audio
         run: |
@@ -4364,9 +4370,9 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=3 update
           for attempt in 1 2 3; do
-            sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
@@ -4779,7 +4785,7 @@ jobs:
           last=-1
           stable=0
           for i in $(seq 30); do
-            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            n=$( { find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null || true; } | wc -l | tr -d ' ')
             if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
             last=$n
             [ "$stable" -ge 3 ] && break
@@ -4998,7 +5004,7 @@ jobs:
           last=-1
           stable=0
           for i in $(seq 30); do
-            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            n=$( { find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null || true; } | wc -l | tr -d ' ')
             if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
             last=$n
             [ "$stable" -ge 3 ] && break
@@ -5439,13 +5445,13 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Name the runner image for the cache key
@@ -5683,9 +5689,9 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=3 update
           for attempt in 1 2 3; do
-            sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
@@ -6098,7 +6104,7 @@ jobs:
           last=-1
           stable=0
           for i in $(seq 30); do
-            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            n=$( { find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null || true; } | wc -l | tr -d ' ')
             if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
             last=$n
             [ "$stable" -ge 3 ] && break
@@ -6356,8 +6362,8 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
       - name: Start display and audio
         run: |
@@ -6566,8 +6572,8 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
+          sudo apt-get -o Acquire::Retries=3 update
+          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
       - name: Start display and audio
         run: |
@@ -6765,9 +6771,9 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=3 update
           for attempt in 1 2 3; do
-            sudo apt-get install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
@@ -7180,7 +7186,7 @@ jobs:
           last=-1
           stable=0
           for i in $(seq 30); do
-            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            n=$( { find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null || true; } | wc -l | tr -d ' ')
             if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
             last=$n
             [ "$stable" -ge 3 ] && break
@@ -7399,7 +7405,7 @@ jobs:
           last=-1
           stable=0
           for i in $(seq 30); do
-            n=$(find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null | wc -l | tr -d ' ')
+            n=$( { find ~/Library/Logs/DiagnosticReports -name '*.ips' -mmin -10 2>/dev/null || true; } | wc -l | tr -d ' ')
             if [ "$n" -gt 0 ] && [ "$n" = "$last" ]; then stable=$((stable + 1)); else stable=0; fi
             last=$n
             [ "$stable" -ge 3 ] && break
@@ -7844,6 +7850,21 @@ jobs:
 
           git add templates/bin/hl/
 
+          # The branch can move while this run builds. The hdlls have to
+          # match the tree they land on, so both markers are checked after
+          # every rebase, and a mismatch drops the commit.
+          check_markers() {
+            ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
+            case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
+            SRC=$(python3 ci/hlaxe-src-hash.py)
+            for hdll in templates/bin/hl/*/hlaxe_fmod.hdll; do
+              if grep -aq "hlaxe_fmod_abi=$ABI" "$hdll" && grep -aq "hlaxe_fmod_src=$SRC" "$hdll"; then continue; fi
+              echo "::notice ::the branch moved under this run and $hdll no longer matches the tree (abi $ABI, source $SRC), the commit is dropped"
+              git reset --hard HEAD~1
+              exit 1
+            done
+          }
+
           if git diff --staged --quiet; then
             echo "No changes to hdlls"
           else
@@ -7857,9 +7878,11 @@ jobs:
             # user commit or a concurrent job). Rebase onto the latest remote
             # branch before pushing and retry once if the push still races.
             git pull --rebase origin "$BRANCH_NAME"
+            check_markers
             if ! git push; then
               echo "Push rejected, rebasing and retrying once..."
               git pull --rebase origin "$BRANCH_NAME"
+              check_markers
               git push
             fi
           fi

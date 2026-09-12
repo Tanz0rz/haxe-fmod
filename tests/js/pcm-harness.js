@@ -510,6 +510,16 @@ function testSoundGroupsAndSystem() {
     check('s4_sg_master_dedup', master !== 0 && master === jaxe.fmod_sys_get_master_sound_group(),
         `handle=${master}`);
     jaxe.fmod_sound_set_sound_group(snd, master);
+    // The master sound group cannot be released either: FMOD answers
+    // INVALID_HANDLE and keeps it, so the shim refuses with INVALID_PARAM
+    // and the handle stays usable.
+    const liveBeforeMasterSg = jaxe.fmod_debug_live_handle_count();
+    check('s4_sg_master_release_refused', jaxe.fmod_sg_release(master) === jaxe.ERR_INVALID_PARAM,
+        `result=${jaxe.lastResult}`);
+    check('s4_sg_master_release_keeps_handle',
+        jaxe.fmod_sg_get_num_sounds(master) >= 0 && jaxe.lastResult === jaxe.FMOD.OK
+        && jaxe.fmod_debug_live_handle_count() === liveBeforeMasterSg,
+        `live=${jaxe.fmod_debug_live_handle_count()} before=${liveBeforeMasterSg}`);
     check('s4_sg_release', jaxe.fmod_sg_release(sg) === jaxe.FMOD.OK);
     check('s4_stale_sg', jaxe.fmod_sg_stop(sg) === jaxe.ERR_INVALID_HANDLE);
     jaxe.fmod_core_release_sound(snd);

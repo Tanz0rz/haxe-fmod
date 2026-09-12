@@ -100,7 +100,7 @@ sys_get_parameter_label str i32 -> str
 # listeners
 sys_get_num_listeners -> i32
 sys_set_num_listeners i32 -> i32
-# fbuf[0..11] = 3D attributes; index arg selects listener
+# fbuf[0..11] = 3D attributes. Index arg selects listener
 sys_get_listener_attributes i32 fbuf -> i32
 # fbuf[0..11] = 3D attributes to apply (passed via buffer - the HL JIT
 # garbles native calls with more than ~10 arguments)
@@ -117,7 +117,7 @@ sys_get_cpu_usage fbuf -> i32
 # ibuf: [0..3]=cmdqueue cur/peak/cap/stall [4..7]=handle cur/peak/cap/stall; fbuf: [0]=cmd stalltime [1]=handle stalltime
 sys_get_buffer_usage ibuf fbuf -> i32
 sys_reset_buffer_usage -> i32
-# ibuf: [0]=exclusive [1]=inclusive [2]=sampledata; ERR_UNSUPPORTED on js
+# ibuf: [0]=exclusive [1]=inclusive [2]=sampledata. ERR_UNSUPPORTED on js
 sys_get_memory_usage ibuf -> i32
 
 ## Bus
@@ -246,9 +246,9 @@ evi_get_param_by_id i32 i32 i32 -> f64
 evi_get_param_by_id_final i32 i32 i32 -> f64
 evi_set_param_by_id i32 i32 i32 f64 bool -> i32
 evi_set_param_by_id_with_label i32 i32 i32 str bool -> i32
-# ibuf: [0]=exclusive [1]=inclusive us; ERR_UNSUPPORTED on js
+# ibuf: [0]=exclusive [1]=inclusive us. ERR_UNSUPPORTED on js
 evi_get_cpu_usage i32 ibuf -> i32
-# ibuf: [0]=exclusive [1]=inclusive [2]=sampledata; ERR_UNSUPPORTED on js
+# ibuf: [0]=exclusive [1]=inclusive [2]=sampledata. ERR_UNSUPPORTED on js
 evi_get_memory_usage i32 ibuf -> i32
 
 ## Runtime init
@@ -349,9 +349,9 @@ dsp_set_wet_dry_mix i32 f32 f32 f32 -> i32
 dsp_set_active i32 bool -> i32
 dsp_reset i32 -> i32
 dsp_set_metering_enabled i32 bool bool -> i32
-# fbuf: [0..ch-1] output peak, [ch..2ch-1] output rms; returns channel count
+# fbuf: [0..ch-1] output peak, [ch..2ch-1] output rms. Returns channel count
 dsp_get_metering i32 fbuf -> i32
-# fbuf: channel-0 spectrum magnitudes capped at maxBins; returns bins written
+# fbuf: channel-0 spectrum magnitudes capped at maxBins. Returns bins written
 dsp_fft_get_spectrum i32 fbuf i32 -> i32
 
 ## Core channel groups
@@ -430,7 +430,7 @@ chan_get_3d_occlusion i32 fbuf -> i32
 chan_set_3d_spread i32 f32 -> i32
 chan_set_3d_level i32 f32 -> i32
 chan_set_3d_doppler_level i32 f32 -> i32
-# fbuf in: out*in gains row-major; args are (out channels, in channels)
+# fbuf in: out*in gains row-major. Args are (out channels, in channels)
 chan_set_mix_matrix i32 fbuf i32 i32 i32 -> i32
 
 ## Core scheduling (DSP clocks cross as doubles: exact to 2^53 samples)

@@ -28,6 +28,7 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 import datetime
 import json
@@ -191,7 +192,7 @@ def selftest():
         entry(1, pins_old, 3, 2),             # rotated away, unused since
         entry(2, pins_new, 1, 0),             # the live key
         entry(3, "fmod-sdk-Linux-2.02.33", 5, 2),   # two SDK versions, both live
-        entry(4, "fmod-sdk-Linux-2.03.13", 1, 0),   # newer, and the old one idle since
+        entry(4, "fmod-sdk-Linux-2.03.12", 1, 0),   # newer, and the old one idle since
         entry(5, sha_a, 3, 3), entry(6, sha_b, 2, 2), entry(7, sha_c, 1, 1),
         entry(8, "kha-macOS-" + "d" * 40, 30, 0),   # restored today, stays
         entry(9, "kha-macOS-" + "e" * 40, 30, 30),  # idle a month
@@ -215,6 +216,20 @@ def selftest():
     doomed, reason = plan(caches, {"master", "dev"}, 2, "dev", "master", 14)
     if sorted(e["id"] for e in doomed) != [1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13]:
         print("selftest FAIL: branch close kept {}".format(sorted(e["id"] for e in doomed)))
+        sys.exit(1)
+    # The family regex against the keys the workflow makes today, so a
+    # reordered pins string cannot switch the rule off unnoticed
+    workflow = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows", "audio-test.yml")
+    with open(workflow) as fh:
+        text = fh.read()
+    pins = re.search(r"HAXELIB_PINS: (\S+)", text).group(1)
+    haxe = re.search(r"HAXE_VERSION: (\S+)", text).group(1)
+    live_keys = ["haxelib-{}-Linux-{}-{}".format(label, haxe, pins)
+                 for label in ("hl", "cpp", "docs", "doctor", "html5", "package")]
+    live_keys.append("haxelib-docs-Linux-{}-flixel-heaps-{}".format(haxe, pins))
+    families = [family(key) for key in live_keys]
+    if any(f is None for f in families) or len(set(families)) != len(families):
+        print("selftest FAIL: the family regex does not fit the workflow's keys: {}".format(families))
         sys.exit(1)
     print("prune-caches selftest: all rules hold")
 
@@ -240,6 +255,11 @@ def main():
     caches = fetch_caches(options.repo)
     live = fetch_live_branches(options.repo) if options.branch is None else set()
     default_branch = fetch_default_branch(options.repo) if options.branch is None else ""
+    # An empty branch listing reads as every branch gone, which condemns
+    # the whole store. A listing that empty is an API failure, so stop.
+    if options.branch is None and (not live or not default_branch):
+        print("refusing to prune: the branch listing came back empty")
+        sys.exit(1)
     total = sum(entry["size_in_bytes"] for entry in caches)
     print("store: {:.0f} MB across {} caches".format(mb(total), len(caches)))
 

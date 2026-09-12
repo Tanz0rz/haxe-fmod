@@ -58,9 +58,8 @@ typedef struct {
      * custom rolloff point array). Freed with the slot. */
     void* aux;
     /* malloc'd record of the open Sound::lock range (both pointers and
-     * lengths). The shim closes the lock on a live sound before the slot
-     * dies, and a sound FMOD freed takes the lock with it. The slot only
-     * frees the record. */
+     * lengths). A sound FMOD freed takes the lock with it, so the slot
+     * only frees the record. */
     void* lock;
     unsigned short gen;   /* 1..FAXE_GEN_MAX once used, 0 = never used yet */
     unsigned char type;
