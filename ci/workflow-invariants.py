@@ -256,7 +256,9 @@ else:
 # from an action directory, is exit 127 on the runner. The path check
 # is what catches both. Every apt-get carries its retry option, and a
 # comment or echo naming one is skipped.
-FETCH_RE = re.compile(r"(haxelib install|git (?:clone|fetch|pull|submodule)|npm (?:install|ci)|npx playwright install|curl(?![-\w])|wget(?![-\w])|brew install|pip\"? install|ssh(?![-\w])|rsync(?![-\w])|gh (?:api|release download))")
+# A command name counts at a command position only, so a path such as
+# .ssh/config or an env value never reads as a fetch
+FETCH_RE = re.compile(r"(?<![\w./-])(haxelib install|git (?:clone|fetch|pull|submodule)|npm (?:install|ci)|npx playwright install|curl\s|wget\s|brew install|pip\"? install|ssh\s|rsync\s|gh (?:api|release download))")
 WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)ci/retry\.sh\1")
 fetch_files = [os.path.join(os.path.dirname(PATH), wf) for wf in sorted(os.listdir(os.path.dirname(PATH))) if wf.endswith(".yml")]
 actions_dir = os.path.join(ROOT, ".github", "actions")
