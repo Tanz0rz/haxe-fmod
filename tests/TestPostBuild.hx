@@ -227,7 +227,9 @@ class TestPostBuild {
 		var fat = "KhaPlatformer (architecture x86_64):\n" + slice + "KhaPlatformer (architecture arm64):\n" + slice;
 		check("the SDK search path is the one rewritten", PostBuild.rpathToRewrite(fat, "/Users/runner/work/fmod-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
 		check("a trailing slash on the SDK path is fine", PostBuild.rpathToRewrite(fat, "/Users/runner/work/fmod-sdk/") == "/Users/runner/work/fmod-sdk/api/core/lib");
-		check("an absolute path outside the SDK serves as well", PostBuild.rpathToRewrite(fat, "/opt/other-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		check("a path shaped like an SDK lib directory serves without the SDK prefix", PostBuild.rpathToRewrite(fat, "/opt/other-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		var foreign = "          cmd LC_RPATH\n      cmdsize 40\n         path /opt/homebrew/lib (offset 12)\n";
+		check("a search path the game needs is never rewritten", PostBuild.rpathToRewrite(foreign, "/opt/other-sdk") == null);
 		var short = "          cmd LC_RPATH\n      cmdsize 24\n         path /usr/lib (offset 12)\n";
 		check("a path shorter than the new value is left alone", PostBuild.rpathToRewrite(short, "/opt/sdk") == null);
 		var relative = "          cmd LC_RPATH\n      cmdsize 40\n         path @loader_path/../Frameworks (offset 12)\n";
@@ -239,6 +241,7 @@ class TestPostBuild {
 		check("no load commands gives null", PostBuild.rpathToRewrite("", "/opt/sdk") == null);
 		var mixed = "          cmd LC_RPATH\n      cmdsize 40\n         path /usr/local/lib/elsewhere (offset 12)\n" + slice;
 		check("the SDK search path wins over an earlier absolute one", PostBuild.rpathToRewrite(mixed, "/Users/runner/work/fmod-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		check("a trailing slash on the SDK path still prefers the SDK", PostBuild.rpathToRewrite(mixed, "/Users/runner/work/fmod-sdk/") == "/Users/runner/work/fmod-sdk/api/core/lib");
 	}
 
 	static function testRunShContent():Void {

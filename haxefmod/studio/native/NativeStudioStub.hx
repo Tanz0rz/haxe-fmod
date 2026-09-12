@@ -158,8 +158,13 @@ class NativeStudioStub {
     public static function bank_get_loading_state(handle:Int):Int
         return testSyntheticHandles && handle > 0 ? testBankLoadingState : 1;
     public static function bank_get_sample_loading_state(handle:Int):Int return 1;
-    public static function bank_get_event_count(handle:Int):Int return 0;
-    public static function bank_get_event_list(handle:Int):Int return 0;
+    /** The descriptions a bank lists. Tests fill it. */
+    public static var testBankEventList:Array<Int> = [];
+    public static function bank_get_event_count(handle:Int):Int return testBankEventList.length;
+    public static function bank_get_event_list(handle:Int):Int {
+        for (i in 0...testBankEventList.length) haxefmod.studio.native.Scratch.writeI(i, testBankEventList[i]);
+        return testBankEventList.length;
+    }
     public static function bank_get_bus_count(handle:Int):Int return 0;
     public static function bank_get_bus_list(handle:Int):Int return 0;
     public static function bank_get_vca_count(handle:Int):Int return 0;

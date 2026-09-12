@@ -54,7 +54,7 @@ Every handle has `setUserData(value)` and `getUserData()`, and so does `StudioSy
 - when FMOD destroys an event instance on its own and delivers `Destroyed`
 - when a channel with a handler ends and delivers `End`
 - when a call that destroys many objects at once succeeds. A bank unload drops the values of its event descriptions. A bank unload, `EventDescription.releaseAllInstances`, and `Bus.unlockChannelGroup` drop the value of every channel group that died.
-- for every handle at once on `unloadAll`, once FMOD accepted the call
+- for every handle that came from a bank on `unloadAll`, once FMOD accepted the call. The system value goes too. A sound, DSP, or group the game created keeps its value.
 
 A recycled native slot gets a new generation and therefore a new handle int. A value left on a dead handle can never be read through the handle that later reuses its slot.
 

@@ -20,7 +20,7 @@ abstract EventInstance(Int) from Int to Int {
     // A bulk destroy drops the entries of every group that died with it.
     static var walkedGroups:Map<Int, Int> = new Map();
 
-    /** Forgets every handed-out group, with the dispatcher's clear-all. */
+    /** Forgets every handed-out group. StudioSystem.unloadAll calls this, since every instance died. */
     public static function clearWalkedGroups():Void {
         walkedGroups = new Map();
     }

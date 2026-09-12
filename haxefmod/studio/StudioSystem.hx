@@ -132,20 +132,29 @@ class StudioSystem {
 
     /**
      * Unloads all banks. Every handle that came from a bank dies with it.
-     * Once FMOD accepted the call, every userdata entry, every
-     * description-level callback, and every instance callback is dropped
-     * here too. The handler of every channel group that died with a bank
-     * goes as well. A refused call keeps all of that state, and can have
-     * unloaded some banks anyway.
+     * Once FMOD accepted the call, the userdata of every bank, event
+     * description, instance, bus, and VCA, the system value, every
+     * description-level callback, and every instance callback are
+     * dropped here too. The handler and userdata of every channel group
+     * that died with a bank go as well. A sound, DSP, or group the game
+     * created keeps its userdata. A refused call keeps all of that
+     * state, and can have unloaded some banks anyway.
      */
     public static function unloadAll():FmodResult {
         // A refused unload keeps the entries and handlers
         var result:FmodResult = NativeStudio.sys_unload_all();
         if (result.isOk()) {
-            UserData.clearAll();
+            // Only the families that come from banks die with them. A
+            // core object the game created survives, and a dead group
+            // loses its entry
+            for (kind in [UserDataKind.EventDescription, UserDataKind.EventInstance, UserDataKind.Bank, UserDataKind.Bus, UserDataKind.Vca]) UserData.clearKind(kind);
+            UserData.clearDead(UserDataKind.ChannelGroup);
+            UserData.clearDead(UserDataKind.Channel);
+            UserData.systemValue = null;
             EventDescription.clearAllCallbacks();
             CallbackDispatcher.clearAll();
             haxefmod.core.ChannelCallbacks.forgetDeadGroups();
+            EventInstance.clearWalkedGroups();
         }
         return result;
     }

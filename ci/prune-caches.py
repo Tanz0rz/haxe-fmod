@@ -34,17 +34,24 @@ import datetime
 import json
 import re
 import subprocess
+import time
 
 SHA_SUFFIX = re.compile(r"-[0-9a-f]{40}$")
 
 
 def gh(*args):
-    result = subprocess.run(["gh", *args], stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    if result.returncode != 0:
+    # A transient API failure costs the nightly prune, so each call gets
+    # three attempts the way ci/retry.sh gives every fetch
+    for attempt in range(1, 4):
+        result = subprocess.run(["gh", *args], stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        if result.returncode == 0:
+            return result.stdout.decode("utf-8", "replace")
         sys.stderr.write(result.stderr.decode("utf-8", "replace"))
-        sys.exit(1)
-    return result.stdout.decode("utf-8", "replace")
+        if attempt < 3:
+            sys.stderr.write(f"gh {args[0]} failed, attempt {attempt} of 3\n")
+            time.sleep(15)
+    sys.exit(1)
 
 
 def mb(size):

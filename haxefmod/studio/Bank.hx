@@ -40,10 +40,11 @@ abstract Bank(Int) from Int to Int {
     }
 
     /**
-     * Unloads the bank and invalidates this handle (and every event
-     * description/instance handle that came from it). The userdata and
-     * the description-level callbacks of those descriptions are dropped,
-     * for the first 1024 events of the bank. A larger bank keeps the
+     * Unloads the bank and invalidates this handle and every event
+     * description and instance handle that died with it. The userdata
+     * and the description-level callbacks of those descriptions are
+     * dropped, for the first 1024 events of the bank. A description
+     * another loaded bank still owns keeps both. A larger bank keeps the
      * rest until StudioSystem.unloadAll. The handler and user data of
      * every channel group that died with the bank go too.
      */
@@ -54,6 +55,9 @@ abstract Bank(Int) from Int to Int {
         var result:FmodResult = NativeStudio.bank_unload(this);
         if (UserData.releaseTookEffect(result)) {
             for (description in descriptions) {
+                // An event assigned to another loaded bank survives the
+                // unload, and the native sweep freed the slots of the dead
+                if (NativeStudio.debug_handle_is_live(description)) continue;
                 UserData.clear(UserDataKind.EventDescription, description);
                 description.clearCallback();
             }

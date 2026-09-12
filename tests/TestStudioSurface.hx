@@ -972,6 +972,22 @@ class TestStudioSurface {
 		haxefmod.studio.CallbackDispatcher.deliver((tornGroup : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
 		assert(tornSeen.length == 0, "a destroyed instance drops its group's handler");
 		assert(tornGroup.getUserData() == null, "a destroyed instance drops its group's user data");
+		assert(Lambda.count(@:privateAccess haxefmod.studio.EventInstance.walkedGroups) == 0, "a destroyed instance drops its walked-group entry");
+
+		// Clearing every callback leaves the walked-group map alone, so a
+		// later release of a live instance still drops its group's entries
+		var kept:EventInstance = cast 4345;
+		haxefmod.studio.native.NativeStudioStub.testEviChannelGroup = 4346;
+		var keptGroup = kept.getChannelGroup();
+		haxefmod.studio.native.NativeStudioStub.testEviChannelGroup = 0;
+		keptGroup.setUserData("kept-group");
+		haxefmod.studio.CallbackDispatcher.clearAll();
+		assert(Lambda.count(@:privateAccess haxefmod.studio.EventInstance.walkedGroups) == 1, "clearing every callback keeps the walked-group map");
+		haxefmod.studio.native.NativeStudioStub.testSyntheticHandles = true;
+		kept.release();
+		haxefmod.studio.native.NativeStudioStub.testSyntheticHandles = false;
+		haxefmod.studio.native.NativeStudioStub.testReleasedHandles = [];
+		assert(keptGroup.getUserData() == null, "a release after a callback clear drops its group's user data");
 
 		// A bank unload, a release of every instance, and unloadAll drop
 		// the handler and user data of every group that died with them
@@ -990,6 +1006,41 @@ class TestStudioSurface {
 		haxefmod.studio.CallbackDispatcher.deliver((bankGroup : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
 		assert(bankSeen.length == 0, "a bank unload drops the handler of a group that died with it");
 		assert(bankGroup.getUserData() == null, "a bank unload drops the user data of a group that died with it");
+		// The walked-group map forgets an instance whose group died
+		var walkedInstance:EventInstance = cast 4340;
+		haxefmod.studio.native.NativeStudioStub.testEviChannelGroup = 4341;
+		var walkedGroup = walkedInstance.getChannelGroup();
+		haxefmod.studio.native.NativeStudioStub.testEviChannelGroup = 0;
+		assert(Lambda.count(@:privateAccess haxefmod.studio.EventInstance.walkedGroups) == 1, "a group walk records the instance that handed it out");
+		haxefmod.studio.native.NativeStudioStub.testDeadHandles = [(walkedGroup : Int)];
+		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 0;
+		unloadedBank.unload();
+		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 68;
+		haxefmod.studio.native.NativeStudioStub.testDeadHandles = [];
+		assert(Lambda.count(@:privateAccess haxefmod.studio.EventInstance.walkedGroups) == 0, "a bulk destroy drops the walked-group entry of a group that died");
+
+		// A description another loaded bank still owns keeps its callback
+		// and user data through the unload
+		var sharedDescription:EventDescription = cast 4343;
+		var soleDescription:EventDescription = cast 4344;
+		var sharedHits = 0;
+		sharedDescription.setCallback(function(_) sharedHits++);
+		sharedDescription.setUserData("shared");
+		soleDescription.setCallback(function(_) {});
+		soleDescription.setUserData("sole");
+		haxefmod.studio.native.NativeStudioStub.testBankEventList = [(sharedDescription : Int), (soleDescription : Int)];
+		haxefmod.studio.native.NativeStudioStub.testDeadHandles = [(soleDescription : Int)];
+		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 0;
+		unloadedBank.unload();
+		haxefmod.studio.native.NativeStudioStub.testReleaseResult = 68;
+		haxefmod.studio.native.NativeStudioStub.testDeadHandles = [];
+		haxefmod.studio.native.NativeStudioStub.testBankEventList = [];
+		assert(sharedDescription.hasCallback(), "a bank unload keeps the callback of a description another bank owns");
+		assert(sharedDescription.getUserData() == "shared", "a bank unload keeps the user data of a description another bank owns");
+		assert(!soleDescription.hasCallback(), "a bank unload drops the callback of a description that died");
+		assert(soleDescription.getUserData() == null, "a bank unload drops the user data of a description that died");
+		sharedDescription.clearCallback();
+		haxefmod.studio.UserData.clear(haxefmod.studio.UserData.UserDataKind.EventDescription, sharedDescription);
 
 		var allGroup:ChannelGroup = cast 4329;
 		var allSeen:Array<haxefmod.core.ChannelEvent> = [];
@@ -1008,6 +1059,11 @@ class TestStudioSurface {
 		var survivor:ChannelGroup = cast 4331;
 		var survivorSeen:Array<haxefmod.core.ChannelEvent> = [];
 		survivor.setCallback(function(e) survivorSeen.push(e));
+		survivor.setUserData("survivor-group");
+		var survivorOwner:EventInstance = cast 4342;
+		haxefmod.studio.native.NativeStudioStub.testEviChannelGroup = 4331;
+		survivorOwner.getChannelGroup();
+		haxefmod.studio.native.NativeStudioStub.testEviChannelGroup = 0;
 		var gone:ChannelGroup = cast 4332;
 		var goneSeen:Array<haxefmod.core.ChannelEvent> = [];
 		gone.setCallback(function(e) goneSeen.push(e));
@@ -1019,7 +1075,10 @@ class TestStudioSurface {
 		haxefmod.studio.CallbackDispatcher.deliver((survivor : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
 		haxefmod.studio.CallbackDispatcher.deliver((gone : Int), ChannelCallbacks.TYPE_VIRTUALVOICE, 1, 0, 0, 0, 0, 0, "");
 		assert(survivorSeen.length == 1, "unloadAll keeps the handler of a group that survived");
+		assert(survivor.getUserData() == "survivor-group", "unloadAll keeps the user data of a group that survived");
 		assert(goneSeen.length == 0, "unloadAll drops the handler of a group that died with a bank");
+		assert(Lambda.count(@:privateAccess haxefmod.studio.EventInstance.walkedGroups) == 0, "unloadAll forgets every handed-out group");
+		haxefmod.studio.UserData.clear(haxefmod.studio.UserData.UserDataKind.ChannelGroup, survivor);
 		ChannelCallbacks.clearAll();
 	}
 

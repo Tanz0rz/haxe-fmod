@@ -197,19 +197,24 @@ def setup_steps(j):
             # The snap's content interfaces connect after the install
             # returns, and a launch before the GPU slot is connected dies
             # at once with "Content snap GPU wrapper not found". The step
-            # waits for the wrapper the launcher checks and connects a slot
-            # snapd left open after a minute. When the wrapper never
-            # appears it fails with the connection table. A headless
-            # probe then waits for the first page to render, and fails the
-            # step too, since the browser legs cannot run without it.
+            # waits for the connection table to show the GPU slot and
+            # connects one snapd left open after a minute. When the slot
+            # never connects it fails with the table. The snap's mount
+            # namespace is discarded, so a connect that landed after the
+            # first launch reaches the launcher. A headless probe then
+            # waits for the first page to render, and fails the step too,
+            # since the browser legs cannot run without it.
             install = f"""          for attempt in 1 2 3; do
             sudo apt-get -o Acquire::Retries=3 install -y {pkgs} && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
           sudo snap wait system seed.loaded || true
+          gpu_slot_connected() {{
+            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\\[gpu-/ && $3 != "-" {{ found = 1 }} END {{ exit found ? 0 : 1 }}'
+          }}
           for i in $(seq 90); do
-            ls /snap/chromium/current/gpu-*/bin/gpu-*-provider-wrapper > /dev/null 2>&1 && break
+            gpu_slot_connected && break
             if [ "$i" = 30 ]; then
               echo "::notice ::the chromium GPU content slot is still open after a minute, connecting it"
               snap connections chromium 2>/dev/null | awk '$1 ~ /^content\\[gpu-/ && $3 == "-" {{ print $2 }}' | while read -r plug; do
@@ -220,9 +225,11 @@ def setup_steps(j):
             [ "$i" = 90 ] && {{ echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }}
             sleep 2
           done
-          for i in $(seq 30); do
+          sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true
+          for i in $(seq 45); do
             chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break
-            [ "$i" = 30 ] && {{ echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }}
+            if grep -q "GPU wrapper" /tmp/chromium-probe.log; then sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true; fi
+            [ "$i" = 45 ] && {{ echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }}
             sleep 2
           done"""
         else:

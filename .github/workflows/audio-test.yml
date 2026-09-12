@@ -1425,17 +1425,6 @@ jobs:
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          # The chromium-browser package installs the snap, and the snap store
-          # sometimes times out. Retry before the run fails on it.
-          for attempt in 1 2 3; do
-            sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
-            [ "$attempt" = 3 ] && exit 1
-            sleep 30
-          done
-
       - name: Build HTML5 target
         env:
           FMOD_SDK_WEB: ${{ env.FMOD_SDK }}
@@ -4389,8 +4378,11 @@ jobs:
             sleep 30
           done
           sudo snap wait system seed.loaded || true
+          gpu_slot_connected() {
+            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 != "-" { found = 1 } END { exit found ? 0 : 1 }'
+          }
           for i in $(seq 90); do
-            ls /snap/chromium/current/gpu-*/bin/gpu-*-provider-wrapper > /dev/null 2>&1 && break
+            gpu_slot_connected && break
             if [ "$i" = 30 ]; then
               echo "::notice ::the chromium GPU content slot is still open after a minute, connecting it"
               snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 == "-" { print $2 }' | while read -r plug; do
@@ -4401,9 +4393,11 @@ jobs:
             [ "$i" = 90 ] && { echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }
             sleep 2
           done
-          for i in $(seq 30); do
+          sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true
+          for i in $(seq 45); do
             chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break
-            [ "$i" = 30 ] && { echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }
+            if grep -q "GPU wrapper" /tmp/chromium-probe.log; then sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true; fi
+            [ "$i" = 45 ] && { echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }
             sleep 2
           done
 
@@ -5720,8 +5714,11 @@ jobs:
             sleep 30
           done
           sudo snap wait system seed.loaded || true
+          gpu_slot_connected() {
+            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 != "-" { found = 1 } END { exit found ? 0 : 1 }'
+          }
           for i in $(seq 90); do
-            ls /snap/chromium/current/gpu-*/bin/gpu-*-provider-wrapper > /dev/null 2>&1 && break
+            gpu_slot_connected && break
             if [ "$i" = 30 ]; then
               echo "::notice ::the chromium GPU content slot is still open after a minute, connecting it"
               snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 == "-" { print $2 }' | while read -r plug; do
@@ -5732,9 +5729,11 @@ jobs:
             [ "$i" = 90 ] && { echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }
             sleep 2
           done
-          for i in $(seq 30); do
+          sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true
+          for i in $(seq 45); do
             chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break
-            [ "$i" = 30 ] && { echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }
+            if grep -q "GPU wrapper" /tmp/chromium-probe.log; then sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true; fi
+            [ "$i" = 45 ] && { echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }
             sleep 2
           done
 
@@ -6814,8 +6813,11 @@ jobs:
             sleep 30
           done
           sudo snap wait system seed.loaded || true
+          gpu_slot_connected() {
+            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 != "-" { found = 1 } END { exit found ? 0 : 1 }'
+          }
           for i in $(seq 90); do
-            ls /snap/chromium/current/gpu-*/bin/gpu-*-provider-wrapper > /dev/null 2>&1 && break
+            gpu_slot_connected && break
             if [ "$i" = 30 ]; then
               echo "::notice ::the chromium GPU content slot is still open after a minute, connecting it"
               snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 == "-" { print $2 }' | while read -r plug; do
@@ -6826,9 +6828,11 @@ jobs:
             [ "$i" = 90 ] && { echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }
             sleep 2
           done
-          for i in $(seq 30); do
+          sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true
+          for i in $(seq 45); do
             chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break
-            [ "$i" = 30 ] && { echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }
+            if grep -q "GPU wrapper" /tmp/chromium-probe.log; then sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true; fi
+            [ "$i" = 45 ] && { echo "::error ::chromium never rendered a headless page after the install"; tail -n 20 /tmp/chromium-probe.log; snap connections chromium || true; exit 1; }
             sleep 2
           done
 

@@ -100,7 +100,6 @@ class CallbackDispatcher {
     public static function clearAll():Void {
         for (handle in handlers.keys()) NativeStudio.evi_set_callback_mask(handle, 0);
         handlers = new Map();
-        haxefmod.studio.EventInstance.clearWalkedGroups();
     }
 
     public static function hasHandler(handle:Int):Bool {

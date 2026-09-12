@@ -7620,7 +7620,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Unloads the bank and invalidates this handle (and every event description/instance handle that came from it).",
+     "doc": "Unloads the bank and invalidates this handle and every event description and instance handle that died with it.",
      "gated": false,
      "name": "unload",
      "signature": "unload():FmodResult",

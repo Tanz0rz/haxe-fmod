@@ -496,11 +496,14 @@ class PostBuild {
 					var err = proc.stderr.readAll().toString();
 					var code = proc.exitCode();
 					proc.close();
-					// A link with no header room refuses one more load command.
-					// A search path the link left behind, into the SDK for one,
-					// is at least as long and takes the new value in place
+					// A link with no header room refuses one more load command. A
+					// Kha link is one: kmake writes a search path per dylib
+					// directory and nothing else. The SDK search path is at least
+					// as long as the new value and takes it in place
 					if (code != 0 && err.indexOf("do not fit") != -1) {
-						var old = rpathToRewrite(readLoadCommands(exe), sdkDir);
+						// The SDK path is compared as the link recorded it
+						var sdkReal = try FileSystem.fullPath(sdkDir) catch (e:Dynamic) sdkDir;
+						var old = rpathToRewrite(readLoadCommands(exe), sdkReal);
 						if (old != null) {
 							var rewrite = new sys.io.Process("install_name_tool", ["-rpath", old, "@executable_path", exe]);
 							var rewriteErr = rewrite.stderr.readAll().toString();
@@ -519,7 +522,8 @@ class PostBuild {
 						log('ERROR: install_name_tool could not add the dylib search path to $exe (exit $code)');
 						if (StringTools.trim(err + out) != "") log("  " + StringTools.trim(err + out));
 						log("  The game then fails at startup with: Library not loaded: @rpath/libfmod.dylib");
-						log("  Link the executable with -Wl,-headerpad_max_install_names, or add an rpath at link time.");
+						log("  Link the executable with -Wl,-rpath,@executable_path or with -Wl,-headerpad_max_install_names.");
+						log("  A Kha build has neither hook, so the stage command rewrites a search path into the FMOD SDK, and found none.");
 						// The architectures and load commands say which slice lacks the room
 						for (probe in [["lipo", "-info", exe], ["otool", "-l", exe]]) {
 							try {
@@ -897,9 +901,10 @@ class PostBuild {
 	/**
 	 * The LC_RPATH entry to rewrite as @executable_path when the header
 	 * has no room for one more. A path into the SDK wins, since the
-	 * game never ships with it. Any other absolute path at least as long
-	 * as the new value serves. Null when no entry fits, and null when
-	 * @executable_path is already there.
+	 * game never ships with it. Any other absolute path that ends in an
+	 * FMOD SDK lib directory serves. A path the game needs is never
+	 * touched. Null when no entry fits, and null when @executable_path
+	 * is already there.
 	 */
 	public static function rpathToRewrite(loadCommands:String, sdkDir:String):Null<String> {
 		var paths:Array<String> = [];
@@ -923,7 +928,8 @@ class PostBuild {
 			if (sdk != "" && StringTools.startsWith(p, sdk + "/") && p.length >= target.length) return p;
 		}
 		for (p in paths) {
-			if (StringTools.startsWith(p, "/") && p.length >= target.length) return p;
+			var sdkShaped = StringTools.endsWith(p, "/api/core/lib") || StringTools.endsWith(p, "/api/studio/lib");
+			if (StringTools.startsWith(p, "/") && sdkShaped && p.length >= target.length) return p;
 		}
 		return null;
 	}

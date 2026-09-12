@@ -659,6 +659,12 @@ async function main() {
         jaxe.fmod_sys_set_studio_callback_mask(0);
         return jaxe.bankPathByRaw.size;
     }, r => r === 0);
+    expect('a mask without the unload bit clears the cache', () => {
+        jaxe.fmod_sys_set_studio_callback_mask(4);
+        jaxe.cacheAllBankPaths();
+        jaxe.fmod_sys_set_studio_callback_mask(1);
+        return jaxe.bankPathByRaw.size;
+    }, r => r === 0);
 
     // --- command replay validity ---
     expect('replay_is_valid stale', () => jaxe.fmod_replay_is_valid(0), r => r === false);
