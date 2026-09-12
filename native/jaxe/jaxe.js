@@ -287,6 +287,11 @@ class jaxe {
         s.alive = false;
         s.owned = false;
         s.parent = 0;
+        // A channel or group slot takes its callback map entry with it,
+        // so a new object at the same address never inherits one
+        if ((s.type === jaxe.TYPE_CHAN || s.type === jaxe.TYPE_CHANGROUP) && s.raw) {
+            jaxe.chanCallbackHandles.delete(s.raw);
+        }
         // The embind wrapper holds a record in the wasm heap that only
         // delete() frees. The FMOD object behind it is untouched.
         if (s.ptr && typeof s.ptr.delete === "function") {
@@ -424,8 +429,35 @@ class jaxe {
         return {
             masks: Object.assign({}, jaxe.cbMasks),
             keys: Object.assign({}, jaxe.psKeys),
-            plugins: Object.assign({}, jaxe.pluginSeen)
+            plugins: Object.assign({}, jaxe.pluginSeen),
+            groups: jaxe.uninstallInstanceGroupCallbacks()
         };
+    }
+
+    // Takes the callback off every instance group that carries one, so
+    // FMOD never destroys a group with the shim callback installed.
+    // Returns the pairs a refused call puts back.
+    static uninstallInstanceGroupCallbacks() {
+        var taken = [];
+        for (var key in jaxe.instCgHandles) {
+            var cg = jaxe.instCgHandles[key];
+            var group = jaxe.resolveCg(cg);
+            if (!group) continue;
+            var raw = jaxe.rawPtr(group);
+            if (!jaxe.chanCallbackHandles.has(raw)) continue;
+            group.setCallback(null);
+            taken.push({ cg: cg, raw: raw, handle: jaxe.chanCallbackHandles.get(raw) });
+        }
+        return taken;
+    }
+
+    static restoreInstanceGroupCallbacks(taken) {
+        for (var i = 0; i < taken.length; i++) {
+            var group = jaxe.resolveCg(taken[i].cg);
+            if (!group || !jaxe.lookupSlotUsable(jaxe.slots[taken[i].cg & 0xFFFF])) continue;
+            jaxe.chanCallbackHandles.set(taken[i].raw, taken[i].handle);
+            group.setCallback(jaxe.channelCallback);
+        }
     }
 
     // Puts the saved entries back one handle at a time. The FMOD callback
@@ -436,6 +468,7 @@ class jaxe {
     // since a callback reinstalled on it would corrupt the module.
     static restoreCallbackState(saved) {
         jaxe.sweepDeadLookups();
+        jaxe.restoreInstanceGroupCallbacks(saved.groups);
         var kept = Object.keys(saved.masks).concat(Object.keys(saved.keys));
         for (var k = 0; k < kept.length; k++) {
             var handle = kept[k] | 0;
@@ -2160,9 +2193,18 @@ class jaxe {
         var inst = jaxe.handleResolve(handle, jaxe.TYPE_EVI);
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         // Uninstall the callback first: destroying an instance with a
-        // callback installed corrupts the FMOD JS module.
+        // callback installed corrupts the FMOD JS module. The instance's
+        // group dies with it, so its callback comes off too.
         jaxe.uninstallCallback(handle);
+        var cg = jaxe.instCgHandles[handle];
+        var group = cg === undefined ? null : jaxe.resolveCg(cg);
+        var groupRaw = group ? jaxe.rawPtr(group) : 0;
+        var groupHandle = group && jaxe.chanCallbackHandles.has(groupRaw) ? jaxe.chanCallbackHandles.get(groupRaw) : undefined;
+        if (groupHandle !== undefined) group.setCallback(null);
         jaxe.lastResult = inst.release();
+        if (jaxe.lastResult != jaxe.FMOD.OK && jaxe.lastResult != jaxe.ERR_INVALID_HANDLE && groupHandle !== undefined) {
+            group.setCallback(jaxe.channelCallback);
+        }
         // INVALID_HANDLE means FMOD already destroyed the instance (bank
         // unload, releaseAllInstances). The slot must still be reclaimed or
         // it leaks for the rest of the session.
@@ -3195,6 +3237,12 @@ class jaxe {
         var hadCallback = jaxe.chanCallbackHandles.has(raw);
         if (hadCallback) group.setCallback(null);
         jaxe.lastResult = group.release();
+        // FMOD answers INVALID_HANDLE for the master group too, and keeps
+        // it alive. A group that still answers a getter is a refusal,
+        // reported as INVALID_PARAM so the slot and the callback stay.
+        if (jaxe.lastResult == jaxe.ERR_INVALID_HANDLE && group.getVolume({}) != jaxe.ERR_INVALID_HANDLE) {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+        }
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too.
         // A refused release keeps the group and its channel callback mapping.
         if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
@@ -4334,6 +4382,12 @@ class jaxe {
         var group = jaxe.resolveSoundGroup(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = group.release();
+        // FMOD answers INVALID_HANDLE for the master sound group too, and
+        // keeps it alive. A group that still answers a getter is a
+        // refusal, reported as INVALID_PARAM so the slot stays.
+        if (jaxe.lastResult == jaxe.ERR_INVALID_HANDLE && group.getMaxAudible({}) != jaxe.ERR_INVALID_HANDLE) {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+        }
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
         if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) jaxe.handleFree(handle);
         return jaxe.lastResult;

@@ -565,8 +565,9 @@ abstract ChannelGroup(Int) from Int to Int {
     }
 
     /**
-     * Frees a group made with create() and invalidates this handle. Do not
-     * release the master group or a Studio bus's group.
+     * Frees a group made with create() and invalidates this handle. The
+     * master group and a Studio bus's group refuse with
+     * `FMOD_ERR_INVALID_PARAM` and keep their handle.
      */
     public inline function release():FmodResult {
         // The native release takes the callback off the group before FMOD

@@ -70,6 +70,8 @@ class StressScenario implements TestScenario {
     var _dspCycles:Int = 0;
     var _graphCycles:Int = 0;
     var _groupCycles:Int = 0;
+    var _soundGroupCycles:Int = 0;
+    var _chanCallbackCycles:Int = 0;
     var _pcmChunk:haxe.io.Bytes;
     var _callbackEvents:Int = 0;
 
@@ -261,6 +263,7 @@ class StressScenario implements TestScenario {
             if (!soundGroup.isNull() && !pcmSound.isNull()) {
                 soundGroup.setMaxAudible(1);
                 pcmSound.setSoundGroup(soundGroup);
+                _soundGroupCycles++;
             }
             // Releasing the sound leaves the group, so no reassignment
             // to the master group (whose cached lookup handle would
@@ -274,6 +277,7 @@ class StressScenario implements TestScenario {
                 cbChannel.clearCallback();
                 cbChannel.stop();
                 cbStream.release();
+                _chanCallbackCycles++;
             }
         }
         FmodManager.Update();
@@ -294,6 +298,9 @@ class StressScenario implements TestScenario {
     function finish():Void {
         check("no_handle_leaks", StudioSystem.liveHandleCount() == _baseline,
             'baseline=$_baseline now=${StudioSystem.liveHandleCount()}');
+        // The churn releases each instance before the update thread runs
+        // it, so no event reaches the handler. The map churn is the point,
+        // and the count stays informational.
         info("callback_events", Std.string(_callbackEvents));
         if (!_persistentZone.isNull()) {
             _persistentZone.release();
@@ -305,6 +312,8 @@ class StressScenario implements TestScenario {
         check("dsp_cycles_ran", _dspCycles > 0, 'cycles=$_dspCycles');
         check("graph_cycles_ran", _graphCycles > 0, 'cycles=$_graphCycles');
         check("group_cycles_ran", _groupCycles > 0, 'cycles=$_groupCycles');
+        check("sound_group_cycles_ran", _soundGroupCycles > 0, 'cycles=$_soundGroupCycles');
+        check("chan_callback_cycles_ran", _chanCallbackCycles > 0, 'cycles=$_chanCallbackCycles');
         log('STRESS_TEST: COMPLETE passed=$_passCount failed=$_failCount iterations=$_iterations');
         host.setStatus('STRESS_TEST complete: $_passCount passed, $_failCount failed, $_iterations cycles');
         _done = true;

@@ -6,6 +6,7 @@
 #
 # bash ci/retry.sh [--clean <dir>] <command...>
 set -u
+[ "$#" -gt 0 ] || { echo "retry: no command given" >&2; exit 2; }
 attempts=3
 pause=15
 clean=""

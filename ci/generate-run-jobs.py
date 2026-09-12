@@ -194,10 +194,19 @@ def setup_steps(j):
         if j.browser:
             # The chromium-browser package installs the snap, and the snap
             # store sometimes times out. Retry before the run fails on it.
+            # The snap's content interfaces connect after the install
+            # returns, and a launch before the GPU slot is connected dies
+            # at once. A headless probe waits for the first page to render.
             install = f"""          for attempt in 1 2 3; do
             sudo apt-get install -y {pkgs} && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
+          done
+          sudo snap wait system seed.loaded || true
+          for i in $(seq 30); do
+            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /dev/null 2>&1 && break
+            [ "$i" = 30 ] && echo "::warning ::chromium never rendered a headless page after the install"
+            sleep 2
           done"""
         else:
             install = f"          sudo apt-get install -y {pkgs}"
@@ -444,6 +453,7 @@ def record_page_call(url, console, wav):
           if [ "$STATUS" = 1 ]; then
             echo "::notice ::the browser died at startup, launching it once more"
             cp {console} "$(dirname {console})/first-attempt-$(basename {console})" || true
+            sleep 10
             record_page {url} {console} {wav} && STATUS=0 || STATUS=$?
             if [ "$STATUS" = 1 ]; then echo "::error ::the browser died at startup twice"; fi
           fi
@@ -496,9 +506,10 @@ def browser_steps(j):
           RAW=/tmp/$STATE-{j.name}.log.raw
           LOG=/tmp/$STATE-{j.name}.log
 {serve(j.bindir, 8182)}{launch_page_function()}          if ! launch_page; then
-            echo "::notice ::the browser died at startup, launching it once more"
+            echo "::notice ::the browser died at startup, launching it once more after a pause"
             cp "$RAW" "$(dirname "$RAW")/first-attempt-$(basename "$RAW")" || true
-            launch_page || {{ echo "::error ::the browser died at startup twice"; kill $HTTP_PID || true; exit 1; }}
+            sleep 10
+            launch_page || {{ echo "::error ::the browser died at startup twice"; tail -n 20 "$RAW" || true; kill $HTTP_PID || true; exit 1; }}
           fi
           if [ "$STATE" = synth-test ]; then
             ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-{j.name}.wav &

@@ -267,10 +267,10 @@ evi_get_memory_usage i32 ibuf -> i32
 # randomSeed, then the studio ones: commandQueueSize, handleInitialSize,
 # studioUpdatePeriod, idleSampleDataPoolSize, streamingScheduleDelay, encryptionKey.
 sys_init_ex i32 i32 i32 i32 i32 i32 i32 i32 i32 i32 i32 i32 f32 i32 i32 i32 f32 i32 i32 i32 i32 i32 i32 str -> i32
-# FMOD_Debug_Initialize level (0=none 1=error 2=warning 3=log); file logging
+# FMOD_Debug_Initialize level (0=none 1=error 2=warning 3=log). File logging
 # not exposed. ERR_UNSUPPORTED on js (logging is baked into the wasm build).
 sys_set_debug_level i32 -> i32
-# Async bank load: native = loadBankFile NONBLOCKING; js = fetch into MEMFS
+# Async bank load. Native is loadBankFile NONBLOCKING, js is a fetch into MEMFS
 # then loadBankFile, with the returned handle backed by a placeholder until
 # the fetch lands. Poll bank_get_loading_state (js reports LOADING while the
 # fetch is pending, ERROR on fetch failure).

@@ -226,6 +226,61 @@ class TestRuntime {
 		registry.unload(desktop);
 		registry.unload(desktop);
 		assert(registry.unload(mobile) && !registry.isRegistered(desktop), "three unloads release the shared bank");
+
+		// A stale entry that adopts a live one merges into it: the count
+		// carries over and every spelling of the stale entry follows
+		var reg2 = new BankRegistry();
+		stub.testSyntheticHandles = true;
+		stub.testBankValid = null;
+		stub.testBankLoadingState = 3;
+		var owner = reg2.load("a/M.bank");
+		stub.testSyntheticHandles = false;
+		stub.testLastResult = 70;
+		stub.testGetBankHandle = owner;
+		reg2.load("a2/M.bank");
+		stub.testSyntheticHandles = true;
+		stub.testLastResult = 68;
+		stub.testGetBankHandle = 0;
+		var doomed = reg2.load("b/M.bank");
+		stub.testSyntheticHandles = false;
+		stub.testLastResult = 70;
+		stub.testGetBankHandle = doomed;
+		reg2.load("b2/M.bank");
+		stub.testSyntheticHandles = true;
+		stub.testLastResult = 68;
+		stub.testGetBankHandle = 0;
+		assert(reg2.refCount("a/M.bank") == 2 && reg2.refCount("b/M.bank") == 2, "two aliased entries stand");
+		// b's bank dies, and the retry finds a's bank loaded already
+		stub.testBankValid = false;
+		stub.testSyntheticHandles = false;
+		stub.testLastResult = 70;
+		stub.testGetBankHandle = owner;
+		var adopted = reg2.load("b/M.bank");
+		stub.testSyntheticHandles = true;
+		stub.testBankValid = null;
+		stub.testLastResult = 68;
+		stub.testGetBankHandle = 0;
+		assert((adopted : Int) == (owner : Int), "the retry adopts the live bank");
+		assert(reg2.refCount("a/M.bank") == 5 && reg2.refCount("b/M.bank") == 5,
+			'adopt carries the stale holders (a=${reg2.refCount("a/M.bank")} b=${reg2.refCount("b/M.bank")})');
+		assert(reg2.refCount("b2/M.bank") == 5 && (reg2.get("b2/M.bank") : Int) == (owner : Int),
+			'every stale spelling follows the adopt (b2=${reg2.refCount("b2/M.bank")})');
+
+		// A failed retry forgets every spelling of the stale entry
+		var reg3 = new BankRegistry();
+		stub.testSyntheticHandles = true;
+		var lost = reg3.load("c/M.bank");
+		stub.testSyntheticHandles = false;
+		stub.testLastResult = 70;
+		stub.testGetBankHandle = lost;
+		reg3.load("c2/M.bank");
+		stub.testLastResult = 68;
+		stub.testGetBankHandle = 0;
+		stub.testBankValid = false;
+		reg3.load("c/M.bank");
+		stub.testBankValid = null;
+		assert(!reg3.isRegistered("c/M.bank") && !reg3.isRegistered("c2/M.bank"),
+			"a failed retry forgets every spelling");
 		// The stub defaults the later tests count on
 		stub.testSyntheticHandles = false;
 		stub.testBankLoadingState = 3;
@@ -325,6 +380,32 @@ class TestRuntime {
 			"loadMemory registers under the normalized path");
 		assert((registry.loadMemory("assets/fmod/Desktop/Mem.bank", haxe.io.Bytes.alloc(1)) : Int) == (memoryBank : Int)
 			&& registry.refCount("assets/fmod/Desktop/Mem.bank") == 2, "a second loadMemory bumps the refcount");
+		// loadMemory takes the same two paths: a dead entry is unloaded
+		// before the replacement, and a bank FMOD already holds is adopted
+		var reg4 = new BankRegistry();
+		stub.testSyntheticHandles = true;
+		stub.testBankMemoryLoads = [];
+		var mem = reg4.loadMemory("m/M.bank", haxe.io.Bytes.alloc(8));
+		stub.testBankValid = false;
+		stub.testBankUnloadCalls = 0;
+		var memAgain = reg4.loadMemory("m/M.bank", haxe.io.Bytes.alloc(8));
+		stub.testBankValid = null;
+		assert((memAgain : Int) != (mem : Int) && stub.testBankUnloadCalls == 1,
+			'loadMemory unloads the dead entry before the replacement (unloads=${stub.testBankUnloadCalls})');
+		assert(reg4.refCount("m/M.bank") == 2, 'loadMemory carries the holders (refs=${reg4.refCount("m/M.bank")})');
+		stub.testBankValid = false;
+		stub.testSyntheticHandles = false;
+		stub.testLastResult = 70;
+		stub.testGetBankHandle = memAgain;
+		var memAdopted = reg4.loadMemory("m/M.bank", haxe.io.Bytes.alloc(8));
+		stub.testSyntheticHandles = true;
+		stub.testBankValid = null;
+		stub.testLastResult = 68;
+		stub.testGetBankHandle = 0;
+		assert((memAdopted : Int) == (memAgain : Int) && reg4.isRegistered("m/M.bank")
+			&& reg4.refCount("m/M.bank") == 3,
+			'loadMemory adopts a bank FMOD already holds (handle=${(memAdopted : Int)} refs=${reg4.refCount("m/M.bank")})');
+		stub.testBankUnloadCalls = 0;
 		assert(!FmodRuntime.allBanksProvided(), "nothing is provided before init resolves the settings");
 		FmodRuntime.provideBank("assets/fmod/Desktop/Master.bank", haxe.io.Bytes.alloc(32));
 		assert(FmodRuntime.bankPath("Master.bank", "custom/banks") == "custom/banks/Master.bank", "bankPath takes the folder before init");
@@ -398,6 +479,13 @@ class TestRuntime {
 		var stub = haxefmod.studio.native.NativeStudioStub;
 		stub.testSyntheticHandles = true;
 		stub.testInitialized = true;
+		// A serviced frame drains the dispatcher, which runs the frame hook
+		var drains = 0;
+		var savedHook = haxefmod.studio.CallbackDispatcher.frameHook;
+		haxefmod.studio.CallbackDispatcher.frameHook = function() drains++;
+		FmodRuntime.update();
+		haxefmod.studio.CallbackDispatcher.frameHook = savedHook;
+		assert(drains == 1, "update drains the callback dispatcher once");
 		stub.testReleasedHandles = [];
 		stub.testPlaybackState = 0; // PLAYING
 

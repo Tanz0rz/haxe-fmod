@@ -48,10 +48,11 @@ A handle that is never released holds a slot in the native table for the life of
 
 ## Userdata
 
-Every handle has `setUserData(value)` and `getUserData()`, and so does `StudioSystem`. FMOD's own userdata slot holds a raw pointer, which cannot carry a Haxe value across the binding. The value lives on the Haxe side, keyed by the handle. The library drops the value in three cases:
+Every handle has `setUserData(value)` and `getUserData()`, and so does `StudioSystem`. FMOD's own userdata slot holds a raw pointer, which cannot carry a Haxe value across the binding. The value lives on the Haxe side, keyed by the handle. The library drops the value in four cases:
 
 - when the handle is released through the abstract (`release`, `stop`, `unload`) and FMOD accepted it or reported the handle dead. An event instance or channel drops it before the call.
 - when FMOD destroys an event instance on its own and delivers `Destroyed`
+- when a channel with a handler ends and delivers `End`
 - for every handle at once on `unloadAll`, once FMOD accepted the call
 
 A recycled native slot gets a new generation and therefore a new handle int. A value left on a dead handle can never be read through the handle that later reuses its slot.

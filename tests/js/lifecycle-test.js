@@ -134,6 +134,18 @@ async function main() {
             for (const ev of drainEvents()) if (ev.handle === kept && ev.type === 0x20) sawStopped = true;
         }
         check('refused_destroy_callback_still_delivers', sawStopped, '');
+        // A refused bank unload is the third bulk-destroy path, and it
+        // puts every callback back the same way
+        const masterBank = jaxe.fmod_sys_get_bank('bank:/Master');
+        const bankWrapper = jaxe.handleResolve(masterBank, jaxe.TYPE_BANK);
+        const realBankUnload = bankWrapper.unload;
+        bankWrapper.unload = () => 40;
+        const refusedBank = jaxe.fmod_bank_unload(masterBank);
+        bankWrapper.unload = realBankUnload;
+        check('refused_bank_unload_reports', refusedBank === 40, `result=${refusedBank}`);
+        check('refused_bank_unload_keeps_state',
+            JSON.stringify([jaxe.cbMasks, jaxe.psKeys, jaxe.pluginSeen]) === before, '');
+        check('refused_bank_unload_keeps_instance', jaxe.handleResolve(kept, jaxe.TYPE_EVI) != null, '');
         jaxe.fmod_evi_release(kept);
         await pump(2);
         drainEvents();

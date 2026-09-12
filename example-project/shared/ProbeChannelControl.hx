@@ -315,8 +315,8 @@ class ProbeChannelControl {
         // reports nothing playing (bounded). The channel handle itself is
         // freed by the stop, so it reads as stopped at once and cannot be
         // the thing waited on. A lock and unlock pair then waits out the
-        // block in flight. The stream, group, and geometry are then safe
-        // from a teardown under a live mix that reads them.
+        // block in flight. The stream and group are then safe from a
+        // teardown under a live mix that reads them.
         var waited = 0;
         for (i in 0...100) {
             if (!_group.isPlaying()) break;

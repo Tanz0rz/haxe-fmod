@@ -62,7 +62,7 @@ runs:
           # The clone lands next to the cache directory and moves in whole,
           # so a cancelled job never caches a partial tree under this key
           rm -rf "$CACHE_DIR.tmp"
-          bash "$GITHUB_ACTION_PATH/../../ci/retry.sh" --clean "$CACHE_DIR.tmp" git clone --depth 1 --branch "$SDK_VERSION" \
+          bash "$GITHUB_ACTION_PATH/../../../ci/retry.sh" --clean "$CACHE_DIR.tmp" git clone --depth 1 --branch "$SDK_VERSION" \
             "https://x-access-token:${SDK_TOKEN}@github.com/Tanz0rz/fmod-sdk-cache.git" \
             "$CACHE_DIR.tmp"
           # The clone's origin URL embeds the token. Never persist it (or any

@@ -261,17 +261,24 @@ jobs:
       - name: Check the pre-built hdll ABI
         id: abi
         run: |
-          # A binding ABI bump lands before update-hdlls can rebuild the
+          # A shim change lands before update-hdlls can rebuild the
           # shipped hdlls. The doctor check waits for it on a branch. A
           # tag keeps the hard failure: a release ships no stale hdll. An
-          # hdll with no marker at all counts as stale.
+          # hdll with no marker at all counts as stale. Both markers count,
+          # since a shim fix with no ABI bump is a stale binary too.
           ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
           case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
-          MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$" || true)
-          if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
+          SRC=$(python3 ci/hlaxe-src-hash.py)
+          STALE=false
+          for hdll in templates/bin/hl/Linux64/hlaxe_fmod.hdll templates/bin/hl/Mac64/hlaxe_fmod.hdll templates/bin/hl/Windows64/hlaxe_fmod.hdll; do
+            MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" "$hdll" | grep -o "[0-9]*$" || true)
+            SRCMARK=$(grep -ao -m1 "hlaxe_fmod_src=[0-9a-f]*" "$hdll" | sed 's/^hlaxe_fmod_src=//' || true)
+            if [ "$MARKER" != "$ABI" ] || [ "$SRCMARK" != "$SRC" ]; then STALE=true; fi
+          done
+          if [ "$STALE" = true ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
             echo "stale=true" >> "$GITHUB_OUTPUT"
-            echo "::warning ::the pre-built hdll carries ABI '$MARKER' and the manifest says $ABI, the doctor check waits for update-hdlls"
-            echo "The pre-built hdll carries ABI '$MARKER' and the manifest says $ABI. The doctor steps are skipped until update-hdlls lands." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning ::a pre-built hdll is behind the tree (ABI $ABI, source $SRC), the doctor check waits for update-hdlls"
+            echo "A pre-built hdll is behind the tree (ABI $ABI, source $SRC). The doctor steps are skipped until update-hdlls lands." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "stale=false" >> "$GITHUB_OUTPUT"
           fi
@@ -636,17 +643,25 @@ jobs:
       - name: Check the pre-built hdll ABI
         id: abi
         run: |
-          # A binding ABI bump lands before update-hdlls can rebuild the
+          # A shim change lands before update-hdlls can rebuild the
           # shipped hdlls. The marker check and the hl steps wait for it
           # on a branch. A tag keeps the hard failure: a release ships
           # no stale hdll. An hdll with no marker at all counts as stale.
+          # Both markers count, since a shim fix with no ABI bump is a
+          # stale binary too.
           ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)
           case "$ABI" in ''|*[!0-9]*) echo "FAIL: no numeric '# abi-version:' header in native/manifest/studio_api.txt"; exit 1;; esac
-          MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" templates/bin/hl/Linux64/hlaxe_fmod.hdll | grep -o "[0-9]*$" || true)
-          if [ "$MARKER" != "$ABI" ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
+          SRC=$(python3 ci/hlaxe-src-hash.py)
+          STALE=false
+          for hdll in templates/bin/hl/Linux64/hlaxe_fmod.hdll templates/bin/hl/Mac64/hlaxe_fmod.hdll templates/bin/hl/Windows64/hlaxe_fmod.hdll; do
+            MARKER=$(grep -ao -m1 "hlaxe_fmod_abi=[0-9]*" "$hdll" | grep -o "[0-9]*$" || true)
+            SRCMARK=$(grep -ao -m1 "hlaxe_fmod_src=[0-9a-f]*" "$hdll" | sed 's/^hlaxe_fmod_src=//' || true)
+            if [ "$MARKER" != "$ABI" ] || [ "$SRCMARK" != "$SRC" ]; then STALE=true; fi
+          done
+          if [ "$STALE" = true ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
             echo "stale=true" >> "$GITHUB_OUTPUT"
-            echo "::warning ::the pre-built hdll carries ABI '$MARKER' and the manifest says $ABI, the hl package steps wait for update-hdlls"
-            echo "The pre-built hdll carries ABI '$MARKER' and the manifest says $ABI. The HashLink package steps are skipped until update-hdlls lands." >> "$GITHUB_STEP_SUMMARY"
+            echo "::warning ::a pre-built hdll is behind the tree (ABI $ABI, source $SRC), the hl package steps wait for update-hdlls"
+            echo "A pre-built hdll is behind the tree (ABI $ABI, source $SRC). The HashLink package steps are skipped until update-hdlls lands." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "stale=false" >> "$GITHUB_OUTPUT"
           fi
@@ -1564,9 +1579,9 @@ jobs:
           mkdir -p "$RUNNER_TEMP/pw"
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 bash ci/retry.sh npm install playwright@1.63.0 > /dev/null
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 bash "$GITHUB_WORKSPACE/ci/retry.sh" npm install playwright@1.63.0 > /dev/null
           export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
-          bash ci/retry.sh npx playwright install --with-deps firefox
+          bash "$GITHUB_WORKSPACE/ci/retry.sh" npx playwright install --with-deps firefox
 
       - name: Run api-probe state (firefox)
         if: ${{ !cancelled() }}
@@ -4355,6 +4370,12 @@ jobs:
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
+          sudo snap wait system seed.loaded || true
+          for i in $(seq 30); do
+            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /dev/null 2>&1 && break
+            [ "$i" = 30 ] && echo "::warning ::chromium never rendered a headless page after the install"
+            sleep 2
+          done
 
       - name: Start display and audio
         run: |
@@ -4418,6 +4439,7 @@ jobs:
           if [ "$STATUS" = 1 ]; then
             echo "::notice ::the browser died at startup, launching it once more"
             cp /tmp/audio-linux-html5-chromium-console.log "$(dirname /tmp/audio-linux-html5-chromium-console.log)/first-attempt-$(basename /tmp/audio-linux-html5-chromium-console.log)" || true
+            sleep 10
             record_page http://localhost:8180 /tmp/audio-linux-html5-chromium-console.log /tmp/audio-linux-html5-chromium.wav && STATUS=0 || STATUS=$?
             if [ "$STATUS" = 1 ]; then echo "::error ::the browser died at startup twice"; fi
           fi
@@ -4469,6 +4491,7 @@ jobs:
           if [ "$STATUS" = 1 ]; then
             echo "::notice ::the browser died at startup, launching it once more"
             cp /tmp/volume-test-linux-html5-chromium-console.log "$(dirname /tmp/volume-test-linux-html5-chromium-console.log)/first-attempt-$(basename /tmp/volume-test-linux-html5-chromium-console.log)" || true
+            sleep 10
             record_page "http://localhost:8181/index.html?test=volume" /tmp/volume-test-linux-html5-chromium-console.log /tmp/volume-test-linux-html5-chromium.wav && STATUS=0 || STATUS=$?
             if [ "$STATUS" = 1 ]; then echo "::error ::the browser died at startup twice"; fi
           fi
@@ -4510,9 +4533,10 @@ jobs:
             return 1
           }
           if ! launch_page; then
-            echo "::notice ::the browser died at startup, launching it once more"
+            echo "::notice ::the browser died at startup, launching it once more after a pause"
             cp "$RAW" "$(dirname "$RAW")/first-attempt-$(basename "$RAW")" || true
-            launch_page || { echo "::error ::the browser died at startup twice"; kill $HTTP_PID || true; exit 1; }
+            sleep 10
+            launch_page || { echo "::error ::the browser died at startup twice"; tail -n 20 "$RAW" || true; kill $HTTP_PID || true; exit 1; }
           fi
           if [ "$STATE" = synth-test ]; then
             ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-linux-html5-chromium.wav &
@@ -5665,6 +5689,12 @@ jobs:
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
+          sudo snap wait system seed.loaded || true
+          for i in $(seq 30); do
+            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /dev/null 2>&1 && break
+            [ "$i" = 30 ] && echo "::warning ::chromium never rendered a headless page after the install"
+            sleep 2
+          done
 
       - name: Start display and audio
         run: |
@@ -5728,6 +5758,7 @@ jobs:
           if [ "$STATUS" = 1 ]; then
             echo "::notice ::the browser died at startup, launching it once more"
             cp /tmp/audio-heaps-html5-console.log "$(dirname /tmp/audio-heaps-html5-console.log)/first-attempt-$(basename /tmp/audio-heaps-html5-console.log)" || true
+            sleep 10
             record_page http://localhost:8180 /tmp/audio-heaps-html5-console.log /tmp/audio-heaps-html5.wav && STATUS=0 || STATUS=$?
             if [ "$STATUS" = 1 ]; then echo "::error ::the browser died at startup twice"; fi
           fi
@@ -5779,6 +5810,7 @@ jobs:
           if [ "$STATUS" = 1 ]; then
             echo "::notice ::the browser died at startup, launching it once more"
             cp /tmp/volume-test-heaps-html5-console.log "$(dirname /tmp/volume-test-heaps-html5-console.log)/first-attempt-$(basename /tmp/volume-test-heaps-html5-console.log)" || true
+            sleep 10
             record_page "http://localhost:8181/index.html?test=volume" /tmp/volume-test-heaps-html5-console.log /tmp/volume-test-heaps-html5.wav && STATUS=0 || STATUS=$?
             if [ "$STATUS" = 1 ]; then echo "::error ::the browser died at startup twice"; fi
           fi
@@ -5820,9 +5852,10 @@ jobs:
             return 1
           }
           if ! launch_page; then
-            echo "::notice ::the browser died at startup, launching it once more"
+            echo "::notice ::the browser died at startup, launching it once more after a pause"
             cp "$RAW" "$(dirname "$RAW")/first-attempt-$(basename "$RAW")" || true
-            launch_page || { echo "::error ::the browser died at startup twice"; kill $HTTP_PID || true; exit 1; }
+            sleep 10
+            launch_page || { echo "::error ::the browser died at startup twice"; tail -n 20 "$RAW" || true; kill $HTTP_PID || true; exit 1; }
           fi
           if [ "$STATE" = synth-test ]; then
             ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-heaps-html5.wav &
@@ -6738,6 +6771,12 @@ jobs:
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
+          sudo snap wait system seed.loaded || true
+          for i in $(seq 30); do
+            chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /dev/null 2>&1 && break
+            [ "$i" = 30 ] && echo "::warning ::chromium never rendered a headless page after the install"
+            sleep 2
+          done
 
       - name: Start display and audio
         run: |
@@ -6801,6 +6840,7 @@ jobs:
           if [ "$STATUS" = 1 ]; then
             echo "::notice ::the browser died at startup, launching it once more"
             cp /tmp/audio-kha-html5-console.log "$(dirname /tmp/audio-kha-html5-console.log)/first-attempt-$(basename /tmp/audio-kha-html5-console.log)" || true
+            sleep 10
             record_page http://localhost:8180 /tmp/audio-kha-html5-console.log /tmp/audio-kha-html5.wav && STATUS=0 || STATUS=$?
             if [ "$STATUS" = 1 ]; then echo "::error ::the browser died at startup twice"; fi
           fi
@@ -6852,6 +6892,7 @@ jobs:
           if [ "$STATUS" = 1 ]; then
             echo "::notice ::the browser died at startup, launching it once more"
             cp /tmp/volume-test-kha-html5-console.log "$(dirname /tmp/volume-test-kha-html5-console.log)/first-attempt-$(basename /tmp/volume-test-kha-html5-console.log)" || true
+            sleep 10
             record_page "http://localhost:8181/index.html?test=volume" /tmp/volume-test-kha-html5-console.log /tmp/volume-test-kha-html5.wav && STATUS=0 || STATUS=$?
             if [ "$STATUS" = 1 ]; then echo "::error ::the browser died at startup twice"; fi
           fi
@@ -6893,9 +6934,10 @@ jobs:
             return 1
           }
           if ! launch_page; then
-            echo "::notice ::the browser died at startup, launching it once more"
+            echo "::notice ::the browser died at startup, launching it once more after a pause"
             cp "$RAW" "$(dirname "$RAW")/first-attempt-$(basename "$RAW")" || true
-            launch_page || { echo "::error ::the browser died at startup twice"; kill $HTTP_PID || true; exit 1; }
+            sleep 10
+            launch_page || { echo "::error ::the browser died at startup twice"; tail -n 20 "$RAW" || true; kill $HTTP_PID || true; exit 1; }
           fi
           if [ "$STATE" = synth-test ]; then
             ffmpeg -f pulse -i virtual_speaker.monitor -t 60 -y /tmp/synth-test-kha-html5.wav &

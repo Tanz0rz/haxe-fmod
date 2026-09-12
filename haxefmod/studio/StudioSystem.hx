@@ -134,8 +134,9 @@ class StudioSystem {
      * Unloads all banks. Every handle that came from a bank dies with it.
      * Once FMOD accepted the call, every userdata entry, every
      * description-level callback, and every instance callback is dropped
-     * here too. A refused call keeps all of that state, and can have
-     * unloaded some banks anyway.
+     * here too. A handler set on an instance's channel group stays in the
+     * channel map until ClearAllCallbacks. A refused call keeps all of
+     * that state, and can have unloaded some banks anyway.
      */
     public static function unloadAll():FmodResult {
         // A refused unload keeps the entries and handlers

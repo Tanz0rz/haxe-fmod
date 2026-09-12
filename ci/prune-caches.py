@@ -12,9 +12,10 @@ needs. Two things fill it here:
     That is what keeps them from going stale, and it leaves one set per
     commit behind at roughly 100MB a commit.
 
-So this removes caches whose branch is gone, caches left by tag runs,
-caches on a side branch that has gone quiet, and stable keys a pin
-rotation left behind. It also removes all but the newest few entries of
+So this removes caches whose branch is gone and caches left by tag
+runs. It removes caches on a side branch that has gone quiet, and
+stable keys a pin rotation left behind. It also removes all but the
+newest few entries of
 each remaining key. Anything deleted is rebuilt by the next run that
 wants it. The cost of being wrong here is one slow job, never a broken
 one. The default branch is only ever pruned by the keep rule.
@@ -80,14 +81,16 @@ def base_key(key):
     return SHA_SUFFIX.sub("", key)
 
 
-FAMILY = re.compile(r"^(.*?-(?:Linux|macOS|Windows))(?:-|$)")
+FAMILY = re.compile(r"^(haxelib-.*?)-[0-9]+\.[0-9]+\.[0-9]+((?:-[a-z]+)*)-lime[0-9.]+-.*$")
 
 
 def family(key):
-    """A stable key up to its OS segment. A pin rotation changes what
-    follows and leaves the old key for nothing to restore."""
+    """A haxelib key without its Haxe version and pins. A pin rotation
+    changes those and leaves the old key for nothing to restore. Every
+    other key kind can hold two live versions at once, so none of them
+    has a family."""
     m = FAMILY.match(key)
-    return m.group(1) if m else key
+    return m.group(1) + m.group(2) if m else None
 
 
 def plan(caches, live_branches, keep, only_branch, default_branch="master",
@@ -131,15 +134,16 @@ def plan(caches, live_branches, keep, only_branch, default_branch="master",
     if only_branch is not None:
         return doomed, reason
 
-    # A stable key a pin rotation left behind: a newer key of its family
-    # exists on the same ref, and nothing restored the old one since the
+    # A stable key a pin rotation left behind has a newer key of its
+    # family on the same ref. Nothing restored the old key since the
     # newer one was created. Two keys a workflow restores in turn both
     # stay, since each is touched after the other was created.
     families = {}
     for entry in survivors:
-        if SHA_SUFFIX.search(entry["key"]):
+        fam = family(entry["key"])
+        if fam is None:
             continue
-        families.setdefault((entry["ref"], family(entry["key"])), []).append(entry)
+        families.setdefault((entry["ref"], fam), []).append(entry)
     orphaned = set()
     for (ref, fam), entries in sorted(families.items()):
         newest = max(entries, key=lambda e: e["created_at"])
@@ -176,21 +180,25 @@ def selftest():
         return {"id": id, "ref": ref, "key": key, "created_at": stamp(created),
                 "last_accessed_at": stamp(accessed), "size_in_bytes": 1}
 
-    pins_old = "haxelib-hl-Linux-4.3.6-lime8.3.0"
-    pins_new = "haxelib-hl-Linux-4.3.6-lime8.3.0-dox1.6.0"
+    pins_old = "haxelib-hl-Linux-4.3.6-lime8.3.0-openfl9.5.0"
+    pins_new = "haxelib-hl-Linux-4.3.6-lime8.3.0-openfl9.5.0-dox1.6.0"
+    docs_a = "haxelib-docs-Linux-4.3.6-lime8.3.0-openfl9.5.0-dox1.6.0"
+    docs_b = "haxelib-docs-Linux-4.3.6-flixel-heaps-lime8.3.0-openfl9.5.0-dox1.6.0"
     sha_a = "hxcpp-Linux-app-" + "a" * 40
     sha_b = "hxcpp-Linux-app-" + "b" * 40
     sha_c = "hxcpp-Linux-app-" + "c" * 40
     caches = [
         entry(1, pins_old, 3, 2),             # rotated away, unused since
         entry(2, pins_new, 1, 0),             # the live key
-        entry(3, "fmod-sdk-Linux-2.02.33", 5, 0),   # both SDK keys restore
-        entry(4, "fmod-sdk-Linux-2.03.12", 4, 0),
+        entry(3, "fmod-sdk-Linux-2.02.33", 5, 2),   # two SDK versions, both live
+        entry(4, "fmod-sdk-Linux-2.03.13", 1, 0),   # newer, and the old one idle since
         entry(5, sha_a, 3, 3), entry(6, sha_b, 2, 2), entry(7, sha_c, 1, 1),
         entry(8, "kha-macOS-" + "d" * 40, 30, 0),   # restored today, stays
         entry(9, "kha-macOS-" + "e" * 40, 30, 30),  # idle a month
         entry(10, pins_new, 1, 0, ref="refs/heads/gone"),
         entry(11, pins_new, 1, 0, ref="refs/heads/refs/tags/v1"),
+        entry(12, docs_a, 1, 0),              # two docs keys, distinct families
+        entry(13, docs_b, 2, 1),
     ]
     doomed, reason = plan(caches, {"master", "dev"}, 2, None, "master", 14)
     got = {e["id"]: reason[e["id"]] for e in doomed}
@@ -205,7 +213,7 @@ def selftest():
         print("selftest FAIL: got {} expected {}".format(got, expect))
         sys.exit(1)
     doomed, reason = plan(caches, {"master", "dev"}, 2, "dev", "master", 14)
-    if sorted(e["id"] for e in doomed) != [1, 2, 3, 4, 5, 6, 7, 8, 9]:
+    if sorted(e["id"] for e in doomed) != [1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13]:
         print("selftest FAIL: branch close kept {}".format(sorted(e["id"] for e in doomed)))
         sys.exit(1)
     print("prune-caches selftest: all rules hold")

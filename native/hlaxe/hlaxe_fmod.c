@@ -1054,6 +1054,9 @@ static FMOD_RESULT F_CALLBACK hlaxe_channel_callback(FMOD_CHANNELCONTROL* channe
     FMOD_CHANNELCONTROL_TYPE controltype, FMOD_CHANNELCONTROL_CALLBACK_TYPE callbacktype,
     void* commanddata1, void* commanddata2);
 
+/* Defined with the lookup sweeps below, needed by the group release */
+static int hlaxe_lookup_slot_valid(void* ptr, unsigned char type);
+
 static FMOD_CHANNELGROUP* resolve_changroup(int h) {
     return (FMOD_CHANNELGROUP*)faxe_handle_resolve(h, FAXE_TYPE_CHANGROUP);
 }
@@ -1296,6 +1299,12 @@ HL_PRIM int HL_NAME(cg_release)(int h) {
     /* A refused release keeps the group and its rolloff points. A group
      * FMOD freed reads them no more, so they go with the slot below. */
     gLastResult = FMOD_ChannelGroup_Release(group);
+    /* FMOD answers INVALID_HANDLE for the master group too, and keeps it
+     * alive. A group that still answers a getter is a refusal, reported
+     * as INVALID_PARAM so the slot, its rolloff, and the callback stay. */
+    if (gLastResult == FMOD_ERR_INVALID_HANDLE && hlaxe_lookup_slot_valid(group, FAXE_TYPE_CHANGROUP)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+    }
     /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
@@ -2617,8 +2626,16 @@ DEFINE_PRIM(_I32, sys_get_master_sound_group, _NO_ARG);
 
 HL_PRIM int HL_NAME(sg_release)(int h) {
     FMOD_SOUNDGROUP* group = resolve_soundgroup(h);
+    int maxAudible = 0;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_SoundGroup_Release(group);
+    /* FMOD answers INVALID_HANDLE for the master sound group too, and
+     * keeps it alive. A group that still answers a getter is a refusal,
+     * reported as INVALID_PARAM so the slot stays. */
+    if (gLastResult == FMOD_ERR_INVALID_HANDLE
+        && FMOD_SoundGroup_GetMaxAudible(group, &maxAudible) != FMOD_ERR_INVALID_HANDLE) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+    }
     /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
@@ -2920,15 +2937,14 @@ HL_PRIM int HL_NAME(evi_get_channel_group)(int h) {
     FMOD_CHANNELGROUP* group = NULL;
     FaxeInstCtx* ctx;
     int cgHandle;
-    int found;
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_EventInstance_GetChannelGroup(instance, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
     ctx = instance_ctx(instance);
     /* Another instance's dead group can sit at this address until its
-     * context drains. Its slot goes now, so two contexts never share one. */
-    found = faxe_handle_find(group, FAXE_TYPE_CHANGROUP);
-    if (ctx && found != 0 && found != ctx->cgHandle) faxe_handle_free(found);
+     * context drains. The validity sweep frees such a slot and keeps a
+     * live one the game reached through a group walk, with its rolloff. */
+    faxe_handles_sweep_type(FAXE_TYPE_CHANGROUP, hlaxe_lookup_slot_valid, NULL);
     cgHandle = hlaxe_handle_or_memory(group, FAXE_TYPE_CHANGROUP);
     /* The group dies with the instance, outside every sweep trigger. Record
      * the handle on the context so the DESTROYED drain reclaims the slot
@@ -3738,8 +3754,8 @@ static void free_destroyed_ctx(FaxeInstCtx* ctx) {
     for (i = 0; i < FAXE_PS_NAMED_MAX; i++) {
         void* sound = ctx->psSounds[i];
         if (!sound) continue;
-        /* The sound and its subsounds are alive here, so a lock the
-         * game opened is closed and the rolloff detached before the release */
+        /* The sound and its subsounds are alive here, so the rolloff
+         * comes off before the release */
         if (ctx->psSoundHandles[i]) {
             faxe_handles_free_children(ctx->psSoundHandles[i], hlaxe_owned_sound_teardown);
             hlaxe_owned_sound_teardown(sound, ctx->psSoundHandles[i]);
@@ -3798,8 +3814,8 @@ static int hlaxe_mint_recorded(int instanceHandle, void* ptr, unsigned char type
 }
 
 /* Ends a shim-created programmer sound on the game thread. The subsound
- * handles and the parent's own lock and rolloff go first, while the
- * sound is alive. The handle goes next, then the sound. A plugin DSP
+ * handles and the parent's own rolloff go first, while the sound is
+ * alive. The handle goes next, then the sound. A plugin DSP
  * handle arrives with no sound and its slot goes alone. */
 static void hlaxe_drain_dropped_sound(int handle, FMOD_SOUND* sound) {
     if (handle) {
@@ -4537,10 +4553,63 @@ static void hlaxe_reclaim_dead_lookups(void) {
     faxe_handles_sweep_lookups(hlaxe_lookup_slot_valid);
 }
 
+/* The group callbacks the game installed on instance groups, taken off
+ * before a call that destroys instances. FMOD must not free a group with
+ * the shim callback on it. A refused call puts each one back whose group
+ * still answers, the way the HTML5 shim restores instance callbacks. */
+typedef struct {
+    FMOD_CHANNELGROUP** groups;
+    void** userData;
+    int count;
+} HlaxeGroupCallbackStash;
+
+static HlaxeGroupCallbackStash hlaxe_uninstall_instance_group_callbacks(void) {
+    HlaxeGroupCallbackStash stash;
+    int i;
+    size_t cap = (size_t)(gFaxeSlotCap > 0 ? gFaxeSlotCap : 1);
+    stash.groups = (FMOD_CHANNELGROUP**)malloc(sizeof(FMOD_CHANNELGROUP*) * cap);
+    stash.userData = (void**)malloc(sizeof(void*) * cap);
+    stash.count = 0;
+    if (!stash.groups || !stash.userData) return stash;
+    for (i = 0; i < gFaxeSlotCap; i++) {
+        FaxeSlot* s = &gFaxeSlots[i];
+        FaxeInstCtx* ctx;
+        FMOD_CHANNELGROUP* group;
+        void* userData = NULL;
+        if (!s->alive || s->type != FAXE_TYPE_EVI) continue;
+        ctx = instance_ctx((FMOD_STUDIO_EVENTINSTANCE*)s->ptr);
+        if (!ctx || ctx->cgHandle == 0) continue;
+        group = resolve_changroup(ctx->cgHandle);
+        if (!group || FMOD_ChannelGroup_GetUserData(group, &userData) != FMOD_OK || !userData) continue;
+        FMOD_ChannelGroup_SetCallback(group, NULL);
+        FMOD_ChannelGroup_SetUserData(group, NULL);
+        stash.groups[stash.count] = group;
+        stash.userData[stash.count] = userData;
+        stash.count++;
+    }
+    return stash;
+}
+
+static void hlaxe_restore_instance_group_callbacks(HlaxeGroupCallbackStash* stash, int restore) {
+    int i;
+    if (restore) {
+        for (i = 0; i < stash->count; i++) {
+            if (!hlaxe_lookup_slot_valid(stash->groups[i], FAXE_TYPE_CHANGROUP)) continue;
+            FMOD_ChannelGroup_SetUserData(stash->groups[i], stash->userData[i]);
+            FMOD_ChannelGroup_SetCallback(stash->groups[i], hlaxe_channel_callback);
+        }
+    }
+    free(stash->groups);
+    free(stash->userData);
+}
+
 HL_PRIM int HL_NAME(sys_unload_all)() {
+    HlaxeGroupCallbackStash stash;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     hlaxe_stash_all_bank_paths();
+    stash = hlaxe_uninstall_instance_group_callbacks();
     gLastResult = FMOD_Studio_System_UnloadAll(gStudioSystem);
+    hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK);
     /* A refused call can still have unloaded some banks, and the sweep
      * frees only the slots FMOD reports dead, so it runs either way.
      * Otherwise a stale slot at a reused address aliases a new object. */
@@ -4864,9 +4933,12 @@ DEFINE_PRIM(_BYTES, bank_get_path, _I32);
 // Real unload. Frees the bank handle on success so stale copies stop resolving
 HL_PRIM int HL_NAME(bank_unload)(int h) {
     FMOD_STUDIO_BANK* bank = resolve_bank(h);
+    HlaxeGroupCallbackStash stash;
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     hlaxe_stash_bank_path(bank);
+    stash = hlaxe_uninstall_instance_group_callbacks();
     gLastResult = FMOD_Studio_Bank_Unload(bank);
+    hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK && gLastResult != FMOD_ERR_INVALID_HANDLE);
     /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
@@ -5239,8 +5311,11 @@ DEFINE_PRIM(_I32, evd_get_instance_list, _I32 _BYTES);
 
 HL_PRIM int HL_NAME(evd_release_all_instances)(int h) {
     FMOD_STUDIO_EVENTDESCRIPTION* desc = resolve_evd(h);
+    HlaxeGroupCallbackStash stash;
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    stash = hlaxe_uninstall_instance_group_callbacks();
     gLastResult = FMOD_Studio_EventDescription_ReleaseAllInstances(desc);
+    hlaxe_restore_instance_group_callbacks(&stash, gLastResult != FMOD_OK);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, evd_release_all_instances, _I32);
@@ -5423,8 +5498,23 @@ DEFINE_PRIM(_I32, evi_key_off, _I32);
 // Releases the instance (it keeps playing until it stops) and frees the handle
 HL_PRIM int HL_NAME(evi_release)(int h) {
     FMOD_STUDIO_EVENTINSTANCE* instance = resolve_instance(h);
+    FaxeInstCtx* ctx;
+    FMOD_CHANNELGROUP* group = NULL;
+    void* groupUserData = NULL;
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    /* The instance's group dies with it, so its callback comes off first */
+    ctx = instance_ctx(instance);
+    if (ctx && ctx->cgHandle) group = resolve_changroup(ctx->cgHandle);
+    if (group) FMOD_ChannelGroup_GetUserData(group, &groupUserData);
+    if (groupUserData) {
+        FMOD_ChannelGroup_SetCallback(group, NULL);
+        FMOD_ChannelGroup_SetUserData(group, NULL);
+    }
     gLastResult = FMOD_Studio_EventInstance_Release(instance);
+    if (gLastResult != FMOD_OK && gLastResult != FMOD_ERR_INVALID_HANDLE && groupUserData) {
+        FMOD_ChannelGroup_SetUserData(group, groupUserData);
+        FMOD_ChannelGroup_SetCallback(group, hlaxe_channel_callback);
+    }
     /* INVALID_HANDLE means FMOD already destroyed the instance (bank unload,
      * releaseAllInstances). The slot must still be reclaimed or it leaks for
      * the rest of the process. */

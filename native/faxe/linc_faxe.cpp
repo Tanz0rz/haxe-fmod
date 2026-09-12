@@ -951,6 +951,9 @@ static inline FMOD::DSP* resolveDsp(int h) {
 // Defined with the channel callbacks below, needed by the group release
 static FMOD_RESULT F_CALLBACK lincChannelCallback(FMOD_CHANNELCONTROL* channelcontrol, FMOD_CHANNELCONTROL_TYPE controltype, FMOD_CHANNELCONTROL_CALLBACK_TYPE callbacktype, void* commanddata1, void* commanddata2);
 
+// Defined with the lookup sweeps below, needed by the group release
+static int lincLookupSlotValid(void* ptr, unsigned char type);
+
 static inline FMOD::ChannelGroup* resolveChanGroup(int h) {
     return (FMOD::ChannelGroup*)faxe_handle_resolve(h, FAXE_TYPE_CHANGROUP);
 }
@@ -1165,6 +1168,12 @@ int fmod_cg_release(int h) {
     // A refused release keeps the group and its rolloff points. A group
     // FMOD freed reads them no more, so they go with the slot below.
     gLastResult = group->release();
+    // FMOD answers INVALID_HANDLE for the master group too, and keeps it
+    // alive. A group that still answers a getter is a refusal, reported
+    // as INVALID_PARAM so the slot, its rolloff, and the callback stay.
+    if (gLastResult == FMOD_ERR_INVALID_HANDLE && lincLookupSlotValid(group, FAXE_TYPE_CHANGROUP)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+    }
     // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
@@ -2339,6 +2348,13 @@ int fmod_sg_release(int h) {
     FMOD::SoundGroup* group = resolveSoundGroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = group->release();
+    // FMOD answers INVALID_HANDLE for the master sound group too, and
+    // keeps it alive. A group that still answers a getter is a refusal,
+    // reported as INVALID_PARAM so the slot stays.
+    if (gLastResult == FMOD_ERR_INVALID_HANDLE) {
+        int maxAudible = 0;
+        if (group->getMaxAudible(&maxAudible) != FMOD_ERR_INVALID_HANDLE) gLastResult = FMOD_ERR_INVALID_PARAM;
+    }
     // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
     return (int)gLastResult;
@@ -2609,9 +2625,9 @@ int fmod_evi_get_channel_group(int h) {
     if (gLastResult != FMOD_OK || !group) return 0;
     FaxeInstCtx* ctx = instanceCtx(instance);
     // Another instance's dead group can sit at this address until its
-    // context drains. Its slot goes now, so two contexts never share one.
-    int found = faxe_handle_find(group, FAXE_TYPE_CHANGROUP);
-    if (ctx && found != 0 && found != ctx->cgHandle) faxe_handle_free(found);
+    // context drains. The validity sweep frees such a slot and keeps a
+    // live one the game reached through a group walk, with its rolloff.
+    faxe_handles_sweep_type(FAXE_TYPE_CHANGROUP, lincLookupSlotValid, NULL);
     int cgHandle = lincHandleOrMemory(group, FAXE_TYPE_CHANGROUP);
     // The group dies with the instance, outside every sweep trigger. Record
     // the handle on the context so the DESTROYED drain reclaims the slot
@@ -3319,8 +3335,8 @@ static void freeDestroyedCtx(FaxeInstCtx* ctx) {
     for (int i = 0; i < FAXE_PS_NAMED_MAX; i++) {
         void* sound = ctx->psSounds[i];
         if (!sound) continue;
-        // The sound and its subsounds are alive here, so a lock the
-        // game opened is closed and the rolloff detached before the release
+        // The sound and its subsounds are alive here, so the rolloff
+        // comes off before the release
         if (ctx->psSoundHandles[i]) {
             faxe_handles_free_children(ctx->psSoundHandles[i], lincOwnedSoundTeardown);
             lincOwnedSoundTeardown(sound, ctx->psSoundHandles[i]);
@@ -3377,8 +3393,8 @@ static int lincMintRecorded(int instanceHandle, void* ptr, unsigned char type, i
 }
 
 // Ends a shim-created programmer sound on the game thread. The subsound
-// handles and the parent's own lock and rolloff go first, while the
-// sound is alive. The handle goes next, then the sound. A plugin DSP
+// handles and the parent's own rolloff go first, while the sound is
+// alive. The handle goes next, then the sound. A plugin DSP
 // handle arrives with no sound and its slot goes alone.
 static void lincDrainDroppedSound(int handle, FMOD::Sound* sound) {
     if (handle) {
@@ -4048,10 +4064,57 @@ static void lincReclaimDeadChannels() {
     faxe_handles_sweep_type(FAXE_TYPE_CHAN, lincChannelSlotValid, lincChannelDetachRolloff);
 }
 
+// The group callbacks the game installed on instance groups, taken off
+// before a call that destroys instances. FMOD must not free a group with
+// the shim callback on it. A refused call puts each one back whose group
+// still answers, the way the HTML5 shim restores instance callbacks.
+struct LincGroupCallbackStash {
+    FMOD::ChannelGroup** groups;
+    void** userData;
+    int count;
+};
+
+static LincGroupCallbackStash lincUninstallInstanceGroupCallbacks() {
+    LincGroupCallbackStash stash;
+    stash.groups = (FMOD::ChannelGroup**)malloc(sizeof(FMOD::ChannelGroup*) * (size_t)(gFaxeSlotCap > 0 ? gFaxeSlotCap : 1));
+    stash.userData = (void**)malloc(sizeof(void*) * (size_t)(gFaxeSlotCap > 0 ? gFaxeSlotCap : 1));
+    stash.count = 0;
+    if (!stash.groups || !stash.userData) return stash;
+    for (int i = 0; i < gFaxeSlotCap; i++) {
+        FaxeSlot* s = &gFaxeSlots[i];
+        if (!s->alive || s->type != FAXE_TYPE_EVI) continue;
+        FaxeInstCtx* ctx = instanceCtx((FMOD::Studio::EventInstance*)s->ptr);
+        if (!ctx || ctx->cgHandle == 0) continue;
+        FMOD::ChannelGroup* group = resolveChanGroup(ctx->cgHandle);
+        void* userData = NULL;
+        if (!group || group->getUserData(&userData) != FMOD_OK || !userData) continue;
+        group->setCallback(NULL);
+        group->setUserData(NULL);
+        stash.groups[stash.count] = group;
+        stash.userData[stash.count] = userData;
+        stash.count++;
+    }
+    return stash;
+}
+
+static void lincRestoreInstanceGroupCallbacks(LincGroupCallbackStash* stash, bool restore) {
+    if (restore) {
+        for (int i = 0; i < stash->count; i++) {
+            if (!lincLookupSlotValid(stash->groups[i], FAXE_TYPE_CHANGROUP)) continue;
+            stash->groups[i]->setUserData(stash->userData[i]);
+            stash->groups[i]->setCallback(lincChannelCallback);
+        }
+    }
+    free(stash->groups);
+    free(stash->userData);
+}
+
 int fmod_sys_unload_all() {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     lincStashAllBankPaths();
+    LincGroupCallbackStash stash = lincUninstallInstanceGroupCallbacks();
     gLastResult = gStudioSystem->unloadAll();
+    lincRestoreInstanceGroupCallbacks(&stash, gLastResult != FMOD_OK);
     // A refused call can still have unloaded some banks, and the sweep
     // frees only the slots FMOD reports dead, so it runs either way.
     // Otherwise a stale slot at a reused address aliases a new object.
@@ -4334,7 +4397,9 @@ int fmod_bank_unload(int h) {
     FMOD::Studio::Bank* bank = resolveBank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     lincStashBankPath(bank);
+    LincGroupCallbackStash stash = lincUninstallInstanceGroupCallbacks();
     gLastResult = bank->unload();
+    lincRestoreInstanceGroupCallbacks(&stash, gLastResult != FMOD_OK && gLastResult != FMOD_ERR_INVALID_HANDLE);
     // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
@@ -4664,7 +4729,9 @@ int fmod_evd_get_instance_list(int h, ::Array<int> out) {
 int fmod_evd_release_all_instances(int h) {
     FMOD::Studio::EventDescription* desc = resolveDescription(h);
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    LincGroupCallbackStash stash = lincUninstallInstanceGroupCallbacks();
     gLastResult = desc->releaseAllInstances();
+    lincRestoreInstanceGroupCallbacks(&stash, gLastResult != FMOD_OK);
     return (int)gLastResult;
 }
 
@@ -4827,7 +4894,20 @@ int fmod_evi_key_off(int h) {
 int fmod_evi_release(int h) {
     FMOD::Studio::EventInstance* instance = resolveInstance(h);
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    // The instance's group dies with it, so its callback comes off first
+    FaxeInstCtx* ctx = instanceCtx(instance);
+    FMOD::ChannelGroup* group = ctx && ctx->cgHandle ? resolveChanGroup(ctx->cgHandle) : NULL;
+    void* groupUserData = NULL;
+    if (group) group->getUserData(&groupUserData);
+    if (groupUserData) {
+        group->setCallback(NULL);
+        group->setUserData(NULL);
+    }
     gLastResult = instance->release();
+    if (gLastResult != FMOD_OK && gLastResult != FMOD_ERR_INVALID_HANDLE && groupUserData) {
+        group->setUserData(groupUserData);
+        group->setCallback(lincChannelCallback);
+    }
     // INVALID_HANDLE means FMOD already destroyed the instance (bank unload,
     // releaseAllInstances). The slot must still be reclaimed or it leaks for
     // the rest of the process.

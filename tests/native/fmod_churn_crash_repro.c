@@ -1,4 +1,4 @@
-/* KNOWN-CRASH EVIDENCE, NOT RUN IN CI.
+/* KNOWN-CRASH EVIDENCE. CI never runs this.
  *
  * Reproduces an FMOD-internal segfault on linux (FMOD 2.03.12). Rapid
  * same-frame churn of OPENUSER stream lifecycles together with Reverb3D

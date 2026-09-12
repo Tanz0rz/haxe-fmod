@@ -138,7 +138,8 @@ abstract SoundGroup(Int) from Int to Int {
 
     /**
      * Frees a group made with create() and invalidates this handle. Its
-     * sounds move back to the master group. Do not release the master.
+     * sounds move back to the master group. The master group refuses with
+     * `FMOD_ERR_INVALID_PARAM` and keeps its handle.
      */
     public inline function release():FmodResult {
         var result:FmodResult = NativeStudio.sg_release(this);

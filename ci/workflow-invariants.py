@@ -41,8 +41,8 @@ leans on:
      goes through the local action with the retry. The macOS jobs
      install Haxe through Homebrew, which retries on its own.
   14. Every haxelib install, git clone, npm install, playwright install,
-     and curl health check goes through ci/retry.sh, in the workflows,
-     the composite actions, and the run job generator.
+     and curl health check goes through ci/retry.sh. That covers the
+     workflows, the composite actions, and the run job generator.
   15. The steps gated on a stale pre-built hdll are the known few, so a
      new gate cannot hide behind the branch escape hatch unnoticed.
 
@@ -247,25 +247,56 @@ if direct:
 else:
     ok("no workflow uses krdlab/setup-haxe directly")
 
-# 14. Every network fetch goes through the retry wrapper
-FETCH_RE = re.compile(r"^[ ]*(?:[A-Z_]+=\S+ )*(haxelib install|git clone|npm install|npx playwright install|curl -fsS)", re.M)
+# 14. Every network fetch goes through the retry wrapper, and every
+# wrapper path resolves: a relative path after a cd in the same run
+# block, or a wrong depth from an action directory, is exit 127 on the
+# runner and a green invariant here otherwise.
+FETCH_RE = re.compile(r"(haxelib install|git clone|npm install|npx playwright install|curl -fsS)")
+WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)(?:ci/)?retry\.sh\1")
 fetch_files = [os.path.join(os.path.dirname(PATH), wf) for wf in sorted(os.listdir(os.path.dirname(PATH))) if wf.endswith(".yml")]
 actions_dir = os.path.join(ROOT, ".github", "actions")
 fetch_files += [os.path.join(actions_dir, a, "action.yml") for a in sorted(os.listdir(actions_dir))]
 fetch_files.append(os.path.join(ROOT, "ci", "generate-run-jobs.py"))
 bare = []
+unresolved = []
 wrapped = 0
 for path in fetch_files:
     with open(path) as fh:
-        for n, line in enumerate(fh, 1):
-            if FETCH_RE.match(line):
-                bare.append(f"{os.path.relpath(path, ROOT)}:{n}")
-            elif "retry.sh" in line and re.search(r"haxelib install|git clone|npm install|npx playwright install|curl -fsS", line):
+        lines = fh.readlines()
+    block_indent = None
+    moved = False
+    for n, line in enumerate(lines, 1):
+        stripped = line.strip()
+        indent = len(line) - len(line.lstrip(" "))
+        if re.match(r"run: \|", stripped) or re.match(r"return f?" + chr(34) * 3, stripped):
+            block_indent = indent
+            moved = False
+            continue
+        if block_indent is not None and stripped and indent <= block_indent:
+            block_indent = None
+        if stripped.startswith("#") or stripped.startswith("echo "):
+            continue
+        if re.match(r"cd ", stripped) and not stripped.startswith("cd -"):
+            moved = True
+        if "retry.sh" in line:
+            m = WRAPPER_RE.search(line)
+            if not m:
+                unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} unrecognised wrapper spelling")
+            elif m.group(2) == "$GITHUB_ACTION_PATH":
+                base = os.path.dirname(path)
+                target = os.path.normpath(os.path.join(base, m.group(3).lstrip("/"), "ci", "retry.sh"))
+                if not os.path.exists(target):
+                    unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} resolves to {os.path.relpath(target, ROOT)}")
+            elif m.group(2) == "" and moved:
+                unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} relative wrapper after a cd")
+            if FETCH_RE.search(line):
                 wrapped += 1
-if bare or wrapped < 100:
-    fail(f"network fetches outside ci/retry.sh: {bare} ({wrapped} wrapped)")
+        elif FETCH_RE.search(line):
+            bare.append(f"{os.path.relpath(path, ROOT)}:{n}")
+if bare or unresolved or wrapped < 100:
+    fail(f"network fetches outside ci/retry.sh: {bare}, wrapper paths that do not resolve: {unresolved} ({wrapped} wrapped)")
 else:
-    ok(f"{wrapped} network fetches go through ci/retry.sh, none bare")
+    ok(f"{wrapped} network fetches go through ci/retry.sh, none bare, every wrapper path resolves")
 
 # 15. The stale-hdll escape hatch gates the known steps only
 STALE_GATED = ["Doctor passes in a configured environment", "Build HashLink target from the installed package", "Validate build output"]
