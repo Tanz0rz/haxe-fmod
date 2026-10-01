@@ -1,4 +1,4 @@
-# haxefmod for FMOD docs
+# haxefmod for FMOD docs (beta)
 
 A browser extension for the [FMOD API reference](https://www.fmod.com/docs/2.03/api/welcome.html). It adds a **Haxe** tab beside C, C++, C#, and JS on every function. The tab shows the haxefmod signature that wraps the function, the other Haxe methods that reach it, and HTML5 caveats. Functions haxefmod does not expose say so.
 

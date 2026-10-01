@@ -11,11 +11,11 @@ haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS. 
 - [Helper class](guides/fmod-manager.md) to map FMOD Studio calls/events to game code
 - [Generated constants](guides/constants.md) for every event, bus, VCA, snapshot, and parameter in your banks
 - [TODO markers](guides/fmod-manager.md#sound-todo-markers) for sound effects to add later
-- An [extension for fmod.com](guides/extension.md) to integrate Haxe examples into the official docs
+- An [extension for fmod.com (beta)](guides/extension.md) to integrate Haxe examples into the official docs
 
 ## Two sets of docs
 
-FMOD's own documentation at [fmod.com/docs](https://www.fmod.com/docs/2.03/api/welcome.html) describes every FMOD function, type, and guide. The [fmod.com extension](guides/extension.md) adds a Haxe tab to each of them with the haxefmod signature. Most haxefmod methods keep the FMOD name. The `System` factories sit on the class they create, for example `Sound.create` for `System::createSound`.
+FMOD's own documentation at [fmod.com/docs](https://www.fmod.com/docs/2.03/api/welcome.html) describes every FMOD function, type, and guide. The [fmod.com extension (beta)](guides/extension.md) adds a Haxe tab to each of them with the haxefmod signature. Most haxefmod methods keep the FMOD name. The `System` factories sit on the class they create, for example `Sound.create` for `System::createSound`.
 
 These pages cover only what the library adds. That is setup, the helper class, the runtime layer, handle conventions, engine components, and the command line.
 
