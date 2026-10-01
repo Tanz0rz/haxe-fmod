@@ -34,6 +34,7 @@ class TestStringsBankParser {
 		testEmitClass();
 		testEventEnums();
 		testGeneratedStringEscaping();
+		probeCli();
 
 		cleanup();
 		Sys.println('  $passed passed, $failed failed');
@@ -308,6 +309,20 @@ class TestStringsBankParser {
 	}
 
 	//// helpers
+
+
+	static function probeCli() {
+		var root = sys.FileSystem.absolutePath("tests/.tmp/gen-cli-probe");
+		Sys.command("rm", ["-rf", root]);
+		var bankDir = root + "/assets/fmod/Desktop";
+		sys.FileSystem.createDirectory(bankDir);
+		sys.FileSystem.createDirectory(root + "/source");
+		sys.io.File.copy(fixture, bankDir + "/Master.strings.bank");
+		haxefmod.tools.Generate.run([], root);
+		assert("PROBE generate defaults read the bank folder and write to source/", sys.FileSystem.exists(root + "/source/FmodEvents.hx"));
+		haxefmod.tools.Generate.run(["--strings", fixture, "--out", root + "/out", "--package", "game.audio"], Sys.getCwd());
+		assert("PROBE --package writes into the package folder", sys.FileSystem.exists(root + "/out/game/audio/FmodEvents.hx"));
+	}
 
 	static function cleanup() {
 		if (FileSystem.exists(tmpDir)) {

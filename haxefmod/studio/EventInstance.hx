@@ -95,7 +95,8 @@ abstract EventInstance(Int) from Int to Int {
 
     /**
      * The core channel group carrying this instance's audio, for attaching DSP effects to a single event. The
-     * instance must be started. The instance owns the group, so its release is refused. Returns
+     * instance must be started. The instance owns the group, so its release is refused. The handle dies with
+     * this instance handle, at release() too. Returns
      * ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
      */
     public function getChannelGroup():haxefmod.core.ChannelGroup {

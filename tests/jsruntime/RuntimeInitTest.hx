@@ -95,6 +95,7 @@ class RuntimeInitTest {
 					check(mode + "_reports_failure", FmodRuntime.initFailed(), "");
 					check(mode + "_pair_runs_on_failed", !pairReady && pairFailed == 1, 'failed=$pairFailed');
 					check(mode + "_failure_reported_once", warns.length == 1, 'count=${warns.length}');
+					if (mode == "staggered") check("staggered_slow_bank_loaded_at_settle", FmodRuntime.banks.isLoaded(FmodRuntime.bankPath("Master.bank")), 'polls=$polls');
 					finish();
 				}
 			} else if (mode == "provided") {

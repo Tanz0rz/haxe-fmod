@@ -142,8 +142,17 @@ class jaxe {
     // wherever FMOD can destroy objects. Mirrors hlaxe_mint_borrowed.
     static mintBorrowed(ptr, type, owner, isVolatile) {
         var found = jaxe.handleFind(ptr, type);
+        // A group handle a walk minted in another instance's or bus's
+        // tree names a dead group or one shared with that tree. It goes,
+        // so its user data never reaches this owner's group.
+        if (found && type == jaxe.TYPE_CHANGROUP && jaxe.walkedElsewhere(found, jaxe.handleRoot(owner))) {
+            jaxe.freeKeepingWrapper(found, ptr);
+            found = 0;
+        }
         if (found) {
             if (jaxe.slots[found & 0xFFFF].ptr !== ptr) jaxe.dropWrapper(ptr);
+            // A linked request gives a volatile handle its owner
+            if (!isVolatile) jaxe.adopt(found, owner);
             return found;
         }
         var handle = jaxe.handleOrMemory(ptr, type);
@@ -156,15 +165,18 @@ class jaxe {
 
     // The handle of the group an owner holds for its whole life: a bus's
     // or an instance's. A handle anchored to another bus or instance
-    // names a group that died at this address, so it goes. One a walk
-    // minted first moves under owner. Mirrors hlaxe_mint_anchored.
+    // names a group that died at this address, so it goes. So does one a
+    // walk minted in another bus's or instance's tree. One a walk minted
+    // first anywhere else moves under owner. The result is linked, never
+    // volatile. Mirrors hlaxe_mint_anchored.
     static mintAnchored(group, owner) {
         var found = jaxe.handleFind(group, jaxe.TYPE_CHANGROUP);
         if (found && jaxe.slots[found & 0xFFFF].owned) {
             var s = jaxe.slots[found & 0xFFFF];
             var parent = jaxe.slotOf(s.parent);
-            if (s.parent != owner && parent && (parent.type == jaxe.TYPE_EVI || parent.type == jaxe.TYPE_BUS)) {
-                jaxe.handleFree(found);
+            if ((s.parent != owner && parent && jaxe.isGroupOwnerType(parent.type))
+                || jaxe.walkedElsewhere(found, owner)) {
+                jaxe.freeKeepingWrapper(found, group);
                 found = 0;
             } else if (s.parent != owner || s.borrowed != jaxe.BORROWED_LINKED) {
                 jaxe.clearOwner(found);
@@ -208,8 +220,10 @@ class jaxe {
         return jaxe.mintBorrowed(group, jaxe.TYPE_CHANGROUP, from, isVolatile);
     }
 
-    // Whether a group walked from this handle can die unseen. Groups
-    // under an instance die with it.
+    // Whether a parent group walked from this handle can die unseen.
+    // Groups above an instance's own group outlive it. A child group walk
+    // is always volatile, since a nested event's group dies inside a live
+    // instance.
     static walkIsVolatile(from) {
         var s = jaxe.slotOf(from);
         if (s && s.borrowed == jaxe.BORROWED_VOLATILE) return true;
@@ -422,6 +436,66 @@ class jaxe {
             s.parent = 0;
             s.borrowed = jaxe.BORROWED_VOLATILE;
         }
+    }
+
+    // True for the types that hold a channel group for their whole life
+    static isGroupOwnerType(type) {
+        return type == jaxe.TYPE_EVI || type == jaxe.TYPE_BUS;
+    }
+
+    // True when a live borrowed group handle came from a walk in the tree
+    // of an instance or a bus other than root. Mirrors
+    // faxe_handle_walked_elsewhere.
+    static walkedElsewhere(handle, root) {
+        var s = jaxe.slotOf(handle);
+        if (!s || !s.owned || s.borrowed == jaxe.BORROWED_NONE) return false;
+        var parent = jaxe.slotOf(s.parent);
+        if (parent && jaxe.isGroupOwnerType(parent.type)) return false;
+        var end = jaxe.handleRoot(handle);
+        if (end == root) return false;
+        var endSlot = jaxe.slotOf(end);
+        var rootSlot = jaxe.slotOf(root);
+        return !!endSlot && !!rootSlot && jaxe.isGroupOwnerType(endSlot.type) && jaxe.isGroupOwnerType(rootSlot.type);
+    }
+
+    // True when handle is from itself or a handle from was reached
+    // through, at any depth. Mirrors faxe_handle_on_chain.
+    static onChain(handle, from) {
+        for (var steps = 0; from > 0 && steps < jaxe.slots.length; steps++) {
+            if (from == handle) return true;
+            var s = jaxe.slotOf(from);
+            from = s ? s.parent : 0;
+        }
+        return false;
+    }
+
+    // Moves a volatile borrowed handle under owner and makes it linked.
+    // A linked handle keeps the owner it has, so of two live owners the
+    // first one wins. Mirrors faxe_handle_adopt.
+    static adopt(handle, owner) {
+        var s = jaxe.slotOf(handle);
+        if (!s || !jaxe.handleIsLive(owner)) return false;
+        if (!s.owned || s.borrowed != jaxe.BORROWED_VOLATILE) return false;
+        // An owner hanging below the handle would close a loop
+        if (jaxe.onChain(handle, owner)) return false;
+        jaxe.clearOwner(handle);
+        jaxe.setOwner(handle, owner);
+        return true;
+    }
+
+    // Links a live child handle to its parent, so freeing the parent frees
+    // the child. Mirrors faxe_handle_set_parent.
+    static linkParent(child, parent) {
+        jaxe.slots[child & 0xFFFF].parent = parent;
+        if (jaxe.handleIsLive(parent)) jaxe.slots[parent & 0xFFFF].kids = true;
+    }
+
+    // Frees a stale slot whose wrapper may be the one a new mint is about
+    // to keep. That wrapper survives the free.
+    static freeKeepingWrapper(handle, ptr) {
+        var s = jaxe.slots[handle & 0xFFFF];
+        if (s.ptr === ptr) s.ptr = null;
+        jaxe.handleFree(handle);
     }
 
     static clearOwner(handle) {
@@ -3203,13 +3277,13 @@ class jaxe {
     static fmod_core_pcm_release(handle) {
         var ps = jaxe.handleResolve(handle, jaxe.TYPE_PCM);
         if (!ps) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
-        // A handle a channel lookup minted for the stream's sound dies
-        // here, so it never names the freed sound
-        jaxe.freePtr(ps.sound, jaxe.TYPE_SOUND);
         jaxe.lastResult = ps.sound.release();
         // INVALID_HANDLE means FMOD freed the sound already, so the
         // stream goes with the slot. Any other refusal keeps it alive.
         if (jaxe.lastResult != jaxe.FMOD.OK && jaxe.lastResult != jaxe.ERR_INVALID_HANDLE) return jaxe.lastResult;
+        // A handle a channel lookup minted for the stream's sound dies
+        // with it
+        jaxe.freePtr(ps.sound, jaxe.TYPE_SOUND);
         ps.ring = null;
         // The slot holds a composite, so handleFree cannot delete the
         // sound wrapper inside it
@@ -3953,7 +4027,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = group.getGroup(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.mintWalkedGroup(out.val, handle, jaxe.walkIsVolatile(handle));
+        return jaxe.mintWalkedGroup(out.val, handle, true);
     }
 
     static fmod_cg_get_parent_group(handle) {
@@ -6543,10 +6617,11 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         var child = jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUND);
         // A subsound of a sound this shim owns is owned too, and its
-        // handle dies with the parent's
-        if (child && jaxe.isOwned(handle)) {
+        // handle dies with the parent's. The sound handle was reached from
+        // keeps its own link, which would close a loop.
+        if (child && jaxe.isOwned(handle) && !jaxe.onChain(child, handle)) {
             jaxe.markOwned(child);
-            jaxe.slots[child & 0xFFFF].parent = handle;
+            jaxe.linkParent(child, handle);
         }
         return child;
     }
@@ -6563,6 +6638,10 @@ class jaxe {
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         // A top-level sound comes back as a wrapper around a null pointer
         if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
+        // The parent of a sound the game does not own (a bank's sample
+        // data, a stream an event plays) gets a volatile borrowed handle
+        // under handle. A parent the game created keeps its own handle.
+        if (jaxe.isOwned(handle)) return jaxe.mintBorrowed(out.val, jaxe.TYPE_SOUND, handle, true);
         return jaxe.handleOrMemory(out.val, jaxe.TYPE_SOUND);
     }
 

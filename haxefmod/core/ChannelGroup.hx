@@ -141,10 +141,9 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * A nested child group by index. A known group returns its existing handle. Any other one gets a
-     * borrowed handle. Release refuses it, and it dies with this handle. A walk that starts at a bus, the
-     * master, or a group the game made can reach groups of instances that die on their own, so those
-     * handles also die whenever FMOD can destroy objects. Returns ChannelGroup.NULL on failure, with the
-     * reason in StudioSystem.lastResult().
+     * short-lived borrowed handle. Release refuses it, and it dies with this handle or whenever FMOD can
+     * destroy objects, since a child group can die inside a live instance (a nested event's group).
+     * Returns ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getGroup(index:Int):ChannelGroup {
         return NativeStudio.cg_get_group(this, index);
@@ -152,8 +151,10 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * The group this one feeds. The master group has no parent, so it reports ChannelGroup.NULL with
-     * lastResult still FMOD_OK. A handle minted here is borrowed the way getGroup's is. Returns
-     * ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
+     * lastResult still FMOD_OK. A handle minted here is borrowed. Release refuses it, and it dies with
+     * this handle. A walk that starts at a bus, the master, or a group the game made can reach groups of
+     * instances that die on their own, so those handles also die whenever FMOD can destroy objects.
+     * Returns ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getParentGroup():ChannelGroup {
         return NativeStudio.cg_get_parent_group(this);

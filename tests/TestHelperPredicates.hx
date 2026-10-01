@@ -18,6 +18,7 @@ class TestHelperPredicates {
 
 		testIsPlayingStates();
 		testOnceReady();
+		probeEvent();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -66,6 +67,36 @@ class TestHelperPredicates {
 		assert("handler immediate when ready", immediate == 1);
 
 		NativeStudioStub.testInitialized = false;
+	}
+
+
+	static function probeEvent() {
+		NativeStudioStub.testSyntheticHandles = true;
+		var evh = ++NativeStudioStub.testNextHandle;
+		var ev:FmodEvent = cast evh;
+		var fired = 0;
+		ev.onceEvent(_ -> fired++, 0x20);
+		haxefmod.studio.CallbackDispatcher.deliver(evh, 0x2, 0, 0, 0, 0, 0, 0.0, "");
+		assert("PROBE onceEvent ignores a Destroyed outside its mask and ends", fired == 0 && !haxefmod.studio.CallbackDispatcher.hasHandler(evh));
+		var ev2h = ++NativeStudioStub.testNextHandle;
+		var ev2:FmodEvent = cast ev2h;
+		ev2.onceEvent(_ -> fired++);
+		haxefmod.studio.CallbackDispatcher.deliver(ev2h, 0x20, 0, 0, 0, 0, 0, 0.0, "");
+		haxefmod.studio.CallbackDispatcher.deliver(ev2h, 0x20, 0, 0, 0, 0, 0, 0.0, "");
+		assert("PROBE onceEvent fires once", fired == 1 && !haxefmod.studio.CallbackDispatcher.hasHandler(ev2h));
+		NativeStudioStub.testPausedState = null;
+		ev.pause();
+		var paused = NativeStudioStub.testPausedState;
+		ev.unpause();
+		assert("PROBE pause and unpause reach the instance", paused == true && NativeStudioStub.testPausedState == false);
+		var starts = NativeStudioStub.testStartCalls;
+		ev.start();
+		assert("PROBE start reaches the instance", NativeStudioStub.testStartCalls == starts + 1);
+		ev.setPosition2D(1, 2, 3, 4);
+		var last = NativeStudioStub.testLast3d;
+		assert("PROBE setPosition2D passes the velocity", last != null && last[3] == 3 && last[4] == 4);
+		haxefmod.studio.CallbackDispatcher.clearAll();
+		NativeStudioStub.testSyntheticHandles = false;
 	}
 
 	static function assert(name:String, condition:Bool) {

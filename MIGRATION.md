@@ -50,7 +50,7 @@ instance.setCallback(handler, EventCallbackType.STARTED | EventCallbackType.TIME
 - `Sound.getFormat` returns `type` and `format` next to `channels` and `bits`.
 - `StudioSystem.getCpuUsage` returns FMOD's two structs. `usage.studioUpdate` is now `usage.studio.update`. `usage.dsp`, `stream`, `geometry`, `update`, `convolution1`, and `convolution2` are now under `usage.core`.
 - The six `ChannelMode` 3D flags carry FMOD's names. `HEAD_RELATIVE_3D` is `MODE_3D_HEADRELATIVE`, `WORLD_RELATIVE_3D` is `MODE_3D_WORLDRELATIVE`, `INVERSE_ROLLOFF_3D` is `MODE_3D_INVERSEROLLOFF`, `LINEAR_ROLLOFF_3D` is `MODE_3D_LINEARROLLOFF`, `LINEAR_SQUARE_ROLLOFF_3D` is `MODE_3D_LINEARSQUAREROLLOFF`, and `INVERSE_TAPERED_ROLLOFF_3D` is `MODE_3D_INVERSETAPEREDROLLOFF`. The old names remain as deprecated aliases for this release.
-- A handle the game reaches through another handle is borrowed. Examples are a walked channel group, a group's or channel's DSP, and a channel's sound. It dies with the handle it came from, and `release` refuses it. Fetch it again after its owner is gone.
+- A handle the game reaches through another handle is borrowed. Examples are an instance's group, a walked channel group, a group's or channel's DSP, and a channel's sound. It dies with the handle it came from. `release` refuses it. An instance's group handle dies at `release()` on the instance, while the event plays on. A 2.0 game that used the group after the release keeps the instance until it is done with the group. A child group handle from `ChannelGroup.getGroup` dies at the next call that destroys objects, even under a live instance. Walk the groups again after an instance is created or released. A walk that reaches a sound, DSP, or group the game created returns the game's own handle. `LIMITATIONS.md` lists each lifetime.
 - GUIDs are `FmodGuid`, an abstract over the braced text form. It converts to and from `String`. String call sites keep compiling.
 - `haxefmod.studio.CoreSound` is deprecated. Use `haxefmod.core.Sound`.
 - The `FmodManager` mixer calls read as questions and name the master bus. `GetBusMute(path)` is now `IsBusMuted(path)`. `SetBusVolumeMaster`, `GetBusVolumeMaster`, `SetBusMuteMaster`, and `GetBusMuteMaster` are now `SetMasterVolume`, `GetMasterVolume`, `SetMasterMute`, and `IsMasterMuted`. `SetBusVolume` and `SetBusMute` keep their names. The old names remain as deprecated aliases for this release and the compiler warns at every use.
@@ -117,7 +117,7 @@ haxefmod 2.0 is a clean break. The string-based sound IDs and bitmask polling ca
 | `RegisterEventListener(listener)` | `OnSongEvent` / `sound.onEvent` |
 | `FmodCallback` bitmask constants | `haxefmod.studio.Callbacks.EventCallbackType` |
 
-Callbacks now carry payloads. `TimelineBeat(properties)` carries an `FmodTimelineBeatProperties` with `bar`, `beat`, `position`, `tempo`, `timeSignatureUpper`, and `timeSignatureLower`. `TimelineMarker(properties)` carries an `FmodTimelineMarkerProperties` with `name` and `position`. `Stopped` and the rest of the playback lifecycle have their own constructors.
+Callbacks now carry payloads. `TimelineBeat(bar, beat, positionMs, tempo, timeSigUpper, timeSigLower)` and `TimelineMarker(name, positionMs)` carry the values. `Stopped` and the rest of the playback lifecycle have their own constructors.
 
 Handlers fire once per event. 1.x coalesced repeats into one poll per frame. A handler registered again replaces the previous handler for the same instance.
 

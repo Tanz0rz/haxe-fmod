@@ -38,7 +38,7 @@ The helper class has a single song slot. Songs are FMOD events like any other. T
 FmodManager.PlaySong(FmodEvents.MusicMainLevel);
 ```
 
-`PlaySong` replaces the current song immediately with no fade. A second call with the song that is already playing does nothing. If that song stopped or is fading out, the call restarts it. `PlaySongTransition` fades the current song out as authored in FMOD Studio and starts the new one when the fade completes. It needs `Update()` running every frame. A second transition during the fade cuts straight to the newest song.
+`PlaySong` replaces the current song immediately with no fade. A second call with the song that is already playing does nothing. If that song stopped or is fading out, the call restarts it. `PlaySongTransition` fades the current song out as authored in FMOD Studio and starts the new one when the fade completes. It needs `Update()` running every frame. A second transition during the fade replaces the pending song. The newest song starts when the fade completes.
 
 ```haxe
 FmodManager.PlaySongTransition(FmodEvents.MusicTitle);

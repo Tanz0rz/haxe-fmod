@@ -699,7 +699,10 @@ abstract Sound(Int) from Int to Int {
 
     /**
      * The sound this one is a subsound of, or Sound.NULL for a top-level sound (lastResult stays FMOD_OK). A
-     * failure reports Sound.NULL as well, with the reason in StudioSystem.lastResult().
+     * sound the game created comes back under its own handle. The parent of a borrowed sound (an event's
+     * sample data) gets a short-lived borrowed handle. Release refuses it, and it dies with this handle or
+     * whenever FMOD can destroy objects. A failure reports Sound.NULL as well, with the reason in
+     * StudioSystem.lastResult().
      */
     public inline function getSubSoundParent():Sound {
         return NativeStudio.core_sound_get_sub_sound_parent(this);

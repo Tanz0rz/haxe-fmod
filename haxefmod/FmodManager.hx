@@ -451,7 +451,7 @@ class FmodManager {
     /**
      * Fades the current song out as authored, then plays the new one when the fade completes. It needs Update() every frame.
      * The song has one callback slot and the transition holds it until the fade completes.
-     * OnSongEvent during the fade cancels the transition. A second transition during the fade cuts to the newest song.
+     * OnSongEvent during the fade cancels the transition. A second transition during the fade replaces the pending song. The newest song starts when the fade completes.
      */
     public static function PlaySongTransition(songPath:String):Void {
         ensureInitialized();

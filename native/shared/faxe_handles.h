@@ -35,7 +35,7 @@
 #define FAXE_TYPE_BANK  3  /* Studio Bank */
 #define FAXE_TYPE_BUS   4  /* Studio Bus */
 #define FAXE_TYPE_VCA   5  /* Studio VCA */
-#define FAXE_TYPE_SOUND 6  /* Core Sound (programmer sounds only) */
+#define FAXE_TYPE_SOUND 6  /* Core Sound */
 #define FAXE_TYPE_PCM   7  /* Core PCM stream (OPENUSER sound + ring) */
 #define FAXE_TYPE_CHAN  8  /* Core Channel */
 #define FAXE_TYPE_DSP   9  /* Core DSP effect */
@@ -73,8 +73,9 @@ typedef struct {
     /* 1 when the game does not own the object. That is a programmer sound
      * the library created and releases, or a plugin instrument's DSP that
      * FMOD destroys with its event. A channel group or sound group the game
-     * did not create carries the mark too. The public release entry points
-     * refuse such a handle. */
+     * did not create carries the mark too. So does a sound or DSP first
+     * reached through a walk. The public release entry points refuse such
+     * a handle. */
     unsigned char owned;
     /* The handle this slot was reached from, or 0. That is the owned
      * sound a subsound was taken from, or the owner of a borrowed handle.
@@ -184,8 +185,8 @@ static int faxe_handle_find_or_alloc(void* ptr, unsigned char type) {
  * the same call. Bank slots are swept the same way: a single unload
  * frees its own slot, and unloadAll kills every bank at once. Channel
  * groups have no such check in FMOD, so they die with their owner
- * handle instead. Instances and sounds reclaim their slots through their
- * own release paths. */
+ * handle instead. The shims sweep instance slots after the same calls.
+ * Sounds reclaim their slots through their own release paths. */
 typedef int (*FaxeLookupValidator)(void* ptr, unsigned char type);
 static void faxe_handle_free(int handle);
 static void faxe_handles_sweep_lookups(FaxeLookupValidator is_valid) {
@@ -330,7 +331,7 @@ static int faxe_handle_is_owned(int handle) {
     return gFaxeSlots[idx].alive && gFaxeSlots[idx].gen == gen && gFaxeSlots[idx].owned;
 }
 
-/* Links a live subsound handle to its owned parent. The handle must
+/* Links a live handle to the handle it was reached from. The handle must
  * resolve (callers check first). */
 static void faxe_handle_set_parent(int handle, int parent) {
     gFaxeSlots[handle & 0xFFFF].parent = parent;
@@ -392,6 +393,56 @@ static int faxe_handle_root(int handle) {
         handle = parent;
     }
     return handle;
+}
+
+/* True for the types that hold a channel group for their whole life */
+static int faxe_handle_is_group_owner_type(unsigned char type) {
+    return type == FAXE_TYPE_EVI || type == FAXE_TYPE_BUS;
+}
+
+/* True when a live borrowed group handle came from a walk in the tree of
+ * an instance or a bus other than root. Root is where the new request
+ * starts, and both ends must be an instance or a bus. A handle anchored
+ * straight under its instance or bus does not count. A walk from root
+ * that reaches this address finds either a group that died there or one
+ * the other tree walked out to. Both get a fresh handle. */
+static int faxe_handle_walked_elsewhere(int handle, int root) {
+    FaxeSlot* s;
+    int end;
+    if (!faxe_handle_is_live(handle)) return 0;
+    s = &gFaxeSlots[handle & 0xFFFF];
+    if (!s->owned || s->borrowed == FAXE_BORROWED_NONE) return 0;
+    if (faxe_handle_is_group_owner_type(faxe_handle_get_type(s->parent))) return 0;
+    end = faxe_handle_root(handle);
+    if (end == root) return 0;
+    return faxe_handle_is_group_owner_type(faxe_handle_get_type(end))
+        && faxe_handle_is_group_owner_type(faxe_handle_get_type(root));
+}
+
+/* True when handle is from itself or a handle from was reached through,
+ * at any depth. Linking handle below from would then close a loop. */
+static int faxe_handle_on_chain(int handle, int from) {
+    int steps = 0;
+    while (from > 0 && steps++ < gFaxeSlotCap) {
+        if (from == handle) return 1;
+        from = faxe_handle_get_parent(from);
+    }
+    return 0;
+}
+
+/* Moves a volatile borrowed handle under owner and makes it linked. A
+ * call that reaches the object through a longer-lived handle gives it
+ * that handle's lifetime, whichever call came first. A linked handle
+ * keeps the owner it has, so of two live owners the first one wins. An
+ * owner hanging below the handle would close a loop and is refused.
+ * Returns 1 when the handle moved. */
+static int faxe_handle_adopt(int handle, int owner) {
+    if (!faxe_handle_is_live(handle) || !faxe_handle_is_live(owner)) return 0;
+    if (!gFaxeSlots[handle & 0xFFFF].owned || gFaxeSlots[handle & 0xFFFF].borrowed != FAXE_BORROWED_VOLATILE) return 0;
+    if (faxe_handle_on_chain(handle, owner)) return 0;
+    faxe_handle_clear_owner(handle);
+    faxe_handle_set_owner(handle, owner);
+    return 1;
 }
 
 /* Frees every volatile handle and what hangs off each. The shims call

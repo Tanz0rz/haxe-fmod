@@ -186,7 +186,8 @@ abstract Bus(Int) from Int to Int {
 
     /**
      * The core channel group carrying this bus's audio, for attaching DSP effects to Studio-mixed sound. Lock
-     * it first. The bus owns it, so its release is refused. Returns ChannelGroup.NULL on failure.
+     * it first. The bus owns it, so its release is refused. The handle dies with the bus handle at a bank
+     * unload. An unlock that destroys the group ends it too. Returns ChannelGroup.NULL on failure.
      * StudioSystem.lastResult() holds the reason for a failure.
      */
     public inline function getChannelGroup():haxefmod.core.ChannelGroup {

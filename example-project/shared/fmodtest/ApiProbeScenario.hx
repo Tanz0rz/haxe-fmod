@@ -2125,6 +2125,200 @@ class ApiProbeScenario implements TestScenario {
     function finishBorrowedDrain():Void {
         check("no_handle_leaks_borrowed", StudioSystem.liveHandleCount() == _borrowedBaseline,
             'baseline=$_borrowedBaseline now=${StudioSystem.liveHandleCount()} frames=$_borrowedFrames');
+        startWalkLifetimes();
+    }
+
+    var _waitingForWalkDrain:Bool = false;
+    var _walkFrames:Int = 0;
+    var _walkBaseline:Int = 0;
+
+    /** A call that destroys objects: a game sound's release frees every volatile handle in the same call. */
+    static function probeDestroyPoint():Void {
+        var scratch = Sound.fromPcm(haxe.io.Bytes.alloc(800), 8000, 1);
+        scratch.release();
+    }
+
+    /** Every group below a group, depth first. */
+    static function probeGroupsBelow(group:ChannelGroup, out:Array<ChannelGroup>):Array<ChannelGroup> {
+        for (i in 0...group.getNumGroups()) {
+            var child = group.getGroup(i);
+            if (child.isNull()) continue;
+            out.push(child);
+            probeGroupsBelow(child, out);
+        }
+        return out;
+    }
+
+    /**
+     * Borrowed handle lifetimes that depend on where a walk starts and on
+     * which call reached an object first. A sound's parent reached from
+     * an event's sound was releasable and outlived its bank. A nested
+     * event's group walked from a stopped instance outlived its group, and
+     * the next instance's walk handed the stale handle out with the old
+     * user data. A DSP a graph walk reached first stayed short-lived when
+     * the game fetched it again from a group that lives for the session.
+     */
+    function startWalkLifetimes():Void {
+        // The master bus's group, the master group's head, and the
+        // description lookups live for the session, so they come before the
+        // baseline
+        var root = StudioSystem.getBus(FmodBuses.Root);
+        root.lockChannelGroup();
+        root.getChannelGroup();
+        ChannelGroup.master().getDsp(ChannelGroup.DSP_HEAD);
+        for (path in [FmodEvents.SFXCoin, FmodEvents.MusicNested, FmodEvents.SFXHold]) StudioSystem.getEvent(path);
+        _walkBaseline = StudioSystem.liveHandleCount();
+        #if sys
+        // A parent the game created keeps its own handle, reached from the
+        // game's own subsound
+        var fsb = probeFsbImage();
+        if (fsb == null) {
+            info("subsound_parent_game_own_handle", "bank file not reachable from cwd, skipped");
+        } else {
+            var gameFsb = Sound.fromMemory(fsb);
+            var gameSub = gameFsb.getSubSound(0);
+            var gameParent = gameSub.getSubSoundParent();
+            check("subsound_parent_game_own_handle", !gameFsb.isNull() && !gameSub.isNull() && gameParent == gameFsb,
+                'fsb=${(gameFsb : Int)} sub=${(gameSub : Int)} parent=${(gameParent : Int)}');
+            gameFsb.release();
+        }
+        #end
+
+        // The parent of an event's sound is the bank's sample data. Its
+        // handle refuses release and dies with the sound it came from.
+        var coin = StudioSystem.getEvent(FmodEvents.SFXCoin).createInstance();
+        coin.start();
+        StudioSystem.flushCommands();
+        var coinChannel = probeFirstChannel(coin.getChannelGroup());
+        var againSound = Sound.NULL;
+        var againParent = Sound.NULL;
+        var coinSound = coinChannel.getCurrentSound();
+        var bankSound = coinSound.isNull() ? Sound.NULL : coinSound.getSubSoundParent();
+        if (bankSound.isNull()) {
+            info("borrowed_subsound_parent", 'no event sound yet, skipped: sound=${(coinSound : Int)} result=${StudioSystem.lastResult().toString()}');
+        } else {
+            bankSound.setUserData("bank sound");
+            probeDestroyPoint();
+            check("borrowed_subsound_parent_dies_with_origin",
+                !haxefmod.studio.native.NativeStudio.debug_handle_is_live(bankSound)
+                && !haxefmod.studio.native.NativeStudio.debug_handle_is_live(coinSound) && bankSound.getUserData() == null,
+                'parent=${(bankSound : Int)} sound=${(coinSound : Int)}');
+            againSound = coinChannel.getCurrentSound();
+            againParent = againSound.getSubSoundParent();
+            check("borrowed_subsound_parent_release_refused", !againParent.isNull() && againParent.release() == FmodResult.FMOD_ERR_INVALID_PARAM,
+                'handle=${(againParent : Int)} result=${StudioSystem.lastResult().toString()}');
+            // The parent's subsound is the sound it was reached from, which
+            // keeps its link to the channel
+            var back = againParent.getSubSound(0);
+            if (back != againSound) info("borrowed_subsound_parent_link", 'subsound 0 is another sample: ${(back : Int)}');
+        }
+        coin.stop(IMMEDIATE);
+        coin.release();
+        // The channel ended with the instance. Its slot goes with the stop,
+        // and so do the sound and the parent reached through it.
+        coinChannel.stop();
+        if (!againParent.isNull()) {
+            check("borrowed_subsound_parent_dies_with_channel", !haxefmod.studio.native.NativeStudio.debug_handle_is_live(againSound)
+                && !haxefmod.studio.native.NativeStudio.debug_handle_is_live(againParent),
+                'sound=${(againSound : Int)} parent=${(againParent : Int)}');
+        }
+
+        // Groups below an instance's own group die at the next call that
+        // destroys objects, since a nested event's group dies inside a live
+        // instance. The instance's own group stays.
+        var nested = StudioSystem.getEvent(FmodEvents.MusicNested).createInstance();
+        nested.start();
+        StudioSystem.flushCommands();
+        var nestedGroup = nested.getChannelGroup();
+        var below = probeGroupsBelow(nestedGroup, []);
+        if (below.length == 0) {
+            info("walk_below_instance", 'no groups below the instance yet, skipped: group=${(nestedGroup : Int)}');
+        } else {
+            for (group in below) group.setUserData("below the nested instance");
+            probeDestroyPoint();
+            var survivors = [for (group in below) if (haxefmod.studio.native.NativeStudio.debug_handle_is_live(group)) group];
+            check("walk_below_instance_dies_at_destroy_point", survivors.length == 0,
+                'below=${below.length} live=$survivors');
+            check("walk_below_instance_userdata_dropped", [for (group in below) if (group.getUserData() != null) group].length == 0, "");
+            check("walk_instance_own_group_stays", nested.getChannelGroup() == nestedGroup
+                && haxefmod.studio.native.NativeStudio.debug_handle_is_live(nestedGroup), 'group=${(nestedGroup : Int)}');
+        }
+        nested.stop(IMMEDIATE);
+        nested.release();
+
+        // Two instances of one event feed the same group. Each walk up gets
+        // a handle of its own, and the first one goes with its user data,
+        // so a walk from one instance never meets another tree's handle.
+        var holdA = StudioSystem.getEvent(FmodEvents.SFXHold).createInstance();
+        var holdB = StudioSystem.getEvent(FmodEvents.SFXHold).createInstance();
+        holdA.start();
+        holdB.start();
+        StudioSystem.flushCommands();
+        var groupA = holdA.getChannelGroup();
+        var upA = groupA.getParentGroup();
+        upA.setVolume(0.5);
+        upA.setUserData("walked from A");
+        // A walk down from A's side reaches B's group before B hands it
+        // out. B's own handle is a fresh one with no user data.
+        var besideA = [for (i in 0...upA.getNumGroups()) upA.getGroup(i)].filter(group -> !group.isNull() && group != groupA);
+        for (group in besideA) group.setUserData("walked from A");
+        var groupB = holdB.getChannelGroup();
+        if (besideA.length == 0) {
+            info("anchor_after_other_walk_fresh_handle", 'no sibling group reached, skipped: a=${(groupA : Int)}');
+        } else {
+            check("anchor_after_other_walk_fresh_handle", !groupB.isNull() && besideA.indexOf(groupB) < 0
+                && groupB.getUserData() == null, 'b=${(groupB : Int)} beside=$besideA');
+        }
+        var upB = groupB.getParentGroup();
+        if (upA.isNull() || upB.isNull() || Math.abs(upB.getVolume() - 0.5) > 0.001) {
+            info("walk_other_instance_fresh_handle", 'the instances feed different groups, skipped: a=${(upA : Int)} b=${(upB : Int)}');
+        } else {
+            check("walk_other_instance_fresh_handle", upB != upA && upB.getUserData() == null
+                && !haxefmod.studio.native.NativeStudio.debug_handle_is_live(upA),
+                'a=${(upA : Int)} b=${(upB : Int)} userdata=${upB.getUserData()}');
+        }
+        upB.setVolume(1.0);
+        // A walk from a bus that passes an instance's own group leaves that
+        // handle as it is
+        var fromBus = probeGroupsBelow(root.getChannelGroup(), []);
+        check("walk_from_bus_keeps_instance_group", fromBus.indexOf(groupA) >= 0
+            && holdA.getChannelGroup() == groupA && haxefmod.studio.native.NativeStudio.debug_handle_is_live(groupA),
+            'group=${(groupA : Int)} walked=$fromBus');
+        holdA.stop(IMMEDIATE);
+        holdA.release();
+        holdB.stop(IMMEDIATE);
+        holdB.release();
+
+        // A DSP a graph walk reached first gets the lifetime of the group
+        // the game fetches it from next. A later walk keeps it linked.
+        var gameGroup = ChannelGroup.create("probe-walk-order");
+        var masterHead = ChannelGroup.master().getDsp(ChannelGroup.DSP_HEAD);
+        var walkedInputs = [for (i in 0...masterHead.getNumInputs()) masterHead.getInput(i)];
+        var gameHead = gameGroup.getDsp(ChannelGroup.DSP_HEAD);
+        if (gameHead.isNull() || walkedInputs.indexOf(gameHead) < 0) {
+            info("dsp_lifetime_independent_of_order", 'the walk did not reach the new group, skipped: head=${(gameHead : Int)} inputs=$walkedInputs');
+        } else {
+            gameHead.setUserData("game group head");
+            probeDestroyPoint();
+            check("dsp_lifetime_independent_of_order", haxefmod.studio.native.NativeStudio.debug_handle_is_live(gameHead)
+                && gameHead.getUserData() == "game group head", 'dsp=${(gameHead : Int)}');
+            var walkedAgain = [for (i in 0...masterHead.getNumInputs()) masterHead.getInput(i)];
+            probeDestroyPoint();
+            check("dsp_linked_stays_linked_after_walk", walkedAgain.indexOf(gameHead) >= 0
+                && haxefmod.studio.native.NativeStudio.debug_handle_is_live(gameHead), 'dsp=${(gameHead : Int)} inputs=$walkedAgain');
+        }
+        gameGroup.release();
+        check("dsp_dies_with_game_group", !haxefmod.studio.native.NativeStudio.debug_handle_is_live(gameHead)
+            && gameHead.getUserData() == null, 'dsp=${(gameHead : Int)}');
+
+        root.unlockChannelGroup();
+        _walkFrames = 0;
+        _waitingForWalkDrain = true;
+    }
+
+    function finishWalkDrain():Void {
+        check("no_handle_leaks_walk", StudioSystem.liveHandleCount() == _walkBaseline,
+            'baseline=$_walkBaseline now=${StudioSystem.liveHandleCount()} frames=$_walkFrames');
         info("live_handle_count_after", Std.string(StudioSystem.liveHandleCount()));
         log('API_PROBE: COMPLETE passed=$_passCount failed=$_failCount');
         host.setStatus('API_PROBE complete: $_passCount passed, $_failCount failed');
@@ -2650,9 +2844,10 @@ class ApiProbeScenario implements TestScenario {
             fsbFile.release();
             try sys.FileSystem.deleteFile(fsbPath) catch (e:Dynamic) {}
             // A wav has no GUID, so the passed value stays
-            var wavInfo:FmodCreateSoundExInfo = {fsbGuid: FmodGuid.NULL};
+            var passedGuid:FmodGuid = "{00000000-0000-0000-0000-000000000001}";
+            var wavInfo:FmodCreateSoundExInfo = {fsbGuid: passedGuid};
             var wavSound = Sound.create(wavPath, false, false, 0, -1, wavInfo);
-            check("core_create_sound_fsb_guid_kept_without_one", !wavSound.isNull() && wavInfo.fsbGuid == FmodGuid.NULL,
+            check("core_create_sound_fsb_guid_kept_without_one", !wavSound.isNull() && wavInfo.fsbGuid == passedGuid,
                 'got=${wavInfo.fsbGuid}');
             wavSound.release();
         }
@@ -3419,6 +3614,14 @@ class ApiProbeScenario implements TestScenario {
             if (StudioSystem.liveHandleCount() == _borrowedBaseline || _borrowedFrames > 300) {
                 _waitingForBorrowedDrain = false;
                 finishBorrowedDrain();
+            }
+        }
+        if (_waitingForWalkDrain) {
+            _walkFrames++;
+            StudioSystem.flushCommands();
+            if (StudioSystem.liveHandleCount() == _walkBaseline || _walkFrames > 300) {
+                _waitingForWalkDrain = false;
+                finishWalkDrain();
             }
         }
         if (!_done) return;

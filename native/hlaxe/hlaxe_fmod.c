@@ -981,9 +981,6 @@ HL_PRIM int HL_NAME(core_pcm_release)(int h) {
      * Clearing the user data first makes any straggling pcmread fall to
      * its silence path instead of touching the ring. */
     FMOD_Sound_SetUserData(ps->sound, NULL);
-    /* A handle a channel lookup minted for the stream's sound dies here,
-     * so it never names the freed sound */
-    faxe_handles_free_ptr(ps->sound, FAXE_TYPE_SOUND);
     gLastResult = FMOD_Sound_Release(ps->sound);
     /* INVALID_HANDLE means FMOD freed the sound already, so the stream
      * goes with the slot. Any other refusal keeps the stream alive, and
@@ -992,6 +989,9 @@ HL_PRIM int HL_NAME(core_pcm_release)(int h) {
         FMOD_Sound_SetUserData(ps->sound, ps->ring);
         return (int)gLastResult;
     }
+    /* A handle a channel lookup minted for the stream's sound dies with
+     * it. Its rolloff points go too, since FMOD freed the sound. */
+    faxe_handles_free_ptr(ps->sound, FAXE_TYPE_SOUND);
     faxe_pcmring_destroy(ps->ring);
     free(ps);
     faxe_handle_free(h);
@@ -1102,7 +1102,18 @@ static int hlaxe_handle_or_memory(void* ptr, unsigned char type) {
  * volatile handle with nothing above it. */
 static int hlaxe_mint_borrowed(void* ptr, unsigned char type, int owner, int isVolatile) {
     int handle = faxe_handle_find(ptr, type);
-    if (handle) return handle;
+    /* A group handle a walk minted in another instance's or bus's tree
+     * names a dead group or one shared with that tree. It goes, so its
+     * user data never reaches this owner's group. */
+    if (handle && type == FAXE_TYPE_CHANGROUP && faxe_handle_walked_elsewhere(handle, faxe_handle_root(owner))) {
+        faxe_handle_free(handle);
+        handle = 0;
+    }
+    if (handle) {
+        /* A linked request gives a volatile handle its owner */
+        if (!isVolatile) faxe_handle_adopt(handle, owner);
+        return handle;
+    }
     handle = hlaxe_handle_or_memory(ptr, type);
     if (!handle) return 0;
     faxe_handle_set_owned(handle, 1);
@@ -1113,14 +1124,17 @@ static int hlaxe_mint_borrowed(void* ptr, unsigned char type, int owner, int isV
 
 /* The handle of the group an owner holds for its whole life: a bus's or
  * an instance's. A handle anchored to another bus or instance names a
- * group that died at this address, so it goes. One a walk minted first
- * moves under owner, which bounds its life better. */
+ * group that died at this address, so it goes. So does one a walk
+ * minted in another bus's or instance's tree. One a walk minted first
+ * anywhere else moves under owner, which bounds its life better. The
+ * result is linked, never volatile. */
 static int hlaxe_mint_anchored(void* group, int owner) {
     int found = faxe_handle_find(group, FAXE_TYPE_CHANGROUP);
     if (found && gFaxeSlots[found & 0xFFFF].owned) {
         int parent = faxe_handle_get_parent(found);
         unsigned char parentType = faxe_handle_get_type(parent);
-        if (parent != owner && (parentType == FAXE_TYPE_EVI || parentType == FAXE_TYPE_BUS)) {
+        if ((parent != owner && faxe_handle_is_group_owner_type(parentType))
+            || faxe_handle_walked_elsewhere(found, owner)) {
             faxe_handle_free(found);
             found = 0;
         } else if (parent != owner || faxe_handle_get_borrowed(found) != FAXE_BORROWED_LINKED) {
@@ -1160,9 +1174,11 @@ static int hlaxe_mint_walked_group(void* group, int from, int isVolatile) {
     return hlaxe_mint_borrowed(group, FAXE_TYPE_CHANGROUP, from, isVolatile);
 }
 
-/* Whether a group walked from this handle can die unseen. Groups under
- * an instance die with it. Anything reached from a bus, the master, or a
- * group the game made can belong to an instance that dies on its own. */
+/* Whether a parent group walked from this handle can die unseen. Groups
+ * above an instance's own group outlive it. Anything reached from a bus,
+ * the master, or a group the game made can belong to an instance that
+ * dies on its own. A child group walk is always volatile, since a nested
+ * event's group dies inside a live instance. */
 static int hlaxe_walk_is_volatile(int from) {
     return faxe_handle_get_borrowed(from) == FAXE_BORROWED_VOLATILE
         || faxe_handle_get_type(faxe_handle_root(from)) != FAXE_TYPE_EVI;
@@ -1920,7 +1936,7 @@ HL_PRIM int HL_NAME(cg_get_group)(int h, int index) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetGroup(group, index, &child);
     if (gLastResult != FMOD_OK || !child) return 0;
-    return hlaxe_mint_walked_group(child, h, hlaxe_walk_is_volatile(h));
+    return hlaxe_mint_walked_group(child, h, 1);
 }
 DEFINE_PRIM(_I32, cg_get_group, _I32 _I32);
 
@@ -7408,8 +7424,9 @@ HL_PRIM int HL_NAME(core_sound_get_sub_sound)(int h, int index) {
     if (gLastResult != FMOD_OK || !sub) return 0;
     child = hlaxe_handle_or_memory(sub, FAXE_TYPE_SOUND);
     /* A subsound of a sound this shim owns is owned too, and its handle
-     * dies with the parent's */
-    if (child && faxe_handle_is_owned(h)) {
+     * dies with the parent's. The sound h was reached from keeps its own
+     * link, which would close a loop. */
+    if (child && faxe_handle_is_owned(h) && !faxe_handle_on_chain(child, h)) {
         faxe_handle_set_owned(child, 1);
         faxe_handle_set_parent(child, h);
     }
@@ -7428,6 +7445,10 @@ HL_PRIM int HL_NAME(core_sound_get_sub_sound_parent)(int h) {
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Sound_GetSubSoundParent(sound, &parent);
     if (gLastResult != FMOD_OK || !parent) return 0;
+    /* The parent of a sound the game does not own (a bank's sample data,
+     * a stream an event plays) gets a volatile borrowed handle under h.
+     * A parent the game created keeps its own handle. */
+    if (faxe_handle_is_owned(h)) return hlaxe_mint_borrowed(parent, FAXE_TYPE_SOUND, h, 1);
     return hlaxe_handle_or_memory(parent, FAXE_TYPE_SOUND);
 }
 DEFINE_PRIM(_I32, core_sound_get_sub_sound_parent, _I32);

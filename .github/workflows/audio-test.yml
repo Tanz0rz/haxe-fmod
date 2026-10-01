@@ -456,6 +456,7 @@ jobs:
           node tests/js/arity-audit.js
           node tests/js/pcm-harness.js
           node tests/js/lifecycle-test.js
+          node tests/js/walk-first-test.js
           node tests/js/init-behavior-test.js
           node tests/js/bank-pipeline-test.js
           node tests/js/hostile-input-test.js

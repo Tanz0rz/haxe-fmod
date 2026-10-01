@@ -402,7 +402,14 @@ class TestUserData {
 		assert("a channel's sound is borrowed", sound.release() == FmodResult.FMOD_ERR_INVALID_PARAM);
 		sound.setUserData("sound");
 		channelDsp.setUserData("dsp");
+		// The parent of the channel's sound (a bank's sample data) is
+		// borrowed from that sound
+		var bankSound = sound.getSubSoundParent();
+		assert("the parent of a borrowed sound is borrowed", !bankSound.isNull() && bankSound.release() == FmodResult.FMOD_ERR_INVALID_PARAM);
+		bankSound.setUserData("bank");
+		assert("a refused parent release keeps its userdata", bankSound.getUserData() == "bank");
 		channel.stop();
+		assert("stop drops the borrowed parent's userdata", bankSound.getUserData() == null);
 		assert("stop drops the borrowed sound's userdata", sound.getUserData() == null);
 		assert("stop drops the borrowed DSP's userdata", channelDsp.getUserData() == null);
 
@@ -418,6 +425,27 @@ class TestUserData {
 		CallbackDispatcher.update();
 		assert("the destroyed instance's walked group loses its userdata", walked.getUserData() == null);
 
+		// A DSP, sound, or stream release drops the entries of handles that died with it
+		var dspOwner:Dsp = ++NativeStudioStub.testNextHandle;
+		var input:Dsp = ++NativeStudioStub.testNextHandle;
+		NativeStudioStub.testOwnerOf.set(input, dspOwner);
+		input.setUserData("input");
+		dspOwner.release();
+		assert("a DSP release drops its walked input's userdata", input.getUserData() == null);
+		var soundOwner:Sound = ++NativeStudioStub.testNextHandle;
+		var reached:Sound = ++NativeStudioStub.testNextHandle;
+		NativeStudioStub.testOwnerOf.set(reached, soundOwner);
+		reached.setUserData("reached");
+		soundOwner.release();
+		assert("a sound release drops a borrowed sound's userdata", reached.getUserData() == null);
+		var stream:haxefmod.core.PcmStream = ++NativeStudioStub.testNextHandle;
+		var streamSound:Sound = ++NativeStudioStub.testNextHandle;
+		streamSound.setUserData("ss");
+		NativeStudioStub.testPcmReleaseResult = 0;
+		NativeStudioStub.testDeadHandles.push(streamSound);
+		stream.release();
+		NativeStudioStub.testPcmReleaseResult = 68;
+		assert("a stream release drops its sound's userdata", streamSound.getUserData() == null);
 		// A refused release keeps every entry
 		var refused:ChannelGroup = ++NativeStudioStub.testNextHandle;
 		var refusedChild = refused.getGroup(0);

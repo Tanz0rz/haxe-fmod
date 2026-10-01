@@ -889,7 +889,11 @@ class NativeStudioStub {
         // A sound with no subsounds modelled hands back the null handle
         return testNumSubSounds < 0 ? 0 : 9000 + index;
     }
-    public static function core_sound_get_sub_sound_parent(handle:Int):Int return 0;
+    // The parent of a borrowed sound is borrowed from it, like the native
+    // mint. A game sound has no parent modelled.
+    public static function core_sound_get_sub_sound_parent(handle:Int):Int {
+        return testOwnedHandles.contains(handle) ? testBorrow(handle) : 0;
+    }
     public static function core_sound_get_num_tags(handle:Int):Int return -1;
     public static function core_sound_get_tag(handle:Int, name:String, index:Int):String return "";
     public static function core_sound_get_tag_string(handle:Int, name:String, index:Int):String return "";

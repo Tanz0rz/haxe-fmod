@@ -563,6 +563,103 @@ int main(void) {
         assert(faxe_live_handle_count() == liveAtStart);
     }
 
+    /* A group handle walked in one instance's tree is foreign to a walk
+     * from another instance or a bus. The owners' own anchored handles
+     * and walks that start elsewhere never count. */
+    {
+        static int instA, instB, bus, groupA, groupB, busGroup, nested, game, master;
+        int liveAtStart = faxe_live_handle_count();
+        int hA = faxe_handle_alloc(&instA, FAXE_TYPE_EVI);
+        int hB = faxe_handle_alloc(&instB, FAXE_TYPE_EVI);
+        int hBus = faxe_handle_alloc(&bus, FAXE_TYPE_BUS);
+        int hGroupA = faxe_handle_alloc(&groupA, FAXE_TYPE_CHANGROUP);
+        int hGroupB = faxe_handle_alloc(&groupB, FAXE_TYPE_CHANGROUP);
+        int hBusGroup = faxe_handle_alloc(&busGroup, FAXE_TYPE_CHANGROUP);
+        int hNested = faxe_handle_alloc(&nested, FAXE_TYPE_CHANGROUP);
+        int hGame = faxe_handle_alloc(&game, FAXE_TYPE_CHANGROUP);
+        int hMaster = faxe_handle_alloc(&master, FAXE_TYPE_CHANGROUP);
+        int i;
+        int borrowedSlots[] = {hGroupA, hGroupB, hBusGroup, hNested};
+        for (i = 0; i < 4; i++) faxe_handle_set_owned(borrowedSlots[i], 1);
+        faxe_handle_set_owned(hMaster, 1);
+        faxe_handle_set_owner(hGroupA, hA);
+        faxe_handle_set_owner(hGroupB, hB);
+        faxe_handle_set_owner(hBusGroup, hBus);
+        faxe_handle_set_owner(hNested, hGroupA);
+        faxe_handle_set_volatile(hNested);
+        assert(faxe_handle_is_group_owner_type(FAXE_TYPE_EVI) && faxe_handle_is_group_owner_type(FAXE_TYPE_BUS));
+        assert(!faxe_handle_is_group_owner_type(FAXE_TYPE_CHANGROUP) && !faxe_handle_is_group_owner_type(FAXE_TYPE_NONE));
+        /* the nested walk result is foreign to instance B and to the bus */
+        assert(faxe_handle_walked_elsewhere(hNested, hB));
+        assert(faxe_handle_walked_elsewhere(hNested, hBus));
+        /* and belongs to a walk from A's own tree */
+        assert(!faxe_handle_walked_elsewhere(hNested, hA));
+        /* a walk that starts at no instance or bus cannot judge it */
+        assert(!faxe_handle_walked_elsewhere(hNested, hGame));
+        assert(!faxe_handle_walked_elsewhere(hNested, 0));
+        /* anchored own groups stay, whoever walks into them */
+        assert(!faxe_handle_walked_elsewhere(hGroupA, hB));
+        assert(!faxe_handle_walked_elsewhere(hBusGroup, hA));
+        /* a game group and the fixed master are not borrowed */
+        assert(!faxe_handle_walked_elsewhere(hGame, hB));
+        assert(!faxe_handle_walked_elsewhere(hMaster, hB));
+        /* a plain parent link (a subsound's) makes no borrowed group */
+        {
+            static int linkedOnly;
+            int hLinked = faxe_handle_alloc(&linkedOnly, FAXE_TYPE_CHANGROUP);
+            faxe_handle_set_parent(hLinked, hGroupA);
+            assert(!faxe_handle_walked_elsewhere(hLinked, hB));
+            faxe_handle_set_owned(hLinked, 1);
+            assert(!faxe_handle_walked_elsewhere(hLinked, hB));
+            faxe_handle_free(hLinked);
+        }
+        /* a dead handle is never foreign */
+        assert(!faxe_handle_walked_elsewhere(0, hB));
+
+        /* on_chain sees a handle itself and every handle above it */
+        assert(faxe_handle_on_chain(hNested, hNested));
+        assert(faxe_handle_on_chain(hGroupA, hNested) && faxe_handle_on_chain(hA, hNested));
+        assert(!faxe_handle_on_chain(hNested, hGroupA) && !faxe_handle_on_chain(hB, hNested));
+        assert(!faxe_handle_on_chain(hA, 0));
+
+        /* adopt moves a volatile handle under a live owner, linked */
+        assert(faxe_handle_adopt(hNested, hBusGroup) == 1);
+        assert(faxe_handle_get_parent(hNested) == hBusGroup);
+        assert(faxe_handle_get_borrowed(hNested) == FAXE_BORROWED_LINKED);
+        assert(gFaxeSlots[hBusGroup & 0xFFFF].kids == 1);
+        faxe_handles_free_volatile();
+        assert(faxe_handle_is_live(hNested));
+        /* a linked handle keeps its first owner */
+        assert(faxe_handle_adopt(hNested, hGroupB) == 0);
+        assert(faxe_handle_get_parent(hNested) == hBusGroup);
+        /* refused: no owner, a dead owner, itself, and an owner below it */
+        faxe_handle_set_volatile(hNested);
+        assert(faxe_handle_adopt(hNested, 0) == 0);
+        assert(faxe_handle_adopt(hNested, hNested) == 0);
+        {
+            static int below;
+            int hBelow = faxe_handle_alloc(&below, FAXE_TYPE_DSP);
+            int deadOwner = faxe_handle_alloc(&below, FAXE_TYPE_DSP);
+            faxe_handle_free(deadOwner);
+            assert(faxe_handle_adopt(hNested, deadOwner) == 0);
+            faxe_handle_set_owner(hBelow, hNested);
+            assert(faxe_handle_adopt(hNested, hBelow) == 0);
+            assert(faxe_handle_get_borrowed(hNested) == FAXE_BORROWED_VOLATILE);
+            /* a handle the game owns is never adopted */
+            assert(faxe_handle_adopt(hGame, hBusGroup) == 0 && faxe_handle_get_parent(hGame) == 0);
+            /* the adopted handle dies with its new owner */
+            assert(faxe_handle_adopt(hNested, hGroupB) == 1);
+            faxe_handle_free(hB);
+            assert(!faxe_handle_is_live(hGroupB) && !faxe_handle_is_live(hNested) && !faxe_handle_is_live(hBelow));
+        }
+        faxe_handle_free(hA);
+        faxe_handle_free(hBus);
+        assert(!faxe_handle_is_live(hGroupA) && !faxe_handle_is_live(hBusGroup));
+        faxe_handle_free(hGame);
+        faxe_handle_free(hMaster);
+        assert(faxe_live_handle_count() == liveAtStart);
+    }
+
     printf("faxe_handles: all assertions passed\n");
     return 0;
 }

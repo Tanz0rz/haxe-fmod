@@ -489,6 +489,211 @@ async function main() {
             `live=${jaxe.liveCount} before=${borrowLive}`);
     }
 
+    // Lifetimes that depend on where a walk starts and on which call
+    // reached an object first. An event sound's parent was releasable and
+    // never died. A nested event's group walked from an instance outlived
+    // the group, and another instance's walk handed the stale handle out.
+    // A DSP a graph walk reached first stayed volatile when the game
+    // fetched it again from its group.
+    {
+        // The lookups and the master group's head live for the session
+        const coinEvd = jaxe.fmod_sys_get_event('event:/SFX/Coin');
+        const nestedEvd = jaxe.fmod_sys_get_event('event:/Music/Nested');
+        const holdEvd = jaxe.fmod_sys_get_event('event:/SFX/Hold');
+        const rootBus = jaxe.fmod_sys_get_bus('bus:/');
+        const masterHead = jaxe.fmod_cg_get_dsp(jaxe.fmod_cg_get_master(), -1);
+        const walkLive = jaxe.liveCount;
+        // Plain objects stand in for wrappers in the table checks below.
+        // They carry their own address for the table.
+        const realRawPtr = jaxe.rawPtr;
+        jaxe.rawPtr = obj => (obj && obj.fakeRaw) ? obj.fakeRaw : realRawPtr(obj);
+        const fake = raw => ({ $$: { ptr: raw }, fakeRaw: raw });
+        function destroyPoint() {
+            const scratch = jaxe.fmod_core_create_sound_pcm(new Uint8Array(800).buffer, 800, 8000, 1);
+            jaxe.fmod_core_release_sound(scratch);
+        }
+        function below(group, out) {
+            for (let i = 0; i < jaxe.fmod_cg_get_num_groups(group); i++) {
+                const child = jaxe.fmod_cg_get_group(group, i);
+                if (child > 0) { out.push(child); below(child, out); }
+            }
+            return out;
+        }
+        function firstChannel(group) {
+            if (jaxe.fmod_cg_get_num_channels(group) > 0) return jaxe.fmod_cg_get_channel(group, 0);
+            for (let i = 0; i < jaxe.fmod_cg_get_num_groups(group); i++) {
+                const found = firstChannel(jaxe.fmod_cg_get_group(group, i));
+                if (found > 0) return found;
+            }
+            return 0;
+        }
+
+        // The parent of an event's sound refuses release and dies with it
+        const coin = jaxe.fmod_evd_create_instance(coinEvd);
+        jaxe.fmod_evi_start(coin);
+        await pump(5);
+        const coinChannel = firstChannel(jaxe.fmod_evi_get_channel_group(coin));
+        const coinSound = jaxe.fmod_chan_get_current_sound(coinChannel);
+        const bankSound = jaxe.fmod_core_sound_get_sub_sound_parent(coinSound);
+        check('subsound_parent_borrowed', bankSound > 0 && jaxe.isOwned(bankSound)
+            && jaxe.slots[bankSound & 0xFFFF].parent === coinSound
+            && jaxe.slots[bankSound & 0xFFFF].borrowed === jaxe.BORROWED_VOLATILE, `sound=${coinSound} parent=${bankSound}`);
+        check('subsound_parent_release_refused', jaxe.fmod_core_release_sound(bankSound) === jaxe.ERR_INVALID_PARAM,
+            `result=${jaxe.lastResult}`);
+        // Its subsound is the sound it was reached from, which keeps its
+        // own link
+        const back = jaxe.fmod_core_sound_get_sub_sound(bankSound, 0);
+        check('subsound_parent_no_loop', back === coinSound && jaxe.slots[coinSound & 0xFFFF].parent === coinChannel,
+            `back=${back} sound=${coinSound}`);
+        destroyPoint();
+        check('subsound_parent_dies_at_destroy_point', !jaxe.handleIsLive(bankSound) && !jaxe.handleIsLive(coinSound), '');
+        jaxe.fmod_evi_stop(coin, 1);
+        jaxe.fmod_evi_release(coin);
+        jaxe.fmod_chan_stop(coinChannel);
+
+        // A subsound linked under a borrowed parent dies with it
+        {
+            const host = jaxe.handleAlloc(fake(0x7ff001), jaxe.TYPE_CHAN);
+            const parent = jaxe.handleAlloc(fake(0x7ff002), jaxe.TYPE_SOUND);
+            const child = jaxe.handleAlloc(fake(0x7ff003), jaxe.TYPE_SOUND);
+            jaxe.markOwned(parent);
+            jaxe.setOwner(parent, host);
+            jaxe.slots[parent & 0xFFFF].borrowed = jaxe.BORROWED_VOLATILE;
+            jaxe.linkParent(child, parent);
+            check('link_parent_sets_kids', jaxe.slots[parent & 0xFFFF].kids === true, '');
+            jaxe.freeVolatile();
+            check('linked_subsound_dies_with_parent', !jaxe.handleIsLive(parent) && !jaxe.handleIsLive(child)
+                && jaxe.handleIsLive(host), '');
+            jaxe.handleFree(host);
+        }
+
+        // Groups below an instance's own group are volatile and go at the
+        // next destroy point. The instance's own group stays linked.
+        const nested = jaxe.fmod_evd_create_instance(nestedEvd);
+        jaxe.fmod_evi_start(nested);
+        await pump(5);
+        const nestedGroup = jaxe.fmod_evi_get_channel_group(nested);
+        const nestedBelow = below(nestedGroup, []);
+        check('walk_below_instance_minted', nestedBelow.length > 0, `below=${nestedBelow.length}`);
+        check('walk_below_instance_volatile', nestedBelow.every(h => jaxe.slots[h & 0xFFFF].borrowed === jaxe.BORROWED_VOLATILE),
+            nestedBelow.map(h => jaxe.slots[h & 0xFFFF].borrowed).join(','));
+        destroyPoint();
+        check('walk_below_instance_dies_at_destroy_point', nestedBelow.every(h => !jaxe.handleIsLive(h)), '');
+        check('walk_instance_own_group_linked', jaxe.handleIsLive(nestedGroup)
+            && jaxe.slots[nestedGroup & 0xFFFF].borrowed === jaxe.BORROWED_LINKED
+            && jaxe.fmod_evi_get_channel_group(nested) === nestedGroup, `group=${nestedGroup}`);
+        jaxe.fmod_evi_stop(nested, 1);
+        jaxe.fmod_evi_release(nested);
+
+        // Two instances feed one group. A walk up from the second never
+        // meets the handle the first one's walk minted.
+        const holdA = jaxe.fmod_evd_create_instance(holdEvd);
+        const holdB = jaxe.fmod_evd_create_instance(holdEvd);
+        jaxe.fmod_evi_start(holdA);
+        jaxe.fmod_evi_start(holdB);
+        await pump(5);
+        const groupA = jaxe.fmod_evi_get_channel_group(holdA);
+        const upA = jaxe.fmod_cg_get_parent_group(groupA);
+        // A walk down from A's side reaches B's group before B hands it out
+        const besideA = [];
+        for (let i = 0; i < jaxe.fmod_cg_get_num_groups(upA); i++) {
+            const g = jaxe.fmod_cg_get_group(upA, i);
+            if (g > 0 && g !== groupA) besideA.push(g);
+        }
+        const groupB = jaxe.fmod_evi_get_channel_group(holdB);
+        if (besideA.length === 0) {
+            skip('anchor_after_other_walk_fresh_handle', `no sibling group reached: a=${groupA}`);
+        } else {
+            check('anchor_after_other_walk_fresh_handle', groupB > 0 && besideA.indexOf(groupB) < 0
+                && besideA.every(g => !jaxe.handleIsLive(g) || jaxe.slots[g & 0xFFFF].raw !== jaxe.slots[groupB & 0xFFFF].raw),
+                `b=${groupB} beside=${besideA}`);
+        }
+        const upB = jaxe.fmod_cg_get_parent_group(groupB);
+        const shared = upA > 0 && upB > 0 && jaxe.slots[upB & 0xFFFF].raw === jaxe.slots[upA & 0xFFFF].raw;
+        if (!jaxe.handleIsLive(upA) && upB > 0) {
+            check('walk_other_instance_fresh_handle', upB !== upA, `a=${upA} b=${upB}`);
+        } else if (shared) {
+            check('walk_other_instance_fresh_handle', false, `a=${upA} b=${upB} both live on one group`);
+        } else {
+            skip('walk_other_instance_fresh_handle', `the instances feed different groups: a=${upA} b=${upB}`);
+        }
+        // A walk from a bus leaves an instance's own group as it is
+        jaxe.fmod_bus_lock_channel_group(rootBus);
+        const fromBus = below(jaxe.fmod_bus_get_channel_group(rootBus), []);
+        check('walk_from_bus_keeps_instance_group', fromBus.indexOf(groupA) >= 0 && jaxe.handleIsLive(groupA)
+            && jaxe.slots[groupA & 0xFFFF].parent === holdA, `group=${groupA} walked=${fromBus}`);
+        jaxe.fmod_bus_unlock_channel_group(rootBus);
+        jaxe.fmod_evi_stop(holdA, 1);
+        jaxe.fmod_evi_release(holdA);
+        jaxe.fmod_evi_stop(holdB, 1);
+        jaxe.fmod_evi_release(holdB);
+
+        // A DSP a graph walk reached first takes the lifetime of the group
+        // the game fetches it from. A later walk leaves it linked.
+        const gameGroup = jaxe.fmod_cg_create('walk-order');
+        const inputs = [];
+        for (let i = 0; i < jaxe.fmod_dsp_get_num_inputs(masterHead); i++) inputs.push(jaxe.fmod_dsp_get_input_dsp(masterHead, i));
+        const gameHead = jaxe.fmod_cg_get_dsp(gameGroup, -1);
+        if (inputs.indexOf(gameHead) < 0) {
+            skip('dsp_adopted_by_group', `the walk did not reach the new group: head=${gameHead} inputs=${inputs}`);
+        } else {
+            check('dsp_adopted_by_group', jaxe.slots[gameHead & 0xFFFF].parent === gameGroup
+                && jaxe.slots[gameHead & 0xFFFF].borrowed === jaxe.BORROWED_LINKED, `head=${gameHead}`);
+            destroyPoint();
+            const again = [];
+            for (let i = 0; i < jaxe.fmod_dsp_get_num_inputs(masterHead); i++) again.push(jaxe.fmod_dsp_get_input_dsp(masterHead, i));
+            check('dsp_linked_stays_linked', jaxe.handleIsLive(gameHead) && again.indexOf(gameHead) >= 0
+                && jaxe.slots[gameHead & 0xFFFF].borrowed === jaxe.BORROWED_LINKED, '');
+        }
+        jaxe.fmod_cg_release(gameGroup);
+        check('dsp_dies_with_game_group', !jaxe.handleIsLive(gameHead), '');
+
+        // The table rules on plain slots: a linked handle keeps its first
+        // owner, and a walked group from another tree counts as foreign
+        {
+            const ownerA = jaxe.handleAlloc(fake(0x7ff101), jaxe.TYPE_EVI);
+            const ownerB = jaxe.handleAlloc(fake(0x7ff102), jaxe.TYPE_EVI);
+            const bus = jaxe.handleAlloc(fake(0x7ff103), jaxe.TYPE_BUS);
+            const groupOfA = jaxe.handleAlloc(fake(0x7ff104), jaxe.TYPE_CHANGROUP);
+            const walkedInA = jaxe.handleAlloc(fake(0x7ff105), jaxe.TYPE_CHANGROUP);
+            const dspX = jaxe.handleAlloc(fake(0x7ff106), jaxe.TYPE_DSP);
+            for (const h of [groupOfA, walkedInA, dspX]) jaxe.markOwned(h);
+            jaxe.setOwner(groupOfA, ownerA);
+            jaxe.setOwner(walkedInA, groupOfA);
+            jaxe.slots[walkedInA & 0xFFFF].borrowed = jaxe.BORROWED_VOLATILE;
+            check('walked_elsewhere_rules', jaxe.walkedElsewhere(walkedInA, ownerB) && jaxe.walkedElsewhere(walkedInA, bus)
+                && !jaxe.walkedElsewhere(walkedInA, ownerA) && !jaxe.walkedElsewhere(groupOfA, ownerB)
+                && !jaxe.walkedElsewhere(walkedInA, 0), '');
+            jaxe.setOwner(dspX, groupOfA);
+            check('adopt_keeps_first_owner', !jaxe.adopt(dspX, bus) && jaxe.slots[dspX & 0xFFFF].parent === groupOfA, '');
+            jaxe.slots[dspX & 0xFFFF].borrowed = jaxe.BORROWED_VOLATILE;
+            check('adopt_refuses_loop', !jaxe.adopt(groupOfA, walkedInA) && !jaxe.adopt(dspX, dspX), '');
+            check('adopt_links_volatile', jaxe.adopt(dspX, bus) && jaxe.slots[dspX & 0xFFFF].parent === bus
+                && jaxe.slots[dspX & 0xFFFF].borrowed === jaxe.BORROWED_LINKED, '');
+            // The mints apply the rule: a group a walk minted in A's tree
+            // is foreign to B's anchored mint and to a walk from B
+            const stale = fake(0x7ff105);
+            const anchored = jaxe.mintAnchored(stale, ownerB);
+            check('mint_anchored_drops_foreign_walk', anchored > 0 && anchored !== walkedInA && !jaxe.handleIsLive(walkedInA)
+                && jaxe.slots[anchored & 0xFFFF].parent === ownerB && jaxe.slots[anchored & 0xFFFF].borrowed === jaxe.BORROWED_LINKED, '');
+            const walkedInB = jaxe.mintBorrowed(fake(0x7ff107), jaxe.TYPE_CHANGROUP, anchored, true);
+            const fromA = jaxe.mintBorrowed(fake(0x7ff107), jaxe.TYPE_CHANGROUP, groupOfA, true);
+            check('mint_borrowed_drops_foreign_walk', fromA > 0 && fromA !== walkedInB && !jaxe.handleIsLive(walkedInB)
+                && jaxe.slots[fromA & 0xFFFF].parent === groupOfA, `b=${walkedInB} a=${fromA}`);
+            const again = jaxe.mintBorrowed(fake(0x7ff107), jaxe.TYPE_CHANGROUP, groupOfA, true);
+            check('mint_borrowed_keeps_own_walk', again === fromA, `again=${again}`);
+            for (const h of [ownerA, ownerB, bus]) jaxe.handleFree(h);
+            check('adopted_dies_with_new_owner', !jaxe.handleIsLive(dspX) && !jaxe.handleIsLive(walkedInA), '');
+            check('mint_rules_leave_no_slots', !jaxe.handleIsLive(anchored) && !jaxe.handleIsLive(fromA), '');
+        }
+        jaxe.rawPtr = realRawPtr;
+        jaxe.gSystem.flushCommands();
+        await pump(5);
+        drainEvents();
+        check('walk_lifetimes_leave_no_slots', jaxe.liveCount === walkLive,
+            `live=${jaxe.liveCount} before=${walkLive}`);
+    }
+
     // A bulk destroy takes the shim callback off every instance group in
     // its scope first, and a refused call puts it back. FMOD must never
     // free a group with the shim callback installed.

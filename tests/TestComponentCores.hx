@@ -121,6 +121,18 @@ class TestComponentCores {
 		assert(stub.testLastGlobalParameter == "Nope" && stub.testLastGlobalValue == 0,
 			"global path reaches StudioSystem.setParameter with the name and value");
 
+		// PROBE: the vertical extent and every edge count
+		var probeProvider = new MovableProvider(50, 150);
+		var vertical = new SpyTrigger(probeProvider, 0, 0, 100, 100, "Nope", 1, 0);
+		vertical.update();
+		assert(vertical.applied.length == 1 && vertical.applied[0] == 0, "PROBE a position below the zone is outside");
+		var edges = 0;
+		for (pt in [[0.0, 50.0], [50.0, 0.0], [50.0, 100.0]]) {
+			var edge = new SpyTrigger(new MovableProvider(pt[0] + 10, pt[1] + 20), 10, 20, 100, 100, "Nope", 1, 0);
+			edge.update();
+			if (edge.applied.length == 1 && edge.applied[0] == 1) edges++;
+		}
+		assert(edges == 3, "PROBE the left, top, and bottom edges are inside");
 		stub.testInitialized = savedInit;
 	}
 
