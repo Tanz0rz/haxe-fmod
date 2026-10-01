@@ -233,6 +233,8 @@ def setup_steps(j):
             [ "$i" = 90 ] && {{ echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }}
             sleep 2
           done
+          # The slots the gate saw, for the log
+          snap connections chromium 2>/dev/null | awk '$1 ~ /^content\\[(gpu|gnome)-/' || true
           sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true
           for i in $(seq 45); do
             chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break

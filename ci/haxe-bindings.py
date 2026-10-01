@@ -528,7 +528,7 @@ def render_coverage_md(table):
         "",
         f"Every FMOD function the native layer calls, with the haxefmod methods that reach it. Generated from the sources by `ci/haxe-bindings.py` for haxefmod {haxelib_version()} against FMOD {fmod_version()}. The functions the library leaves out are listed at the end with the reason for each.",
         "",
-        "The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, \"compile error\" marks a call a js build refuses. The project define `-D haxefmod_html5_allow_unsupported` compiles it anyway, and the call then returns `FMOD_ERR_UNSUPPORTED` at runtime. The word \"limited\" marks a call the web build only partly supports.",
+        "The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, \"compile error\" marks a call a js build refuses. A cell that names methods marks those methods alone. The project define `-D haxefmod_html5_allow_unsupported` compiles it anyway, and the call then returns `FMOD_ERR_UNSUPPORTED` at runtime. The word \"limited\" marks a call the web build only partly supports.",
         "",
     ]
     total = 0
@@ -543,7 +543,16 @@ def render_coverage_md(table):
                     f"`{m['type'].split('.')[-1]}.{m['name']}`" for m in methods)
             else:
                 cell = "internal"
-            html5 = "compile error" if record.get("gated") else ("limited" if record["html5"] else "")
+            # A row marks the methods a js build refuses. When some of
+            # its methods compile, the cell names the ones that do not
+            gated = [m for m in methods if m.get("gated")]
+            if gated and len(gated) < len(methods):
+                html5 = "compile error: " + ", ".join(
+                    f"`{m['type'].split('.')[-1]}.{m['name']}`" for m in gated)
+            elif record.get("gated"):
+                html5 = "compile error"
+            else:
+                html5 = "limited" if record["html5"] else ""
             lines.append(f"| `{record['fmod']}` | {cell} | {html5} |")
         lines.append("")
     lines.insert(4, f"{total} FMOD functions are reached.")

@@ -268,8 +268,9 @@ else:
 # .ssh/config path or an env value never reads as a fetch, and a pip
 # reached by its path still does. A wrapper covers the command it
 # starts, so each segment between the shell's list and pipe operators
-# is checked on its own
-FETCH_RE = re.compile(r"(?<![\w.])(haxelib install|git (?:clone|fetch|pull|submodule)|npm (?:install|ci)|npx playwright install|curl\s|wget\s|brew install|pip\"? install|ssh\s|rsync\s|gh (?:api|release download))")
+# is checked on its own. Playwright's dependency dry run only simulates
+# an install and exits 1 when packages are missing, so it stays bare
+FETCH_RE = re.compile(r"(?<![\w.])(haxelib install|git (?:clone|fetch|pull|submodule)|npm (?:install|ci)|npx playwright install(?!-deps --dry-run)|curl\s|wget\s|brew install|pip\"? install|ssh\s|rsync\s|gh (?:api|release download))")
 WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)ci/(retry|apt)\.sh\1")
 SEGMENT_RE = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")
 fetch_files = [os.path.join(os.path.dirname(PATH), wf) for wf in sorted(os.listdir(os.path.dirname(PATH))) if wf.endswith(".yml")]
@@ -363,11 +364,13 @@ else:
 # line starts its own line, and each loop bound equals its threshold.
 CHROMIUM_INSTALL = re.compile(r"\bapt(-get)?\b[^\n]*\binstall\b[^\n]*\bchromium-browser\b|snap install[^\n]*\bchromium\b")
 CHROMIUM_GATE = [
+    ("the snap purge before a retry", r"^{B}  sudo snap remove --purge chromium 2>/dev/null \|\| true$"),
     ("the seed wait", r"^{B}sudo snap wait system seed\.loaded"),
+    ("the slot predicate", r"^{B}  snap connections chromium 2>/dev/null \| awk '\$1 ~ /\^content\\\[gpu-/ && \$3 != \"-\" \{ gpu = 1 \} \$1 ~ /\^content\\\[gnome-/ && \$3 != \"-\" \{ gnome = 1 \} END \{ exit gpu && gnome \? 0 : 1 \}'$"),
     ("the slot wait loop", r"^{B}for i in \$\(seq 90\); do\n{B}  gpu_slot_connected && break$"),
     ("a fatal slot wait", r'^{B}  \[ "\$i" = 90 \] && \{ echo "::error ::the chromium GPU content slot never connected after the install"[^\n]*exit 1; \}$'),
     ("the namespace discard", r"^{B}sudo /usr/lib/snapd/snap-discard-ns chromium"),
-    ("the probe loop", r"^{B}for i in \$\(seq 45\); do\n{B}  chromium-browser --headless=new[^\n]*&& break$"),
+    ("the probe loop", r"^{B}for i in \$\(seq 45\); do\n{B}  chromium-browser --headless=new[^\n]*--dump-dom about:blank[^\n]*&& break$"),
     ("a fatal probe", r'^{B}  \[ "\$i" = 45 \] && \{ echo "::error ::chromium never rendered a headless page after the install"[^\n]*exit 1; \}$'),
 ]
 chromium_installs = 0

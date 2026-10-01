@@ -1269,6 +1269,17 @@ jobs:
           echo "=== .haxefmod/ contents ==="
           ls -la .haxefmod/
           cat .haxefmod/hlaxe_fmod.version
+          # The shipped Linux hdll comes from this build. Its newest glibc
+          # symbol decides which systems can load it. A libc call that
+          # the runner's headers bind to a newer symbol raises the floor.
+          NEWEST=$(objdump -T .haxefmod/hlaxe_fmod.hdll | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -n 1)
+          echo "newest glibc symbol in the hdll: ${NEWEST:-none}"
+          [ -n "$NEWEST" ] || { echo "FAIL: no glibc symbol version found in the hdll"; exit 1; }
+          if [ "$(printf '%s\n' "$NEWEST" GLIBC_2.34 | sort -V | tail -n 1)" != "GLIBC_2.34" ]; then
+            echo "FAIL: the hdll needs $NEWEST, and the shipped one must load on glibc 2.34"
+            objdump -T .haxefmod/hlaxe_fmod.hdll | grep "$NEWEST"
+            exit 1
+          fi
 
       - name: Rebuild HashLink target (custom hdll)
         run: |
@@ -1580,7 +1591,7 @@ jobs:
           bash "$GITHUB_WORKSPACE/ci/apt.sh" install -y --no-install-recommends fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont fonts-wqy-zenhei xfonts-cyrillic xfonts-scalable
           # Whatever else its dry run would install or upgrade goes
           # through the wrapper too
-          PKGS=$(bash "$GITHUB_WORKSPACE/ci/retry.sh" npx playwright install-deps --dry-run firefox 2>/dev/null | awk '$1 == "Inst" { print $2 }' | sort -u | tr '\n' ' ') || true
+          PKGS=$(npx playwright install-deps --dry-run firefox 2>/dev/null | awk '/^Missing system dependencies/ { m = 1; next } m && /^  [^ ]/ { print $1 }' | sort -u | tr '\n' ' ') || true
           if [ -n "$PKGS" ]; then bash "$GITHUB_WORKSPACE/ci/apt.sh" install -y --no-install-recommends $PKGS; fi
           bash "$GITHUB_WORKSPACE/ci/retry.sh" npx playwright install --with-deps firefox
 
@@ -4411,6 +4422,8 @@ jobs:
             [ "$i" = 90 ] && { echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }
             sleep 2
           done
+          # The slots the gate saw, for the log
+          snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[(gpu|gnome)-/' || true
           sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true
           for i in $(seq 45); do
             chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break
@@ -5755,6 +5768,8 @@ jobs:
             [ "$i" = 90 ] && { echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }
             sleep 2
           done
+          # The slots the gate saw, for the log
+          snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[(gpu|gnome)-/' || true
           sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true
           for i in $(seq 45); do
             chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break
@@ -6862,6 +6877,8 @@ jobs:
             [ "$i" = 90 ] && { echo "::error ::the chromium GPU content slot never connected after the install"; snap connections chromium || true; exit 1; }
             sleep 2
           done
+          # The slots the gate saw, for the log
+          snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[(gpu|gnome)-/' || true
           sudo /usr/lib/snapd/snap-discard-ns chromium 2>/dev/null || true
           for i in $(seq 45); do
             chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe.log 2>&1 && break
