@@ -8030,7 +8030,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "Directory the replay loads banks from when the captured paths no longer apply.",
+     "doc": "Directory the replay loads banks from in place of the directories the capture recorded.",
      "gated": false,
      "name": "setBankPath",
      "signature": "setBankPath(path:String):FmodResult",
@@ -9410,14 +9410,6 @@ const HAXEFMOD_BINDINGS = {
      "signature": "flushCommands():FmodResult",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
-    },
-    {
-     "direct": false,
-     "doc": "Freezes the song at its position.",
-     "name": "PauseSong",
-     "signature": "PauseSong():Void",
-     "static": true,
-     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": false
@@ -10649,6 +10641,15 @@ const HAXEFMOD_BINDINGS = {
      "signature": "update():Void",
      "static": true,
      "type": "haxefmod.runtime.FmodRuntime"
+    },
+    {
+     "direct": false,
+     "doc": "Freezes the song at its position.",
+     "gated": false,
+     "name": "PauseSong",
+     "signature": "PauseSong():Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": false

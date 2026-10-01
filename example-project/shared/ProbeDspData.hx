@@ -209,6 +209,34 @@ class ProbeDspData {
             && mixer.setParameter3DAttributesMulti(0, origin(), [origin()]) == FmodResult.FMOD_ERR_INVALID_PARAM
             && mixer.setParameterSidechain(0, {sidechainEnable: true}) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
         mixer.release();
+        // FMOD divides by the channel count that opens a convolution
+        // reverb's impulse response. An empty payload killed the process,
+        // and so did a typed writer aimed at the parameter.
+        var convolution = Dsp.create(DspType.CONVOLUTIONREVERB);
+        var irIndex:Int = DspConvolutionReverb.PARAM_IR;
+        var emptyIr = convolution.setParameterData(irIndex, haxe.io.Bytes.alloc(64));
+        // One byte cannot hold the count. FMOD reads a second one past it.
+        var oneByte = haxe.io.Bytes.alloc(1);
+        oneByte.set(0, 1);
+        var shortIr = convolution.setParameterData(irIndex, oneByte);
+        @:privateAccess state.check("dsp_set_parameter_data_empty_ir", !convolution.isNull()
+            && emptyIr == FmodResult.FMOD_ERR_INVALID_PARAM && shortIr == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'empty=${emptyIr.toString()} short=${shortIr.toString()}');
+        var irSidechain = convolution.setParameterSidechain(irIndex, {sidechainEnable: false});
+        var irFinite = convolution.setParameterFiniteLength(irIndex, {finite: false});
+        var irRange = convolution.setParameterAttenuationRange(irIndex, {min: 0, max: 10});
+        var ir3d = convolution.setParameter3DAttributes(irIndex, origin());
+        var irMulti = convolution.setParameter3DAttributesMulti(irIndex, origin(), [origin()]);
+        @:privateAccess state.check("dsp_typed_writers_refuse_ir", irSidechain == FmodResult.FMOD_ERR_INVALID_PARAM
+            && irFinite == FmodResult.FMOD_ERR_INVALID_PARAM && irRange == FmodResult.FMOD_ERR_INVALID_PARAM
+            && ir3d == FmodResult.FMOD_ERR_INVALID_PARAM && irMulti == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'sidechain=${irSidechain.toString()} finite=${irFinite.toString()} range=${irRange.toString()} 3d=${ir3d.toString()} multi=${irMulti.toString()}');
+        var irBytes = haxe.io.Bytes.alloc((1 + 64) * 2);
+        irBytes.setUInt16(0, 1);
+        for (i in 0...64) irBytes.setUInt16((1 + i) * 2, Std.int(Math.exp(-i / 16) * 12000));
+        var irUpload = convolution.setParameterData(irIndex, irBytes);
+        @:privateAccess state.check("dsp_set_parameter_data_ir_after_refusals", irUpload.isOk(), 'result=${irUpload.toString()}');
+        convolution.release();
 
         // --- overall gain on a fader ---
         var fader = Dsp.create(DspType.FADER);
@@ -349,6 +377,15 @@ class ProbeDspData {
         compressor.setParameterSidechain(DspCompressor.USESIDECHAIN, {sidechainEnable: false});
         @:privateAccess state.check("dsp_set_parameter_finite_length_null_props",
             compressor.setParameterFiniteLength(DspCompressor.USESIDECHAIN, null) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        // FMOD takes the eight byte range block on the sidechain switch. The
+        // writer refuses a parameter of another data type.
+        var rangeOnSidechain = compressor.setParameterAttenuationRange(DspCompressor.USESIDECHAIN, {min: 1, max: 2});
+        // The same holds for the 3D attribute block, which FMOD takes there too
+        var attributesOnSidechain = compressor.setParameter3DAttributes(DspCompressor.USESIDECHAIN, at(1, 2, 3));
+        @:privateAccess state.check("dsp_typed_writer_refuses_other_type", rangeOnSidechain == FmodResult.FMOD_ERR_INVALID_PARAM
+            && attributesOnSidechain == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'range=${rangeOnSidechain.toString()} attributes=${attributesOnSidechain.toString()}');
+        compressor.setParameterSidechain(DspCompressor.USESIDECHAIN, {sidechainEnable: false});
         // an eight byte overall gain block is too short for a dynamic response
         @:privateAccess state.check("dsp_get_parameter_dynamic_response_short_block", fader.getParameterDynamicResponse(gainIndex) == null
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM, 'result=${StudioSystem.lastResult().toString()}');

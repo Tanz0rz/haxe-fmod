@@ -414,6 +414,17 @@ class TestUserData {
 		assert("stop drops the borrowed sound's userdata", sound.getUserData() == null);
 		assert("stop drops the borrowed DSP's userdata", channelDsp.getUserData() == null);
 
+		// A connection handle dies at any graph change, and its entry goes
+		// with the other dead handles
+		var conn:haxefmod.core.DspConnection = ++NativeStudioStub.testNextHandle;
+		conn.setUserData("conn");
+		UserData.dropDeadBorrowed();
+		assert("a live connection keeps its userdata", conn.getUserData() == "conn");
+		NativeStudioStub.testDeadHandles.push(conn);
+		UserData.dropDeadBorrowed();
+		assert("a dead connection's userdata is dropped", conn.getUserData() == null);
+		NativeStudioStub.testDeadHandles.remove(conn);
+
 		// An instance FMOD destroyed: the native drain freed what hangs off
 		// it, and the Haxe drain drops the entries once per update
 		var inst:EventInstance = ++NativeStudioStub.testNextHandle;
@@ -487,6 +498,22 @@ class TestUserData {
 		lockBus.lockChannelGroup();
 		NativeStudioStub.testBusLockResult = 68;
 		assert("an accepted bus lock drops the entry", flushed.getUserData() == null);
+		// A sample data unload ends them without running the queue. A flush
+		// in it held the game thread for 42 ms per call.
+		var sampleBank:Bank = ++NativeStudioStub.testNextHandle;
+		var sampleEvent:EventDescription = ++NativeStudioStub.testNextHandle;
+		flushed.setUserData("samples");
+		sampleBank.unloadSampleData();
+		assert("a refused sample unload keeps the entry", flushed.getUserData() == "samples");
+		NativeStudioStub.testSampleUnloadResult = 0;
+		NativeStudioStub.testFlushCalls = 0;
+		sampleBank.unloadSampleData();
+		assert("an accepted bank sample unload drops the entry", flushed.getUserData() == null);
+		flushed.setUserData("samples");
+		sampleEvent.unloadSampleData();
+		assert("an accepted event sample unload drops the entry", flushed.getUserData() == null);
+		assert("a sample unload does not flush", NativeStudioStub.testFlushCalls == 0);
+		NativeStudioStub.testSampleUnloadResult = 68;
 		// A blocking bank load runs the queue even when it fails, and a
 		// nonblocking one leaves the entry
 		flushed.setUserData("loading");

@@ -88,7 +88,7 @@
 
     Kha ships no global volume control. The FMOD master bus therefore carries the game's volume. Point your settings menu at `FmodManager.SetMasterVolume` and `SetMasterMute`.
 
-    A game that prefers its own wiring calls `FmodManager.Initialize()` and `FmodKhaUpdater.init()` separately. A game that runs FMOD from its own frame task calls `FmodKhaUpdater.removeHook()` once. That task then calls `FmodKhaUpdater.update()` each frame. `update()` ticks every component and then calls `FmodManager.Update()`. Components that the game creates after `removeHook()` leave the frame task off. `FmodKhaUpdater.init()`, `FmodKhaSetup.init()`, and `FmodKhaSetup.preload()` put the frame task back.
+    A game that prefers its own wiring calls `FmodManager.Initialize()` and `FmodKhaUpdater.init()` separately. A game that runs FMOD from its own frame task calls `FmodKhaUpdater.removeHook()` once. That task then calls `FmodKhaUpdater.update()` each frame. Call it from a frame task. A time task runs on another clock. `update()` ticks every component and then calls `FmodManager.Update()`. Components that the game creates after `removeHook()` leave the frame task off. `FmodKhaUpdater.init()`, `FmodKhaSetup.init()`, and `FmodKhaSetup.preload()` put the frame task back.
 
 ## Bank loader
 
@@ -193,7 +193,7 @@ The listener positions an FMOD listener every frame. It pushes velocity alongsid
     add(new FmodFlxListener()); // or: follow the camera
     ```
 
-    A camera cut would register as a large velocity spike. `teleportDistance` guards against that. A jump larger than it counts as a cut and reports zero velocity for that frame. The default is one camera width. `resetMotion()` does the same explicitly for a cut you know is coming. `setTarget` retargets the listener or drops back to the camera.
+    A camera cut would register as a large velocity spike. `teleportDistance` guards against that. A jump larger than it counts as a cut and reports zero velocity for that frame. The default is one view width. `resetMotion()` does the same explicitly for a cut you know is coming. `setTarget` retargets the listener or drops back to the camera.
 
 === "Heaps"
 

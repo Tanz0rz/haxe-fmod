@@ -4,7 +4,7 @@ Every FMOD function the native layer calls, with the haxefmod methods that reach
 
 534 FMOD functions are reached.
 
-The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, "compile error" marks a call a js build refuses. The project define `-D haxefmod_html5_allow_unsupported` compiles it anyway, and the call then returns `FMOD_ERR_UNSUPPORTED` at runtime. The word "limited" marks a call the web build only partly supports.
+The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, "compile error" marks a call a js build refuses. A cell that names methods marks those methods alone. The project define `-D haxefmod_html5_allow_unsupported` compiles it anyway, and the call then returns `FMOD_ERR_UNSUPPORTED` at runtime. The word "limited" marks a call the web build only partly supports.
 
 ## Channel
 
@@ -183,9 +183,9 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_GetOutput` | `Dsp.getOutput`<br>`Dsp.getOutputConnection` |  |
 | `FMOD_DSP_GetOutputChannelFormat` | `Dsp.getOutputChannelFormat` |  |
 | `FMOD_DSP_GetParameterBool` | `Dsp.getParameterBool` |  |
-| `FMOD_DSP_GetParameterData` | `Dsp.getParameterData`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo`<br>`Dsp.getLoudnessMeterWeighting`<br>`Dsp.getParameterAttenuationRange`<br>`Dsp.getParameterDynamicResponse`<br>`Dsp.getParameterFiniteLength`<br>`Dsp.getParameterSidechain` | compile error |
+| `FMOD_DSP_GetParameterData` | `Dsp.getParameterData`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo`<br>`Dsp.getLoudnessMeterWeighting`<br>`Dsp.getParameterAttenuationRange`<br>`Dsp.getParameterDynamicResponse`<br>`Dsp.getParameterFiniteLength`<br>`Dsp.getParameterSidechain` | compile error: `Dsp.getLoudnessMeterWeighting` |
 | `FMOD_DSP_GetParameterFloat` | `Dsp.getParameterFloat`<br>`Dsp.getParameter` |  |
-| `FMOD_DSP_GetParameterInfo` | `Dsp.getParameterInfo`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo` | compile error |
+| `FMOD_DSP_GetParameterInfo` | `Dsp.getParameterInfo`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo` | compile error: `Dsp.getParameterInfo` |
 | `FMOD_DSP_GetParameterInt` | `Dsp.getParameterInt` |  |
 | `FMOD_DSP_GetType` | `Dsp.getType` |  |
 | `FMOD_DSP_GetUserData` | `Dsp.getUserData` |  |
@@ -471,7 +471,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_EventInstance_KeyOff` | `EventInstance.keyOff` |  |
 | `FMOD_Studio_EventInstance_Release` | `EventInstance.release` |  |
 | `FMOD_Studio_EventInstance_Set3DAttributes` | `EventInstance.set3DAttributes`<br>`EventInstance.setPosition2D` |  |
-| `FMOD_Studio_EventInstance_SetCallback` | `EventInstance.setCallback`<br>`EventInstance.assignProgrammerSound`<br>`EventInstance.assignProgrammerSoundForName`<br>`EventInstance.assignProgrammerSoundFrom`<br>`EventInstance.clearProgrammerSound`<br>`FmodManager.ClearAllCallbacks` | compile error |
+| `FMOD_Studio_EventInstance_SetCallback` | `EventInstance.setCallback`<br>`EventInstance.assignProgrammerSound`<br>`EventInstance.assignProgrammerSoundForName`<br>`EventInstance.assignProgrammerSoundFrom`<br>`EventInstance.clearProgrammerSound`<br>`FmodManager.ClearAllCallbacks` | compile error: `EventInstance.assignProgrammerSound`, `EventInstance.assignProgrammerSoundForName`, `EventInstance.assignProgrammerSoundFrom`, `EventInstance.clearProgrammerSound` |
 | `FMOD_Studio_EventInstance_SetListenerMask` | `EventInstance.setListenerMask` |  |
 | `FMOD_Studio_EventInstance_SetParameterByID` | `EventInstance.setParameterByID` |  |
 | `FMOD_Studio_EventInstance_SetParameterByIDWithLabel` | `EventInstance.setParameterByIDWithLabel` |  |
@@ -493,7 +493,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | FMOD | haxefmod | HTML5 |
 |---|---|---|
 | `FMOD_Studio_System_Create` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
-| `FMOD_Studio_System_FlushCommands` | `StudioSystem.flushCommands`<br>`FmodManager.PauseSong` |  |
+| `FMOD_Studio_System_FlushCommands` | `StudioSystem.flushCommands` |  |
 | `FMOD_Studio_System_FlushSampleLoading` | `StudioSystem.flushSampleLoading`<br>`FmodManager.WaitForBanks` |  |
 | `FMOD_Studio_System_GetAdvancedSettings` | `StudioSystem.getStudioAdvancedSettings` | compile error |
 | `FMOD_Studio_System_GetBank` | `StudioSystem.getBank`<br>`BankRegistry.loadMemory` |  |
@@ -543,7 +543,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_StartCommandCapture` | `StudioSystem.startCommandCapture` |  |
 | `FMOD_Studio_System_StopCommandCapture` | `StudioSystem.stopCommandCapture` |  |
 | `FMOD_Studio_System_UnloadAll` | `StudioSystem.unloadAll` |  |
-| `FMOD_Studio_System_Update` | `FmodManager.Update`<br>`FmodRuntime.update` |  |
+| `FMOD_Studio_System_Update` | `FmodManager.Update`<br>`FmodRuntime.update`<br>`FmodManager.PauseSong` |  |
 
 ## Studio::VCA
 
@@ -565,7 +565,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_System_CreateDSPByType` | `Dsp.create` |  |
 | `FMOD_System_CreateGeometry` | `Geometry.create` | compile error |
 | `FMOD_System_CreateReverb3D` | `Reverb3D.create` |  |
-| `FMOD_System_CreateSound` | `PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromMemory`<br>`Sound.fromPcm` | compile error |
+| `FMOD_System_CreateSound` | `PcmStream.create`<br>`PcmStream.create3d`<br>`Sound.create`<br>`Sound.createRecordBuffer`<br>`Sound.fromMemory`<br>`Sound.fromPcm` | compile error: `Sound.createRecordBuffer` |
 | `FMOD_System_CreateSoundGroup` | `SoundGroup.create` |  |
 | `FMOD_System_DetachChannelGroupFromPort` | `CoreSystem.detachChannelGroupFromPort` | compile error |
 | `FMOD_System_Get3DSettings` | `CoreSystem.get3DSettings` |  |

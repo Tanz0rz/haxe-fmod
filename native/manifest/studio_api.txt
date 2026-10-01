@@ -109,7 +109,7 @@ sys_get_listener_attributes i32 fbuf -> i32
 sys_set_listener_attributes i32 fbuf bool -> i32
 sys_get_listener_weight i32 -> f64
 sys_set_listener_weight i32 f64 -> i32
-# bank loading (flags: bit0 = nonblocking). Returns the bank handle or 0
+# bank loading (flags: FMOD_STUDIO_LOAD_BANK_FLAGS). Returns the bank handle or 0
 sys_load_bank_file str i32 -> i32
 sys_unload_all -> i32
 sys_flush_commands -> i32

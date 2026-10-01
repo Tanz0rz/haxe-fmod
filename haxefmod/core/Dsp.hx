@@ -164,8 +164,10 @@ abstract Dsp(Int) from Int to Int {
 
     /**
      * Spectrum magnitudes from an FFT effect (create with DspType.FFT and
-     * attach where you want to analyze). Returns null when no data is
-     * available yet. maxBins is capped at 512.
+     * attach where you want to analyze). maxBins is capped at 512.
+     * Returns null when no data is available yet. A unit without an FFT
+     * spectrum returns null too. On native targets
+     * StudioSystem.lastResult() then holds the error.
      */
     public function getFftSpectrum(maxBins:Int = 512):Null<Array<Float>> {
         if (maxBins > 512) maxBins = 512;
@@ -178,7 +180,8 @@ abstract Dsp(Int) from Int to Int {
      * The whole FFT payload: FMOD's bin count, the channel count, and one
      * magnitude array per channel. Each array holds the lesser of that
      * count and maxBins (512 at most), so the array bound is the loop
-     * limit rather than `length`. Null when no data is available yet.
+     * limit rather than `length`. Null when no data is available yet and
+     * for a unit without an FFT spectrum.
      */
     public function getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft> {
         if (maxBins > 512) maxBins = 512;

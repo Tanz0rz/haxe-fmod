@@ -55,7 +55,7 @@ static void* gListBuf[FAXE_LIST_MAX];
 // Binding ABI marker. PostBuild.hx scans compiled hdlls for this string to
 // reject stale pre-built hdlls before they become loader fatals. Keep the
 // number in lockstep with the manifest header "# abi-version:".
-// volatile: clang -O2 constant-folds a plain atoi(marker) and then strips
+// volatile: clang -O2 constant-folds a plain read of the marker and then strips
 // the unreferenced string from the binary, erasing the marker the scan
 // depends on. Volatile reads cannot be folded, so the string survives any
 // optimization level.
@@ -359,8 +359,13 @@ HL_PRIM bool HL_NAME(sys_is_initialized)() {
 }
 DEFINE_PRIM(_BOOL, sys_is_initialized, _NO_ARG);
 
+/* The update hands the queued commands to the Studio thread, which can
+ * free what a stop left at any moment after this returns. The short-lived
+ * handles go here. The drain right after it drops them again. */
 HL_PRIM void HL_NAME(sys_update)() {
-    if (gStudioSystem) FMOD_Studio_System_Update(gStudioSystem);
+    if (!gStudioSystem) return;
+    FMOD_Studio_System_Update(gStudioSystem);
+    faxe_handles_free_volatile();
 }
 DEFINE_PRIM(_VOID, sys_update, _NO_ARG);
 
@@ -1199,6 +1204,14 @@ static FMOD_DSP_PARAMETER_DESC* hlaxe_data_param(FMOD_DSP* dsp, int index) {
     if (FMOD_DSP_GetNumParameters(dsp, &count) != FMOD_OK || index < 0 || index >= count) return NULL;
     if (FMOD_DSP_GetParameterInfo(dsp, index, &desc) != FMOD_OK || !desc) return NULL;
     return desc->type == FMOD_DSP_PARAMETER_TYPE_DATA ? desc : NULL;
+}
+
+/* Every data writer asks this before FMOD sees the payload. kind is a
+ * FAXE_DSPDATA_KIND_* writer, 0 for the raw one. */
+static int hlaxe_data_write_ok(FMOD_DSP* dsp, int index, int kind, const void* data, unsigned int len) {
+    FMOD_DSP_TYPE type = FMOD_DSP_TYPE_UNKNOWN;
+    if (FMOD_DSP_GetType(dsp, &type) != FMOD_OK) type = FMOD_DSP_TYPE_UNKNOWN;
+    return faxe_dspdata_write_ok(hlaxe_data_param(dsp, index), kind, (int)type, index, data, len);
 }
 
 /* Defined with the channel callbacks below, needed by the group release */
@@ -3499,7 +3512,10 @@ DEFINE_PRIM(_I32, sys_get_driver, _NO_ARG);
 HL_PRIM int HL_NAME(dsp_set_param_data)(int h, int index, vbyte* data, int len) {
     FMOD_DSP* dsp = resolve_dsp(h);
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (!data || len <= 0 || !hlaxe_data_param(dsp, index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!data || len <= 0 || !hlaxe_data_write_ok(dsp, index, 0, data, (unsigned int)len)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
     gLastResult = FMOD_DSP_SetParameterData(dsp, index, data, (unsigned int)len);
     return (int)gLastResult;
 }
@@ -4684,16 +4700,16 @@ HL_PRIM int HL_NAME(sys_set_listener_weight)(int index, double weight) {
 }
 DEFINE_PRIM(_I32, sys_set_listener_weight, _I32 _F64);
 
-// flags: bit0 = nonblocking. Returns a bank handle or 0 on failure
+// flags are FMOD_STUDIO_LOAD_BANK_FLAGS. Returns a bank handle or 0 on failure
 HL_PRIM int HL_NAME(sys_load_bank_file)(vbyte* path, int flags) {
     FMOD_STUDIO_BANK* bank = NULL;
     FMOD_STUDIO_LOAD_BANK_FLAGS loadFlags;
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    loadFlags = (flags & 1) ? FMOD_STUDIO_LOAD_BANK_NONBLOCKING : FMOD_STUDIO_LOAD_BANK_NORMAL;
+    loadFlags = (FMOD_STUDIO_LOAD_BANK_FLAGS)flags;
     gLastResult = FMOD_Studio_System_LoadBankFile(gStudioSystem, (const char*)path, loadFlags, &bank);
     /* A blocking load runs the command queue before it returns, also
      * when it fails */
-    if (loadFlags == FMOD_STUDIO_LOAD_BANK_NORMAL) faxe_handles_free_volatile();
+    if (!(loadFlags & FMOD_STUDIO_LOAD_BANK_NONBLOCKING)) faxe_handles_free_volatile();
     if (gLastResult != FMOD_OK || !bank) return 0;
     int bankHandle = hlaxe_handle_or_memory(bank, FAXE_TYPE_BANK);
     // No slot means no way to ever unload it, so it goes back out
@@ -5226,12 +5242,9 @@ HL_PRIM int HL_NAME(bank_unload_sample_data)(int h) {
     FMOD_STUDIO_BANK* bank = resolve_bank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Studio_Bank_UnloadSampleData(bank);
-    /* The flush runs the unload, so the sample data is gone before
-     * the short-lived handles to it go */
-    if (gLastResult == FMOD_OK) {
-        if (gStudioSystem) FMOD_Studio_System_FlushCommands(gStudioSystem);
-        faxe_handles_free_volatile();
-    }
+    /* The Studio thread runs the unload later, without a wait here. The
+     * short-lived handles to the sample data end now. */
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, bank_unload_sample_data, _I32);
@@ -5606,11 +5619,9 @@ HL_PRIM int HL_NAME(evd_unload_sample_data)(int h) {
     FMOD_STUDIO_EVENTDESCRIPTION* desc = resolve_evd(h);
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Studio_EventDescription_UnloadSampleData(desc);
-    /* A flush lets the unload happen before the short-lived handles go */
-    if (gLastResult == FMOD_OK) {
-        if (gStudioSystem) FMOD_Studio_System_FlushCommands(gStudioSystem);
-        faxe_handles_free_volatile();
-    }
+    /* The unload is queued for the Studio thread. The short-lived handles
+     * end at once. */
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, evd_unload_sample_data, _I32);
@@ -7093,19 +7104,19 @@ HL_PRIM bool HL_NAME(debug_handle_is_live)(int h) {
 DEFINE_PRIM(_BOOL, debug_handle_is_live, _I32);
 
 // Reads the version out of the marker so the string is always retained in
-// the compiled hdll and the prim can never disagree with it. The digits are
-// copied through volatile reads before atoi (see the marker declaration).
+// the compiled hdll and the prim can never disagree with it. The digits
+// come through volatile reads (see the marker declaration) and are added
+// up by hand. glibc 2.38 binds atoi to a symbol older systems lack.
 HL_PRIM int HL_NAME(binding_abi_version)() {
-    char digits[8];
+    int value = 0;
     int i = 0;
     /* The source marker is kept the same way, through a volatile read */
     if (gSrcMarker[0] == '\0') return -1;
-    while (i < 7 && gAbiMarker[15 + i] != '\0') {
-        digits[i] = gAbiMarker[15 + i];
+    while (i < 7 && gAbiMarker[15 + i] >= '0' && gAbiMarker[15 + i] <= '9') {
+        value = value * 10 + (gAbiMarker[15 + i] - '0');
         i++;
     }
-    digits[i] = '\0';
-    return atoi(digits);
+    return value;
 }
 DEFINE_PRIM(_I32, binding_abi_version, _NO_ARG);
 //// System extras (replay inspection, DSP lock, sound info, memory and file stats, network, speaker positions)
@@ -7816,8 +7827,11 @@ HL_PRIM int HL_NAME(dsp_set_param_3d_attributes)(int h, int index, vbyte* f) {
     FMOD_DSP* dsp = resolve_dsp(h);
     FMOD_DSP_PARAMETER_3DATTRIBUTES attrs;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (!hlaxe_data_param(dsp, index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     faxe_dspdata_pack_3d(&attrs, (const double*)f);
+    if (!hlaxe_data_write_ok(dsp, index, FAXE_DSPDATA_KIND_3D, &attrs, sizeof(attrs))) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
     gLastResult = FMOD_DSP_SetParameterData(dsp, index, &attrs, sizeof(attrs));
     return (int)gLastResult;
 }
@@ -7828,7 +7842,8 @@ HL_PRIM int HL_NAME(dsp_set_param_3d_attributes_multi)(int h, int index, int num
     FMOD_DSP* dsp = resolve_dsp(h);
     FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI attrs;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (!hlaxe_data_param(dsp, index) || !faxe_dspdata_pack_3d_multi(&attrs, numListeners, (const double*)f)) {
+    if (!faxe_dspdata_pack_3d_multi(&attrs, numListeners, (const double*)f)
+            || !hlaxe_data_write_ok(dsp, index, FAXE_DSPDATA_KIND_3D_MULTI, &attrs, sizeof(attrs))) {
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return (int)gLastResult;
     }
@@ -7904,7 +7919,7 @@ HL_PRIM int HL_NAME(dsp_set_param_typed)(int h, int index, int kind, vbyte* f, v
     unsigned int size;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     size = faxe_dspdata_pack_typed(kind, &data, (const double*)f, (const int*)i);
-    if (!size || !hlaxe_data_param(dsp, index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!size || !hlaxe_data_write_ok(dsp, index, kind, &data, size)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     gLastResult = FMOD_DSP_SetParameterData(dsp, index, &data, size);
     return (int)gLastResult;
 }

@@ -288,9 +288,66 @@ static void test_fft_guard(void) {
     assert(faxe_dspdata_is_fft(&desc, &fft, sizeof(fft)) == 0);
 }
 
+/* FMOD divides by the channel count at the head of a convolution reverb's
+ * impulse response. A typed writer aimed at it wrote a 0 there and killed
+ * the process, so every writer checks the data type and the payload. */
+static void test_write_guard(void) {
+    FMOD_DSP_PARAMETER_DESC desc;
+    short ir[3] = {1, 100, -100};
+    short empty[3] = {0, 100, -100};
+    int conv = (int)FMOD_DSP_TYPE_CONVOLUTIONREVERB;
+    int irIndex = (int)FMOD_DSP_CONVOLUTION_REVERB_PARAM_IR;
+    int kind;
+    memset(&desc, 0, sizeof(desc));
+    desc.type = FMOD_DSP_PARAMETER_TYPE_DATA;
+    desc.datadesc.datatype = FMOD_DSP_PARAMETER_DATA_TYPE_USER;
+    /* the raw writer: a real impulse response passes, an empty one does not */
+    assert(faxe_dspdata_write_ok(&desc, 0, conv, irIndex, ir, sizeof(ir)) == 1);
+    assert(faxe_dspdata_write_ok(&desc, 0, conv, irIndex, empty, sizeof(empty)) == 0);
+    assert(faxe_dspdata_write_ok(&desc, 0, conv, irIndex, ir, 1) == 0);
+    assert(faxe_dspdata_write_ok(&desc, 0, conv, irIndex, 0, 0) == 0);
+    /* a negative count reaches FMOD, which refuses it itself */
+    ir[0] = -1;
+    assert(faxe_dspdata_write_ok(&desc, 0, conv, irIndex, ir, sizeof(ir)) == 1);
+    ir[0] = 1;
+    /* the payload check is for that one parameter */
+    assert(faxe_dspdata_write_ok(&desc, 0, conv, irIndex + 1, empty, sizeof(empty)) == 1);
+    assert(faxe_dspdata_write_ok(&desc, 0, (int)FMOD_DSP_TYPE_UNKNOWN, irIndex, empty, sizeof(empty)) == 1);
+    /* no typed writer but loudness weighting takes a user parameter */
+    for (kind = FAXE_DSPDATA_KIND_SIDECHAIN; kind <= FAXE_DSPDATA_KIND_3D_MULTI; kind++) {
+        assert(faxe_dspdata_write_ok(&desc, kind, (int)FMOD_DSP_TYPE_UNKNOWN, 0, ir, sizeof(ir))
+            == (kind == FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING));
+    }
+    assert(faxe_dspdata_write_ok(&desc, FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING, conv, irIndex, empty, sizeof(empty)) == 0);
+    /* each typed writer takes its own type, sidechain and finite length each other's */
+    desc.datadesc.datatype = FMOD_DSP_PARAMETER_DATA_TYPE_SIDECHAIN;
+    assert(faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_SIDECHAIN, desc.datadesc.datatype));
+    assert(faxe_dspdata_write_ok(&desc, FAXE_DSPDATA_KIND_FINITE_LENGTH, (int)FMOD_DSP_TYPE_COMPRESSOR, 5, ir, 4) == 1);
+    assert(faxe_dspdata_write_ok(&desc, FAXE_DSPDATA_KIND_ATTENUATION_RANGE, (int)FMOD_DSP_TYPE_COMPRESSOR, 5, ir, 4) == 0);
+    assert(faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_FINITE_LENGTH, FAXE_DSPDATA_TYPE_FINITE_LENGTH));
+    assert(faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_SIDECHAIN, FAXE_DSPDATA_TYPE_FINITE_LENGTH));
+    assert(faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_ATTENUATION_RANGE, FMOD_DSP_PARAMETER_DATA_TYPE_ATTENUATION_RANGE));
+    assert(!faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_ATTENUATION_RANGE, FMOD_DSP_PARAMETER_DATA_TYPE_SIDECHAIN));
+    assert(faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE, FAXE_DSPDATA_TYPE_DYNAMIC_RESPONSE));
+    assert(faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_3D, FMOD_DSP_PARAMETER_DATA_TYPE_3DATTRIBUTES));
+    assert(!faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_3D, FMOD_DSP_PARAMETER_DATA_TYPE_3DATTRIBUTES_MULTI));
+    assert(faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_3D_MULTI, FMOD_DSP_PARAMETER_DATA_TYPE_3DATTRIBUTES_MULTI));
+    assert(!faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_3D_MULTI, FMOD_DSP_PARAMETER_DATA_TYPE_3DATTRIBUTES));
+    assert(!faxe_dspdata_kind_takes(99, FMOD_DSP_PARAMETER_DATA_TYPE_USER));
+#if FMOD_VERSION >= 0x00020300
+    assert(FAXE_DSPDATA_TYPE_FINITE_LENGTH == (int)FMOD_DSP_PARAMETER_DATA_TYPE_FINITE_LENGTH);
+    assert(FAXE_DSPDATA_TYPE_DYNAMIC_RESPONSE == (int)FMOD_DSP_PARAMETER_DATA_TYPE_DYNAMIC_RESPONSE);
+#endif
+    /* no descriptor (index out of range) or a parameter of another kind */
+    assert(faxe_dspdata_write_ok(0, 0, (int)FMOD_DSP_TYPE_UNKNOWN, 0, ir, sizeof(ir)) == 0);
+    desc.type = FMOD_DSP_PARAMETER_TYPE_FLOAT;
+    assert(faxe_dspdata_write_ok(&desc, 0, (int)FMOD_DSP_TYPE_UNKNOWN, 0, ir, sizeof(ir)) == 0);
+}
+
 int main(void) {
     test_single();
     test_fft_guard();
+    test_write_guard();
     test_multi();
     test_metering();
     test_desc();

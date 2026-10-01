@@ -141,7 +141,7 @@ abstract CommandReplay(Int) from Int to Int {
         return NativeStudio.replay_get_playback_state(this);
     }
 
-    /** Directory the replay loads banks from when the captured paths no longer apply. */
+    /** Directory the replay loads banks from in place of the directories the capture recorded. */
     public inline function setBankPath(path:String):FmodResult {
         return NativeStudio.replay_set_bank_path(this, path);
     }

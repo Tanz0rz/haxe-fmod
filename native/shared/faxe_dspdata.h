@@ -62,6 +62,13 @@
 #define FAXE_DSPDATA_KIND_ATTENUATION_RANGE 3
 #define FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE 4
 #define FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING 5
+/* The two 3D attribute writers. faxe_dspdata_pack_typed does not take
+ * them, they only name the writer to faxe_dspdata_write_ok. */
+#define FAXE_DSPDATA_KIND_3D 6
+#define FAXE_DSPDATA_KIND_3D_MULTI 7
+/* FMOD 2.02 headers lack the last two data types */
+#define FAXE_DSPDATA_TYPE_DYNAMIC_RESPONSE (-7)
+#define FAXE_DSPDATA_TYPE_FINITE_LENGTH (-8)
 #define FAXE_DSPDATA_CHANNEL_SLOTS 32
 #define FAXE_DSPDATA_TYPED_DOUBLES FAXE_DSPDATA_CHANNEL_SLOTS
 #define FAXE_DSPDATA_TYPED_INTS 1
@@ -210,6 +217,54 @@ static int faxe_dspdata_desc_is(const FMOD_DSP_PARAMETER_DESC* desc, int datatyp
 static int faxe_dspdata_is_fft(const FMOD_DSP_PARAMETER_DESC* desc, const void* data, unsigned int len) {
     return data && len >= (unsigned int)sizeof(FMOD_DSP_PARAMETER_FFT)
         && faxe_dspdata_desc_is(desc, FMOD_DSP_PARAMETER_DATA_TYPE_FFT);
+}
+
+/* True when a writer of kind may write a data parameter of datatype.
+ * Sidechain and finite length share the four byte FMOD_BOOL block, so
+ * either writes the other's parameter. Loudness weighting takes any data
+ * parameter. 0 is a raw write, which takes any. */
+static int faxe_dspdata_kind_takes(int kind, int datatype) {
+    switch (kind) {
+    case 0:
+    case FAXE_DSPDATA_KIND_LOUDNESS_WEIGHTING:
+        return 1;
+    case FAXE_DSPDATA_KIND_SIDECHAIN:
+    case FAXE_DSPDATA_KIND_FINITE_LENGTH:
+        return datatype == FMOD_DSP_PARAMETER_DATA_TYPE_SIDECHAIN || datatype == FAXE_DSPDATA_TYPE_FINITE_LENGTH;
+    case FAXE_DSPDATA_KIND_ATTENUATION_RANGE:
+        return datatype == FMOD_DSP_PARAMETER_DATA_TYPE_ATTENUATION_RANGE;
+    case FAXE_DSPDATA_KIND_DYNAMIC_RESPONSE:
+        return datatype == FAXE_DSPDATA_TYPE_DYNAMIC_RESPONSE;
+    case FAXE_DSPDATA_KIND_3D:
+        return datatype == FMOD_DSP_PARAMETER_DATA_TYPE_3DATTRIBUTES;
+    case FAXE_DSPDATA_KIND_3D_MULTI:
+        return datatype == FMOD_DSP_PARAMETER_DATA_TYPE_3DATTRIBUTES_MULTI;
+    default:
+        return 0;
+    }
+}
+
+/* A convolution reverb's impulse response starts with its channel count
+ * as a 16-bit value. FMOD divides by it, so 0 or a payload too short to
+ * hold it kills the process. Every other parameter passes. */
+static int faxe_dspdata_ir_ok(int dspType, int index, const void* data, unsigned int len) {
+    short channels = 0;
+    if (dspType != (int)FMOD_DSP_TYPE_CONVOLUTIONREVERB || index != FMOD_DSP_CONVOLUTION_REVERB_PARAM_IR) return 1;
+    if (!data || len < (unsigned int)sizeof(channels)) return 0;
+    memcpy(&channels, data, sizeof(channels));
+    return channels != 0;
+}
+
+/* The check before every data write. desc is the descriptor at index
+ * (NULL when the index is out of range), kind the writer, dspType the
+ * unit's FMOD_DSP_TYPE, data and len the payload FMOD would get. FMOD
+ * crashes on a data write to a unit without parameters and on an empty
+ * impulse response. */
+static int faxe_dspdata_write_ok(const FMOD_DSP_PARAMETER_DESC* desc, int kind, int dspType, int index,
+        const void* data, unsigned int len) {
+    if (!desc || desc->type != FMOD_DSP_PARAMETER_TYPE_DATA) return 0;
+    if (!faxe_dspdata_kind_takes(kind, desc->datadesc.datatype)) return 0;
+    return faxe_dspdata_ir_ok(dspType, index, data, len);
 }
 
 /* Builds the struct of kind from the flat image (f holds

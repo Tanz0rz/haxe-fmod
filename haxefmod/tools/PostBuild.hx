@@ -383,6 +383,39 @@ class PostBuild {
 		return 0;
 	}
 
+	// Reads the "hlaxe_fmod_src=<hash>" marker build-hdll stamps into the
+	// hdll. Returns null when the hdll carries none.
+	public static function scanHdllSource(hdllPath:String):Null<String> {
+		var bytes = File.getBytes(hdllPath);
+		var marker = "hlaxe_fmod_src=";
+		var limit = bytes.length - marker.length;
+		var i = 0;
+		while (i <= limit) {
+			var matched = true;
+			for (j in 0...marker.length) {
+				if (bytes.get(i + j) != marker.charCodeAt(j)) {
+					matched = false;
+					break;
+				}
+			}
+			if (matched) {
+				var hash = "";
+				var k = i + marker.length;
+				while (k < bytes.length) {
+					var c = bytes.get(k);
+					var hex = (c >= "0".code && c <= "9".code) || (c >= "a".code && c <= "f".code);
+					if (!hex) break;
+					hash += String.fromCharCode(c);
+					k++;
+				}
+				// A build without the define carries "unknown"
+				if (hash.length > 0) return hash;
+			}
+			i++;
+		}
+		return null;
+	}
+
 	// A custom hdll is only preferred while its version marker matches the
 	// SDK in use. A leftover .haxefmod/ from a different SDK would otherwise
 	// ship next to mismatched runtime libraries and fail at startup. That
@@ -460,6 +493,18 @@ class PostBuild {
 				Sys.println("  ==========================================================");
 				Sys.println("");
 				Sys.exit(1);
+			}
+		}
+
+		// A project hdll outlives library updates. One built from other
+		// shim sources still loads when the ABI matches, and lacks every
+		// fix made to the shim since.
+		if (source == projectHdll) {
+			var built = scanHdllSource(source);
+			var current = try BuildHdll.sourceHash(libRoot) catch (e:Dynamic) null;
+			if (built != null && current != null && built != current) {
+				log("WARNING: .haxefmod/hlaxe_fmod.hdll was built from other shim sources than this haxefmod.");
+				log('  Run "haxelib run haxefmod build-hdll" to rebuild it.');
 			}
 		}
 

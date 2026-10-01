@@ -70,14 +70,29 @@ These FMOD features cannot be bound from Haxe. Most hand FMOD a function pointer
   - a bus's own group, whose handle also dies at a `Bus.unlockChannelGroup()` that destroys the group
   - a group's or a channel's DSP
   - a parent group walked up from an instance's group
-- **Other borrowed handles are short-lived.** They die at the next `FmodManager.Update()`. They also die when FMOD accepts a call that stops, releases, or unloads anything. `Bus.unlockChannelGroup()` counts too. So does a call that runs FMOD's command queue. Those are `StudioSystem.flushCommands()`, `StudioSystem.flushSampleLoading()`, `Bus.lockChannelGroup()`, and a bank load without `NONBLOCKING`. A blocking load ends them even when FMOD refuses it. `FmodManager.LoadBank()`, `FmodManager.WaitForBanks()`, and `FmodManager.PauseSong()` with automatic updates off count too. `StudioSystem.unloadAll()` and `EventDescription.releaseAllInstances()` end them even when FMOD refuses. Helper class calls and components count. `FmodManager.PlayOneShot` releases its instance. An emitter stops its event when it culls it. Fetch a short-lived handle again after any such call. A handler or user data set through one stops with it. The short-lived handles are:
+- **Other borrowed handles are short-lived.** A handler or user data set through one stops with it. The short-lived handles are:
   - a child group from `getGroup`
   - a parent group walked from a bus, the master, a group the game made, or a short-lived group
   - a channel's group and current sound
   - a sound from `SoundGroup.getSound` and the parent of a borrowed sound
   - a DSP graph walk and a DSP of a short-lived group
+- **These calls end every short-lived handle.** Fetch a short-lived handle again after any of them.
+  - `FmodManager.Update()`
+  - a call that stops, releases, or unloads anything, once FMOD accepts it, and `Bus.unlockChannelGroup()`
+  - a call that runs FMOD's command queue, once FMOD accepts it: `StudioSystem.flushCommands()`, `StudioSystem.flushSampleLoading()`, and `Bus.lockChannelGroup()`
+  - a bank load without `NONBLOCKING`, also when FMOD refuses it
+  - `StudioSystem.unloadAll()` and `EventDescription.releaseAllInstances()`, also when FMOD refuses them
+  - on HTML5, `Bank.unload()` also when FMOD refuses it
+  - `FmodManager.LoadBank()` and `FmodManager.WaitForBanks()`
+  - `FmodManager.PauseSong()` with automatic updates off
+  - any other helper class call or component that makes one of these calls. `FmodManager.PlayOneShot` releases its instance. An emitter stops its event when it culls it.
 - **A walked group handle dies when another instance or bus reaches its group.** A walk from that instance or bus does it. So does its `getChannelGroup()`. That call gets a fresh handle with no user data. The handles reached from the old one die with it.
-- **FMOD can free an object before its short-lived handle dies.** With automatic updates FMOD frees a stopped stream or a finished nested event on its own thread. A short-lived handle fetched after that stop in the same frame can name freed memory until the next update. Fetch such a handle before the stop. The group of an unlocked bus that Studio frees while idle keeps its handle until the bus dies.
+- **FMOD can free an object before its short-lived handle dies.** A short-lived handle to such an object can name freed memory until the next update. The cases are:
+  - a stream that plays to its end, with automatic updates on and off. Read a stream's sound only while the stream has time left to play.
+  - with automatic updates on, a stopped stream or a finished nested event. Fetch the handle before the stop.
+  - with automatic updates on, a handle fetched after `Bank.unloadSampleData()` or `EventDescription.unloadSampleData()` in the same frame. Fetch it before the call.
+  - with automatic updates off, a handle fetched after `FmodManager.PauseSong()` in the same frame, when a stop or release came earlier in that frame. Fetch it before the call.
+- **The group of an unlocked bus that Studio frees while idle keeps its handle until the bus dies.**
 - **Live Update uses TCP port 9264 by default.** The `profilePort` setting picks another port. When it is enabled, macOS and Windows show a firewall dialog. It defaults to on in debug builds only.
 - **Numeric arguments pass through to FMOD for validation.** An out-of-range index or count comes back as an FMOD error code from the engine. It is the same code native FMOD reports.
 - **The library owns the system lifecycle.** It initializes FMOD once per process and runs the per-frame update. There is no shutdown or re-init. Init-time engine settings are exposed through `FmodSettings` and compile-time defines.

@@ -85,7 +85,9 @@ class FmodKhaUpdater {
     /**
         Ticks every registered component with the seconds since the last
         update, then runs FmodManager.Update(). The frame task calls it.
-        After removeHook() the game calls it from its own task instead.
+        After removeHook() the game calls it from its own frame task
+        instead. Kha gives a time task another clock, so a call from one
+        does not mark the frame done for a hook installed later.
     **/
     public static function update():Void {
         // A frame task installed later in this frame finds the frame done

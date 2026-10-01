@@ -105,7 +105,7 @@ class UserData {
      * them. An empty family costs nothing.
      */
     public static function dropDeadBorrowed():Void {
-        for (kind in [UserDataKind.ChannelGroup, UserDataKind.Dsp, UserDataKind.Sound, UserDataKind.Channel]) {
+        for (kind in [UserDataKind.ChannelGroup, UserDataKind.Dsp, UserDataKind.DspConnection, UserDataKind.Sound, UserDataKind.Channel]) {
             if (maps[kind].iterator().hasNext()) clearDead(kind);
         }
     }

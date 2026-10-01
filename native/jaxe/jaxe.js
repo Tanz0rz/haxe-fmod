@@ -538,9 +538,9 @@ class jaxe {
     // start of each update drain, after every accepted call that stops,
     // releases, or unloads anything, after an accepted bus unlock, and
     // after every bulk destroy sweep, refused or not. Calls that run
-    // FMOD's command queue end them too. Those are the two flushes, the
-    // bus lock, and a blocking bank load, which counts even when it
-    // fails. Mirrors faxe_handles_free_volatile.
+    // FMOD's command queue end them too. Those are fmod_sys_update, the
+    // two flushes, the bus lock, and a blocking bank load, which counts
+    // even when it fails. Mirrors faxe_handles_free_volatile.
     static freeVolatile() {
         for (var i = 0; i < jaxe.slots.length && jaxe.volatileCount > 0; i++) {
             var s = jaxe.slots[i];
@@ -604,7 +604,11 @@ class jaxe {
     static fmod_sys_update() {
         // gSystem is a placeholder object until the async module load
         // finishes, matching the native shims' not-yet-initialized no-op
-        if (jaxe.gSystem && jaxe.gSystem.update) jaxe.gSystem.update();
+        if (!jaxe.gSystem || !jaxe.gSystem.update) return;
+        jaxe.gSystem.update();
+        // The update runs the queued commands. The short-lived handles end
+        // here, as they do in the native shims.
+        jaxe.freeVolatile();
     }
 
     static fmod_sys_set_auto_update(enabled) {
@@ -1560,14 +1564,13 @@ class jaxe {
         if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.sysReady()) return 0;
         var fsPath = (path.charAt(0) == "/") ? path : "/" + path;
-        var loadFlags = (flags & 1)
-            ? jaxe.FMOD.STUDIO_LOAD_BANK_NONBLOCKING
-            : jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL;
+        // The flag bits are FMOD's own values
+        var loadFlags = flags | 0;
         var bank = {};
         jaxe.lastResult = jaxe.gSystem.loadBankFile(fsPath, loadFlags, bank);
         // A blocking load runs the command queue before it returns, also
         // when it fails
-        if (loadFlags == jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL) jaxe.freeVolatile();
+        if (!(loadFlags & jaxe.FMOD.STUDIO_LOAD_BANK_NONBLOCKING)) jaxe.freeVolatile();
         if (jaxe.lastResult != jaxe.FMOD.OK || !bank.val) return 0;
         return jaxe.bankHandleOrUnload(bank.val);
     }
@@ -2094,12 +2097,9 @@ class jaxe {
         var bank = jaxe.resolveBankReady(handle);
         if (!bank) return jaxe.lastResult;
         jaxe.lastResult = bank.unloadSampleData();
-        // The flush runs the unload, so the sample data is gone before
-        // the short-lived handles to it go
-        if (jaxe.lastResult == jaxe.FMOD.OK) {
-            if (jaxe.gSystem) jaxe.gSystem.flushCommands();
-            jaxe.freeVolatile();
-        }
+        // The unload runs at a later update, with no wait here. The
+        // short-lived handles to the sample data end now.
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeVolatile();
         return jaxe.lastResult;
     }
 
@@ -2410,11 +2410,8 @@ class jaxe {
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = evd.unloadSampleData();
-        // A flush lets the unload happen before the short-lived handles go
-        if (jaxe.lastResult == jaxe.FMOD.OK) {
-            if (jaxe.gSystem) jaxe.gSystem.flushCommands();
-            jaxe.freeVolatile();
-        }
+        // Queued for a later update. The short-lived handles end at once.
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeVolatile();
         return jaxe.lastResult;
     }
 
@@ -5449,11 +5446,43 @@ class jaxe {
 
     //// DSP data params, info, and output traversal
 
+    // The writer kinds of faxe_dspdata.h and the data types each may
+    // write. Sidechain and finite length share one FMOD_BOOL block.
+    // Loudness weighting (5) and the raw writer (0) take any parameter.
+    static DATA_KIND_TYPES = { 1: [-3, -8], 2: [-3, -8], 3: [-6], 4: [-7], 6: [-2], 7: [-5] };
+
+    // FMOD_DSP_TYPE_CONVOLUTIONREVERB in the 2.03 web build. Its impulse
+    // response is parameter 0.
+    static DSP_TYPE_CONVOLUTION = 28;
+
+    // Mirrors faxe_dspdata_write_ok. The glue cannot hand out descriptors,
+    // so a typed writer finds its parameter through getDataParameterIndex,
+    // which reports the first one of each type. FMOD divides by the
+    // channel count that opens an impulse response, and the wasm trap
+    // reaches the game as an exception.
+    static dataWriteOk(dsp, index, kind, bytes) {
+        var types = jaxe.DATA_KIND_TYPES[kind];
+        if (types) {
+            var found = false;
+            for (var t = 0; t < types.length && !found; t++) {
+                var at = {};
+                found = dsp.getDataParameterIndex(types[t], at) == jaxe.FMOD.OK && at.val === index;
+            }
+            if (!found) return false;
+        }
+        var type = {};
+        if (index === 0 && dsp.getType(type) == jaxe.FMOD.OK && type.val === jaxe.DSP_TYPE_CONVOLUTION) {
+            return bytes.length >= 2 && (bytes[0] | (bytes[1] << 8)) !== 0;
+        }
+        return true;
+    }
+
     static fmod_dsp_set_param_data(handle, index, data, len) {
         var dsp = jaxe.resolveDsp(handle);
         if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         if (!data || len <= 0) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         var bytes = new Uint8Array(data, 0, Math.min(len, data.byteLength));
+        if (!jaxe.dataWriteOk(dsp, index, 0, bytes)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         jaxe.lastResult = dsp.setParameterData(index, bytes, bytes.length);
         return jaxe.lastResult;
     }
@@ -6933,6 +6962,7 @@ class jaxe {
         var view = new DataView(image);
         jaxe.writeAttributes3D(view, 0, f, 0);
         jaxe.writeAttributes3D(view, 48, f, 12);
+        if (!jaxe.dataWriteOk(dsp, index, 6, new Uint8Array(image))) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         jaxe.lastResult = dsp.setParameterData(index, new Uint8Array(image), image.byteLength);
         return jaxe.lastResult;
     }
@@ -6951,6 +6981,7 @@ class jaxe {
             view.setFloat32(4 + 8 * 48 + i * 4, f[96 + i], true);
         }
         jaxe.writeAttributes3D(view, 4 + 8 * 48 + 32, f, 104);
+        if (!jaxe.dataWriteOk(dsp, index, 7, new Uint8Array(image))) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         jaxe.lastResult = dsp.setParameterData(index, new Uint8Array(image), image.byteLength);
         return jaxe.lastResult;
     }
@@ -7043,7 +7074,10 @@ class jaxe {
         var dsp = jaxe.resolveDsp(handle);
         if (!dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         var image = jaxe.typedParamImage(kind, f, i);
-        if (!image) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
+        if (!image || !jaxe.dataWriteOk(dsp, index, kind, new Uint8Array(image))) {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+            return jaxe.lastResult;
+        }
         jaxe.lastResult = dsp.setParameterData(index, new Uint8Array(image), image.byteLength);
         return jaxe.lastResult;
     }

@@ -15,6 +15,7 @@ class TestPostBuild {
 
 		testRunShContent();
 		testCustomHdllMarkerCheck();
+		testScanHdllSource();
 		testSourceHashParity();
 		testClearExecstack();
 		testSdkPackageDetection();
@@ -112,6 +113,20 @@ class TestPostBuild {
 
 	// build-hdll and the package check must compute one hash. The exit
 	// code and stderr reach the message, so a missing python3 reads as such.
+	static function testScanHdllSource():Void {
+		var dir = "tests/.tmp/hdll-source";
+		sys.FileSystem.createDirectory(dir);
+		var stamped = haxe.io.Path.join([dir, "stamped.hdll"]);
+		sys.io.File.saveContent(stamped, "\x7fELF junk hlaxe_fmod_abi=14\x00 more hlaxe_fmod_src=0123abcdef\x00 tail");
+		assert(PostBuild.scanHdllSource(stamped) == "0123abcdef", "the source marker of an hdll is read up to its end");
+		var unknown = haxe.io.Path.join([dir, "unknown.hdll"]);
+		sys.io.File.saveContent(unknown, "junk hlaxe_fmod_src=unknown\x00");
+		assert(PostBuild.scanHdllSource(unknown) == null, "an hdll built without the hash reads as no marker");
+		var bare = haxe.io.Path.join([dir, "bare.hdll"]);
+		sys.io.File.saveContent(bare, "junk with no marker");
+		assert(PostBuild.scanHdllSource(bare) == null, "an hdll with no source marker reads as none");
+	}
+
 	static function testSourceHashParity():Void {
 		var process = new sys.io.Process("python3", ["ci/hlaxe-src-hash.py", "."]);
 		var scripted = StringTools.trim(process.stdout.readAll().toString());

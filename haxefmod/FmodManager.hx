@@ -146,7 +146,7 @@ class FmodManager {
 
     /**
      * Blocks until every pending bank and sample load has completed.
-     * HTML5 cannot block, so the call returns at once there. Poll IsAnyBankLoading or IsBankLoaded from Update instead.
+     * HTML5 cannot block, so the call returns at once there. Poll IsAnyBankLoading or IsBankLoaded from Update instead. It ends the short-lived handles.
      */
     public static function WaitForBanks():Void {
         ensureInitialized();
@@ -518,16 +518,20 @@ class FmodManager {
         if (!songInstance.isNull()) songInstance.stop(IMMEDIATE);
     }
 
-    /** Freezes the song at its position. */
+    /** Freezes the song at its position. With automatic updates off it ends the short-lived handles. */
     public static function PauseSong():Void {
         ensureInitialized();
         if (!songInstance.isNull()) {
             songInstance.setPaused(true);
             // Push the pause through FMOD immediately, independent of the
             // game loop. The auto-update thread already ticks within ~16ms,
-            // so only manual-update setups need the push. The flush waits
-            // for the queue to run, then ends the short-lived handles.
-            if (!FmodRuntime.isAutoUpdate()) StudioSystem.flushCommands();
+            // so only manual-update setups need the push. The update hands
+            // the pause to the Studio thread without waiting for it, and
+            // the shim ends the short-lived handles there.
+            if (!FmodRuntime.isAutoUpdate()) {
+                NativeStudio.sys_update();
+                EventInstance.dropDeadGroups();
+            }
         }
     }
 

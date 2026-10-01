@@ -245,6 +245,31 @@ async function main() {
         && jaxe.fmod_dsp_set_param_3d_attributes_multi(mixer, 0, 1, zeros) === 31
         && jaxe.fmod_dsp_set_param_typed(mixer, 0, 1, zeros, [0]) === 31, '');
     jaxe.fmod_dsp_release(mixer);
+    // FMOD divides by the channel count that opens a convolution reverb's
+    // impulse response. The wasm trap reached the game as an exception for
+    // an empty payload and for a typed writer aimed at the parameter.
+    const convolution = jaxe.fmod_dsp_create_by_type(28 /* CONVOLUTIONREVERB */);
+    check('dsp_set_param_data_empty_ir', jaxe.fmod_dsp_set_param_data(convolution, 0, new Uint8Array(64).buffer, 64) === 31
+        && jaxe.fmod_dsp_set_param_data(convolution, 0, new Uint8Array([1]).buffer, 1) === 31, `result=${jaxe.lastResult}`);
+    check('dsp_typed_writers_refuse_ir', jaxe.fmod_dsp_set_param_typed(convolution, 0, 1, zeros, [0]) === 31
+        && jaxe.fmod_dsp_set_param_typed(convolution, 0, 2, zeros, [0]) === 31
+        && jaxe.fmod_dsp_set_param_typed(convolution, 0, 3, zeros, [0]) === 31
+        && jaxe.fmod_dsp_set_param_3d_attributes(convolution, 0, zeros) === 31
+        && jaxe.fmod_dsp_set_param_3d_attributes_multi(convolution, 0, 1, zeros) === 31, `result=${jaxe.lastResult}`);
+    const irBytes = new Uint8Array((1 + 64) * 2);
+    const irView = new DataView(irBytes.buffer);
+    irView.setInt16(0, 1, true);
+    for (let i = 0; i < 64; i++) irView.setInt16((1 + i) * 2, Math.round(Math.exp(-i / 16) * 12000), true);
+    check('dsp_set_param_data_ir_after_refusals', jaxe.fmod_dsp_set_param_data(convolution, 0, irBytes.buffer, irBytes.length) === 0,
+        `result=${jaxe.lastResult}`);
+    jaxe.fmod_dsp_release(convolution);
+    // FMOD takes the eight byte range block on the compressor's sidechain
+    // switch. The typed writer refuses a parameter of another data type.
+    fbuf[0] = 1; fbuf[1] = 2;
+    check('dsp_typed_writer_refuses_other_type', jaxe.fmod_dsp_set_param_typed(compressor, sidechainIndex, 3, fbuf, ibuf) === 31
+        && jaxe.fmod_dsp_set_param_3d_attributes(compressor, sidechainIndex, zeros) === 31, `result=${jaxe.lastResult}`);
+    fbuf[0] = 0;
+    jaxe.fmod_dsp_set_param_typed(compressor, sidechainIndex, 1, fbuf, ibuf);
     jaxe.fmod_chan_stop(channel);
     check('cg_remove_dsp_fft', jaxe.fmod_cg_remove_dsp(master, fft) === 0, '');
     check('cg_remove_dsp_loudness', jaxe.fmod_cg_remove_dsp(master, loud) === 0, '');

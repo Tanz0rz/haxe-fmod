@@ -118,7 +118,8 @@ abstract Bus(Int) from Int to Int {
 
     /**
      * Forces the bus's core channel group to exist so effects can attach
-     * to it (see getChannelGroup). Call unlockChannelGroup when done.
+     * to it (see getChannelGroup). Call unlockChannelGroup when done. It
+     * ends the short-lived handles.
      */
     public inline function lockChannelGroup():FmodResult {
         return EventInstance.afterStop(NativeStudio.bus_lock_channel_group(this));

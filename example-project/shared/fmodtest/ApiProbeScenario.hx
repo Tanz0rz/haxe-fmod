@@ -2401,6 +2401,54 @@ class ApiProbeScenario implements TestScenario {
         return _shortChannel.getCurrentSound();
     }
 
+    /** True while the group's mixer clock still advances. */
+    static function groupClockMoves(group:ChannelGroup):Bool {
+        var before = group.getDspClock();
+        #if sys
+        Sys.sleep(0.05);
+        #end
+        var after = group.getDspClock();
+        return before != null && after != null && after.clock != before.clock;
+    }
+
+    /**
+     * PauseSong with manual updates pushes one update and returns without
+     * waiting. The Studio thread lands the pause on its own, so the song's
+     * group stops mixing with no later update or flush. A game that halts
+     * its loop while paused relies on that.
+     */
+    function checkPauseSongLands():Void {
+        #if sys
+        FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+        var song:EventInstance = @:privateAccess FmodManager.songInstance;
+        var group = ChannelGroup.NULL;
+        var tries = 0;
+        while (tries++ < 100) {
+            StudioSystem.flushCommands();
+            group = song.getChannelGroup();
+            if (!group.isNull() && groupClockMoves(group)) break;
+        }
+        var mixing = !group.isNull() && groupClockMoves(group);
+        FmodManager.PauseSong();
+        var landed = false;
+        var polls = 0;
+        while (!landed && polls++ < 40) {
+            Sys.sleep(0.03);
+            landed = !groupClockMoves(group);
+        }
+        check("pause_song_lands_without_update", mixing && landed,
+            'group=${(group : Int)} mixing=$mixing polls=$polls');
+        FmodManager.UnpauseSong();
+        // The song before this check comes back, so the handle count is
+        // the one the leak check expects
+        FmodManager.PlaySong(FmodEvents.SFXCoin);
+        FmodManager.StopSongImmediately();
+        StudioSystem.flushCommands();
+        #else
+        info("pause_song_lands_without_update", "the browser cannot wait inside a frame");
+        #end
+    }
+
     /** Runs a call that stops, releases, or unloads something and checks it ended a short-lived handle. */
     function checkShortLivedDrop(name:String, call:Void->FmodResult):Void {
         var shortLived = probeShortLived();
@@ -2453,6 +2501,35 @@ class ApiProbeScenario implements TestScenario {
         var bank = StudioSystem.getBank("bank:/Master");
         bank.loadSampleData();
         checkShortLivedDrop("short_lived_dies_at_bank_sample_unload", () -> bank.unloadSampleData());
+        // Both unloads return before the Studio thread runs them. A flush
+        // inside them held the game thread for 42 ms per call.
+        if (FmodRuntime.isAutoUpdate()) {
+            info("sample_unload_returns_before_it_runs", "automatic updates, the update thread can run the unload at any moment");
+        } else {
+            // An instance holds its event's sample data, so the event used
+            // here has none and nothing loaded
+            var idle = haxefmod.studio.EventDescription.NULL;
+            for (path in [FmodEvents.SFXJump, FmodEvents.SFXSpatial, FmodEvents.SFXHold, FmodEvents.SFXCoin]) {
+                var candidate = StudioSystem.getEvent(path);
+                if (idle.isNull() && !candidate.isNull() && candidate.getInstanceCount() == 0
+                    && candidate.getSampleLoadingState() == FmodLoadingState.UNLOADED) idle = candidate;
+            }
+            idle.loadSampleData();
+            StudioSystem.flushSampleLoading();
+            var eventUnload = idle.unloadSampleData();
+            var eventState = idle.getSampleLoadingState();
+            StudioSystem.flushSampleLoading();
+            var eventSettled = idle.getSampleLoadingState();
+            bank.loadSampleData();
+            StudioSystem.flushSampleLoading();
+            var bankUnload = bank.unloadSampleData();
+            var bankState = bank.getSampleLoadingState();
+            StudioSystem.flushSampleLoading();
+            check("sample_unload_returns_before_it_runs", eventUnload.isOk() && bankUnload.isOk()
+                && eventState == FmodLoadingState.UNLOADING && bankState == FmodLoadingState.UNLOADING
+                && eventSettled == FmodLoadingState.UNLOADED,
+                'event=${(idle : Int)} state=${(eventState : Int)} settled=${(eventSettled : Int)} bank=${(bankState : Int)}');
+        }
         #if sys
         var capturePath = "probe-short-lived.cmd.txt";
         if (StudioSystem.startCommandCapture(capturePath).isOk()) {
@@ -2482,8 +2559,10 @@ class ApiProbeScenario implements TestScenario {
         // A blocking load runs the queue even when the file is missing.
         // A nonblocking one returns first.
         var beforeLoad = probeShortLived();
+        beforeLoad.setUserData("before the load");
         var missing = StudioSystem.loadBankFile(FmodRuntime.bankPath("NoSuchBank.bank"));
-        check("short_lived_dies_at_refused_blocking_load", missing.isNull() && !beforeLoad.isNull() && !probeLive(beforeLoad),
+        check("short_lived_dies_at_refused_blocking_load", missing.isNull() && !beforeLoad.isNull() && !probeLive(beforeLoad)
+            && beforeLoad.getUserData() == null,
             'sound=${(beforeLoad : Int)} result=${StudioSystem.lastResult().toString()}');
         var beforeAsync = probeShortLived();
         var pending = StudioSystem.loadBankFile(FmodRuntime.bankPath("NoSuchBank.bank"), FmodLoadBankFlags.NONBLOCKING);
@@ -2491,17 +2570,20 @@ class ApiProbeScenario implements TestScenario {
             'sound=${(beforeAsync : Int)} result=${StudioSystem.lastResult().toString()}');
         if (!pending.isNull()) pending.unload();
         var beforeMemory = probeShortLived();
+        beforeMemory.setUserData("before the load");
         var notABank = StudioSystem.loadBankMemory(haxe.io.Bytes.alloc(64));
-        check("short_lived_dies_at_refused_memory_load", notABank.isNull() && !beforeMemory.isNull() && !probeLive(beforeMemory),
+        check("short_lived_dies_at_refused_memory_load", notABank.isNull() && !beforeMemory.isNull() && !probeLive(beforeMemory)
+            && beforeMemory.getUserData() == null,
             'sound=${(beforeMemory : Int)} result=${StudioSystem.lastResult().toString()}');
         var beforeAsyncMemory = probeShortLived();
         var pendingMemory = StudioSystem.loadBankMemory(haxe.io.Bytes.alloc(64), FmodLoadBankFlags.NONBLOCKING);
         check("short_lived_survives_nonblocking_memory_load", probeLive(beforeAsyncMemory),
             'sound=${(beforeAsyncMemory : Int)} result=${StudioSystem.lastResult().toString()}');
         if (!pendingMemory.isNull()) pendingMemory.unload();
-        // PauseSong pushes the pause with a flush when the game updates FMOD itself
+        // PauseSong pushes the pause with an update when the game updates FMOD itself
         if (FmodRuntime.isAutoUpdate()) {
             info("short_lived_dies_at_pause_song", "automatic updates, PauseSong leaves the queue to the update thread");
+            info("pause_song_lands_without_update", "automatic updates, the update thread lands the pause");
         } else {
             FmodManager.PlaySong(FmodEvents.SFXCoin);
             var beforePause = probeShortLived();
@@ -2510,6 +2592,7 @@ class ApiProbeScenario implements TestScenario {
                 'sound=${(beforePause : Int)}');
             FmodManager.UnpauseSong();
             FmodManager.StopSongImmediately();
+            checkPauseSongLands();
         }
 
         // A stream an event plays is freed by FMOD right after the stop. The

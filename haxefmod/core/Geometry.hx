@@ -11,7 +11,7 @@ import haxefmod.studio.native.Scratch;
  * in the world FMOD attenuates 3D sounds that have a polygon between
  * them and the listener, by the polygon's direct and reverb occlusion.
  * Unsupported in HTML5: create and load return Geometry.NULL there and
- * every other call returns FMOD_ERR_UNSUPPORTED, 0, false, or null.
+ * every other call returns FMOD_ERR_UNSUPPORTED, -1, 0, false, or null.
  *
  * Handles are created objects, so release() frees the FMOD geometry.
  */

@@ -32,6 +32,24 @@ static int faxe_guid_is_hex(char c) {
     return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 }
 
+/* The value of one hex digit the caller already checked. */
+static unsigned int faxe_guid_hex_value(char c) {
+    if (c >= '0' && c <= '9') return (unsigned int)(c - '0');
+    if (c >= 'a' && c <= 'f') return (unsigned int)(c - 'a') + 10u;
+    return (unsigned int)(c - 'A') + 10u;
+}
+
+/* Reads count checked hex digits at *p and moves *p past them. */
+static unsigned int faxe_guid_read_hex(const char** p, int count) {
+    unsigned int value = 0;
+    int i;
+    for (i = 0; i < count; i++) {
+        value = (value << 4) | faxe_guid_hex_value(**p);
+        (*p)++;
+    }
+    return value;
+}
+
 static int faxe_guid_is_space(char c) {
     return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
@@ -40,14 +58,15 @@ static int faxe_guid_is_space(char c) {
  * to match the html5 shim's trim) into id. Returns 1 on success. Group
  * widths are enforced exactly and no trailing text is accepted. A
  * malformed GUID fails here instead of resolving a zero-padded wrong one.
- * sscanf alone accepts short groups and ignores trailing garbage. */
+ * The digits are read by hand. sscanf accepts short groups and ignores
+ * trailing garbage, and glibc 2.38 binds it to a symbol older systems
+ * lack, which a shipped hdll then fails to load on. */
 static int faxe_guid_parse(const char* text, FMOD_GUID* id) {
     static const int groups[5] = { 8, 4, 4, 4, 12 };
     unsigned int d1;
     unsigned int d2;
     unsigned int d3;
     unsigned int b[8];
-    int matched;
     int braced;
     int g;
     int i;
@@ -76,10 +95,19 @@ static int faxe_guid_parse(const char* text, FMOD_GUID* id) {
     while (faxe_guid_is_space(*p)) p++;
     if (*p != '\0') return 0;
 
-    matched = sscanf(text, "%8x-%4x-%4x-%2x%2x-%2x%2x%2x%2x%2x%2x",
-        &d1, &d2, &d3,
-        &b[0], &b[1], &b[2], &b[3], &b[4], &b[5], &b[6], &b[7]);
-    if (matched != 11) return 0;
+    p = text;
+    d1 = faxe_guid_read_hex(&p, 8);
+    p++;
+    d2 = faxe_guid_read_hex(&p, 4);
+    p++;
+    d3 = faxe_guid_read_hex(&p, 4);
+    p++;
+    b[0] = faxe_guid_read_hex(&p, 2);
+    b[1] = faxe_guid_read_hex(&p, 2);
+    p++;
+    for (i = 2; i < 8; i++) {
+        b[i] = faxe_guid_read_hex(&p, 2);
+    }
 
     id->Data1 = d1;
     id->Data2 = (unsigned short)d2;

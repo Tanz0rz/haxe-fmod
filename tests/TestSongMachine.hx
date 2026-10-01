@@ -111,15 +111,22 @@ class TestSongMachine {
 			NativeStudioStub.testUpdateCalls == 0);
 		FmodManager.UnpauseSong();
 		assert("UnpauseSong unpauses the song instance", NativeStudioStub.testPausedState == false);
-		// With manual updates the pause is pushed through a flush, which
-		// waits for the queue and ends the short-lived handles. A plain
-		// update returned before FMOD ran the queue.
+		// With manual updates the pause is pushed through one update. A
+		// flush here blocked the game thread for 32 to 42 ms per call and
+		// landed the pause no sooner.
+		// The update ends the short-lived handles, and the Haxe entries of
+		// the dead ones go with it.
 		FmodRuntime.setAutoUpdate(false);
 		NativeStudioStub.testFlushCalls = 0;
+		var shortLived:haxefmod.core.Dsp = ++NativeStudioStub.testNextHandle;
+		shortLived.setUserData("walked");
+		NativeStudioStub.testDeadHandles.push(shortLived);
 		FmodManager.PauseSong();
 		FmodRuntime.setAutoUpdate(true);
-		assert("PauseSong flushes under manual updates", NativeStudioStub.testFlushCalls == 1);
-		assert("PauseSong skips the asynchronous update", NativeStudioStub.testUpdateCalls == 0);
+		assert("PauseSong pushes one update under manual updates", NativeStudioStub.testUpdateCalls == 1);
+		assert("PauseSong does not flush under manual updates", NativeStudioStub.testFlushCalls == 0);
+		assert("PauseSong drops a dead short-lived handle's userdata", shortLived.getUserData() == null);
+		NativeStudioStub.testDeadHandles.remove(shortLived);
 		FmodManager.UnpauseSong();
 	}
 

@@ -315,8 +315,12 @@ bool fmod_sys_is_initialized() {
     return gStudioSystem != NULL;
 }
 
+// The update hands the queue to the Studio thread, and a stop in it can
+// free objects any time after this returns. Short-lived handles end here.
 void fmod_sys_update() {
-    if (gStudioSystem) gStudioSystem->update();
+    if (!gStudioSystem) return;
+    gStudioSystem->update();
+    faxe_handles_free_volatile();
 }
 
 void fmod_sys_set_auto_update(bool enabled) {
@@ -1096,6 +1100,14 @@ static FMOD_DSP_PARAMETER_DESC* lincDataParam(FMOD::DSP* dsp, int index) {
     if (dsp->getNumParameters(&count) != FMOD_OK || index < 0 || index >= count) return NULL;
     if (dsp->getParameterInfo(index, &desc) != FMOD_OK || !desc) return NULL;
     return desc->type == FMOD_DSP_PARAMETER_TYPE_DATA ? desc : NULL;
+}
+
+// Asked by every data writer before FMOD sees the payload. kind is a
+// FAXE_DSPDATA_KIND_* writer, 0 for the raw one.
+static bool lincDataWriteOk(FMOD::DSP* dsp, int index, int kind, const void* data, unsigned int len) {
+    FMOD_DSP_TYPE type = FMOD_DSP_TYPE_UNKNOWN;
+    if (dsp->getType(&type) != FMOD_OK) type = FMOD_DSP_TYPE_UNKNOWN;
+    return faxe_dspdata_write_ok(lincDataParam(dsp, index), kind, (int)type, index, data, len) != 0;
 }
 
 // Defined with the channel callbacks below, needed by the group release
@@ -3137,8 +3149,12 @@ int fmod_sys_get_driver() {
 int fmod_dsp_set_param_data(int h, int index, ::Array<unsigned char> data, int len) {
     FMOD::DSP* dsp = resolveDsp(h);
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (data == null() || len <= 0 || !lincDataParam(dsp, index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     if (len > data->length) len = data->length;
+    if (!lincDataWriteOk(dsp, index, 0, (const void*)&data[0], (unsigned int)len)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
     gLastResult = dsp->setParameterData(index, (void*)&data[0], (unsigned int)len);
     return (int)gLastResult;
 }
@@ -4197,15 +4213,15 @@ int fmod_sys_set_listener_weight(int index, double weight) {
     return (int)gLastResult;
 }
 
-// flags bit0 = nonblocking. Returns a bank handle or 0
+// flags are FMOD_STUDIO_LOAD_BANK_FLAGS. Returns a bank handle or 0
 int fmod_sys_load_bank_file(const ::String& path, int flags) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    FMOD_STUDIO_LOAD_BANK_FLAGS loadFlags = (flags & 1) ? FMOD_STUDIO_LOAD_BANK_NONBLOCKING : FMOD_STUDIO_LOAD_BANK_NORMAL;
+    FMOD_STUDIO_LOAD_BANK_FLAGS loadFlags = (FMOD_STUDIO_LOAD_BANK_FLAGS)flags;
     FMOD::Studio::Bank* bank = NULL;
     gLastResult = gStudioSystem->loadBankFile(path.c_str(), loadFlags, &bank);
     // A blocking load runs the command queue before it returns, also
     // when it fails
-    if (loadFlags == FMOD_STUDIO_LOAD_BANK_NORMAL) faxe_handles_free_volatile();
+    if (!(loadFlags & FMOD_STUDIO_LOAD_BANK_NONBLOCKING)) faxe_handles_free_volatile();
     if (gLastResult != FMOD_OK || !bank) return 0;
     int bankHandle = lincHandleOrMemory(bank, FAXE_TYPE_BANK);
     // No slot means no way to ever unload it, so it goes back out
@@ -4677,12 +4693,9 @@ int fmod_bank_unload_sample_data(int h) {
     FMOD::Studio::Bank* bank = resolveBank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = bank->unloadSampleData();
-    // The flush runs the unload, so the sample data is gone before
-    // the short-lived handles to it go
-    if (gLastResult == FMOD_OK) {
-        if (gStudioSystem) gStudioSystem->flushCommands();
-        faxe_handles_free_volatile();
-    }
+    // The Studio thread runs the unload later, without a wait here. The
+    // short-lived handles to the sample data end now.
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 
@@ -5012,11 +5025,9 @@ int fmod_evd_unload_sample_data(int h) {
     FMOD::Studio::EventDescription* desc = resolveDescription(h);
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = desc->unloadSampleData();
-    // A flush lets the unload happen before the short-lived handles go
-    if (gLastResult == FMOD_OK) {
-        if (gStudioSystem) gStudioSystem->flushCommands();
-        faxe_handles_free_volatile();
-    }
+    // The unload is queued for the Studio thread. The short-lived handles
+    // end at once.
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 
@@ -6956,9 +6967,12 @@ int fmod_dsp_set_param_3d_attributes(int h, int index, ::Array<Float> fbuf) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     double f[FAXE_DSPDATA_SINGLE_DOUBLES];
     for (int i = 0; i < FAXE_DSPDATA_SINGLE_DOUBLES; i++) f[i] = fbuf[i];
-    if (!lincDataParam(dsp, index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     FMOD_DSP_PARAMETER_3DATTRIBUTES attrs;
     faxe_dspdata_pack_3d(&attrs, f);
+    if (!lincDataWriteOk(dsp, index, FAXE_DSPDATA_KIND_3D, &attrs, sizeof(attrs))) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
     gLastResult = dsp->setParameterData(index, &attrs, sizeof(attrs));
     return (int)gLastResult;
 }
@@ -6970,7 +6984,8 @@ int fmod_dsp_set_param_3d_attributes_multi(int h, int index, int numListeners, :
     double f[FAXE_DSPDATA_MULTI_DOUBLES];
     for (int i = 0; i < FAXE_DSPDATA_MULTI_DOUBLES; i++) f[i] = fbuf[i];
     FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI attrs;
-    if (!lincDataParam(dsp, index) || !faxe_dspdata_pack_3d_multi(&attrs, numListeners, f)) {
+    if (!faxe_dspdata_pack_3d_multi(&attrs, numListeners, f)
+            || !lincDataWriteOk(dsp, index, FAXE_DSPDATA_KIND_3D_MULTI, &attrs, sizeof(attrs))) {
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return (int)gLastResult;
     }
@@ -7047,7 +7062,7 @@ int fmod_dsp_set_param_typed(int h, int index, int kind, ::Array<Float> fbuf, ::
     for (int i = 0; i < FAXE_DSPDATA_TYPED_INTS; i++) ints[i] = ibuf[i];
     faxe_dspdata_typed data;
     unsigned int size = faxe_dspdata_pack_typed(kind, &data, f, ints);
-    if (!size || !lincDataParam(dsp, index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!size || !lincDataWriteOk(dsp, index, kind, &data, size)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     gLastResult = dsp->setParameterData(index, &data, size);
     return (int)gLastResult;
 }

@@ -172,7 +172,9 @@ class NativeStudioStub {
         return testReleaseResult;
     }
     public static function bank_load_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function bank_unload_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
+    /** The result both sample data unloads report. Tests set it. */
+    public static var testSampleUnloadResult:Int = ERR_UNSUPPORTED;
+    public static function bank_unload_sample_data(handle:Int):Int return testSampleUnloadResult;
     public static function bank_get_loading_state(handle:Int):Int
         return testSyntheticHandles && handle > 0 ? testBankLoadingState : 1;
     public static function bank_get_sample_loading_state(handle:Int):Int return 1;
@@ -224,7 +226,7 @@ class NativeStudioStub {
     public static var testEvdReleaseAllResult:Int = ERR_UNSUPPORTED;
     public static function evd_release_all_instances(handle:Int):Int return testEvdReleaseAllResult;
     public static function evd_load_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function evd_unload_sample_data(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function evd_unload_sample_data(handle:Int):Int return testSampleUnloadResult;
     public static function evd_get_sample_loading_state(handle:Int):Int return 1;
     public static function evd_get_parameter_description_count(handle:Int):Int return 0;
     public static function evd_get_parameter_description_by_index(handle:Int, index:Int):String return "";

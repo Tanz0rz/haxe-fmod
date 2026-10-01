@@ -52,7 +52,7 @@ A call to a feature the web build lacks is a compile error in a js build. See [L
 
 ## HashLink
 
-HashLink loads the binding from `hlaxe_fmod.hdll`, a native library compiled against one FMOD Engine version. The library bundles pre-built hdlls for 2.03.12 on Linux, macOS, and Windows.
+HashLink loads the binding from `hlaxe_fmod.hdll`, a native library compiled against one FMOD Engine version. The library bundles pre-built hdlls for 2.03.12 on Linux, macOS, and Windows. The Linux hdll needs glibc 2.34 or newer. On an older system run `haxelib run haxefmod build-hdll`.
 
 At build time `lime test hl` looks for the hdll in this order. The [stage command](guides/tools-cli.md#stage) does the same for Heaps builds.
 

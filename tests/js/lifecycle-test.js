@@ -712,15 +712,22 @@ async function main() {
         const gameHead = jaxe.fmod_cg_get_dsp(gameGroup, -1);
         check('short_lived_count_tracks_kinds', first > 0 && jaxe.volatileCount === 1 && countOk(),
             `sound=${first} count=${jaxe.volatileCount}`);
-        await pump(2);
+        // The auto-update timer calls FMOD's update straight, which leaves
+        // them to the drain
+        for (let i = 0; i < 2; i++) { jaxe.gSystem.update(); await sleep(15); }
         check('short_lived_survives_until_drain', jaxe.handleIsLive(first), '');
         drainEvents();
         check('short_lived_dies_at_drain', !jaxe.handleIsLive(first) && jaxe.volatileCount === 0, `count=${jaxe.volatileCount}`);
+        // fmod_sys_update hands the queue to FMOD, which can free what a
+        // stop left before the drain. The handles end there.
+        const beforeUpdate = fresh();
+        jaxe.fmod_sys_update();
+        check('short_lived_dies_at_sys_update', beforeUpdate > 0 && !jaxe.handleIsLive(beforeUpdate) && countOk(), `handle=${beforeUpdate}`);
         check('linked_and_game_survive_drain', jaxe.handleIsLive(gameHead) && jaxe.handleIsLive(gameGroup)
             && jaxe.handleIsLive(pcmChannel) && jaxe.handleIsLive(pcm), '');
         // A handle minted after a drain lives until the next one
         const between = fresh();
-        await pump(2);
+        for (let i = 0; i < 2; i++) { jaxe.gSystem.update(); await sleep(15); }
         check('short_lived_lives_between_drains', jaxe.handleIsLive(between), '');
         drainEvents();
         check('short_lived_dies_at_next_drain', !jaxe.handleIsLive(between), '');
@@ -753,6 +760,24 @@ async function main() {
         dropAt('short_lived_dies_at_event_sample_unload', () => jaxe.fmod_evd_unload_sample_data(coinEvd));
         jaxe.fmod_bank_load_sample_data(masterBank);
         dropAt('short_lived_dies_at_bank_sample_unload', () => jaxe.fmod_bank_unload_sample_data(masterBank));
+        {
+            // Both sample unloads return without running the queue. A flush
+            // in them held the game thread for two Studio periods per call.
+            let flushes = 0;
+            const sys = jaxe.gSystem;
+            const realFlush = sys.flushCommands;
+            const realSampleFlush = sys.flushSampleLoading;
+            sys.flushCommands = function () { flushes++; return realFlush.apply(sys, arguments); };
+            sys.flushSampleLoading = function () { flushes++; return realSampleFlush.apply(sys, arguments); };
+            jaxe.fmod_evd_load_sample_data(coinEvd);
+            const eventUnload = jaxe.fmod_evd_unload_sample_data(coinEvd);
+            jaxe.fmod_bank_load_sample_data(masterBank);
+            const bankUnload = jaxe.fmod_bank_unload_sample_data(masterBank);
+            sys.flushCommands = realFlush;
+            sys.flushSampleLoading = realSampleFlush;
+            check('sample_unload_does_not_flush', eventUnload === 0 && bankUnload === 0 && flushes === 0,
+                `event=${eventUnload} bank=${bankUnload} flushes=${flushes}`);
+        }
         if (jaxe.fmod_sys_start_command_capture('/short-lived.cmd.txt') === 0) {
             jaxe.gSystem.flushCommands();
             dropAt('short_lived_dies_at_capture_stop', () => jaxe.fmod_sys_stop_command_capture());
@@ -1117,6 +1142,15 @@ async function main() {
     check('no_tracked_memfs_after_unload', jaxe.asyncBankFiles.size === 0,
         `tracked=${jaxe.asyncBankFiles.size}`);
 
+    // The bank file load hands FMOD every flag bit the game passed
+    {
+        const realLoad = jaxe.gSystem.loadBankFile;
+        let seenFlags = -1;
+        jaxe.gSystem.loadBankFile = function (path, flags, out) { seenFlags = flags; return realLoad.call(this, path, flags, out); };
+        jaxe.fmod_sys_load_bank_file('/NoSuchBank.bank', 6);
+        jaxe.gSystem.loadBankFile = realLoad;
+        check('load_bank_file_passes_every_flag', seenFlags === 6, `flags=${seenFlags}`);
+    }
     console.log(`LIFECYCLE_TEST: failures = ${fails}`);
     console.log(fails === 0 ? 'LIFECYCLE_TEST: COMPLETE' : 'LIFECYCLE_TEST: FAILED');
     process.exit(fails === 0 ? 0 : 1);

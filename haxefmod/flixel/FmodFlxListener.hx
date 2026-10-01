@@ -26,7 +26,8 @@ class FmodFlxListener extends FlxBasic {
     /**
         Camera jumps larger than this in one frame count as a cut. A cut
         pushes zero velocity instead of a doppler spike. 0 means auto: one
-        camera width. Only applies in camera-follow mode.
+        view width, the camera width divided by its zoom. Only applies in
+        camera-follow mode.
     **/
     public var teleportDistance:Float = 0;
 
@@ -86,7 +87,7 @@ class FmodFlxListener extends FlxBasic {
             // The camera has no velocity of its own. Derive it from the
             // center's movement since the previous frame. A jump beyond the
             // teleport threshold is a cut: zero velocity, re-seed tracking.
-            cameraProvider.teleportDistance = teleportDistance > 0 ? teleportDistance : camera.width;
+            cameraProvider.teleportDistance = teleportDistance > 0 ? teleportDistance : camera.viewWidth;
             cameraProvider.sample(elapsed);
         }
         tracker.update();

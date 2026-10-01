@@ -31,7 +31,7 @@ abstract EventInstance(Int) from Int to Int {
      * whose handle does not resolve, and the user data of every dead DSP,
      * sound, and channel handle. A borrowed handle dies with the handle it
      * was reached from, natively and with no call on it. A short-lived one
-     * goes at the updates and calls its getter's doc names. Each of those
+     * goes at the updates and calls LIMITATIONS.md names. Each of those
      * ends here once FMOD accepted it. Empty maps cost a few checks.
      * Otherwise each entry costs one native liveness lookup.
      */
@@ -46,7 +46,8 @@ abstract EventInstance(Int) from Int to Int {
 
     /**
      * Returns result, after dropping the entries of the handles that died
-     * when FMOD accepted a call that stops or unloads something.
+     * when FMOD accepted a call that stops, unloads, or runs its command
+     * queue.
      */
     @:dox(hide)
     public static function afterStop(result:FmodResult):FmodResult {
