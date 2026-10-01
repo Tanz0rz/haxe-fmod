@@ -59,7 +59,7 @@ nav:
   - Generated constants: guides/constants.md
   - Auto-imports: guides/auto-imports.md
   - Live Update: live-update.md
-  - fmod.com extension: guides/extension.md
+  - fmod.com extension (beta): guides/extension.md
   - More guides:
       - Handles and results: guides/handles-and-results.md
       - Runtime and settings: guides/settings.md
