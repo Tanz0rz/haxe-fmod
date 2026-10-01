@@ -65,6 +65,19 @@ class TestDefineOverrides {
 		haxefmod.FmodManager.Initialize({bankFolder: "todo/banks", autoLoadBanks: []});
 		var picked = haxefmod.runtime.FmodRuntime.settings();
 		assert(picked != null && picked.bankFolder == "todo/banks", "Initialize after a Todo beep takes its settings");
+		// Two markers in one frame each play a beep. The second one
+		// stopped the first beep's channel, which ended every short-lived
+		// handle the game held.
+		haxefmod.studio.native.NativeStudioStub.testInitialized = true;
+		haxefmod.studio.native.NativeStudioStub.testSyntheticHandles = true;
+		haxefmod.studio.native.NativeStudioStub.testChanStopCalls = 0;
+		haxefmod.studio.native.NativeStudioStub.testPlayCalls = 0;
+		haxefmod.FmodManager.Todo("first marker");
+		haxefmod.FmodManager.Todo("second marker");
+		assert(haxefmod.studio.native.NativeStudioStub.testPlayCalls == 2, "each Todo site plays one beep");
+		assert(haxefmod.studio.native.NativeStudioStub.testChanStopCalls == 0, "a Todo beep stops no channel");
+		haxefmod.studio.native.NativeStudioStub.testSyntheticHandles = false;
+		haxefmod.studio.native.NativeStudioStub.testInitialized = false;
 		#end
 		#else
 		assert(false, "this suite must be compiled with the define set or -debug (see the hxml files)");

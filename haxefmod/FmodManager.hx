@@ -525,8 +525,9 @@ class FmodManager {
             songInstance.setPaused(true);
             // Push the pause through FMOD immediately, independent of the
             // game loop. The auto-update thread already ticks within ~16ms,
-            // so only manual-update setups need the push.
-            if (!FmodRuntime.isAutoUpdate()) NativeStudio.sys_update();
+            // so only manual-update setups need the push. The flush waits
+            // for the queue to run, then ends the short-lived handles.
+            if (!FmodRuntime.isAutoUpdate()) StudioSystem.flushCommands();
         }
     }
 
@@ -737,16 +738,10 @@ class FmodManager {
             }
             todoBeep = haxefmod.core.Sound.fromPcm(pcm, rate, 1);
         }
-        if (!todoBeep.isNull()) {
-            // The previous beep's channel is long finished (the blip is
-            // 90ms and beeps fire once per unique site). Stopping it here
-            // frees its handle slot, per the Channel contract.
-            todoBeepChannel.stop();
-            todoBeepChannel = todoBeep.play();
-        }
+        // The blip ends on its own. The next play reclaims its channel
+        // slot. A stop would end the game's short-lived handles.
+        if (!todoBeep.isNull()) todoBeep.play();
     }
-
-    static var todoBeepChannel:haxefmod.core.Channel = haxefmod.core.Channel.NULL;
     #end
     #end
 

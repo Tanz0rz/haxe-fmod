@@ -535,8 +535,12 @@ class jaxe {
     }
 
     // Frees every volatile handle and what hangs off each. Called at the
-    // start of each update drain and after every accepted call that stops,
-    // releases, or unloads anything. Mirrors faxe_handles_free_volatile.
+    // start of each update drain, after every accepted call that stops,
+    // releases, or unloads anything, after an accepted bus unlock, and
+    // after every bulk destroy sweep, refused or not. Calls that run
+    // FMOD's command queue end them too. Those are the two flushes, the
+    // bus lock, and a blocking bank load, which counts even when it
+    // fails. Mirrors faxe_handles_free_volatile.
     static freeVolatile() {
         for (var i = 0; i < jaxe.slots.length && jaxe.volatileCount > 0; i++) {
             var s = jaxe.slots[i];
@@ -1561,6 +1565,9 @@ class jaxe {
             : jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL;
         var bank = {};
         jaxe.lastResult = jaxe.gSystem.loadBankFile(fsPath, loadFlags, bank);
+        // A blocking load runs the command queue before it returns, also
+        // when it fails
+        if (loadFlags == jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL) jaxe.freeVolatile();
         if (jaxe.lastResult != jaxe.FMOD.OK || !bank.val) return 0;
         return jaxe.bankHandleOrUnload(bank.val);
     }
@@ -1618,6 +1625,9 @@ class jaxe {
                 jaxe.FMOD.FS_createDataFile('/', memfsName, new Uint8Array(buffer), true, false, false);
                 var bank = {};
                 var result = jaxe.gSystem.loadBankFile("/" + memfsName, jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, bank);
+                // The fetched bank loads blocking, which runs the command
+                // queue between two frames
+                jaxe.freeVolatile();
                 if (result != jaxe.FMOD.OK || !bank.val) {
                     placeholder.pendingBankError = true;
                     jaxe.unlinkMemfsFile(memfsName);
@@ -1664,12 +1674,16 @@ class jaxe {
     static fmod_sys_flush_commands() {
         if (!jaxe.sysReady()) return jaxe.lastResult;
         jaxe.lastResult = jaxe.gSystem.flushCommands();
+        // The queued commands ran, and a stop among them can free objects
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeVolatile();
         return jaxe.lastResult;
     }
 
     static fmod_sys_flush_sample_loading() {
         if (!jaxe.sysReady()) return jaxe.lastResult;
         jaxe.lastResult = jaxe.gSystem.flushSampleLoading();
+        // It runs the command queue too
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeVolatile();
         return jaxe.lastResult;
     }
 
@@ -3841,7 +3855,11 @@ class jaxe {
         jaxe.lastResult = bus.lockChannelGroup();
         // The group is created on the async command queue. Flushing makes
         // it resolvable before the matching fmod_bus_get_channel_group.
-        if (jaxe.lastResult == jaxe.FMOD.OK && jaxe.gSystem) jaxe.gSystem.flushCommands();
+        if (jaxe.lastResult == jaxe.FMOD.OK && jaxe.gSystem) {
+            jaxe.gSystem.flushCommands();
+            // The flush runs every queued command, stops included
+            jaxe.freeVolatile();
+        }
         return jaxe.lastResult;
     }
 
@@ -5081,6 +5099,8 @@ class jaxe {
         var bank = {};
         jaxe.lastResult = jaxe.gSystem.loadBankMemory(bytes, bytes.length,
             jaxe.FMOD.STUDIO_LOAD_MEMORY, flags >>> 0, bank);
+        // A blocking load runs the command queue, refused or not
+        if (!(flags & jaxe.FMOD.STUDIO_LOAD_BANK_NONBLOCKING)) jaxe.freeVolatile();
         if (jaxe.lastResult != jaxe.FMOD.OK || !bank.val) return 0;
         return jaxe.bankHandleOrUnload(bank.val);
     }

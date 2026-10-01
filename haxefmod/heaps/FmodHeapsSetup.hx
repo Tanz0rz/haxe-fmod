@@ -35,12 +35,13 @@ class FmodHeapsSetup {
         calls onReady once everything is usable.
         On HTML5 the bank fetch and the FMOD module load run in parallel.
         On HashLink both are synchronous and the callback runs before this
-        returns. onFailed runs instead when a bank cannot be loaded. FMOD
-        is initialized with the settings either way, the game runs without
-        that bank, and the console names it.
+        returns. onFailed runs instead when a bank cannot be loaded or
+        FMOD refuses to initialize. After a bank failure FMOD is
+        initialized with the settings. The game runs without that bank.
+        The console names it.
         @param settings The FmodSettings for Initialize. banksProvided is set on the object.
         @param onReady Called once FMOD and the default banks are usable.
-        @param onFailed Called when a default bank fails to load. Without it, onReady runs anyway.
+        @param onFailed Called when a default bank fails to load or FMOD refuses to initialize. Without it, onReady runs anyway.
     **/
     public static function preload(?settings:FmodSettings, onReady:Void->Void, ?onFailed:Void->Void):Void {
         if (settings == null) settings = {};

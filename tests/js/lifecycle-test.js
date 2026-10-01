@@ -422,7 +422,8 @@ async function main() {
     }
 
     // A handle the game reaches through another one dies with it, refuses
-    // release, and a volatile one dies wherever FMOD can destroy objects.
+    // release, and a volatile one dies at the next update drain or the next
+    // call that stops, releases, or unloads anything.
     // The walked handles once outlived their instance and a new group at
     // the same address answered to them.
     {
@@ -762,6 +763,39 @@ async function main() {
             jaxe.FMOD.FS_unlink('/short-lived.cmd.txt');
         } else {
             skip('short_lived_dies_at_capture_stop', `result=${jaxe.lastResult}`);
+        }
+        // A call that runs the command queue drops them too. A blocking
+        // load counts even when FMOD refuses it.
+        dropAt('short_lived_dies_at_flush', () => jaxe.fmod_sys_flush_commands());
+        dropAt('short_lived_dies_at_sample_loading_flush', () => jaxe.fmod_sys_flush_sample_loading());
+        dropAt('short_lived_dies_at_bus_lock', () => jaxe.fmod_bus_lock_channel_group(rootBus));
+        jaxe.fmod_bus_unlock_channel_group(rootBus);
+        {
+            const loadDrop = (label, call, dies) => {
+                const h = fresh();
+                const bank = call();
+                const r = jaxe.lastResult;
+                check(label, h > 0 && jaxe.handleIsLive(h) === !dies && countOk(), `result=${r} handle=${h}`);
+                if (bank) jaxe.fmod_bank_unload(bank);
+            };
+            loadDrop('short_lived_dies_at_refused_blocking_load', () => jaxe.fmod_sys_load_bank_file('/NoSuchBank.bank', 0), true);
+            loadDrop('short_lived_survives_nonblocking_load', () => jaxe.fmod_sys_load_bank_file('/NoSuchBank.bank', 1), false);
+            loadDrop('short_lived_dies_at_refused_memory_load', () => jaxe.fmod_sys_load_bank_memory(new Uint8Array(64).buffer, 64, 0), true);
+            loadDrop('short_lived_survives_nonblocking_memory_load', () => jaxe.fmod_sys_load_bank_memory(new Uint8Array(64).buffer, 64, 1), false);
+            // The fetched bank of an async load loads blocking once the
+            // fetch lands, which drops them between two drains
+            const realFetch = global.fetch;
+            const strings = fs.readFileSync(path.join(BANKS, 'Master.strings.bank'));
+            global.fetch = () => Promise.resolve({ ok: true,
+                arrayBuffer: () => Promise.resolve(strings.buffer.slice(strings.byteOffset, strings.byteOffset + strings.length)) });
+            const beforeFetch = fresh();
+            const placeholder = jaxe.fmod_sys_load_bank_async('assets/Master.strings.bank');
+            const liveWhileFetching = jaxe.handleIsLive(beforeFetch);
+            await sleep(30);
+            global.fetch = realFetch;
+            check('short_lived_dies_at_async_load_completion', placeholder > 0 && liveWhileFetching && !jaxe.handleIsLive(beforeFetch) && countOk(),
+                `placeholder=${placeholder} whileFetching=${liveWhileFetching}`);
+            jaxe.fmod_bank_unload(placeholder);
         }
         // The released programmer sound's drain drops them too. Plain
         // objects stand in for the wrappers.

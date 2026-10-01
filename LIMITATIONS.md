@@ -46,7 +46,7 @@ The web build runs on FMOD's Emscripten runtime, which differs from the native e
 
 ## FMOD features not exposed on any target
 
-These FMOD features cannot be bound from Haxe. Each one hands FMOD a function pointer or a memory layout that FMOD calls into from its own threads. No Haxe target can run game code there safely.
+These FMOD features cannot be bound from Haxe. Most hand FMOD a function pointer or a memory layout that FMOD calls into from its own threads. No Haxe target can run game code there safely.
 
 - **Custom DSP descriptions and DSP callbacks.** A custom effect's process, create, and release functions run on FMOD's mixer thread. All 33 built-in DSP types are bound. Effects shipped as FMOD plugins load through `StudioSystem.loadPlugin`.
 - **Codec and output registration** (`registerCodec`, `registerOutput`). Both run their callbacks on FMOD's file and mixer threads.
@@ -67,10 +67,10 @@ These FMOD features cannot be bound from Haxe. Each one hands FMOD a function po
 - **Only a group the game created can be released.** `ChannelGroup.release` and `SoundGroup.release` refuse every other group with `FMOD_ERR_INVALID_PARAM`. That covers the master group, a bus's group, an instance's group, and a group first reached through a walk. The handle stays usable.
 - **A borrowed handle dies with the handle it was reached from.** These borrowed handles live exactly as long as that handle:
   - an instance's own group, whose handle dies at the instance's `release()` while the event plays on
-  - a bus's own group
+  - a bus's own group, whose handle also dies at a `Bus.unlockChannelGroup()` that destroys the group
   - a group's or a channel's DSP
   - a parent group walked up from an instance's group
-- **Other borrowed handles are short-lived.** They die at the next `FmodManager.Update()` or at the next call that stops, releases, or unloads anything. Fetch them again each frame. A handler or user data set through one stops with it. The short-lived handles are:
+- **Other borrowed handles are short-lived.** They die at the next `FmodManager.Update()`. They also die when FMOD accepts a call that stops, releases, or unloads anything. `Bus.unlockChannelGroup()` counts too. So does a call that runs FMOD's command queue. Those are `StudioSystem.flushCommands()`, `StudioSystem.flushSampleLoading()`, `Bus.lockChannelGroup()`, and a bank load without `NONBLOCKING`. A blocking load ends them even when FMOD refuses it. `FmodManager.LoadBank()`, `FmodManager.WaitForBanks()`, and `FmodManager.PauseSong()` with automatic updates off count too. `StudioSystem.unloadAll()` and `EventDescription.releaseAllInstances()` end them even when FMOD refuses. Helper class calls and components count. `FmodManager.PlayOneShot` releases its instance. An emitter stops its event when it culls it. Fetch a short-lived handle again after any such call. A handler or user data set through one stops with it. The short-lived handles are:
   - a child group from `getGroup`
   - a parent group walked from a bus, the master, a group the game made, or a short-lived group
   - a channel's group and current sound

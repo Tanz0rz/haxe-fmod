@@ -4746,6 +4746,24 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
+     "doc": "Spectrum magnitudes from an FFT effect (create with DspType.FFT and attach where you want to analyze).",
+     "gated": false,
+     "name": "getFftSpectrum",
+     "signature": "getFftSpectrum(maxBins:Int = 512):Null<Array<Float>>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "The whole FFT payload: FMOD's bin count, the channel count, and one magnitude array per channel.",
+     "gated": false,
+     "name": "getFftSpectrumInfo",
+     "signature": "getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
      "doc": "How many parameters the effect exposes.",
      "gated": false,
      "name": "getParameterCount",
@@ -4927,6 +4945,24 @@ const HAXEFMOD_BINDINGS = {
      "gated": true,
      "name": "getParameterInfo",
      "signature": "getParameterInfo(index:Int):Null<FmodDspParameterDesc>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "Spectrum magnitudes from an FFT effect (create with DspType.FFT and attach where you want to analyze).",
+     "gated": false,
+     "name": "getFftSpectrum",
+     "signature": "getFftSpectrum(maxBins:Int = 512):Null<Array<Float>>",
+     "static": false,
+     "type": "haxefmod.core.Dsp"
+    },
+    {
+     "direct": false,
+     "doc": "The whole FFT payload: FMOD's bin count, the channel count, and one magnitude array per channel.",
+     "gated": false,
+     "name": "getFftSpectrumInfo",
+     "signature": "getFftSpectrumInfo(maxBins:Int = 512):Null<FmodDspParameterFft>",
      "static": false,
      "type": "haxefmod.core.Dsp"
     }
@@ -9374,6 +9410,14 @@ const HAXEFMOD_BINDINGS = {
      "signature": "flushCommands():FmodResult",
      "static": true,
      "type": "haxefmod.studio.StudioSystem"
+    },
+    {
+     "direct": false,
+     "doc": "Freezes the song at its position.",
+     "name": "PauseSong",
+     "signature": "PauseSong():Void",
+     "static": true,
+     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": false
@@ -10605,15 +10649,6 @@ const HAXEFMOD_BINDINGS = {
      "signature": "update():Void",
      "static": true,
      "type": "haxefmod.runtime.FmodRuntime"
-    },
-    {
-     "direct": false,
-     "doc": "Freezes the song at its position.",
-     "gated": false,
-     "name": "PauseSong",
-     "signature": "PauseSong():Void",
-     "static": true,
-     "type": "haxefmod.FmodManager"
     }
    ],
    "html5": false

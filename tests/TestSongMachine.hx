@@ -3,6 +3,7 @@ package tests;
 import haxefmod.FmodManager;
 import haxefmod.studio.CallbackDispatcher;
 import haxefmod.studio.Callbacks;
+import haxefmod.runtime.FmodRuntime;
 import haxefmod.studio.native.NativeStudioStub;
 
 /**
@@ -110,6 +111,16 @@ class TestSongMachine {
 			NativeStudioStub.testUpdateCalls == 0);
 		FmodManager.UnpauseSong();
 		assert("UnpauseSong unpauses the song instance", NativeStudioStub.testPausedState == false);
+		// With manual updates the pause is pushed through a flush, which
+		// waits for the queue and ends the short-lived handles. A plain
+		// update returned before FMOD ran the queue.
+		FmodRuntime.setAutoUpdate(false);
+		NativeStudioStub.testFlushCalls = 0;
+		FmodManager.PauseSong();
+		FmodRuntime.setAutoUpdate(true);
+		assert("PauseSong flushes under manual updates", NativeStudioStub.testFlushCalls == 1);
+		assert("PauseSong skips the asynchronous update", NativeStudioStub.testUpdateCalls == 0);
+		FmodManager.UnpauseSong();
 	}
 
 	static function testCreateFailureLeavesMachineUsable() {

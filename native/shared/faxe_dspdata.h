@@ -199,6 +199,19 @@ static int faxe_dspdata_desc_text(const FMOD_DSP_PARAMETER_DESC* desc, int kind,
     return 1;
 }
 
+/* True for a data parameter of the given FMOD data type. Another unit can
+ * hold another data parameter at the same index, with another layout. */
+static int faxe_dspdata_desc_is(const FMOD_DSP_PARAMETER_DESC* desc, int datatype) {
+    return desc && desc->type == FMOD_DSP_PARAMETER_TYPE_DATA && desc->datadesc.datatype == datatype;
+}
+
+/* True when the block FMOD returned for the spectrum index can be read as
+ * FMOD_DSP_PARAMETER_FFT. A transceiver keeps its overall gain there. */
+static int faxe_dspdata_is_fft(const FMOD_DSP_PARAMETER_DESC* desc, const void* data, unsigned int len) {
+    return data && len >= (unsigned int)sizeof(FMOD_DSP_PARAMETER_FFT)
+        && faxe_dspdata_desc_is(desc, FMOD_DSP_PARAMETER_DATA_TYPE_FFT);
+}
+
 /* Builds the struct of kind from the flat image (f holds
  * FAXE_DSPDATA_TYPED_DOUBLES values, i FAXE_DSPDATA_TYPED_INTS). Returns
  * the byte size to hand FMOD, 0 for a kind it does not know. */

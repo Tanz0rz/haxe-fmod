@@ -231,7 +231,7 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
     }
     ```
 
-    The first argument takes [settings](guides/settings.md#settings). A third argument runs instead when a bank is missing from the assets or FMOD refuses to initialize.
+    The first argument takes [settings](guides/settings.md#settings). A third argument runs instead when a bank cannot be loaded or FMOD refuses to initialize.
 
 `FmodEvents` is one of the [generated constants classes](guides/constants.md). The string paths work too, for example `FmodManager.PlaySong("event:/Music/MainLevel")`.
 

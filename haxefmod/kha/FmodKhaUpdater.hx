@@ -88,6 +88,8 @@ class FmodKhaUpdater {
         After removeHook() the game calls it from its own task instead.
     **/
     public static function update():Void {
+        // A frame task installed later in this frame finds the frame done
+        lastFrameTime = Scheduler.time();
         var now = Scheduler.realTime();
         var dt = lastStamp < 0 ? 0.0 : now - lastStamp;
         lastStamp = now;

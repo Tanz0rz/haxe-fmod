@@ -232,6 +232,19 @@ async function main() {
     check('dsp_get_parameter_info_unsupported', jaxe.fmod_dsp_get_parameter_info(fft, 0, fbuf, ibuf) === ''
         && jaxe.fmod_sys_last_result() === 68 && ibuf[4] === 0, `result=${jaxe.fmod_sys_last_result()}`);
 
+    // Another unit's block at the spectrum index is no spectrum, and a
+    // mixer takes no data write. The native shims refuse both the same way.
+    const transceiver = jaxe.fmod_dsp_create_by_type(30 /* TRANSCEIVER */);
+    check('dsp_fft_spectrum_other_unit', jaxe.fmod_dsp_fft_get_spectrum(transceiver, fbuf, 16) === 0
+        && jaxe.fmod_dsp_fft_get_spectrum_channel(transceiver, 0, fbuf, 16, ibuf) === 0, `result=${jaxe.lastResult}`);
+    jaxe.fmod_dsp_release(transceiver);
+    const mixer = jaxe.fmod_dsp_create_by_type(1 /* MIXER */);
+    const zeros = new Array(116).fill(0);
+    check('dsp_set_param_data_mixer', jaxe.fmod_dsp_set_param_data(mixer, 0, new Uint8Array(8).buffer, 8) === 31
+        && jaxe.fmod_dsp_set_param_3d_attributes(mixer, 0, zeros) === 31
+        && jaxe.fmod_dsp_set_param_3d_attributes_multi(mixer, 0, 1, zeros) === 31
+        && jaxe.fmod_dsp_set_param_typed(mixer, 0, 1, zeros, [0]) === 31, '');
+    jaxe.fmod_dsp_release(mixer);
     jaxe.fmod_chan_stop(channel);
     check('cg_remove_dsp_fft', jaxe.fmod_cg_remove_dsp(master, fft) === 0, '');
     check('cg_remove_dsp_loudness', jaxe.fmod_cg_remove_dsp(master, loud) === 0, '');

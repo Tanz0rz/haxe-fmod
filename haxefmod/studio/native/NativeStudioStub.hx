@@ -94,8 +94,17 @@ class NativeStudioStub {
     /** The result sys_unload_all reports. Tests toggle it. */
     public static var testUnloadAllResult:Int = ERR_UNSUPPORTED;
     public static function sys_unload_all():Int return testUnloadAllResult;
-    public static function sys_flush_commands():Int return ERR_UNSUPPORTED;
-    public static function sys_flush_sample_loading():Int return ERR_UNSUPPORTED;
+    /** The result both flushes report, and how many ran. Tests set them. */
+    public static var testFlushResult:Int = ERR_UNSUPPORTED;
+    public static var testFlushCalls:Int = 0;
+    public static function sys_flush_commands():Int {
+        testFlushCalls++;
+        return testFlushResult;
+    }
+    public static function sys_flush_sample_loading():Int {
+        testFlushCalls++;
+        return testFlushResult;
+    }
     public static function sys_get_cpu_usage():Int return ERR_UNSUPPORTED;
     public static function sys_get_buffer_usage():Int return ERR_UNSUPPORTED;
     public static function sys_reset_buffer_usage():Int return ERR_UNSUPPORTED;
@@ -383,7 +392,9 @@ class NativeStudioStub {
     public static function chan_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
     public static function chan_get_paused(handle:Int):Bool return false;
     public static function chan_is_playing(handle:Int):Bool return false;
+    public static var testChanStopCalls:Int = 0;
     public static function chan_stop(handle:Int):Int {
+        testChanStopCalls++;
         if (!testSyntheticHandles) return ERR_UNSUPPORTED;
         testFree(handle);
         return 0;
@@ -452,7 +463,8 @@ class NativeStudioStub {
 
     // Studio bus to core group bridge
     public static var testBusUnlockResult:Int = ERR_UNSUPPORTED;
-    public static function bus_lock_channel_group(handle:Int):Int return ERR_UNSUPPORTED;
+    public static var testBusLockResult:Int = ERR_UNSUPPORTED;
+    public static function bus_lock_channel_group(handle:Int):Int return testBusLockResult;
     public static function bus_unlock_channel_group(handle:Int):Int return testBusUnlockResult;
     public static function bus_get_channel_group(handle:Int):Int return 0;
 
@@ -511,11 +523,13 @@ class NativeStudioStub {
     public static var testPcmCreateLen:Int = -999;
     public static function core_create_sound_pcm(data:haxe.io.Bytes, len:Int, sampleRate:Int, channels:Int):Int {
         testPcmCreateLen = len;
-        return 0;
+        return testSyntheticHandles ? ++testNextHandle : 0;
     }
+    public static var testPlayCalls:Int = 0;
     public static function core_play_sound(handle:Int, group:Int, startPaused:Bool):Int {
         testLastPlayGroup = group;
-        return 0;
+        testPlayCalls++;
+        return testSyntheticHandles ? ++testNextHandle : 0;
     }
     public static function sound_set_defaults(handle:Int, frequency:Float, priority:Int):Int return ERR_UNSUPPORTED;
     public static function sound_get_defaults(handle:Int):Int return ERR_UNSUPPORTED;

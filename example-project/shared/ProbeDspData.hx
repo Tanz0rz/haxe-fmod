@@ -184,6 +184,31 @@ class ProbeDspData {
             && !StudioSystem.lastResult().isOk(), 'result=${StudioSystem.lastResult().toString()}');
         @:privateAccess state.check("dsp_get_parameter_data_null_handle", stale.getParameterData(0) == null
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, "");
+        // A transceiver keeps its overall gain at the spectrum index of the
+        // 2.03 layout. Read as a spectrum, that block gave a channel count
+        // past its end.
+        var transceiver = Dsp.create(DspType.TRANSCEIVER);
+        // The native shims refuse the block. The web glue hands back no
+        // spectrum field for it.
+        var refused = #if js true #else false #end;
+        var spectrumOther = transceiver.getFftSpectrum(16);
+        refused = refused || StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM;
+        @:privateAccess state.check("dsp_fft_spectrum_other_unit", !transceiver.isNull() && spectrumOther == null && refused,
+            'result=${StudioSystem.lastResult().toString()}');
+        refused = #if js true #else false #end;
+        var infoOther = transceiver.getFftSpectrumInfo(16);
+        refused = refused || StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM;
+        @:privateAccess state.check("dsp_fft_spectrum_info_other_unit", infoOther == null && refused,
+            'result=${StudioSystem.lastResult().toString()}');
+        transceiver.release();
+        // A mixer has no parameters. FMOD crashed on a data write to one.
+        var mixer = Dsp.create(DspType.MIXER);
+        @:privateAccess state.check("dsp_set_parameter_data_mixer", !mixer.isNull()
+            && mixer.setParameterData(0, haxe.io.Bytes.alloc(8)) == FmodResult.FMOD_ERR_INVALID_PARAM
+            && mixer.setParameter3DAttributes(0, origin()) == FmodResult.FMOD_ERR_INVALID_PARAM
+            && mixer.setParameter3DAttributesMulti(0, origin(), [origin()]) == FmodResult.FMOD_ERR_INVALID_PARAM
+            && mixer.setParameterSidechain(0, {sidechainEnable: true}) == FmodResult.FMOD_ERR_INVALID_PARAM, "");
+        mixer.release();
 
         // --- overall gain on a fader ---
         var fader = Dsp.create(DspType.FADER);

@@ -457,9 +457,13 @@ static int faxe_handle_adopt(int handle, int owner) {
 }
 
 /* Frees every volatile handle and what hangs off each. The shims call
- * this at the start of each update drain and after every accepted call
- * that stops, releases, or unloads anything. Nothing tells them which
- * of these objects died. With no volatile slot alive it returns at once. */
+ * this at the start of each update drain, after every accepted call
+ * that stops, releases, or unloads anything, after an accepted bus
+ * unlock, and after every bulk destroy sweep, refused or not. Calls
+ * that run FMOD's command queue end them too. Those are the two flushes,
+ * the bus lock, and a blocking bank load, which counts even when it
+ * fails. Nothing tells them which of these objects died. With no
+ * volatile slot alive it returns at once. */
 static void faxe_handles_free_volatile(void) {
     int i;
     for (i = 0; i < gFaxeSlotCap && gFaxeVolatileCount > 0; i++) {

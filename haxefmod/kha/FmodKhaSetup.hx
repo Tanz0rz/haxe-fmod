@@ -36,12 +36,13 @@ class FmodKhaSetup {
         khamake names assets. On a native target a bank missing from the
         blobs is read from the bank folder on disk instead, the folder the
         stage command fills. onFailed runs instead when a bank is not
-        available either way or fails to load. FMOD is initialized with
-        the settings either way, the game runs without that bank, and the
-        console names it.
+        available either way or fails to load. It also runs when FMOD
+        refuses to initialize. After a bank failure FMOD is initialized
+        with the settings. The game runs without that bank. The console
+        names it.
         @param settings The FmodSettings for Initialize. banksProvided is set on the object.
         @param onReady Called once FMOD and the default banks are usable.
-        @param onFailed Called when a default bank is missing or fails to load. Without it, onReady runs anyway.
+        @param onFailed Called when a default bank is missing or fails to load, or FMOD refuses to initialize. Without it, onReady runs anyway.
     **/
     public static function preload(?settings:FmodSettings, onReady:Void->Void, ?onFailed:Void->Void):Void {
         if (settings == null) settings = {};

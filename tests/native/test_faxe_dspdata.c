@@ -260,8 +260,37 @@ static void test_typed(void) {
     assert(faxe_dspdata_unpack_typed(FAXE_DSPDATA_KIND_SIDECHAIN, 0, sizeof(out.sidechain), back, backInts) == 0);
 }
 
+/* A block is read as a spectrum only when the parameter is an FFT data
+ * parameter and the block holds the whole struct. A transceiver keeps its
+ * eight byte overall gain at the spectrum index, which read as a
+ * spectrum gave a channel count past the block. */
+static void test_fft_guard(void) {
+    FMOD_DSP_PARAMETER_DESC desc;
+    FMOD_DSP_PARAMETER_FFT fft;
+    float gain[2] = {1.0f, 1.0f};
+    memset(&desc, 0, sizeof(desc));
+    memset(&fft, 0, sizeof(fft));
+    desc.type = FMOD_DSP_PARAMETER_TYPE_DATA;
+    desc.datadesc.datatype = FMOD_DSP_PARAMETER_DATA_TYPE_FFT;
+    assert(faxe_dspdata_desc_is(&desc, FMOD_DSP_PARAMETER_DATA_TYPE_FFT) == 1);
+    assert(faxe_dspdata_is_fft(&desc, &fft, sizeof(fft)) == 1);
+    assert(faxe_dspdata_is_fft(&desc, &fft, sizeof(fft) - 1) == 0);
+    assert(faxe_dspdata_is_fft(&desc, 0, sizeof(fft)) == 0);
+    assert(faxe_dspdata_is_fft(0, &fft, sizeof(fft)) == 0);
+    desc.datadesc.datatype = FMOD_DSP_PARAMETER_DATA_TYPE_OVERALLGAIN;
+    assert(faxe_dspdata_desc_is(&desc, FMOD_DSP_PARAMETER_DATA_TYPE_FFT) == 0);
+    assert(faxe_dspdata_is_fft(&desc, gain, sizeof(gain)) == 0);
+    /* a large block of another type is still another layout */
+    assert(faxe_dspdata_is_fft(&desc, &fft, sizeof(fft)) == 0);
+    desc.type = FMOD_DSP_PARAMETER_TYPE_FLOAT;
+    desc.datadesc.datatype = FMOD_DSP_PARAMETER_DATA_TYPE_FFT;
+    assert(faxe_dspdata_desc_is(&desc, FMOD_DSP_PARAMETER_DATA_TYPE_FFT) == 0);
+    assert(faxe_dspdata_is_fft(&desc, &fft, sizeof(fft)) == 0);
+}
+
 int main(void) {
     test_single();
+    test_fft_guard();
     test_multi();
     test_metering();
     test_desc();

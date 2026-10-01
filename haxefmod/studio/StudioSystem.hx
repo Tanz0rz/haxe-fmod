@@ -127,7 +127,15 @@ class StudioSystem {
      * fetch-based loading). Returns Bank.NULL on failure.
      */
     public static function loadBankFile(path:String, flags:FmodLoadBankFlags = NORMAL):Bank {
-        return NativeStudio.sys_load_bank_file(path, flags);
+        var bank:Bank = NativeStudio.sys_load_bank_file(path, flags);
+        afterBlockingLoad(flags);
+        return bank;
+    }
+
+    // A load without NONBLOCKING runs FMOD's command queue, refused or
+    // not. The shim drops the short-lived handles, and their entries go here.
+    static function afterBlockingLoad(flags:Int):Void {
+        if ((flags & FmodLoadBankFlags.NONBLOCKING) == 0) EventInstance.dropDeadGroups();
     }
 
     /**
@@ -178,7 +186,9 @@ class StudioSystem {
      */
     public static function loadBankMemory(data:haxe.io.Bytes, flags:FmodLoadBankFlags = NORMAL):Bank {
         // Null reaches the shim, which refuses it with FMOD_ERR_INVALID_PARAM
-        return NativeStudio.sys_load_bank_memory(data, data == null ? 0 : data.length, flags);
+        var bank:Bank = NativeStudio.sys_load_bank_memory(data, data == null ? 0 : data.length, flags);
+        if (data != null && data.length > 0) afterBlockingLoad(flags);
+        return bank;
     }
 
     /**
@@ -208,12 +218,12 @@ class StudioSystem {
 
     /** Blocks until all pending commands have executed. */
     public static function flushCommands():FmodResult {
-        return NativeStudio.sys_flush_commands();
+        return EventInstance.afterStop(NativeStudio.sys_flush_commands());
     }
 
     /** Blocks until all sample loading/unloading has completed. */
     public static function flushSampleLoading():FmodResult {
-        return NativeStudio.sys_flush_sample_loading();
+        return EventInstance.afterStop(NativeStudio.sys_flush_sample_loading());
     }
 
     //// Global parameters

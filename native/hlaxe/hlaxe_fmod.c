@@ -1190,6 +1190,17 @@ static FMOD_DSP* resolve_dsp(int h) {
     return (FMOD_DSP*)faxe_handle_resolve(h, FAXE_TYPE_DSP);
 }
 
+/* The descriptor of the data parameter at index, NULL for an index out of
+ * range or a parameter of another kind. FMOD crashes on a data write to
+ * a unit without parameters, a mixer, so every data call checks first. */
+static FMOD_DSP_PARAMETER_DESC* hlaxe_data_param(FMOD_DSP* dsp, int index) {
+    FMOD_DSP_PARAMETER_DESC* desc = NULL;
+    int count = 0;
+    if (FMOD_DSP_GetNumParameters(dsp, &count) != FMOD_OK || index < 0 || index >= count) return NULL;
+    if (FMOD_DSP_GetParameterInfo(dsp, index, &desc) != FMOD_OK || !desc) return NULL;
+    return desc->type == FMOD_DSP_PARAMETER_TYPE_DATA ? desc : NULL;
+}
+
 /* Defined with the channel callbacks below, needed by the group release */
 static FMOD_RESULT F_CALLBACK hlaxe_channel_callback(FMOD_CHANNELCONTROL* channelcontrol,
     FMOD_CHANNELCONTROL_TYPE controltype, FMOD_CHANNELCONTROL_CALLBACK_TYPE callbacktype,
@@ -1388,7 +1399,12 @@ HL_PRIM int HL_NAME(dsp_fft_get_spectrum)(int h, vbyte* out, int maxBins) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetParameterData(dsp, FMOD_DSP_FFT_SPECTRUMDATA,
         (void**)&fft, &len, NULL, 0);
-    if (gLastResult != FMOD_OK || !fft || fft->numchannels < 1) return 0;
+    if (gLastResult != FMOD_OK) return 0;
+    if (!faxe_dspdata_is_fft(hlaxe_data_param(dsp, FMOD_DSP_FFT_SPECTRUMDATA), fft, len)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
+    if (fft->numchannels < 1) return 0;
     count = fft->length < maxBins ? fft->length : maxBins;
     if (count > FAXE_LIST_MAX) count = FAXE_LIST_MAX;
     for (i = 0; i < count; i++) outFloats[i] = (double)fft->spectrum[0][i];
@@ -1679,6 +1695,8 @@ HL_PRIM int HL_NAME(bus_lock_channel_group)(int h) {
     // resolvable before the matching bus_get_channel_group call.
     if (gLastResult == FMOD_OK && gStudioSystem) {
         FMOD_Studio_System_FlushCommands(gStudioSystem);
+        /* The flush runs every queued command, stops included */
+        faxe_handles_free_volatile();
     }
     return (int)gLastResult;
 }
@@ -3093,6 +3111,8 @@ HL_PRIM int HL_NAME(sys_load_bank_memory)(vbyte* data, int len, int flags) {
     if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_Studio_System_LoadBankMemory(gStudioSystem, (const char*)data, len,
         FMOD_STUDIO_LOAD_MEMORY, (FMOD_STUDIO_LOAD_BANK_FLAGS)flags, &bank);
+    /* A blocking load runs the command queue, refused or not */
+    if (!(flags & FMOD_STUDIO_LOAD_BANK_NONBLOCKING)) faxe_handles_free_volatile();
     if (gLastResult != FMOD_OK || !bank) return 0;
     int bankHandle = hlaxe_handle_or_memory(bank, FAXE_TYPE_BANK);
     // No slot means no way to ever unload it, so it goes back out
@@ -3479,7 +3499,7 @@ DEFINE_PRIM(_I32, sys_get_driver, _NO_ARG);
 HL_PRIM int HL_NAME(dsp_set_param_data)(int h, int index, vbyte* data, int len) {
     FMOD_DSP* dsp = resolve_dsp(h);
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!data || len <= 0 || !hlaxe_data_param(dsp, index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     gLastResult = FMOD_DSP_SetParameterData(dsp, index, data, (unsigned int)len);
     return (int)gLastResult;
 }
@@ -4671,6 +4691,9 @@ HL_PRIM int HL_NAME(sys_load_bank_file)(vbyte* path, int flags) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     loadFlags = (flags & 1) ? FMOD_STUDIO_LOAD_BANK_NONBLOCKING : FMOD_STUDIO_LOAD_BANK_NORMAL;
     gLastResult = FMOD_Studio_System_LoadBankFile(gStudioSystem, (const char*)path, loadFlags, &bank);
+    /* A blocking load runs the command queue before it returns, also
+     * when it fails */
+    if (loadFlags == FMOD_STUDIO_LOAD_BANK_NORMAL) faxe_handles_free_volatile();
     if (gLastResult != FMOD_OK || !bank) return 0;
     int bankHandle = hlaxe_handle_or_memory(bank, FAXE_TYPE_BANK);
     // No slot means no way to ever unload it, so it goes back out
@@ -4852,6 +4875,8 @@ DEFINE_PRIM(_I32, sys_unload_all, _NO_ARG);
 HL_PRIM int HL_NAME(sys_flush_commands)() {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     gLastResult = FMOD_Studio_System_FlushCommands(gStudioSystem);
+    /* The queued commands ran, and a stop among them can free objects */
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, sys_flush_commands, _NO_ARG);
@@ -4859,6 +4884,8 @@ DEFINE_PRIM(_I32, sys_flush_commands, _NO_ARG);
 HL_PRIM int HL_NAME(sys_flush_sample_loading)() {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     gLastResult = FMOD_Studio_System_FlushSampleLoading(gStudioSystem);
+    /* It runs the command queue too */
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, sys_flush_sample_loading, _NO_ARG);
@@ -7789,6 +7816,7 @@ HL_PRIM int HL_NAME(dsp_set_param_3d_attributes)(int h, int index, vbyte* f) {
     FMOD_DSP* dsp = resolve_dsp(h);
     FMOD_DSP_PARAMETER_3DATTRIBUTES attrs;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (!hlaxe_data_param(dsp, index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     faxe_dspdata_pack_3d(&attrs, (const double*)f);
     gLastResult = FMOD_DSP_SetParameterData(dsp, index, &attrs, sizeof(attrs));
     return (int)gLastResult;
@@ -7800,7 +7828,7 @@ HL_PRIM int HL_NAME(dsp_set_param_3d_attributes_multi)(int h, int index, int num
     FMOD_DSP* dsp = resolve_dsp(h);
     FMOD_DSP_PARAMETER_3DATTRIBUTES_MULTI attrs;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (!faxe_dspdata_pack_3d_multi(&attrs, numListeners, (const double*)f)) {
+    if (!hlaxe_data_param(dsp, index) || !faxe_dspdata_pack_3d_multi(&attrs, numListeners, (const double*)f)) {
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return (int)gLastResult;
     }
@@ -7839,7 +7867,11 @@ HL_PRIM int HL_NAME(dsp_fft_get_spectrum_channel)(int h, int channel, vbyte* fou
     outInts[1] = 0;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetParameterData(dsp, FMOD_DSP_FFT_SPECTRUMDATA, (void**)&fft, &len, NULL, 0);
-    if (gLastResult != FMOD_OK || !fft) return 0;
+    if (gLastResult != FMOD_OK) return 0;
+    if (!faxe_dspdata_is_fft(hlaxe_data_param(dsp, FMOD_DSP_FFT_SPECTRUMDATA), fft, len)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
     outInts[0] = fft->numchannels;
     outInts[1] = fft->length;
     if (channel < 0 || channel >= fft->numchannels || channel >= 32 || !fft->spectrum[channel]) return 0;
@@ -7872,7 +7904,7 @@ HL_PRIM int HL_NAME(dsp_set_param_typed)(int h, int index, int kind, vbyte* f, v
     unsigned int size;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     size = faxe_dspdata_pack_typed(kind, &data, (const double*)f, (const int*)i);
-    if (!size) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!size || !hlaxe_data_param(dsp, index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     gLastResult = FMOD_DSP_SetParameterData(dsp, index, &data, size);
     return (int)gLastResult;
 }

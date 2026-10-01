@@ -179,13 +179,13 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_DSP_GetMeteringInfo` | `Dsp.getMetering` |  |
 | `FMOD_DSP_GetNumInputs` | `Dsp.getNumInputs`<br>`Dsp.getInputCount` |  |
 | `FMOD_DSP_GetNumOutputs` | `Dsp.getNumOutputs`<br>`Dsp.getOutputCount` |  |
-| `FMOD_DSP_GetNumParameters` | `Dsp.getNumParameters`<br>`Dsp.getParameterCount` |  |
+| `FMOD_DSP_GetNumParameters` | `Dsp.getNumParameters`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo`<br>`Dsp.getParameterCount` |  |
 | `FMOD_DSP_GetOutput` | `Dsp.getOutput`<br>`Dsp.getOutputConnection` |  |
 | `FMOD_DSP_GetOutputChannelFormat` | `Dsp.getOutputChannelFormat` |  |
 | `FMOD_DSP_GetParameterBool` | `Dsp.getParameterBool` |  |
 | `FMOD_DSP_GetParameterData` | `Dsp.getParameterData`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo`<br>`Dsp.getLoudnessMeterWeighting`<br>`Dsp.getParameterAttenuationRange`<br>`Dsp.getParameterDynamicResponse`<br>`Dsp.getParameterFiniteLength`<br>`Dsp.getParameterSidechain` | compile error |
 | `FMOD_DSP_GetParameterFloat` | `Dsp.getParameterFloat`<br>`Dsp.getParameter` |  |
-| `FMOD_DSP_GetParameterInfo` | `Dsp.getParameterInfo` | compile error |
+| `FMOD_DSP_GetParameterInfo` | `Dsp.getParameterInfo`<br>`Dsp.getFftSpectrum`<br>`Dsp.getFftSpectrumInfo` | compile error |
 | `FMOD_DSP_GetParameterInt` | `Dsp.getParameterInt` |  |
 | `FMOD_DSP_GetType` | `Dsp.getType` |  |
 | `FMOD_DSP_GetUserData` | `Dsp.getUserData` |  |
@@ -493,7 +493,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | FMOD | haxefmod | HTML5 |
 |---|---|---|
 | `FMOD_Studio_System_Create` | `FmodManager.Initialize`<br>`FmodRuntime.init` |  |
-| `FMOD_Studio_System_FlushCommands` | `StudioSystem.flushCommands` |  |
+| `FMOD_Studio_System_FlushCommands` | `StudioSystem.flushCommands`<br>`FmodManager.PauseSong` |  |
 | `FMOD_Studio_System_FlushSampleLoading` | `StudioSystem.flushSampleLoading`<br>`FmodManager.WaitForBanks` |  |
 | `FMOD_Studio_System_GetAdvancedSettings` | `StudioSystem.getStudioAdvancedSettings` | compile error |
 | `FMOD_Studio_System_GetBank` | `StudioSystem.getBank`<br>`BankRegistry.loadMemory` |  |
@@ -543,7 +543,7 @@ The same table powers the browser extension that adds a Haxe tab to the [fmod.co
 | `FMOD_Studio_System_StartCommandCapture` | `StudioSystem.startCommandCapture` |  |
 | `FMOD_Studio_System_StopCommandCapture` | `StudioSystem.stopCommandCapture` |  |
 | `FMOD_Studio_System_UnloadAll` | `StudioSystem.unloadAll` |  |
-| `FMOD_Studio_System_Update` | `FmodManager.Update`<br>`FmodRuntime.update`<br>`FmodManager.PauseSong` |  |
+| `FMOD_Studio_System_Update` | `FmodManager.Update`<br>`FmodRuntime.update` |  |
 
 ## Studio::VCA
 

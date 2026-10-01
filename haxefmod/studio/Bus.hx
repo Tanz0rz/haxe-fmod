@@ -121,7 +121,7 @@ abstract Bus(Int) from Int to Int {
      * to it (see getChannelGroup). Call unlockChannelGroup when done.
      */
     public inline function lockChannelGroup():FmodResult {
-        return NativeStudio.bus_lock_channel_group(this);
+        return EventInstance.afterStop(NativeStudio.bus_lock_channel_group(this));
     }
 
     /**

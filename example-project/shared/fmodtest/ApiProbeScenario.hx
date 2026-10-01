@@ -130,14 +130,18 @@ class ApiProbeScenario implements TestScenario {
         var pauseResult = master.setPaused(true);
         check("bus_set_paused", pauseResult.isOk(), 'result=${pauseResult.toString()}');
         check("bus_get_paused", master.getPaused(), "");
-        master.setPaused(false);
-        check("bus_get_paused_cleared", !master.getPaused(), "");
+        var unpauseResult = master.setPaused(false);
+        // The read-back came back stale once under valgrind, so the
+        // set is flushed before it
+        StudioSystem.flushCommands();
+        check("bus_get_paused_cleared", unpauseResult.isOk() && !master.getPaused(), 'result=${unpauseResult.toString()}');
 
         // Mute round trip
         var muteResult = master.setMute(true);
         check("bus_set_mute", muteResult.isOk(), 'result=${muteResult.toString()}');
         check("bus_get_mute", master.getMute(), "");
         master.setMute(false);
+        StudioSystem.flushCommands();
         check("bus_get_mute_cleared", !master.getMute(), "");
 
         // Stop all events (no events playing - just verify the call succeeds)
@@ -815,8 +819,16 @@ class ApiProbeScenario implements TestScenario {
         var smoke = FmodManager.PlayEvent(FmodEvents.SFXJump);
         check("hardening_sound_handle", !smoke.isNull(), "");
         smoke.pause();
+        check("hardening_sound_paused", smoke.isPaused(), "");
         smoke.unpause();
+        check("hardening_sound_unpaused", !smoke.isPaused(), "");
         smoke.setVolume(0.7);
+        check("hardening_sound_volume_roundtrip", Math.abs(smoke.getVolume() - 0.7) < 0.001, 'value=${smoke.getVolume()}');
+        smoke.pause();
+        smoke.setTimelinePosition(120);
+        StudioSystem.flushCommands();
+        check("hardening_sound_timeline_roundtrip", smoke.getTimelinePosition() == 120, 'value=${smoke.getTimelinePosition()}');
+        smoke.unpause();
         smoke.setPitch(1.2);
         check("hardening_sound_pitch_roundtrip", Math.abs(smoke.getPitch() - 1.2) < 0.001,
             'value=${smoke.getPitch()}');
@@ -2132,7 +2144,7 @@ class ApiProbeScenario implements TestScenario {
     var _walkFrames:Int = 0;
     var _walkBaseline:Int = 0;
 
-    /** A call that destroys objects: a game sound's release frees every volatile handle in the same call. */
+    /** A call that releases something: a game sound's release frees every volatile handle in the same call. */
     static function probeDestroyPoint():Void {
         var scratch = Sound.fromPcm(haxe.io.Bytes.alloc(800), 8000, 1);
         scratch.release();
@@ -2223,9 +2235,9 @@ class ApiProbeScenario implements TestScenario {
                 'sound=${(againSound : Int)} parent=${(againParent : Int)}');
         }
 
-        // Groups below an instance's own group die at the next call that
-        // destroys objects, since a nested event's group dies inside a live
-        // instance. The instance's own group stays.
+        // Groups below an instance's own group are short-lived, since a
+        // nested event's group dies inside a live instance. The instance's
+        // own group stays.
         var nested = StudioSystem.getEvent(FmodEvents.MusicNested).createInstance();
         nested.start();
         StudioSystem.flushCommands();
@@ -2459,6 +2471,46 @@ class ApiProbeScenario implements TestScenario {
         var geometry = Geometry.create(1, 4);
         checkShortLivedDrop("short_lived_dies_at_geometry_release", () -> geometry.release());
         #end
+
+        // A call that runs FMOD's command queue can free what a stop left.
+        // A handle fetched after the stop lived past such a call.
+        checkShortLivedDrop("short_lived_dies_at_flush", () -> StudioSystem.flushCommands());
+        checkShortLivedDrop("short_lived_dies_at_sample_loading_flush", () -> StudioSystem.flushSampleLoading());
+        var lockBus = StudioSystem.getBus("bus:/");
+        checkShortLivedDrop("short_lived_dies_at_bus_lock", () -> lockBus.lockChannelGroup());
+        lockBus.unlockChannelGroup();
+        // A blocking load runs the queue even when the file is missing.
+        // A nonblocking one returns first.
+        var beforeLoad = probeShortLived();
+        var missing = StudioSystem.loadBankFile(FmodRuntime.bankPath("NoSuchBank.bank"));
+        check("short_lived_dies_at_refused_blocking_load", missing.isNull() && !beforeLoad.isNull() && !probeLive(beforeLoad),
+            'sound=${(beforeLoad : Int)} result=${StudioSystem.lastResult().toString()}');
+        var beforeAsync = probeShortLived();
+        var pending = StudioSystem.loadBankFile(FmodRuntime.bankPath("NoSuchBank.bank"), FmodLoadBankFlags.NONBLOCKING);
+        check("short_lived_survives_nonblocking_load", probeLive(beforeAsync),
+            'sound=${(beforeAsync : Int)} result=${StudioSystem.lastResult().toString()}');
+        if (!pending.isNull()) pending.unload();
+        var beforeMemory = probeShortLived();
+        var notABank = StudioSystem.loadBankMemory(haxe.io.Bytes.alloc(64));
+        check("short_lived_dies_at_refused_memory_load", notABank.isNull() && !beforeMemory.isNull() && !probeLive(beforeMemory),
+            'sound=${(beforeMemory : Int)} result=${StudioSystem.lastResult().toString()}');
+        var beforeAsyncMemory = probeShortLived();
+        var pendingMemory = StudioSystem.loadBankMemory(haxe.io.Bytes.alloc(64), FmodLoadBankFlags.NONBLOCKING);
+        check("short_lived_survives_nonblocking_memory_load", probeLive(beforeAsyncMemory),
+            'sound=${(beforeAsyncMemory : Int)} result=${StudioSystem.lastResult().toString()}');
+        if (!pendingMemory.isNull()) pendingMemory.unload();
+        // PauseSong pushes the pause with a flush when the game updates FMOD itself
+        if (FmodRuntime.isAutoUpdate()) {
+            info("short_lived_dies_at_pause_song", "automatic updates, PauseSong leaves the queue to the update thread");
+        } else {
+            FmodManager.PlaySong(FmodEvents.SFXCoin);
+            var beforePause = probeShortLived();
+            FmodManager.PauseSong();
+            check("short_lived_dies_at_pause_song", !beforePause.isNull() && !probeLive(beforePause),
+                'sound=${(beforePause : Int)}');
+            FmodManager.UnpauseSong();
+            FmodManager.StopSongImmediately();
+        }
 
         // A stream an event plays is freed by FMOD right after the stop. The
         // handle a channel walk minted for it dies with the stop call.

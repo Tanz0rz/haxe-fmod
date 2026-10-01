@@ -56,7 +56,7 @@ HashLink loads the binding from `hlaxe_fmod.hdll`, a native library compiled aga
 
 At build time `lime test hl` looks for the hdll in this order. The [stage command](guides/tools-cli.md#stage) does the same for Heaps builds.
 
-1. Project-local `.haxefmod/hlaxe_fmod.hdll`, when present. `haxelib run haxefmod build-hdll` writes it there.
+1. Project-local `.haxefmod/hlaxe_fmod.hdll`, when present and built for the SDK in `FMOD_SDK`. `haxelib run haxefmod build-hdll` writes it there.
 2. The pre-built `templates/bin/hl/<Platform>/hlaxe_fmod.hdll` inside the installed library.
 
 The build log states which one it used. At runtime the library checks the hdll's binding version against its own. On a mismatch it refuses to initialize and prints the `build-hdll` command to run.

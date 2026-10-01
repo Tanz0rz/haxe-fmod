@@ -19,6 +19,7 @@ import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
 import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
+import haxefmod.studio.Types;
 import haxefmod.studio.UserData;
 import haxefmod.studio.Vca;
 import haxefmod.studio.native.NativeStudioStub;
@@ -464,6 +465,41 @@ class TestUserData {
 		stopped.stop(IMMEDIATE);
 		NativeStudioStub.testStopResult = 68;
 		assert("an accepted stop drops a dead short-lived handle's userdata", dropped.getUserData() == null);
+		// The calls that run FMOD's command queue drop them too
+		var flushed:Dsp = ++NativeStudioStub.testNextHandle;
+		flushed.setUserData("flushed");
+		NativeStudioStub.testDeadHandles.push(flushed);
+		StudioSystem.flushCommands();
+		StudioSystem.flushSampleLoading();
+		assert("a refused flush keeps the entry", flushed.getUserData() == "flushed");
+		NativeStudioStub.testFlushResult = 0;
+		StudioSystem.flushCommands();
+		assert("an accepted flush drops a dead short-lived handle's userdata", flushed.getUserData() == null);
+		flushed.setUserData("flushed");
+		StudioSystem.flushSampleLoading();
+		NativeStudioStub.testFlushResult = 68;
+		assert("an accepted sample loading flush drops the entry", flushed.getUserData() == null);
+		var lockBus:Bus = ++NativeStudioStub.testNextHandle;
+		flushed.setUserData("locked");
+		lockBus.lockChannelGroup();
+		assert("a refused bus lock keeps the entry", flushed.getUserData() == "locked");
+		NativeStudioStub.testBusLockResult = 0;
+		lockBus.lockChannelGroup();
+		NativeStudioStub.testBusLockResult = 68;
+		assert("an accepted bus lock drops the entry", flushed.getUserData() == null);
+		// A blocking bank load runs the queue even when it fails, and a
+		// nonblocking one leaves the entry
+		flushed.setUserData("loading");
+		StudioSystem.loadBankFile("missing.bank", FmodLoadBankFlags.NONBLOCKING);
+		StudioSystem.loadBankMemory(null);
+		assert("a nonblocking load keeps the entry", flushed.getUserData() == "loading");
+		StudioSystem.loadBankFile("missing.bank");
+		assert("a failed blocking file load drops the entry", flushed.getUserData() == null);
+		flushed.setUserData("loading");
+		StudioSystem.loadBankMemory(haxe.io.Bytes.alloc(8), FmodLoadBankFlags.NONBLOCKING | FmodLoadBankFlags.DECOMPRESS_SAMPLES);
+		assert("a nonblocking memory load keeps the entry", flushed.getUserData() == "loading");
+		StudioSystem.loadBankMemory(haxe.io.Bytes.alloc(8), FmodLoadBankFlags.DECOMPRESS_SAMPLES);
+		assert("a blocking memory load drops the entry", flushed.getUserData() == null);
 		// A refused release keeps every entry
 		var refused:ChannelGroup = ++NativeStudioStub.testNextHandle;
 		var refusedChild = refused.getGroup(0);

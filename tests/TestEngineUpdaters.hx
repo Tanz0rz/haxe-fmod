@@ -135,6 +135,18 @@ class TestEngineUpdaters {
 		assert(FmodKhaUpdater.isInstalled() && FmodKhaUpdater.installCount == installs + 1 && kha.Scheduler.taskCount() == 1,
 			"kha: init installs the frame task again");
 
+		// A manual update and an init in one frame still update once. Kha
+		// runs a task added to the running frame.
+		FmodKhaUpdater.removeHook();
+		var gameTask = kha.Scheduler.addFrameTask(() -> {
+			FmodKhaUpdater.update();
+			FmodKhaUpdater.init();
+		}, 0);
+		before = updates;
+		kha.Scheduler.runFrame();
+		assert(updates == before + 1, 'kha: an init after a manual update in one frame updates once (updates=${updates - before})');
+		kha.Scheduler.removeFrameTask(gameTask);
+
 		FmodKhaUpdater.removeHook();
 		FmodKhaUpdater.remove(ticker);
 		FmodKhaUpdater.remove(late);

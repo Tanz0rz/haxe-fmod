@@ -95,6 +95,18 @@ class TestHelperPredicates {
 		ev.setPosition2D(1, 2, 3, 4);
 		var last = NativeStudioStub.testLast3d;
 		assert("PROBE setPosition2D passes the velocity", last != null && last[3] == 3 && last[4] == 4);
+		NativeStudioStub.testLastStopMode = -1;
+		ev.stop();
+		var fadeMode = NativeStudioStub.testLastStopMode;
+		ev.stopImmediately();
+		assert("PROBE stop fades out and stopImmediately cuts", fadeMode == (haxefmod.studio.Types.FmodStopMode.ALLOWFADEOUT : Int)
+			&& NativeStudioStub.testLastStopMode == (haxefmod.studio.Types.FmodStopMode.IMMEDIATE : Int));
+		ev.onEvent(_ -> {}, 0x40);
+		assert("PROBE onEvent passes its mask", NativeStudioStub.testLastCallbackMaskHandle == evh && NativeStudioStub.testLastCallbackMask & 0x40 != 0
+			&& NativeStudioStub.testLastCallbackMask & 0x20 == 0);
+		NativeStudioStub.testReleasedHandles.push(evh);
+		assert("PROBE isValid asks the native side", !ev.isValid() && !ev.isNull());
+		NativeStudioStub.testReleasedHandles.remove(evh);
 		haxefmod.studio.CallbackDispatcher.clearAll();
 		NativeStudioStub.testSyntheticHandles = false;
 	}
