@@ -55,7 +55,7 @@ FmodRuntime.onceReady(() -> {
 | `profiling` | | false | Turns on FMOD profiling. `Bus`, `EventInstance`, and `Dsp` report `getCpuUsage()` only with this on. The FMOD Profiler can then connect to the game. |
 | `distanceFilter` | | false | Turns on the per-channel distance lowpass. 3D core channels then muffle with distance. `Channel.set3DDistanceFilter` tunes the filter. |
 | `liveUpdate` | `haxefmod_live_update`, `haxefmod_no_live_update` | true in `-debug` builds | Opens the Live Update connection on TCP port 9264, or the `profilePort` setting. Native only. |
-| `logLevel` | `haxefmod_log_level` | 1 | FMOD debug logging. 0 none, 1 errors, 2 warnings, 3 everything. Native only, the web package exports no logger. |
+| `logLevel` | `haxefmod_log_level` | 1 | FMOD debug logging. 0 none, 1 errors, 2 warnings, 3 everything. Only the logging FMOD libraries write a log. See [Limitations](../limitations.md#fixed-behaviors-and-caps). |
 | `bankFolder` | `haxefmod_bank_folder` | `assets/fmod/Desktop` | Folder that bank file names resolve against. |
 | `autoLoadBanks` | | `["Master.bank", "Master.strings.bank"]` | Banks that init loads. Pass `[]` to manage all loading yourself. |
 | `banksProvided` | | false | The engine's loader delivers the default banks through `FmodRuntime.provideBank`, so init fetches none. HTML5 waits for them, a native target needs them before `init`. The [engine preloaders](components.md#setup) set this. |
@@ -105,7 +105,7 @@ FmodRuntime.onceReady(() -> {
 | `setAutoUpdate(enabled)` / `isAutoUpdate()` | The background auto-update. `FmodManager.SetAutoUpdate` and `IsAutoUpdate` call these. |
 | `isFocusMuted()` | Whether the focus state and the policy call for the master output to be muted. |
 | `maxAttachedVelocity()` | The velocity cap applied to attached instances and the engine listeners, 0 for none. |
-| `setDebugLevel(level)` | FMOD's log level on the `logLevel` scale. The level reaches FMOD at once on native targets. On HTML5 the call waits for the module, and the 2.03.12 web package then reports it unsupported (see [Limitations](../limitations.md#html5)). |
+| `setDebugLevel(level)` | FMOD's log level on the `logLevel` scale. On HTML5 the call waits for the module. The FMOD libraries that the build links report it unsupported. See [Limitations](../limitations.md#fixed-behaviors-and-caps). |
 | `initFailed()` | Whether a default bank failed to load or was never provided, or the system refused to initialize. A missing bank leaves the system running without it, so `isInitialized()` turns true too. `FmodManager.InitializeFailed()` reports the same. |
 | `initSettled()` | Whether initialization has run its course: ready, or the system refused. The pending `onceReady` handlers run then. `FmodManager.InitializeSettled()` reports the same. |
 | `provideBank(fileName, bytes)` / `provideBankFailed(fileName, reason)` | The default banks as bytes from the engine's loader, or a bank the loader cannot deliver. |

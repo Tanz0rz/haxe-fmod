@@ -189,6 +189,31 @@ class TestComponentCores {
 		failing.dispose();
 		assert(FmodRuntime.banks.refCount(path) == 0, "dispose after an error releases the reference");
 
+		// A tracker disposed before its first update never loads or fires
+		stub.testBankLoadingState = 3;
+		var early = 0;
+		var earlyTracker = new BankLoadTracker(["Cores.bank"], () -> early++);
+		earlyTracker.dispose();
+		earlyTracker.update();
+		assert(early == 0 && FmodRuntime.banks.refCount(path) == 0, "a tracker disposed before its first update never loads or fires");
+		// A tracker disposed while its bank loads never fires
+		stub.testBankLoadingState = 2;
+		var midway = 0;
+		var midTracker = new BankLoadTracker(["Cores.bank"], () -> midway++);
+		midTracker.update();
+		midTracker.dispose();
+		midTracker.update();
+		assert(midway == 0, "a tracker disposed mid-load never fires");
+		stub.testBankLoadingState = 3;
+		// A rejected load never releases a reference another holder owns
+		stub.testSyntheticHandles = false;
+		var rejected = new BankLoadTracker(["Cores.bank"], null, () -> {});
+		rejected.update();
+		stub.testSyntheticHandles = true;
+		var other = FmodRuntime.banks.loadAsync(path);
+		rejected.dispose();
+		assert(FmodRuntime.banks.refCount(path) == 1, "a rejected load leaves another holder's reference alone");
+		FmodRuntime.banks.unload(path);
 		stub.testBankLoadingState = savedState;
 		stub.testSyntheticHandles = savedSynthetic;
 		stub.testInitialized = savedInit;

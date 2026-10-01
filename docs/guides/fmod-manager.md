@@ -16,7 +16,7 @@ Call `FmodManager.Update()` once per frame. It delivers callbacks, pushes positi
 
 `IsInitialized()` reports true once the engine and the default banks are usable. Native targets initialize synchronously, so it is true immediately. HTML5 initializes asynchronously. The [engine preloaders](components.md#setup) wait for it before the first scene, so a game that uses them never sees it false. `InitializeFailed()` reports that a default bank failed to load or was never provided, or that FMOD refused to initialize. A missing bank leaves the system running without it, so check this first. `FmodFlxPreloader` shows a message and starts the game without that bank. The Heaps and Kha preloads call their `onFailed` instead, or `onReady` when there is none. `InitializeSettled()` turns true once every default bank is loaded or has failed, or FMOD refused. A loading scene of your own starts the game on that.
 
-`EnableDebugMessages()` turns on FMOD's own logging at its most verbose level and traces every `FmodManager` operation. Debug builds enable it automatically.
+`EnableDebugMessages()` traces every `FmodManager` operation. It also sets FMOD's log level to the most verbose value. See [Limitations](../limitations.md#fixed-behaviors-and-caps) for when FMOD writes that log. Debug builds enable it automatically.
 
 ### Banks
 

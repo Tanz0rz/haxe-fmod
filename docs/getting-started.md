@@ -318,13 +318,11 @@ HTML5 initializes asynchronously. The preloaders above cover that, so the first 
 
 === "Kha"
 
-    Build through khamake, then stage the FMOD runtime files next to the executable. On Linux and macOS, export the SDK's library directories before khamake runs. The binding links `-lfmod -lfmodstudio`, so the linker needs them.
+    Build through khamake, then stage the FMOD runtime files next to the executable. On Linux, export the SDK's library directories before khamake runs. The binding links `-lfmod -lfmodstudio`. The linker needs the directories to find them.
 
     ```bash
     # Linux
     export LIBRARY_PATH="$FMOD_SDK/api/core/lib/x86_64:$FMOD_SDK/api/studio/lib/x86_64${LIBRARY_PATH:+:$LIBRARY_PATH}"
-    # macOS
-    export LIBRARY_PATH="$FMOD_SDK/api/core/lib:$FMOD_SDK/api/studio/lib${LIBRARY_PATH:+:$LIBRARY_PATH}"
     ```
 
     ```bash

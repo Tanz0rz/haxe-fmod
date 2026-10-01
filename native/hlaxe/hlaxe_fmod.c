@@ -550,7 +550,9 @@ HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode, int initialSubsoun
 DEFINE_PRIM(_I32, core_create_sound, _BYTES _I32 _I32);
 
 // An encoded file image (wav, ogg, mp3, fsb) already in memory. FMOD
-// copies the bytes, so the buffer is free once this returns.
+// copies the bytes, so the buffer is free once this returns. A
+// NONBLOCKING open would read the image from FMOD's loader thread after
+// the return, so the flag is dropped and the copy happens in the call.
 HL_PRIM int HL_NAME(core_create_sound_memory)(vbyte* data, int len, int mode) {
     FMOD_CREATESOUNDEXINFO exinfo;
     FMOD_SOUND* sound = NULL;
@@ -561,7 +563,7 @@ HL_PRIM int HL_NAME(core_create_sound_memory)(vbyte* data, int len, int mode) {
     exinfo.cbsize = sizeof(exinfo);
     exinfo.length = (unsigned int)len;
     gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)data,
-        ((FMOD_MODE)mode & ~(FMOD_MODE)FMOD_OPENMEMORY_POINT) | FMOD_OPENMEMORY, &exinfo, &sound);
+        ((FMOD_MODE)mode & ~(FMOD_MODE)(FMOD_OPENMEMORY_POINT | FMOD_NONBLOCKING)) | FMOD_OPENMEMORY, &exinfo, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
     handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {
@@ -622,6 +624,7 @@ HL_PRIM int HL_NAME(core_create_sound_ex)(vbyte* path, int mode, vbyte* ints, vb
     FMOD_SOUND* sound = NULL;
     FMOD_CREATESOUNDEXINFO exinfo;
     FMOD_GUID guid;
+    FMOD_MODE openMode = (FMOD_MODE)mode;
     int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     if (!path || !ints) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
@@ -629,7 +632,11 @@ HL_PRIM int HL_NAME(core_create_sound_ex)(vbyte* path, int mode, vbyte* ints, vb
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return 0;
     }
-    gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)path, (FMOD_MODE)mode, &exinfo, &sound);
+    /* FMOD writes the FSB's GUID back through fsbguid. A NONBLOCKING open
+     * does that from its loader thread, after this frame is gone, so a
+     * create with a GUID loads in the call. */
+    if (exinfo.fsbguid) openMode &= ~(FMOD_MODE)FMOD_NONBLOCKING;
+    gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)path, openMode, &exinfo, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
     handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {
@@ -656,7 +663,7 @@ HL_PRIM int HL_NAME(core_create_sound_memory_ex)(vbyte* data, int len, int mode,
     }
     exinfo.length = (unsigned int)len;
     gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)data,
-        ((FMOD_MODE)mode & ~(FMOD_MODE)FMOD_OPENMEMORY_POINT) | FMOD_OPENMEMORY, &exinfo, &sound);
+        ((FMOD_MODE)mode & ~(FMOD_MODE)(FMOD_OPENMEMORY_POINT | FMOD_NONBLOCKING)) | FMOD_OPENMEMORY, &exinfo, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
     handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {

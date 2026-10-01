@@ -92,7 +92,9 @@ abstract Sound(Int) from Int to Int {
      * FSB stream starts on, -1 keeps FMOD's default. exinfo passes the
      * rest of FMOD_CREATESOUNDEXINFO (raw PCM format, file offset and
      * length, stream buffer sizes, encryption key, and the others). Its
-     * initialSubsound wins over the argument when both are given.
+     * initialSubsound wins over the argument when both are given. A
+     * create with exinfo.fsbGuid ignores NONBLOCKING and loads inside
+     * the call.
      */
     public static function create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1, ?exinfo:FmodCreateSoundExInfo):Sound {
         // A null path is an empty one, which FMOD refuses. The HashLink
@@ -109,7 +111,8 @@ abstract Sound(Int) from Int to Int {
      * A sound from an encoded file image in memory (wav, ogg, mp3, fsb,
      * anything Sound.create would load from disk). FMOD copies the bytes,
      * so the buffer is free after this returns. mode takes the same
-     * ChannelMode flags as create. Returns Sound.NULL on failure. The
+     * ChannelMode flags as create. NONBLOCKING is ignored and the load
+     * finishes inside the call. Returns Sound.NULL on failure. The
      * web build decodes FSB only, so a wav or ogg image reports
      * FMOD_ERR_FORMAT there. Use fromPcm for raw sample data, or pass an
      * exinfo with numChannels, defaultFrequency, and format together

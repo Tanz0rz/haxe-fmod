@@ -133,11 +133,11 @@ class StudioSystem {
     /**
      * Unloads all banks. Every handle that came from a bank dies with it.
      * Once FMOD accepted the call, the userdata of every bank, event
-     * description, instance, bus, and VCA, the system value, every
-     * description-level callback, and every instance callback are
-     * dropped here too. The handler and userdata of every channel group
-     * that died with a bank go as well. A sound, DSP, or group the game
-     * created keeps its userdata. A refused call keeps all of that
+     * description, instance, bus, and VCA, every description-level
+     * callback, and every instance callback are dropped here too. The
+     * handler and userdata of every channel group that died with a bank
+     * go as well. A sound, DSP, or group the game created keeps its
+     * userdata. The system value stays. A refused call keeps all of that
      * state, and can have unloaded some banks anyway.
      */
     public static function unloadAll():FmodResult {
@@ -150,7 +150,6 @@ class StudioSystem {
             for (kind in [UserDataKind.EventDescription, UserDataKind.EventInstance, UserDataKind.Bank, UserDataKind.Bus, UserDataKind.Vca]) UserData.clearKind(kind);
             UserData.clearDead(UserDataKind.ChannelGroup);
             UserData.clearDead(UserDataKind.Channel);
-            UserData.systemValue = null;
             EventDescription.clearAllCallbacks();
             CallbackDispatcher.clearAll();
             haxefmod.core.ChannelCallbacks.forgetDeadGroups();
@@ -161,7 +160,7 @@ class StudioSystem {
 
     /**
      * Attaches a Haxe value to the studio system. The value lives on the
-     * Haxe side and is dropped by unloadAll.
+     * Haxe side and stays until it is replaced.
      */
     public static function setUserData(value:Dynamic):Void {
         UserData.systemValue = value;

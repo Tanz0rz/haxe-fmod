@@ -21,6 +21,7 @@ abstract EventInstance(Int) from Int to Int {
     static var walkedGroups:Map<Int, Int> = new Map();
 
     /** Forgets every handed-out group. StudioSystem.unloadAll calls this, since every instance died. */
+    @:dox(hide)
     public static function clearWalkedGroups():Void {
         walkedGroups = new Map();
     }
@@ -30,8 +31,10 @@ abstract EventInstance(Int) from Int to Int {
      * whose handle does not resolve. A bank unload, a release of every
      * instance, and a bus unlock call this once FMOD accepted them. The
      * native side sweeps the dead groups first, so a destroyed group has
-     * lost its slot by then. StudioSystem.unloadAll drops every entry.
+     * lost its slot by then. StudioSystem.unloadAll drops the entries of
+     * every dead group and clears the walked-group map.
      */
+    @:dox(hide)
     public static function dropDeadGroups():Void {
         haxefmod.core.ChannelCallbacks.forgetDeadGroups();
         UserData.clearDead(UserDataKind.ChannelGroup);
@@ -43,6 +46,7 @@ abstract EventInstance(Int) from Int to Int {
      * Drops the handler and user data of the group one destroyed instance
      * handed out. The release path and the DESTROYED drain both call this.
      */
+    @:dox(hide)
     public static function forgetInstance(instance:Int):Void {
         var group = walkedGroups.get(instance);
         if (group == null) return;

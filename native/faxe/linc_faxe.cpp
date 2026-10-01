@@ -480,7 +480,9 @@ int fmod_core_create_sound(const ::String& path, int mode, int initialSubsound) 
 }
 
 // An encoded file image (wav, ogg, mp3, fsb) already in memory. FMOD
-// copies the bytes, so the buffer is free once this returns.
+// copies the bytes, so the buffer is free once this returns. A
+// NONBLOCKING open would read the image from FMOD's loader thread after
+// the return, so the flag is dropped and the copy happens in the call.
 int fmod_core_create_sound_memory(::Array<unsigned char> data, int len, int mode) {
     FMOD::Sound* sound = NULL;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
@@ -493,7 +495,7 @@ int fmod_core_create_sound_memory(::Array<unsigned char> data, int len, int mode
     exinfo.cbsize = sizeof(exinfo);
     exinfo.length = (unsigned int)len;
     gLastResult = gCoreSystem->createSound((const char*)&data[0],
-        ((FMOD_MODE)mode & ~(FMOD_MODE)FMOD_OPENMEMORY_POINT) | FMOD_OPENMEMORY, &exinfo, &sound);
+        ((FMOD_MODE)mode & ~(FMOD_MODE)(FMOD_OPENMEMORY_POINT | FMOD_NONBLOCKING)) | FMOD_OPENMEMORY, &exinfo, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
     int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {
@@ -557,7 +559,12 @@ int fmod_core_create_sound_ex(const ::String& path, int mode, ::Array<int> ibuf,
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return 0;
     }
-    gLastResult = gCoreSystem->createSound(path.c_str(), (FMOD_MODE)mode, &exinfo, &sound);
+    // FMOD writes the FSB's GUID back through fsbguid. A NONBLOCKING open
+    // does that from its loader thread, after this frame is gone, so a
+    // create with a GUID loads in the call.
+    FMOD_MODE openMode = (FMOD_MODE)mode;
+    if (exinfo.fsbguid) openMode &= ~(FMOD_MODE)FMOD_NONBLOCKING;
+    gLastResult = gCoreSystem->createSound(path.c_str(), openMode, &exinfo, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
     int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {
@@ -585,7 +592,7 @@ int fmod_core_create_sound_memory_ex(::Array<unsigned char> data, int len, int m
     }
     exinfo.length = (unsigned int)len;
     gLastResult = gCoreSystem->createSound((const char*)&data[0],
-        ((FMOD_MODE)mode & ~(FMOD_MODE)FMOD_OPENMEMORY_POINT) | FMOD_OPENMEMORY, &exinfo, &sound);
+        ((FMOD_MODE)mode & ~(FMOD_MODE)(FMOD_OPENMEMORY_POINT | FMOD_NONBLOCKING)) | FMOD_OPENMEMORY, &exinfo, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
     int handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
     if (handle == 0) {

@@ -18,7 +18,9 @@
 # functions are added, removed, or change signature. PostBuild.hx scans pre-built hdlls for
 # the marker and refuses mismatches before they become loader fatals.
 #
-# Naming domains: sys_, bank_, evd_, evi_, bus_, vca_, cb_, ps_, core_.
+# Naming domains: sys_, core_, bank_, evd_, evi_, bus_, vca_, replay_, cb_,
+# ps_, chan_, cg_, sg_, sound_, dsp_, dspconn_, conn_, geo_, r3d_, debug_,
+# binding_.
 
 ## System
 sys_is_initialized -> bool

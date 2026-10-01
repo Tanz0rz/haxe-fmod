@@ -50,7 +50,8 @@ class UserDataKind {
  * generation. A reused slot produces a different handle int, so a stale
  * entry does not show up on the next handle in that slot. Entries for
  * handles that die without passing through one of those paths (a
- * channel with no handler that ends by itself) linger until clearAll.
+ * channel with no handler that ends by itself) linger until
+ * StudioSystem.unloadAll.
  */
 @:dox(hide)
 class UserData {

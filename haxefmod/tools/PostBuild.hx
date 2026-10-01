@@ -523,7 +523,7 @@ class PostBuild {
 						if (StringTools.trim(err + out) != "") log("  " + StringTools.trim(err + out));
 						log("  The game then fails at startup with: Library not loaded: @rpath/libfmod.dylib");
 						log("  Link the executable with -Wl,-rpath,@executable_path or with -Wl,-headerpad_max_install_names.");
-						log("  A Kha build has neither hook, so the stage command rewrites a search path into the FMOD SDK, and found none.");
+						log("  A Kha build has neither hook. The stage command found no search path into the FMOD SDK to rewrite.");
 						// The architectures and load commands say which slice lacks the room
 						for (probe in [["lipo", "-info", exe], ["otool", "-l", exe]]) {
 							try {

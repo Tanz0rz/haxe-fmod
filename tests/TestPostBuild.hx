@@ -232,6 +232,9 @@ class TestPostBuild {
 		check("a search path the game needs is never rewritten", PostBuild.rpathToRewrite(foreign, "/opt/other-sdk") == null);
 		var short = "          cmd LC_RPATH\n      cmdsize 24\n         path /usr/lib (offset 12)\n";
 		check("a path shorter than the new value is left alone", PostBuild.rpathToRewrite(short, "/opt/sdk") == null);
+		var shortSdk = "          cmd LC_RPATH\n      cmdsize 32\n         path /f/api/core/lib (offset 12)\n";
+		check("a short SDK search path is left alone", PostBuild.rpathToRewrite(shortSdk, "/f") == null);
+		check("a short SDK-shaped search path is left alone", PostBuild.rpathToRewrite(shortSdk, "/other") == null);
 		var relative = "          cmd LC_RPATH\n      cmdsize 40\n         path @loader_path/../Frameworks (offset 12)\n";
 		check("a relative search path is left alone", PostBuild.rpathToRewrite(relative, "/opt/sdk") == null);
 		var present = slice + "          cmd LC_RPATH\n      cmdsize 32\n         path @executable_path (offset 12)\n";
@@ -241,6 +244,9 @@ class TestPostBuild {
 		check("no load commands gives null", PostBuild.rpathToRewrite("", "/opt/sdk") == null);
 		var mixed = "          cmd LC_RPATH\n      cmdsize 40\n         path /usr/local/lib/elsewhere (offset 12)\n" + slice;
 		check("the SDK search path wins over an earlier absolute one", PostBuild.rpathToRewrite(mixed, "/Users/runner/work/fmod-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		var otherSdk = "          cmd LC_RPATH\n      cmdsize 40\n         path /opt/old-fmod/api/core/lib (offset 12)\n" + slice;
+		check("the SDK search path wins over another SDK-shaped one", PostBuild.rpathToRewrite(otherSdk, "/Users/runner/work/fmod-sdk") == "/Users/runner/work/fmod-sdk/api/core/lib");
+		check("a trailing slash still prefers the SDK over another SDK-shaped one", PostBuild.rpathToRewrite(otherSdk, "/Users/runner/work/fmod-sdk/") == "/Users/runner/work/fmod-sdk/api/core/lib");
 		check("a trailing slash on the SDK path still prefers the SDK", PostBuild.rpathToRewrite(mixed, "/Users/runner/work/fmod-sdk/") == "/Users/runner/work/fmod-sdk/api/core/lib");
 	}
 

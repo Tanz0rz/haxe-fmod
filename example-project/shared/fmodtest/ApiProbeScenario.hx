@@ -2424,6 +2424,12 @@ class ApiProbeScenario implements TestScenario {
         check("core_create_sound_memory_plays", !memoryChannel.isNull(), 'result=${StudioSystem.lastResult().toString()}');
         memoryChannel.stop();
         memory.release();
+        // A memory image never opens NONBLOCKING, FMOD would read the
+        // buffer after the call returned
+        var eager = Sound.fromMemory(image, ChannelMode.NONBLOCKING);
+        check("core_create_sound_memory_loads_in_call", !eager.isNull() && eager.getOpenState() == FmodOpenState.READY,
+            'handle=${(eager : Int)} state=${(eager.getOpenState() : Int)}');
+        eager.release();
         #else
         // The web build decodes FSB only
         check("core_create_sound_memory_format_limit", memory.isNull()
@@ -2444,6 +2450,12 @@ class ApiProbeScenario implements TestScenario {
             && (flaggedMode & ChannelMode.LOOP_NORMAL) != 0,
             'handle=${(flagged : Int)} mode=$flaggedMode result=${StudioSystem.lastResult().toString()}');
         flagged.release();
+        // FMOD writes the GUID back during the load, so a create that
+        // passes one finishes inside the call
+        var guided = Sound.create(wavPath, false, false, ChannelMode.NONBLOCKING, -1, {fsbGuid: "{00000000-0000-0000-0000-000000000001}"});
+        check("core_create_sound_guid_loads_in_call", !guided.isNull() && guided.getOpenState() == FmodOpenState.READY,
+            'handle=${(guided : Int)} state=${(guided.getOpenState() : Int)}');
+        guided.release();
         var async = Sound.create(wavPath, false, false, ChannelMode.NONBLOCKING);
         check("core_create_sound_nonblocking", !async.isNull(), 'result=${StudioSystem.lastResult().toString()}');
         var state = async.getOpenState();

@@ -1,6 +1,6 @@
 # Handles and results
 
-This guide covers the layers under [FmodManager](fmod-manager.md), where a game works with FMOD objects directly. Every FMOD object in `haxefmod.studio` and `haxefmod.core` is a typed handle. Examples are `EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`, `Sound`, `Channel`, `ChannelGroup`, `Dsp`, and `SoundGroup`. All of them share these conventions.
+Every FMOD object in `haxefmod.studio` and `haxefmod.core` is a typed handle. Examples are `EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`, `Sound`, `Channel`, `ChannelGroup`, `Dsp`, and `SoundGroup`. All of them share these conventions.
 
 ## Handles are integers
 
@@ -53,8 +53,8 @@ Every handle has `setUserData(value)` and `getUserData()`, and so does `StudioSy
 - when the handle is released through the abstract (`release`, `stop`, `unload`) and FMOD accepted it or reported the handle dead. A channel drops it before the call. An event instance also drops the value of the group it handed out.
 - when FMOD destroys an event instance on its own and delivers `Destroyed`
 - when a channel with a handler ends and delivers `End`
-- when a call that destroys many objects at once succeeds. A bank unload drops the values of its event descriptions. A bank unload, `EventDescription.releaseAllInstances`, and `Bus.unlockChannelGroup` drop the value of every channel group that died.
-- for every handle that came from a bank on `unloadAll`, once FMOD accepted the call. The system value goes too. A sound, DSP, or group the game created keeps its value.
+- when a call that destroys many objects at once succeeds. A bank unload drops the values of the event descriptions that died with it. A bank unload, `EventDescription.releaseAllInstances`, and `Bus.unlockChannelGroup` drop the value of every channel group that died.
+- for every handle that came from a bank on `unloadAll`, once FMOD accepted the call. A sound, DSP, or group the game created keeps its value. The system value stays.
 
 A recycled native slot gets a new generation and therefore a new handle int. A value left on a dead handle can never be read through the handle that later reuses its slot.
 

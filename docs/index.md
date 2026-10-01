@@ -15,7 +15,7 @@ haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS. 
 
 ## Two sets of docs
 
-FMOD's own documentation at [fmod.com/docs](https://www.fmod.com/docs/2.03/api/welcome.html) describes every FMOD function, type, and guide. The [fmod.com extension](guides/extension.md) adds a Haxe tab to each of them with the haxefmod signature. Every haxefmod method that wraps an FMOD function keeps the FMOD name. A page there maps directly onto a class here.
+FMOD's own documentation at [fmod.com/docs](https://www.fmod.com/docs/2.03/api/welcome.html) describes every FMOD function, type, and guide. The [fmod.com extension](guides/extension.md) adds a Haxe tab to each of them with the haxefmod signature. Most haxefmod methods keep the FMOD name. The `System` factories sit on the class they create, for example `Sound.create` for `System::createSound`.
 
 These pages cover only what the library adds. That is setup, the helper class, the runtime layer, handle conventions, engine components, and the command line.
 

@@ -4,6 +4,7 @@
 // isInitialized() gates on the default banks being settled.
 // A failed autoLoadBanks fetch is reported once, initFailed() turns true,
 // and initialization completes without that bank.
+// A provided bank that fails to load settles the same way.
 // The other harnesses talk to jaxe.js directly and cannot see this layer.
 //
 // Usage: FMOD_SDK_WEB=<sdk root> node runtime-init-test.js
@@ -37,6 +38,9 @@ function runMode(mode) {
         global.RUNTIME_TEST_MODE = ${JSON.stringify(mode)};
         const fs = require('fs');
         const path = require('path');
+        // The bank a provided-mode run hands over as real bytes
+        const strings = fs.readFileSync(path.join(${JSON.stringify(BANKS)}, 'Master.strings.bank'));
+        global.RUNTIME_TEST_STRINGS_BANK = strings.buffer.slice(strings.byteOffset, strings.byteOffset + strings.byteLength);
         global.FMODModule = require(${JSON.stringify(path.join(SDK, 'fmodstudio.js'))});
         // Serve bank fetches from the local example project. Requests for
         // the 'missing/banks' folder 404 like a bad deploy would.
@@ -82,5 +86,6 @@ function runMode(mode) {
 
 runMode('ok');
 runMode('missing');
+runMode('provided');
 console.log(fails === 0 ? 'RUNTIME_INIT_TEST: ALL MODES COMPLETE' : 'RUNTIME_INIT_TEST: FAILED');
 process.exit(fails === 0 ? 0 : 1);
