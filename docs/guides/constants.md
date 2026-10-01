@@ -50,8 +50,3 @@ The generator derives an identifier from a path in four steps:
 4. Concatenate the pieces.
 
 `Vehicles/Ride-on Mower` becomes `VehiclesRideOnMower`. The bus root becomes `Root`. A leading digit gets an underscore prefix. Duplicates get numeric suffixes. The generator drops non-ASCII characters.
-
-## Auto-imports
-
-An `import.hx` at the root of your source path imports the generated classes once for every file. [Getting started](../getting-started.md#one-import-for-every-file) shows the file and the `#if !macro` guard it needs.
-

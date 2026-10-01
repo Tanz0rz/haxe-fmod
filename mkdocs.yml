@@ -57,6 +57,7 @@ nav:
   - Getting started: getting-started.md
   - FmodManager: guides/fmod-manager.md
   - Generated constants: guides/constants.md
+  - Auto-imports: guides/auto-imports.md
   - Live Update: live-update.md
   - fmod.com extension: guides/extension.md
   - More guides:
