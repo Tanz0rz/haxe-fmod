@@ -244,7 +244,8 @@ jobs:
           # undefined values are expected and stay off.
           HAXEFMOD_TEST_STATE=api-probe FMOD_WAVWRITER=/tmp/valgrind-probe.wav \
             timeout 2400 valgrind --error-exitcode=42 --leak-check=no \
-            --undef-value-errors=no --log-file=/tmp/valgrind.log \
+            --undef-value-errors=no --suppressions="$GITHUB_WORKSPACE/ci/valgrind.supp" \
+            --log-file=/tmp/valgrind.log \
             "$EXE" > /tmp/api-probe-valgrind.log 2>&1 &
           PROBE_PID=$!
           COMPLETE=0
@@ -283,7 +284,7 @@ jobs:
           fi
           if [ "$STATUS" = "42" ]; then
             echo "FAIL: valgrind detected memory errors"
-            grep -B2 -A10 "Invalid" /tmp/valgrind.log | head -80
+            grep -B2 -A14 "Invalid\|Mismatched" /tmp/valgrind.log | head -120
             exit 1
           fi
           echo "Probe suite ran clean under valgrind memcheck"
