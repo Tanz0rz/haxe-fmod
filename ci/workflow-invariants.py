@@ -56,6 +56,8 @@ leans on:
   17. A job that calls a ci/ wrapper checks the repo out first.
   18. Every tests/build*.hxml suite runs in the workflow and in
      ci/local-ci.sh.
+  19. The Linux hdll build fails when the hdll requires a glibc version
+     newer than 2.34 or a named glibc requirement.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -370,7 +372,7 @@ CHROMIUM_GATE = [
     ("the slot wait loop", r"^{B}for i in \$\(seq 90\); do\n{B}  gpu_slot_connected && break$"),
     ("a fatal slot wait", r'^{B}  \[ "\$i" = 90 \] && \{ echo "::error ::the chromium GPU content slot never connected after the install"[^\n]*exit 1; \}$'),
     ("the namespace discard", r"^{B}sudo /usr/lib/snapd/snap-discard-ns chromium"),
-    ("the probe loop", r"^{B}for i in \$\(seq 45\); do\n{B}  chromium-browser --headless=new[^\n]*--dump-dom about:blank[^\n]*&& break$"),
+    ("the probe loop", r"^{B}for i in \$\(seq 45\); do\n{B}  chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe\.log 2>&1 && break$"),
     ("a fatal probe", r'^{B}  \[ "\$i" = 45 \] && \{ echo "::error ::chromium never rendered a headless page after the install"[^\n]*exit 1; \}$'),
 ]
 chromium_installs = 0
@@ -745,6 +747,41 @@ if not_run or len(suites) < 7:
     fail(f"test suites not run: {not_run} ({len(suites)} suites)")
 else:
     ok(f"{len(suites)} hxml suites run in the workflow and ci/local-ci.sh")
+
+# 19. The shipped Linux hdll comes from the linux-hl-build job, and its
+# glibc floor is checked in the step that builds it. Each gate line sits
+# at the run block's indentation, after the build.
+GLIBC_GATE = [
+    ("the build", r"^{B}haxelib run haxefmod build-hdll$"),
+    ("the version requirement read", r"^{B}NEEDS=\$\(objdump -p \.haxefmod/hlaxe_fmod\.hdll \| grep -o 'GLIBC_\[A-Za-z0-9_\.\]\*' \| sort -uV\)$"),
+    ("the newest numbered version", r"""^{B}NEWEST=\$\(printf '%s\\n' \$NEEDS \| grep -E '\^GLIBC_\[0-9\.\]\+\$' \| tail -n 1\)$"""),
+    ("a fatal empty read", r"""^{B}\[ -n "\$NEWEST" \] \|\| \{ echo "FAIL:[^\n]*; exit 1; \}$"""),
+    ("the named requirement read", r"""^{B}NAMED=\$\(printf '%s\\n' \$NEEDS \| grep -vE '\^GLIBC_\[0-9\.\]\+\$' \|\| true\)$"""),
+    ("a fatal named requirement", r"""^{B}\[ -z "\$NAMED" \] \|\| \{ echo "FAIL:[^\n]*; exit 1; \}$"""),
+    ("a fatal newer version", r"""^{B}\[ "\$\(printf '%s\\n' "\$NEWEST" GLIBC_2\.34 \| sort -V \| tail -n 1\)" = "GLIBC_2\.34" \] \|\| \{ echo "FAIL:[^\n]*; exit 1; \}$"""),
+]
+found = re.search(r"^  linux-hl-build:\n(?:(?!^  [\w-]+:\n).*\n?)*", text, re.M)
+hl_build = found.group(0) if found else ""
+glibc_steps = [step for step in re.split(r"\n(?= {6}- )", hl_build) if "build-hdll" in step and "objdump" in step]
+glibc_problems = []
+if len(glibc_steps) != 1:
+    glibc_problems.append(f"{len(glibc_steps)} steps in linux-hl-build build the hdll and read it with objdump")
+else:
+    body = "\n".join(line for line in glibc_steps[0].split("\n") if not line.lstrip().startswith("#"))
+    block = re.search(r"run: \|\n( +)", body)
+    base = block.group(1) if block else "          "
+    at = [re.search(pattern.replace("{B}", base), body, re.M) for label, pattern in GLIBC_GATE]
+    glibc_problems += ["lacks " + label for (label, pattern), hit in zip(GLIBC_GATE, at) if not hit]
+    if all(at) and [hit.start() for hit in at] != sorted(hit.start() for hit in at):
+        glibc_problems.append("has the gate lines out of order")
+    if re.search(r"^ *continue-on-error:", body, re.M):
+        glibc_problems.append("has continue-on-error")
+    if re.search(r"^ *exit 0\b|\bset \+e\b", body, re.M):
+        glibc_problems.append("can leave before the gate or ignore its failure")
+if glibc_problems:
+    fail(f"the glibc floor gate in linux-hl-build: {glibc_problems}")
+else:
+    ok("the Linux hdll build fails on a glibc requirement newer than 2.34 or a named one")
 
 print()
 if failures:

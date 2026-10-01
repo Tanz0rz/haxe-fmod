@@ -1269,17 +1269,17 @@ jobs:
           echo "=== .haxefmod/ contents ==="
           ls -la .haxefmod/
           cat .haxefmod/hlaxe_fmod.version
-          # The shipped Linux hdll comes from this build. Its newest glibc
-          # symbol decides which systems can load it. A libc call that
-          # the runner's headers bind to a newer symbol raises the floor.
-          NEWEST=$(objdump -T .haxefmod/hlaxe_fmod.hdll | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -n 1)
-          echo "newest glibc symbol in the hdll: ${NEWEST:-none}"
-          [ -n "$NEWEST" ] || { echo "FAIL: no glibc symbol version found in the hdll"; exit 1; }
-          if [ "$(printf '%s\n' "$NEWEST" GLIBC_2.34 | sort -V | tail -n 1)" != "GLIBC_2.34" ]; then
-            echo "FAIL: the hdll needs $NEWEST, and the shipped one must load on glibc 2.34"
-            objdump -T .haxefmod/hlaxe_fmod.hdll | grep "$NEWEST"
-            exit 1
-          fi
+          # The shipped Linux hdll comes from this build. The glibc versions
+          # it requires decide which systems can load it. A libc call that
+          # the runner's headers bind to a newer symbol raises the floor,
+          # and so does a linker feature that adds a named requirement.
+          NEEDS=$(objdump -p .haxefmod/hlaxe_fmod.hdll | grep -o 'GLIBC_[A-Za-z0-9_.]*' | sort -uV)
+          echo "glibc versions the hdll requires:" $NEEDS
+          NEWEST=$(printf '%s\n' $NEEDS | grep -E '^GLIBC_[0-9.]+$' | tail -n 1)
+          [ -n "$NEWEST" ] || { echo "FAIL: no glibc version requirement found in the hdll"; exit 1; }
+          NAMED=$(printf '%s\n' $NEEDS | grep -vE '^GLIBC_[0-9.]+$' || true)
+          [ -z "$NAMED" ] || { echo "FAIL: the hdll requires $NAMED, which glibc 2.34 does not provide"; exit 1; }
+          [ "$(printf '%s\n' "$NEWEST" GLIBC_2.34 | sort -V | tail -n 1)" = "GLIBC_2.34" ] || { echo "FAIL: the hdll needs $NEWEST, and the shipped one must load on glibc 2.34"; objdump -T .haxefmod/hlaxe_fmod.hdll | grep "$NEWEST"; exit 1; }
 
       - name: Rebuild HashLink target (custom hdll)
         run: |
