@@ -573,20 +573,39 @@ class ApiProbeScenario implements TestScenario {
             var replay = StudioSystem.loadCommandReplay(capturePath);
             check("replay_bank_load" + suffix, !replay.isNull() && replay.start().isOk(), 'result=${StudioSystem.lastResult().toString()}');
             var replayBank = haxefmod.studio.Bank.NULL;
-            for (i in 0...50) {
+            // The replay runs its commands on FMOD's clock. A fast flush
+            // on a real output device leaves that clock where it was, so
+            // the wait is bounded in time on the targets that can sleep.
+            var deadline = haxe.Timer.stamp() + 5.0;
+            var rounds = 0;
+            while (true) {
                 pump();
                 replayBank = StudioSystem.getBank(bankPath);
+                rounds++;
                 if (!replayBank.isNull()) break;
+                #if sys
+                if (haxe.Timer.stamp() > deadline) break;
+                Sys.sleep(0.01);
+                #else
+                if (rounds >= 50) break;
+                #end
             }
             var descriptions = replayBank.isNull() ? [] : replayBank.getEventList();
             check("replay_bank_loaded_by_replay" + suffix, !replayBank.isNull() && descriptions.length > 0,
-                'bank=${(replayBank : Int)} events=${descriptions.length} result=${StudioSystem.lastResult().toString()}');
+                'bank=${(replayBank : Int)} events=${descriptions.length} rounds=$rounds result=${StudioSystem.lastResult().toString()}');
             replayBank.setUserData("replay bank");
             for (d in descriptions) d.setUserData("replay event");
             replay.stop();
-            for (i in 0...10) pump();
-            // An event another loaded bank also holds survives the unload
             var live = function(h:Int) return haxefmod.studio.native.NativeStudio.debug_handle_is_live(h);
+            deadline = haxe.Timer.stamp() + 2.0;
+            for (i in 0...10) pump();
+            #if sys
+            while (live(replayBank) && haxe.Timer.stamp() < deadline) {
+                Sys.sleep(0.01);
+                pump();
+            }
+            #end
+            // An event another loaded bank also holds survives the unload
             var bankLive = live(replayBank);
             var staleEvents = descriptions.filter(d -> live(d) && !d.isValid()).length;
             var deadEvents = descriptions.filter(d -> !live(d));
