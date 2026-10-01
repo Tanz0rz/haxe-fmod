@@ -131,13 +131,23 @@ class ProbePlugins {
             // torn the released unit down, which takes a few update ticks
             var unload:FmodResult = FmodResult.FMOD_ERR_DSP_INUSE;
             var tries = 0;
+            // The accepted unload ends every short-lived handle, here a
+            // paused stream's sound reached through its channel
+            var stream = haxefmod.core.PcmStream.create(48000, 1);
+            var streamChannel = stream.play(true);
+            var shortLived = haxefmod.core.Sound.NULL;
             while (unload == FmodResult.FMOD_ERR_DSP_INUSE && tries < 50) {
                 haxefmod.studio.native.NativeStudio.sys_update();
                 Sys.sleep(0.02);
+                shortLived = streamChannel.getCurrentSound();
                 unload = StudioSystem.unloadPlugin(handle);
                 tries++;
             }
             @:privateAccess state.check("sys_unload_plugin", unload.isOk(), 'result=${unload.toString()} tries=$tries');
+            @:privateAccess state.check("short_lived_dies_at_plugin_unload", !shortLived.isNull()
+                && !haxefmod.studio.native.NativeStudio.debug_handle_is_live(shortLived), 'sound=${(shortLived : Int)}');
+            streamChannel.stop();
+            stream.release();
         } else {
             @:privateAccess state.info("plugins", "skipped: no test plugin next to the binary");
         }

@@ -65,7 +65,19 @@ These FMOD features cannot be bound from Haxe. Each one hands FMOD a function po
 - **On C++ and HashLink an instance records at most 64 live plugin instruments.** A further one arrives in `PluginCreated` with `Dsp.NULL` as its effect. HTML5 has no plugin host.
 - **The handle table holds at most 65536 slots on every target.** Each slot serves 32767 handles and then retires. A call that finds no free slot returns the null handle, with `FMOD_ERR_MEMORY` in `lastResult()`.
 - **Only a group the game created can be released.** `ChannelGroup.release` and `SoundGroup.release` refuse every other group with `FMOD_ERR_INVALID_PARAM`. That covers the master group, a bus's group, an instance's group, and a group first reached through a walk. The handle stays usable.
-- **A borrowed handle dies with the handle it was reached from.** An instance's own group and a bus's own group live as long as the instance or bus handle. A group's or channel's DSP lives as long as that group or channel. A parent group walked up from an instance's group lives as long as the instance. Other borrowed handles also die at the next call that destroys objects. Those are a child group from `getGroup`, a parent group walked from a bus, the master, or a group the game made, a channel's group and current sound, a sound from `SoundGroup.getSound`, the parent of a borrowed sound, a DSP graph walk, and a DSP of such a group. FMOD destroys objects at a release, at a bank unload, and when an instance ends during `FmodManager.Update()`. A walked handle also dies when a walk from another instance or bus reaches the same group. A child group can die inside a live instance, for example a nested event's group. Its handle then names a freed group until the next call that destroys objects. Do not use a child group handle after its instance stops. The group of an unlocked bus that Studio frees while idle keeps its handle until the bus dies.
+- **A borrowed handle dies with the handle it was reached from.** These borrowed handles live exactly as long as that handle:
+  - an instance's own group, whose handle dies at the instance's `release()` while the event plays on
+  - a bus's own group
+  - a group's or a channel's DSP
+  - a parent group walked up from an instance's group
+- **Other borrowed handles are short-lived.** They die at the next `FmodManager.Update()` or at the next call that stops, releases, or unloads anything. Fetch them again each frame. A handler or user data set through one stops with it. The short-lived handles are:
+  - a child group from `getGroup`
+  - a parent group walked from a bus, the master, a group the game made, or a short-lived group
+  - a channel's group and current sound
+  - a sound from `SoundGroup.getSound` and the parent of a borrowed sound
+  - a DSP graph walk and a DSP of a short-lived group
+- **A walked group handle dies when another instance or bus reaches its group.** A walk from that instance or bus does it. So does its `getChannelGroup()`. That call gets a fresh handle with no user data. The handles reached from the old one die with it.
+- **FMOD can free an object before its short-lived handle dies.** With automatic updates FMOD frees a stopped stream or a finished nested event on its own thread. A short-lived handle fetched after that stop in the same frame can name freed memory until the next update. Fetch such a handle before the stop. The group of an unlocked bus that Studio frees while idle keeps its handle until the bus dies.
 - **Live Update uses TCP port 9264 by default.** The `profilePort` setting picks another port. When it is enabled, macOS and Windows show a firewall dialog. It defaults to on in debug builds only.
 - **Numeric arguments pass through to FMOD for validation.** An out-of-range index or count comes back as an FMOD error code from the engine. It is the same code native FMOD reports.
 - **The library owns the system lifecycle.** It initializes FMOD once per process and runs the per-frame update. There is no shutdown or re-init. Init-time engine settings are exposed through `FmodSettings` and compile-time defines.

@@ -111,6 +111,20 @@ class HeapsTestHost implements TestHost {
             after != null && after != before && FmodHeapsUpdater.isInstalled(),
             'replaced=${after != before} installed=${FmodHeapsUpdater.isInstalled()}');
         #end
+        // After removeHook a new component leaves the hook out, and the
+        // game's own update() call runs FmodManager.Update once. init puts
+        // the hook back.
+        FmodHeapsUpdater.removeHook();
+        var listener = new haxefmod.heaps.FmodHeapsListener();
+        var leftOut = !FmodHeapsUpdater.isInstalled();
+        var manualRuns = 0;
+        haxefmod.studio.CallbackDispatcher.frameHook = function() manualRuns++;
+        FmodHeapsUpdater.update();
+        haxefmod.studio.CallbackDispatcher.frameHook = previousHook;
+        listener.dispose();
+        FmodHeapsUpdater.init();
+        check("hardening_setup_removed_hook_stays_out", leftOut && manualRuns == 1 && FmodHeapsUpdater.isInstalled(),
+            'left_out=$leftOut runs=$manualRuns installed=${FmodHeapsUpdater.isInstalled()}');
     }
 
     public function setUpdaterInstalled(installed:Bool):Void {

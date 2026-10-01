@@ -31,7 +31,7 @@ abstract CommandReplay(Int) from Int to Int {
 
     /** Stops the replay. */
     public inline function stop():FmodResult {
-        return NativeStudio.replay_stop(this);
+        return EventInstance.afterStop(NativeStudio.replay_stop(this));
     }
 
     /** Pauses or resumes the replay. */
@@ -68,7 +68,10 @@ abstract CommandReplay(Int) from Int to Int {
     /** Frees the replay and invalidates this handle. */
     public inline function release():FmodResult {
         var result:FmodResult = NativeStudio.replay_release(this);
-        if (UserData.releaseTookEffect(result)) UserData.clear(UserDataKind.CommandReplay, this);
+        if (UserData.releaseTookEffect(result)) {
+            UserData.clear(UserDataKind.CommandReplay, this);
+            EventInstance.dropDeadGroups();
+        }
         return result;
     }
 

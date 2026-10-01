@@ -70,10 +70,12 @@ class NativeStudioStub {
     public static function sys_get_parameter_label(parameterName:String, labelIndex:Int):String return "";
     public static function sys_get_num_listeners():Int return 0;
     public static function sys_set_num_listeners(count:Int):Int return ERR_UNSUPPORTED;
-    // A test sets the listener position the cull check reads back
+    // A test sets the listener position the cull check reads back. Only
+    // the listener at testListenerIndex reports it.
     public static var testListenerPosition:Array<Float> = null;
+    public static var testListenerIndex:Int = 0;
     public static function sys_get_listener_attributes(index:Int):Int {
-        if (testListenerPosition == null) return ERR_UNSUPPORTED;
+        if (testListenerPosition == null || index != testListenerIndex) return ERR_UNSUPPORTED;
         for (i in 0...15) haxefmod.studio.native.Scratch.writeF(i, i < testListenerPosition.length ? testListenerPosition[i] : 0);
         return 0;
     }
@@ -188,7 +190,8 @@ class NativeStudioStub {
     public static function evd_get_min_max_distance(handle:Int):Int return ERR_UNSUPPORTED;
     public static function evd_get_sound_size(handle:Int):Float return 0.0;
     public static function evd_is_snapshot(handle:Int):Bool return false;
-    public static function evd_is_oneshot(handle:Int):Bool return false;
+    public static var testIsOneshot:Bool = false;
+    public static function evd_is_oneshot(handle:Int):Bool return testIsOneshot;
     public static function evd_is_stream(handle:Int):Bool return false;
     public static var testIs3D:Bool = false;
     public static function evd_is_3d(handle:Int):Bool return testIs3D;
@@ -233,9 +236,13 @@ class NativeStudioStub {
         return ERR_UNSUPPORTED;
     }
     public static var testStopCalls:Int = 0;
+    public static var testStopResult:Int = ERR_UNSUPPORTED;
+    /** The stop mode of the last evi_stop call. */
+    public static var testLastStopMode:Int = -1;
     public static function evi_stop(handle:Int, stopMode:Int):Int {
         testStopCalls++;
-        return ERR_UNSUPPORTED;
+        testLastStopMode = stopMode;
+        return testStopResult;
     }
     public static function evi_key_off(handle:Int):Int return ERR_UNSUPPORTED;
     public static var testReleasedHandles:Array<Int> = [];

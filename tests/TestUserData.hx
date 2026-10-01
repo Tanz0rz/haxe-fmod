@@ -446,6 +446,24 @@ class TestUserData {
 		stream.release();
 		NativeStudioStub.testPcmReleaseResult = 68;
 		assert("a stream release drops its sound's userdata", streamSound.getUserData() == null);
+		// Every update drops the entries of short-lived handles that died
+		// natively, with no instance destroyed in between
+		var shortLived:Sound = ++NativeStudioStub.testNextHandle;
+		shortLived.setUserData("short");
+		NativeStudioStub.testDeadHandles.push(shortLived);
+		CallbackDispatcher.update();
+		assert("an update drops a dead short-lived handle's userdata", shortLived.getUserData() == null);
+		// So does an accepted stop. A refused one keeps the entry.
+		var stopped:EventInstance = ++NativeStudioStub.testNextHandle;
+		var dropped:Dsp = ++NativeStudioStub.testNextHandle;
+		dropped.setUserData("dropped");
+		NativeStudioStub.testDeadHandles.push(dropped);
+		stopped.stop(IMMEDIATE);
+		assert("a refused stop keeps the entry", dropped.getUserData() == "dropped");
+		NativeStudioStub.testStopResult = 0;
+		stopped.stop(IMMEDIATE);
+		NativeStudioStub.testStopResult = 68;
+		assert("an accepted stop drops a dead short-lived handle's userdata", dropped.getUserData() == null);
 		// A refused release keeps every entry
 		var refused:ChannelGroup = ++NativeStudioStub.testNextHandle;
 		var refusedChild = refused.getGroup(0);

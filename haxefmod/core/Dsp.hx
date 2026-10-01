@@ -252,8 +252,9 @@ abstract Dsp(Int) from Int to Int {
 
     /**
      * The DSP feeding input slot `index`. A known DSP returns its existing handle. Any other one gets a
-     * short-lived borrowed handle. Release refuses it, and it dies with this handle or whenever FMOD can
-     * destroy objects. Returns Dsp.NULL on failure, with the reason in StudioSystem.lastResult().
+     * borrowed handle that release refuses. It is short-lived: it dies at the next update or at the next
+     * call that stops, releases, or unloads anything. Returns Dsp.NULL on failure, with the reason in
+     * StudioSystem.lastResult().
      */
     public inline function getInput(index:Int):Dsp {
         return NativeStudio.dsp_get_input_dsp(this, index);
@@ -314,7 +315,7 @@ abstract Dsp(Int) from Int to Int {
 
     /**
      * The DSP fed by output slot `index`. A known DSP returns its existing handle. Any other one gets a
-     * short-lived borrowed handle, the same as getInput. Returns Dsp.NULL on failure, with the reason in
+     * borrowed handle that lives the way getInput's does. Returns Dsp.NULL on failure, with the reason in
      * StudioSystem.lastResult().
      */
     public inline function getOutput(index:Int):Dsp {

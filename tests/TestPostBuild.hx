@@ -421,6 +421,16 @@ class TestPostBuild {
 		PostBuild.stage("linux", "cpp", libRoot, projectDir, cppOut);
 		check("stage cpp launches the executable", sys.FileSystem.exists('$cppOut/run.sh')
 			&& sys.io.File.getContent('$cppOut/run.sh').indexOf('"./game"') != -1);
+		// FMOD's libraries can carry the executable bit. A versioned one is
+		// never taken for a game whose file name has a dot in it.
+		var dotted = '$projectDir/build/dotted';
+		PostBuild.stage("linux", "cpp", libRoot, projectDir, dotted);
+		for (name in sys.FileSystem.readDirectory(dotted)) Sys.command("chmod", ["+x", '$dotted/$name']);
+		write('$dotted/tank.x86_64', "native build");
+		Sys.command("chmod", ["+x", '$dotted/tank.x86_64']);
+		PostBuild.stage("linux", "cpp", libRoot, projectDir, dotted);
+		check("stage skips the versioned libraries when it looks for the game", sys.FileSystem.exists('$dotted/run.sh')
+			&& sys.io.File.getContent('$dotted/run.sh').indexOf('"./tank.x86_64"') != -1);
 
 		// Web SDK: the engine pair plus jaxe.js land side by side
 		var web = '$base/web';

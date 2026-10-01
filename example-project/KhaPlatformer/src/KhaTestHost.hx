@@ -58,6 +58,20 @@ class KhaTestHost implements TestHost {
         haxefmod.studio.CallbackDispatcher.frameHook = previousHook;
         check("hardening_setup_remove_reinit_inside_tick", runs == 1 && FmodKhaUpdater.isInstalled(),
             'runs=$runs installed=${FmodKhaUpdater.isInstalled()}');
+        // After removeHook a new component leaves the task out, and the
+        // game's own update() call runs FmodManager.Update once. init puts
+        // the task back.
+        FmodKhaUpdater.removeHook();
+        var listener = new haxefmod.kha.FmodKhaListener();
+        var leftOut = !FmodKhaUpdater.isInstalled();
+        var manualRuns = 0;
+        haxefmod.studio.CallbackDispatcher.frameHook = function() manualRuns++;
+        FmodKhaUpdater.update();
+        haxefmod.studio.CallbackDispatcher.frameHook = previousHook;
+        listener.dispose();
+        FmodKhaUpdater.init();
+        check("hardening_setup_removed_hook_stays_out", leftOut && manualRuns == 1 && FmodKhaUpdater.isInstalled(),
+            'left_out=$leftOut runs=$manualRuns installed=${FmodKhaUpdater.isInstalled()}');
     }
 
     public function setUpdaterInstalled(installed:Bool):Void {

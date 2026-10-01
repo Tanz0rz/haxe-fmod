@@ -976,6 +976,7 @@ int fmod_chan_stop(int h) {
     // Stopping tears down the channel's DSP chain, which destroys its
     // connection objects
     faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 
@@ -994,8 +995,9 @@ static inline int lincHandleOrMemory(void* ptr, unsigned char type) {
 // The handle for an object the game reached through another handle. An
 // object the table knows keeps its handle, so a group, sound, or DSP the
 // game created stays releasable. A new one is owned, so its release is
-// refused, and dies with owner. A volatile one also dies wherever FMOD
-// can destroy objects (faxe_handles_free_volatile). Owner 0 makes a
+// refused, and dies with owner. With isVolatile set, faxe_handles_free_volatile
+// frees it too. It is short-lived: it dies at the next update or at the
+// next call that stops, releases, or unloads anything. Owner 0 makes a
 // volatile handle with nothing above it.
 static int lincMintBorrowed(void* ptr, unsigned char type, int owner, bool isVolatile) {
     int handle = faxe_handle_find(ptr, type);
@@ -1407,6 +1409,7 @@ int fmod_cg_stop(int h) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = group->stop();
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 
@@ -1981,7 +1984,10 @@ int fmod_r3d_release(int h) {
     if (!reverb) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = reverb->release();
     // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
-    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
+        faxe_handle_free(h);
+        faxe_handles_free_volatile();
+    }
     return (int)gLastResult;
 }
 
@@ -2514,7 +2520,10 @@ int fmod_sg_release(int h) {
     if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     gLastResult = group->release();
     // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
-    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
+        faxe_handle_free(h);
+        faxe_handles_free_volatile();
+    }
     return (int)gLastResult;
 }
 
@@ -2567,6 +2576,7 @@ int fmod_sg_stop(int h) {
     FMOD::SoundGroup* group = resolveSoundGroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = group->stop();
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 
@@ -2813,6 +2823,7 @@ int fmod_sys_start_command_capture(const ::String& path, int flags) {
 int fmod_sys_stop_command_capture() {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     gLastResult = gStudioSystem->stopCommandCapture();
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 
@@ -2835,7 +2846,10 @@ int fmod_replay_release(int h) {
     if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = replay->release();
     // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
-    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
+        faxe_handle_free(h);
+        faxe_handles_free_volatile();
+    }
     return (int)gLastResult;
 }
 
@@ -2855,6 +2869,7 @@ int fmod_replay_stop(int h) {
     FMOD::Studio::CommandReplay* replay = resolveReplay(h);
     if (!replay) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = replay->stop();
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 
@@ -2937,8 +2952,9 @@ bool fmod_chan_get_volume_ramp(int h) {
 }
 
 // A sound the table knows keeps its handle. Any other one (an event's
-// sound, a PcmStream's) gets a borrowed handle that refuses release and
-// dies with the channel or with the next call that can destroy sounds.
+// sound, a PcmStream's) gets a borrowed handle that refuses release. It
+// is short-lived: it dies at the next update or at the next call that
+// stops, releases, or unloads anything.
 int fmod_chan_get_current_sound(int h) {
     FMOD::Channel* ch = resolveChannel(h);
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
@@ -3561,10 +3577,22 @@ static void lincDrainDroppedSound(int handle, FMOD::Sound* sound) {
         if (sound) lincOwnedSoundTeardown(sound, handle);
         faxe_handle_free(handle);
     }
-    if (sound) sound->release();
+    if (sound) {
+        sound->release();
+        // A channel's current sound can be one of its subsounds
+        faxe_handles_free_volatile();
+    }
 }
 
+// True between the first fmod_cb_next of a drain and the call that ends it
+static bool gCbDrainOpen = false;
+
 bool fmod_cb_next() {
+    // Short-lived handles die at the start of each update's drain
+    if (!gCbDrainOpen) {
+        gCbDrainOpen = true;
+        faxe_handles_free_volatile();
+    }
     // What destroy records the overflow dropped left goes first. That is
     // a plugin handle whose DSP died with the callback, or a shim sound
     // with its handle. The sound is torn down and released on this thread.
@@ -3582,6 +3610,7 @@ bool fmod_cb_next() {
             freeDestroyedCtx(orphan);
             orphan = next;
         }
+        gCbDrainOpen = false;
         return false;
     }
     if (gCbCurrent.opaque) {
@@ -4474,6 +4503,7 @@ int fmod_bus_stop_all_events(int h, int stopMode) {
     FMOD::Studio::Bus* bus = resolveBus(h);
     if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = bus->stopAllEvents(stopMode == 1 ? FMOD_STUDIO_STOP_IMMEDIATE : FMOD_STUDIO_STOP_ALLOWFADEOUT);
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 
@@ -4620,6 +4650,12 @@ int fmod_bank_unload_sample_data(int h) {
     FMOD::Studio::Bank* bank = resolveBank(h);
     if (!bank) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = bank->unloadSampleData();
+    // The flush runs the unload, so the sample data is gone before
+    // the short-lived handles to it go
+    if (gLastResult == FMOD_OK) {
+        if (gStudioSystem) gStudioSystem->flushCommands();
+        faxe_handles_free_volatile();
+    }
     return (int)gLastResult;
 }
 
@@ -4949,6 +4985,11 @@ int fmod_evd_unload_sample_data(int h) {
     FMOD::Studio::EventDescription* desc = resolveDescription(h);
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = desc->unloadSampleData();
+    // A flush lets the unload happen before the short-lived handles go
+    if (gLastResult == FMOD_OK) {
+        if (gStudioSystem) gStudioSystem->flushCommands();
+        faxe_handles_free_volatile();
+    }
     return (int)gLastResult;
 }
 
@@ -5083,6 +5124,7 @@ int fmod_evi_stop(int h, int stopMode) {
     FMOD::Studio::EventInstance* instance = resolveInstance(h);
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = instance->stop(stopMode == 1 ? FMOD_STUDIO_STOP_IMMEDIATE : FMOD_STUDIO_STOP_ALLOWFADEOUT);
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 
@@ -5116,6 +5158,7 @@ int fmod_evi_release(int h) {
     // the rest of the process.
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
+        faxe_handles_free_volatile();
     }
     return (int)gLastResult;
 }
@@ -5538,6 +5581,7 @@ int fmod_sys_record_start(int id, int soundHandle, bool loop) {
 int fmod_sys_record_stop(int id) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     gLastResult = gCoreSystem->recordStop(id);
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 
@@ -5729,7 +5773,10 @@ int fmod_geo_release(int h) {
     if (!geometry) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = geometry->release();
     // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
-    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) faxe_handle_free(h);
+    if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
+        faxe_handle_free(h);
+        faxe_handles_free_volatile();
+    }
     return (int)gLastResult;
 }
 
@@ -6091,8 +6138,8 @@ const char* fmod_sg_get_name(int h) {
 
 // The group does not own the sound, and nothing tells which handle
 // would. A sound the table knows keeps its handle. Any other one gets a
-// volatile borrowed handle that dies with the next call that can
-// destroy sounds.
+// volatile borrowed handle. It is short-lived: it dies at the next
+// update or at the next call that stops, releases, or unloads anything.
 int fmod_sg_get_sound(int h, int index) {
     FMOD::SoundGroup* group = resolveSoundGroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
@@ -6631,6 +6678,7 @@ int fmod_sys_load_plugin(const ::String& path, int priority) {
 int fmod_sys_unload_plugin(int handle) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
     gLastResult = gCoreSystem->unloadPlugin((unsigned int)handle);
+    if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 

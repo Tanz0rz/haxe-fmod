@@ -12,8 +12,8 @@ import haxefmod.studio.EventInstance;
 
     The instance follows the object's midpoint and velocity for as long as
     both are alive. FmodRuntime.update() pushes the positions, and
-    FmodManager.Update() calls it. The constructor installs FmodFlxUpdater,
-    so Update() runs after every frame. Distance culling runs from this
+    FmodManager.Update() calls it. The constructor installs FmodFlxUpdater
+    unless the game removed its hook. Distance culling runs from this
     component's own update, so add it to the state for that.
 
         var emitter = FmodFlxEmitter.play(FmodEvents.SFXEngine, car);
@@ -63,7 +63,7 @@ class FmodFlxEmitter extends FlxBasic {
     public function new(instance:EventInstance, target:FlxObject) {
         super();
         tracker = new EmitterTracker(instance, new FlxObjectPositionProvider(target));
-        FmodFlxUpdater.init();
+        FmodFlxUpdater.initUnlessRemoved();
     }
 
     /**

@@ -74,7 +74,7 @@ abstract Bank(Int) from Int to Int {
 
     /** Unloads the non-streaming sample data for the bank's events. FMOD reference counts it, so it stays loaded until every load has a matching unload. */
     public inline function unloadSampleData():FmodResult {
-        return NativeStudio.bank_unload_sample_data(this);
+        return EventInstance.afterStop(NativeStudio.bank_unload_sample_data(this));
     }
 
     /**

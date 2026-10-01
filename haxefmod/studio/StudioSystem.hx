@@ -193,7 +193,7 @@ class StudioSystem {
 
     /** Stops the command recording started by startCommandCapture. */
     public static function stopCommandCapture():FmodResult {
-        return NativeStudio.sys_stop_command_capture();
+        return EventInstance.afterStop(NativeStudio.sys_stop_command_capture());
     }
 
     /**
@@ -627,7 +627,7 @@ class StudioSystem {
     #else
     /** Stops recording on a driver (unsupported in HTML5, returns FMOD_ERR_UNSUPPORTED). */
     public static inline function recordStop(id:Int):FmodResult {
-        return NativeStudio.sys_record_stop(id);
+        return EventInstance.afterStop(NativeStudio.sys_record_stop(id));
     }
     #end
 
@@ -844,7 +844,7 @@ class StudioSystem {
      * later succeeds.
      */
     public static inline function unloadPlugin(handle:Int):FmodResult {
-        return NativeStudio.sys_unload_plugin(handle);
+        return EventInstance.afterStop(NativeStudio.sys_unload_plugin(handle));
     }
     #end
 

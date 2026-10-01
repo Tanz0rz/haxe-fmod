@@ -2281,9 +2281,14 @@ class ApiProbeScenario implements TestScenario {
         // A walk from a bus that passes an instance's own group leaves that
         // handle as it is
         var fromBus = probeGroupsBelow(root.getChannelGroup(), []);
-        check("walk_from_bus_keeps_instance_group", fromBus.indexOf(groupA) >= 0
-            && holdA.getChannelGroup() == groupA && haxefmod.studio.native.NativeStudio.debug_handle_is_live(groupA),
-            'group=${(groupA : Int)} walked=$fromBus');
+        if (skipAuthored() || groupA.isNull()) {
+            // The frozen 2.02 banks lack the event, so there is no group to keep
+            info("walk_from_bus_keeps_instance_group", 'the instance has no group, skipped: walked=$fromBus');
+        } else {
+            check("walk_from_bus_keeps_instance_group", fromBus.indexOf(groupA) >= 0
+                && holdA.getChannelGroup() == groupA && haxefmod.studio.native.NativeStudio.debug_handle_is_live(groupA),
+                'group=${(groupA : Int)} walked=$fromBus');
+        }
         holdA.stop(IMMEDIATE);
         holdA.release();
         holdB.stop(IMMEDIATE);
@@ -2319,6 +2324,195 @@ class ApiProbeScenario implements TestScenario {
     function finishWalkDrain():Void {
         check("no_handle_leaks_walk", StudioSystem.liveHandleCount() == _walkBaseline,
             'baseline=$_walkBaseline now=${StudioSystem.liveHandleCount()} frames=$_walkFrames');
+        // The instances released above die on FMOD's thread. Their drain
+        // also ends short-lived handles, so the next phase waits them out.
+        _shortFrames = 0;
+        _waitingForShortQuiet = true;
+    }
+
+    var _waitingForShortQuiet:Bool = false;
+
+    var _waitingForShortUpdate:Bool = false;
+    var _waitingForShortDrain:Bool = false;
+    var _shortFrames:Int = 0;
+    var _shortBaseline:Int = 0;
+    var _shortPcm:PcmStream = PcmStream.NULL;
+    var _shortChannel:Channel = Channel.NULL;
+    var _shortSound:Sound = Sound.NULL;
+    var _shortInput:Dsp = Dsp.NULL;
+    var _shortGroup:ChannelGroup = ChannelGroup.NULL;
+    var _shortGroupHead:Dsp = Dsp.NULL;
+    var _shortGameSound:Sound = Sound.NULL;
+
+    static inline function probeLive(handle:Int):Bool {
+        return haxefmod.studio.native.NativeStudio.debug_handle_is_live(handle);
+    }
+
+    /**
+     * A short-lived handle dies at the next update or at the next call
+     * that stops, releases, or unloads anything. A stream's sound reached
+     * through its channel lived past the stop that freed it, and a sound
+     * group's sound lived past an unload of the sample data it named.
+     * Linked and game-owned handles live on across updates.
+     */
+    function startShortLived():Void {
+        // Lookups and the master groups live for the session
+        StudioSystem.getBank("bank:/Master");
+        StudioSystem.getBus("bus:/");
+        SoundGroup.master();
+        for (path in [FmodEvents.SFXCoin, FmodEvents.MusicMainLevel]) StudioSystem.getEvent(path);
+        _shortBaseline = StudioSystem.liveHandleCount();
+        // A paused stream keeps its channel. Its sound is short-lived.
+        _shortPcm = PcmStream.create(48000, 1);
+        _shortChannel = _shortPcm.play(true);
+        _shortSound = _shortChannel.getCurrentSound();
+        _shortSound.setUserData("short-lived");
+        var head = ChannelGroup.master().getDsp(ChannelGroup.DSP_HEAD);
+        var beforeWalk = StudioSystem.liveHandleCount();
+        _shortInput = head.getNumInputs() > 0 ? head.getInput(0) : Dsp.NULL;
+        // An input the table knew already keeps the lifetime it had
+        if (StudioSystem.liveHandleCount() == beforeWalk) _shortInput = Dsp.NULL;
+        _shortGroup = ChannelGroup.create("probe-short-lived");
+        _shortGroup.setUserData("game group");
+        _shortGroupHead = _shortGroup.getDsp(ChannelGroup.DSP_HEAD);
+        _shortGroupHead.setUserData("linked to the game group");
+        _shortGameSound = Sound.fromPcm(haxe.io.Bytes.alloc(800), 8000, 1);
+        _shortGameSound.setUserData("game sound");
+        check("short_lived_minted", !_shortSound.isNull() && !_shortGroupHead.isNull() && !_shortGameSound.isNull(),
+            'sound=${(_shortSound : Int)} head=${(_shortGroupHead : Int)} game=${(_shortGameSound : Int)}');
+        _shortFrames = 0;
+        _waitingForShortUpdate = true;
+    }
+
+    /** A fresh short-lived handle, the stream's sound reached again through its channel. */
+    function probeShortLived():Sound {
+        return _shortChannel.getCurrentSound();
+    }
+
+    /** Runs a call that stops, releases, or unloads something and checks it ended a short-lived handle. */
+    function checkShortLivedDrop(name:String, call:Void->FmodResult):Void {
+        var shortLived = probeShortLived();
+        shortLived.setUserData(name);
+        var result = call();
+        check(name, !shortLived.isNull() && result.isOk() && !probeLive(shortLived) && shortLived.getUserData() == null,
+            'sound=${(shortLived : Int)} result=${result.toString()} live=${probeLive(shortLived)}');
+    }
+
+    function finishShortUpdate():Void {
+        // One update with no other call in between
+        check("short_lived_dies_at_update", !probeLive(_shortSound) && _shortSound.getUserData() == null,
+            'sound=${(_shortSound : Int)} frames=$_shortFrames');
+        if (_shortInput.isNull()) {
+            info("short_lived_dsp_walk_dies_at_update", "the master head's input had a handle already, skipped");
+        } else {
+            check("short_lived_dsp_walk_dies_at_update", !probeLive(_shortInput), 'dsp=${(_shortInput : Int)}');
+        }
+        check("linked_survives_update", probeLive(_shortGroupHead) && _shortGroupHead.getUserData() == "linked to the game group"
+            && _shortGroup.getDsp(ChannelGroup.DSP_HEAD) == _shortGroupHead, 'head=${(_shortGroupHead : Int)}');
+        check("game_owned_survives_update", probeLive(_shortGroup) && _shortGroup.getUserData() == "game group"
+            && probeLive(_shortGameSound) && _shortGameSound.getUserData() == "game sound"
+            && probeLive(_shortChannel) && probeLive(_shortPcm),
+            'group=${(_shortGroup : Int)} sound=${(_shortGameSound : Int)} channel=${(_shortChannel : Int)}');
+
+        // A refused call leaves a short-lived handle as it is
+        var kept = probeShortLived();
+        var refused = EventInstance.NULL.stop(IMMEDIATE);
+        check("short_lived_survives_refused_stop", refused == FmodResult.FMOD_ERR_INVALID_HANDLE && probeLive(kept),
+            'result=${refused.toString()} sound=${(kept : Int)}');
+
+        // Each accepted call that stops, releases, or unloads something
+        var coin = StudioSystem.getEvent(FmodEvents.SFXCoin);
+        var instance = coin.createInstance();
+        instance.start();
+        StudioSystem.flushCommands();
+        checkShortLivedDrop("short_lived_dies_at_instance_stop", () -> instance.stop(IMMEDIATE));
+        checkShortLivedDrop("short_lived_dies_at_instance_release", () -> instance.release());
+        var other = _shortGameSound.play(true);
+        checkShortLivedDrop("short_lived_dies_at_channel_stop", () -> other.stop());
+        checkShortLivedDrop("short_lived_dies_at_group_stop", () -> _shortGroup.stop());
+        var soundGroup = SoundGroup.create("probe-short-lived");
+        checkShortLivedDrop("short_lived_dies_at_sound_group_stop", () -> soundGroup.stop());
+        checkShortLivedDrop("short_lived_dies_at_sound_group_release", () -> soundGroup.release());
+        checkShortLivedDrop("short_lived_dies_at_bus_stop", () -> StudioSystem.getBus("bus:/").stopAllEvents(IMMEDIATE));
+        var zone = Reverb3D.create();
+        checkShortLivedDrop("short_lived_dies_at_reverb_release", () -> zone.release());
+        coin.loadSampleData();
+        checkShortLivedDrop("short_lived_dies_at_event_sample_unload", () -> coin.unloadSampleData());
+        var bank = StudioSystem.getBank("bank:/Master");
+        bank.loadSampleData();
+        checkShortLivedDrop("short_lived_dies_at_bank_sample_unload", () -> bank.unloadSampleData());
+        #if sys
+        var capturePath = "probe-short-lived.cmd.txt";
+        if (StudioSystem.startCommandCapture(capturePath).isOk()) {
+            StudioSystem.flushCommands();
+            checkShortLivedDrop("short_lived_dies_at_capture_stop", () -> StudioSystem.stopCommandCapture());
+            var replay = StudioSystem.loadCommandReplay(capturePath, FmodCommandReplayFlags.FAST_FORWARD | FmodCommandReplayFlags.SKIP_BANK_LOAD);
+            replay.start();
+            checkShortLivedDrop("short_lived_dies_at_replay_stop", () -> replay.stop());
+            checkShortLivedDrop("short_lived_dies_at_replay_release", () -> replay.release());
+            try sys.FileSystem.deleteFile(capturePath) catch (e:Dynamic) {}
+        } else {
+            info("short_lived_dies_at_capture_stop", 'no capture, skipped: result=${StudioSystem.lastResult().toString()}');
+        }
+        #end
+        #if !js
+        var geometry = Geometry.create(1, 4);
+        checkShortLivedDrop("short_lived_dies_at_geometry_release", () -> geometry.release());
+        #end
+
+        // A stream an event plays is freed by FMOD right after the stop. The
+        // handle a channel walk minted for it dies with the stop call.
+        var stream = StudioSystem.getEvent(FmodEvents.MusicMainLevel).createInstance();
+        stream.start();
+        StudioSystem.flushCommands();
+        var streamChannel = probeFirstChannel(stream.getChannelGroup());
+        var streamSound = streamChannel.getCurrentSound();
+        if (streamSound.isNull()) {
+            info("stream_sound_dies_at_stop", 'no stream channel yet, skipped: result=${StudioSystem.lastResult().toString()}');
+            stream.stop(IMMEDIATE);
+        } else {
+            var stopped = stream.stop(IMMEDIATE);
+            check("stream_sound_dies_at_stop", stopped.isOk() && !probeLive(streamSound), 'sound=${(streamSound : Int)}');
+        }
+        stream.release();
+        // The channel ended with the stream. Its slot goes with the stop.
+        streamChannel.stop();
+
+        // A sound group's sound can be Studio's sample data. The unload
+        // frees it, so the handle goes with the unload call.
+        var sampleSound = Sound.NULL;
+        coin.loadSampleData();
+        StudioSystem.flushSampleLoading();
+        var played = coin.createInstance();
+        played.start();
+        StudioSystem.flushCommands();
+        played.stop(IMMEDIATE);
+        played.release();
+        StudioSystem.flushCommands();
+        var master = SoundGroup.master();
+        for (i in 0...master.getNumSounds()) {
+            var candidate = master.getSound(i);
+            if (!candidate.isNull() && candidate != _shortGameSound && candidate.getName().length > 0) sampleSound = candidate;
+        }
+        if (sampleSound.isNull()) {
+            info("sample_sound_dies_at_unload", "no sample sound in the master sound group, skipped");
+            coin.unloadSampleData();
+        } else {
+            var unloaded = coin.unloadSampleData();
+            check("sample_sound_dies_at_unload", unloaded.isOk() && !probeLive(sampleSound), 'sound=${(sampleSound : Int)}');
+        }
+
+        _shortChannel.stop();
+        _shortPcm.release();
+        _shortGroup.release();
+        _shortGameSound.release();
+        _shortFrames = 0;
+        _waitingForShortDrain = true;
+    }
+
+    function finishShortDrain():Void {
+        check("no_handle_leaks_short_lived", StudioSystem.liveHandleCount() == _shortBaseline,
+            'baseline=$_shortBaseline now=${StudioSystem.liveHandleCount()} frames=$_shortFrames');
         info("live_handle_count_after", Std.string(StudioSystem.liveHandleCount()));
         log('API_PROBE: COMPLETE passed=$_passCount failed=$_failCount');
         host.setStatus('API_PROBE complete: $_passCount passed, $_failCount failed');
@@ -3622,6 +3816,28 @@ class ApiProbeScenario implements TestScenario {
             if (StudioSystem.liveHandleCount() == _walkBaseline || _walkFrames > 300) {
                 _waitingForWalkDrain = false;
                 finishWalkDrain();
+            }
+        }
+        if (_waitingForShortQuiet) {
+            if (++_shortFrames > 30) {
+                _waitingForShortQuiet = false;
+                startShortLived();
+            }
+        }
+        if (_waitingForShortUpdate) {
+            // The pass in the tick that minted the handles waits. The
+            // update before the next tick is the only call since the mint.
+            if (_shortFrames++ > 0) {
+                _waitingForShortUpdate = false;
+                finishShortUpdate();
+            }
+        }
+        if (_waitingForShortDrain) {
+            _shortFrames++;
+            StudioSystem.flushCommands();
+            if (StudioSystem.liveHandleCount() == _shortBaseline || _shortFrames > 300) {
+                _waitingForShortDrain = false;
+                finishShortDrain();
             }
         }
         if (!_done) return;

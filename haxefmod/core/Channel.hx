@@ -455,9 +455,9 @@ abstract Channel(Int) from Int to Int {
 
     /**
      * The sound this channel plays. A sound the game created comes back under its own handle. Any other
-     * sound (an event's, a PcmStream's) gets a borrowed handle. Release refuses it, and it dies with this
-     * channel handle or at the next call that can destroy sounds. Returns Sound.NULL on failure, with the
-     * reason in StudioSystem.lastResult().
+     * sound (an event's, a PcmStream's) gets a borrowed handle that release refuses. It is short-lived: it
+     * dies at the next update or at the next call that stops, releases, or unloads anything. Returns
+     * Sound.NULL on failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getCurrentSound():haxefmod.core.Sound {
         return NativeStudio.chan_get_current_sound(this);
@@ -545,8 +545,9 @@ abstract Channel(Int) from Int to Int {
 
     /**
      * The group this channel is routed into. A known group returns its existing handle. Any other one gets
-     * a borrowed handle. Release refuses it, and it dies with this channel handle or whenever FMOD can
-     * destroy objects. Returns ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
+     * a borrowed handle that release refuses. It is short-lived: it dies at the next update or at the next
+     * call that stops, releases, or unloads anything. Returns ChannelGroup.NULL on failure, with the reason
+     * in StudioSystem.lastResult().
      */
     public inline function getChannelGroup():ChannelGroup {
         return NativeStudio.chan_get_channel_group(this);

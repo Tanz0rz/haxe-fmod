@@ -2,5 +2,6 @@
 -cp tests
 -main tests.TestDefineOverrides
 -debug
--D haxefmod_todo_beep
+-D haxefmod_live_update
+-D haxefmod_no_live_update
 --interp

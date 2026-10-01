@@ -90,7 +90,10 @@ abstract Reverb3D(Int) from Int to Int {
     /** Frees the zone and invalidates this handle. */
     public inline function release():FmodResult {
         var result:FmodResult = NativeStudio.r3d_release(this);
-        if (UserData.releaseTookEffect(result)) UserData.clear(UserDataKind.Reverb3D, this);
+        if (UserData.releaseTookEffect(result)) {
+            UserData.clear(UserDataKind.Reverb3D, this);
+            haxefmod.studio.EventInstance.dropDeadGroups();
+        }
         return result;
     }
 

@@ -14,6 +14,11 @@ import flixel.FlxG;
 
     init() also hooks FlxG.signals.preUpdate, which clears the once per
     frame guard. That hook stays installed after removeHook().
+
+    A game that runs FMOD itself calls removeHook() once and then calls
+    FmodManager.Update() at the end of its own update. The hook stays
+    out after that. A component created later leaves it out too. init(),
+    FmodFlxSetup.init(), and the preloader install it again.
 **/
 class FmodFlxUpdater {
     // One closure per install, each with its own generation captured.
@@ -30,6 +35,9 @@ class FmodFlxUpdater {
     // preUpdate hook clears it.
     static var updated:Bool = false;
     static var frameStart:Void->Void = null;
+    // Set by removeHook() and cleared by init(). While set, the
+    // components leave the hook out.
+    static var hookRemoved:Bool = false;
 
     static function tick(id:Int):Void {
         // A closure flixel has yet to remove can run once more in the
@@ -43,8 +51,9 @@ class FmodFlxUpdater {
         updated = false;
     }
 
-    /** Hooks the update once. Safe to call again, and from inside a callback. **/
+    /** Hooks the update once and undoes an earlier removeHook(). Safe to call again, and from inside a callback. **/
     public static function init():Void {
+        hookRemoved = false;
         if (frameStart == null) {
             frameStart = clearUpdated;
             FlxG.signals.preUpdate.add(frameStart);
@@ -63,8 +72,22 @@ class FmodFlxUpdater {
         return handler != null && FlxG.signals.postUpdate.has(handler);
     }
 
-    /** Removes the hook. FmodManager.Update() then runs only when the game calls it. **/
+    /**
+        Hooks the update unless removeHook() took the hook out. The
+        components call this.
+    **/
+    @:dox(hide)
+    public static function initUnlessRemoved():Void {
+        if (!hookRemoved) init();
+    }
+
+    /**
+        Removes the hook. FmodManager.Update() then runs only when the game
+        calls it. Components created afterwards leave the hook out. init()
+        installs it again.
+    **/
     public static function removeHook():Void {
+        hookRemoved = true;
         if (handler == null) return;
         FlxG.signals.postUpdate.remove(handler);
         handler = null;

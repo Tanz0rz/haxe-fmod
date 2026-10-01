@@ -100,10 +100,9 @@ abstract SoundGroup(Int) from Int to Int {
 
     /**
      * The sound at position index in this group. A sound the game created comes back under its own handle.
-     * Any other sound gets a short-lived borrowed handle. Release refuses it, and it dies at the next call
-     * that can destroy sounds, such as a release, a bank unload, or an instance FMOD destroyed. Sound.NULL
-     * past the end. Any other failure reports Sound.NULL as well, with the reason in
-     * StudioSystem.lastResult().
+     * Any other sound gets a borrowed handle that release refuses. It is short-lived: it dies at the next
+     * update or at the next call that stops, releases, or unloads anything. Sound.NULL past the end. Any
+     * other failure reports Sound.NULL as well, with the reason in StudioSystem.lastResult().
      */
     public inline function getSound(index:Int):haxefmod.core.Sound {
         return NativeStudio.sg_get_sound(this, index);
@@ -135,7 +134,7 @@ abstract SoundGroup(Int) from Int to Int {
 
     /** Stops every playing sound in the group. */
     public inline function stop():FmodResult {
-        return NativeStudio.sg_stop(this);
+        return haxefmod.studio.EventInstance.afterStop(NativeStudio.sg_stop(this));
     }
 
     /**
@@ -146,7 +145,10 @@ abstract SoundGroup(Int) from Int to Int {
      */
     public inline function release():FmodResult {
         var result:FmodResult = NativeStudio.sg_release(this);
-        if (UserData.releaseTookEffect(result)) UserData.clear(UserDataKind.SoundGroup, this);
+        if (UserData.releaseTookEffect(result)) {
+            UserData.clear(UserDataKind.SoundGroup, this);
+            haxefmod.studio.EventInstance.dropDeadGroups();
+        }
         return result;
     }
 

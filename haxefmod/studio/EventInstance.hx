@@ -30,10 +30,10 @@ abstract EventInstance(Int) from Int to Int {
      * Drops the handler, user data, and walked-group entry of every group
      * whose handle does not resolve, and the user data of every dead DSP,
      * sound, and channel handle. A borrowed handle dies with the handle it
-     * was reached from, natively and with no call on it. So every call
-     * that releases or destroys objects ends here once FMOD accepted it,
-     * and the callback drain does after an instance died. Empty maps cost
-     * nothing.
+     * was reached from, natively and with no call on it. A short-lived one
+     * goes at the updates and calls its getter's doc names. Each of those
+     * ends here once FMOD accepted it. Empty maps cost a few checks.
+     * Otherwise each entry costs one native liveness lookup.
      */
     @:dox(hide)
     public static function dropDeadGroups():Void {
@@ -42,6 +42,16 @@ abstract EventInstance(Int) from Int to Int {
         if (!walkedGroups.iterator().hasNext()) return;
         var dead = [for (instance in walkedGroups.keys()) if (!NativeStudio.debug_handle_is_live(walkedGroups.get(instance))) instance];
         for (instance in dead) walkedGroups.remove(instance);
+    }
+
+    /**
+     * Returns result, after dropping the entries of the handles that died
+     * when FMOD accepted a call that stops or unloads something.
+     */
+    @:dox(hide)
+    public static function afterStop(result:FmodResult):FmodResult {
+        if (result.isOk()) dropDeadGroups();
+        return result;
     }
 
     /**
@@ -85,7 +95,7 @@ abstract EventInstance(Int) from Int to Int {
 
     /** Stops playback. ALLOWFADEOUT lets AHDSR releases and effect tails finish, IMMEDIATE stops at once. */
     public inline function stop(stopMode:FmodStopMode = ALLOWFADEOUT):FmodResult {
-        return NativeStudio.evi_stop(this, stopMode);
+        return afterStop(NativeStudio.evi_stop(this, stopMode));
     }
 
     /** Advances past the current sustain point. */

@@ -85,7 +85,7 @@ abstract Bus(Int) from Int to Int {
 
     /** Stops all events routed through this bus. */
     public inline function stopAllEvents(stopMode:FmodStopMode = ALLOWFADEOUT):FmodResult {
-        return NativeStudio.bus_stop_all_events(this, stopMode);
+        return EventInstance.afterStop(NativeStudio.bus_stop_all_events(this, stopMode));
     }
 
 #if (macro || (js && !haxefmod_html5_allow_unsupported))

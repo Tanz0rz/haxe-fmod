@@ -27,6 +27,7 @@ class TestVersionParsing {
 		testParseFmodVersion_extraWhitespace();
 		testParseFmodVersion_noVersionLine();
 		testParseFmodVersion_commentedOut();
+		testSameVersion_numericForms();
 
 		cleanup();
 		Sys.println('  $passed passed, $failed failed');
@@ -92,6 +93,15 @@ class TestVersionParsing {
 		var path = writeTempFile("commented.h", content);
 		var result = PostBuild.parseFmodVersion(path);
 		assert("picks first matching line (even comment)", result == "0x00010000");
+	}
+
+	//// sameVersion tests
+
+	static function testSameVersion_numericForms() {
+		// The marker file and the header can spell one version differently
+		assert("version literals compare as numbers", PostBuild.sameVersion("0X20312", " 0x00020312\n"));
+		assert("different versions differ", !PostBuild.sameVersion("0x00020312", "0x00020233"));
+		assert("an unreadable literal matches nothing", !PostBuild.sameVersion("garbage", "garbage"));
 	}
 
 	//// Helpers

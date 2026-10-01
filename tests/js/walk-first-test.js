@@ -86,7 +86,8 @@ async function main() {
         jaxe.fmod_evi_stop(b, 1); jaxe.fmod_evi_release(b);
         jaxe.gSystem.flushCommands(); await pump(2); drainEvents();
     }
-    check('anchored_reuse_gets_fresh_handle', staleAnswered === 0, `reused=${reusedSeen} staleAnswered=${staleAnswered}`);
+    // No reuse in ten rounds proves nothing, so that run fails too
+    check('anchored_reuse_gets_fresh_handle', reusedSeen > 0 && staleAnswered === 0, `reused=${reusedSeen} staleAnswered=${staleAnswered}`);
     console.log('WALK: failures = ' + fails);
     process.exit(fails ? 1 : 0);
 }

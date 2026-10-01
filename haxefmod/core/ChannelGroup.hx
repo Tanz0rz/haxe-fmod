@@ -99,7 +99,7 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /** Stops every channel in the group. */
     public inline function stop():FmodResult {
-        return NativeStudio.cg_stop(this);
+        return haxefmod.studio.EventInstance.afterStop(NativeStudio.cg_stop(this));
     }
 
     /**
@@ -141,9 +141,9 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * A nested child group by index. A known group returns its existing handle. Any other one gets a
-     * short-lived borrowed handle. Release refuses it, and it dies with this handle or whenever FMOD can
-     * destroy objects, since a child group can die inside a live instance (a nested event's group).
-     * Returns ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
+     * borrowed handle that release refuses. It is short-lived: it dies at the next update or at the next
+     * call that stops, releases, or unloads anything. Returns ChannelGroup.NULL on failure, with the reason
+     * in StudioSystem.lastResult().
      */
     public inline function getGroup(index:Int):ChannelGroup {
         return NativeStudio.cg_get_group(this, index);
@@ -151,10 +151,11 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * The group this one feeds. The master group has no parent, so it reports ChannelGroup.NULL with
-     * lastResult still FMOD_OK. A handle minted here is borrowed. Release refuses it, and it dies with
-     * this handle. A walk that starts at a bus, the master, or a group the game made can reach groups of
-     * instances that die on their own, so those handles also die whenever FMOD can destroy objects.
-     * Returns ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
+     * lastResult still FMOD_OK. A known group returns its existing handle. Any other one gets a borrowed
+     * handle that release refuses. A walk up from an instance's own group mints a handle that lives as
+     * long as the instance handle. A walk up from anywhere else mints one that dies sooner. It is
+     * short-lived: it dies at the next update or at the next call that stops, releases, or unloads
+     * anything. Returns ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getParentGroup():ChannelGroup {
         return NativeStudio.cg_get_parent_group(this);
@@ -648,8 +649,10 @@ abstract ChannelGroup(Int) from Int to Int {
      * The effect at chain position `index`. DSP_HEAD, DSP_FADER and DSP_TAIL work here too. DSP_HEAD is the
      * unit closest to the output, the one a group-wide send takes its input from. DSP_TAIL is closest to the
      * input. A known DSP returns its existing handle. Any other one gets a borrowed handle, which release
-     * refuses and which dies with this group handle. Returns Dsp.NULL when the index is out of range and on
-     * any other failure, with the reason in StudioSystem.lastResult().
+     * refuses and which dies with this group handle. When this group handle is short-lived, so is the
+     * DSP's. It is short-lived: it dies at the next update or at the next call that stops, releases, or
+     * unloads anything. Returns Dsp.NULL when the index is out of range and on any other failure, with the
+     * reason in StudioSystem.lastResult().
      */
     public inline function getDsp(index:Int):Dsp {
         return NativeStudio.cg_get_dsp(this, index);

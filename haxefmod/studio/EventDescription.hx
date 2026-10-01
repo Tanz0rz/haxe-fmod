@@ -188,7 +188,7 @@ abstract EventDescription(Int) from Int to Int {
 
     /** Unloads the non-streaming sample data from loadSampleData. FMOD reference counts it, so it stays loaded until every load has a matching unload. */
     public inline function unloadSampleData():FmodResult {
-        return NativeStudio.evd_unload_sample_data(this);
+        return EventInstance.afterStop(NativeStudio.evd_unload_sample_data(this));
     }
 
     /**

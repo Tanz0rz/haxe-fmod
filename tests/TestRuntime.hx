@@ -349,6 +349,34 @@ class TestRuntime {
 		var retried = registry.loadAsync("assets/fmod/NativeErr.bank");
 		assert((retried : Int) != (nativeErr : Int), "valid-but-errored bank is replaced on retry");
 		assert(stub.testBankUnloadCalls == 1, "valid-but-errored bank unloaded before the retry");
+
+		// A bank handed over as bytes takes the same retry rule
+		stub.testBankLoadingState = 3;
+		stub.testBankValid = null;
+		var memErr = registry.loadMemory("assets/fmod/MemErr.bank", haxe.io.Bytes.alloc(8));
+		stub.testBankLoadingState = 4;
+		stub.testBankValid = true;
+		stub.testBankUnloadCalls = 0;
+		var memRetried = registry.loadMemory("assets/fmod/MemErr.bank", haxe.io.Bytes.alloc(8));
+		assert((memRetried : Int) != (memErr : Int) && stub.testBankUnloadCalls == 1,
+			"loadMemory replaces a valid-but-errored bank");
+
+		// A failed load is warned about once. A retry that fails again
+		// gets its own warning.
+		var warnings = 0;
+		var savedTrace = haxe.Log.trace;
+		haxe.Log.trace = function(v:Dynamic, ?infos:haxe.PosInfos) {
+			if (Std.string(v).indexOf("bank failed to load") >= 0) warnings++;
+		};
+		registry.loadAsync("assets/fmod/Warned.bank");
+		registry.loadingState("assets/fmod/Warned.bank");
+		registry.loadingState("assets/fmod/Warned.bank");
+		var firstWarnings = warnings;
+		registry.loadAsync("assets/fmod/Warned.bank");
+		registry.loadingState("assets/fmod/Warned.bank");
+		haxe.Log.trace = savedTrace;
+		assert(firstWarnings == 1, 'a failed load is warned about once (warnings=$firstWarnings)');
+		assert(warnings == 2, 'a failed retry is warned about again (warnings=$warnings)');
 		stub.testBankValid = null;
 		stub.testSyntheticHandles = false;
 		stub.testBankLoadingState = 3;
@@ -530,6 +558,19 @@ class TestRuntime {
 		attached.attach(fake, provider);
 		attached.detach(fake);
 		assert(attached.count() == 0, "detach removes");
+
+		// A second attach takes the new autoRelease flag along with the provider
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		stub.testSyntheticHandles = true;
+		stub.testReleasedHandles = [];
+		stub.testPlaybackState = 2; // STOPPED
+		attached.attach(fake, provider, false);
+		attached.attach(fake, provider, true);
+		attached.update();
+		assert(attached.count() == 0 && stub.testReleasedHandles.contains((fake : Int)),
+			"re-attach with autoRelease releases the stopped instance");
+		stub.testReleasedHandles = [];
+		stub.testSyntheticHandles = false;
 
 		// Velocity clamp: direction preserved, magnitude capped, disabled at 0
 		assert(AttachedInstances.velocityScale(3, 4, 0) == 1.0, "clamp disabled at 0");

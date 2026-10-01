@@ -558,7 +558,7 @@ async function main() {
             const child = jaxe.handleAlloc(fake(0x7ff003), jaxe.TYPE_SOUND);
             jaxe.markOwned(parent);
             jaxe.setOwner(parent, host);
-            jaxe.slots[parent & 0xFFFF].borrowed = jaxe.BORROWED_VOLATILE;
+            jaxe.setVolatile(parent);
             jaxe.linkParent(child, parent);
             check('link_parent_sets_kids', jaxe.slots[parent & 0xFFFF].kids === true, '');
             jaxe.freeVolatile();
@@ -660,13 +660,13 @@ async function main() {
             for (const h of [groupOfA, walkedInA, dspX]) jaxe.markOwned(h);
             jaxe.setOwner(groupOfA, ownerA);
             jaxe.setOwner(walkedInA, groupOfA);
-            jaxe.slots[walkedInA & 0xFFFF].borrowed = jaxe.BORROWED_VOLATILE;
+            jaxe.setVolatile(walkedInA);
             check('walked_elsewhere_rules', jaxe.walkedElsewhere(walkedInA, ownerB) && jaxe.walkedElsewhere(walkedInA, bus)
                 && !jaxe.walkedElsewhere(walkedInA, ownerA) && !jaxe.walkedElsewhere(groupOfA, ownerB)
                 && !jaxe.walkedElsewhere(walkedInA, 0), '');
             jaxe.setOwner(dspX, groupOfA);
             check('adopt_keeps_first_owner', !jaxe.adopt(dspX, bus) && jaxe.slots[dspX & 0xFFFF].parent === groupOfA, '');
-            jaxe.slots[dspX & 0xFFFF].borrowed = jaxe.BORROWED_VOLATILE;
+            jaxe.setVolatile(dspX);
             check('adopt_refuses_loop', !jaxe.adopt(groupOfA, walkedInA) && !jaxe.adopt(dspX, dspX), '');
             check('adopt_links_volatile', jaxe.adopt(dspX, bus) && jaxe.slots[dspX & 0xFFFF].parent === bus
                 && jaxe.slots[dspX & 0xFFFF].borrowed === jaxe.BORROWED_LINKED, '');
@@ -692,6 +692,112 @@ async function main() {
         drainEvents();
         check('walk_lifetimes_leave_no_slots', jaxe.liveCount === walkLive,
             `live=${jaxe.liveCount} before=${walkLive}`);
+    }
+
+    // A short-lived handle dies at the next update drain or at the next
+    // accepted call that stops, releases, or unloads anything. Linked and
+    // game-owned handles live on across drains.
+    {
+        const coinEvd = jaxe.fmod_sys_get_event('event:/SFX/Coin');
+        const rootBus = jaxe.fmod_sys_get_bus('bus:/');
+        const masterBank = jaxe.fmod_sys_get_bank('bank:/Master');
+        const shortLive = jaxe.liveCount;
+        const countOk = () => jaxe.volatileCount === jaxe.slots.filter(s => s.alive && s.borrowed === jaxe.BORROWED_VOLATILE).length;
+        const pcm = jaxe.fmod_core_pcm_create(48000, 1, 9600);
+        const pcmChannel = jaxe.fmod_core_pcm_play(pcm, 0, true);
+        const fresh = () => jaxe.fmod_chan_get_current_sound(pcmChannel);
+        const first = fresh();
+        const gameGroup = jaxe.fmod_cg_create('short-lived');
+        const gameHead = jaxe.fmod_cg_get_dsp(gameGroup, -1);
+        check('short_lived_count_tracks_kinds', first > 0 && jaxe.volatileCount === 1 && countOk(),
+            `sound=${first} count=${jaxe.volatileCount}`);
+        await pump(2);
+        check('short_lived_survives_until_drain', jaxe.handleIsLive(first), '');
+        drainEvents();
+        check('short_lived_dies_at_drain', !jaxe.handleIsLive(first) && jaxe.volatileCount === 0, `count=${jaxe.volatileCount}`);
+        check('linked_and_game_survive_drain', jaxe.handleIsLive(gameHead) && jaxe.handleIsLive(gameGroup)
+            && jaxe.handleIsLive(pcmChannel) && jaxe.handleIsLive(pcm), '');
+        // A handle minted after a drain lives until the next one
+        const between = fresh();
+        await pump(2);
+        check('short_lived_lives_between_drains', jaxe.handleIsLive(between), '');
+        drainEvents();
+        check('short_lived_dies_at_next_drain', !jaxe.handleIsLive(between), '');
+        // A refused call keeps it
+        const kept = fresh();
+        jaxe.fmod_evi_stop(0, 1);
+        check('short_lived_survives_refused_stop', jaxe.handleIsLive(kept), '');
+        // Each accepted call that stops, releases, or unloads something
+        const dropAt = (label, call) => {
+            const h = fresh();
+            const r = call();
+            check(label, h > 0 && r === 0 && !jaxe.handleIsLive(h) && countOk(), `result=${r} handle=${h}`);
+        };
+        const inst = jaxe.fmod_evd_create_instance(coinEvd);
+        jaxe.fmod_evi_start(inst);
+        jaxe.gSystem.flushCommands();
+        dropAt('short_lived_dies_at_instance_stop', () => jaxe.fmod_evi_stop(inst, 1));
+        dropAt('short_lived_dies_at_instance_release', () => jaxe.fmod_evi_release(inst));
+        const scratchSound = jaxe.fmod_core_create_sound_pcm(new Uint8Array(800).buffer, 800, 8000, 1);
+        const other = jaxe.fmod_core_play_sound(scratchSound, 0, true);
+        dropAt('short_lived_dies_at_channel_stop', () => jaxe.fmod_chan_stop(other));
+        dropAt('short_lived_dies_at_group_stop', () => jaxe.fmod_cg_stop(gameGroup));
+        const sg = jaxe.fmod_sys_create_sound_group('short-lived');
+        dropAt('short_lived_dies_at_sound_group_stop', () => jaxe.fmod_sg_stop(sg));
+        dropAt('short_lived_dies_at_sound_group_release', () => jaxe.fmod_sg_release(sg));
+        dropAt('short_lived_dies_at_bus_stop', () => jaxe.fmod_bus_stop_all_events(rootBus, 1));
+        const zone = jaxe.fmod_sys_create_reverb3d();
+        dropAt('short_lived_dies_at_reverb_release', () => jaxe.fmod_r3d_release(zone));
+        jaxe.fmod_evd_load_sample_data(coinEvd);
+        dropAt('short_lived_dies_at_event_sample_unload', () => jaxe.fmod_evd_unload_sample_data(coinEvd));
+        jaxe.fmod_bank_load_sample_data(masterBank);
+        dropAt('short_lived_dies_at_bank_sample_unload', () => jaxe.fmod_bank_unload_sample_data(masterBank));
+        if (jaxe.fmod_sys_start_command_capture('/short-lived.cmd.txt') === 0) {
+            jaxe.gSystem.flushCommands();
+            dropAt('short_lived_dies_at_capture_stop', () => jaxe.fmod_sys_stop_command_capture());
+            const replay = jaxe.fmod_sys_load_command_replay('/short-lived.cmd.txt');
+            jaxe.fmod_replay_start(replay);
+            dropAt('short_lived_dies_at_replay_stop', () => jaxe.fmod_replay_stop(replay));
+            dropAt('short_lived_dies_at_replay_release', () => jaxe.fmod_replay_release(replay));
+            jaxe.FMOD.FS_unlink('/short-lived.cmd.txt');
+        } else {
+            skip('short_lived_dies_at_capture_stop', `result=${jaxe.lastResult}`);
+        }
+        // The released programmer sound's drain drops them too. Plain
+        // objects stand in for the wrappers.
+        const realRawPtr = jaxe.rawPtr;
+        jaxe.rawPtr = obj => (obj && obj.fakeRaw) ? obj.fakeRaw : realRawPtr(obj);
+        const fake = raw => ({ $$: { ptr: raw }, fakeRaw: raw });
+        const recorded = fake(0x7ff201);
+        recorded.release = () => 0;
+        const recordedHandle = jaxe.handleAlloc(recorded, jaxe.TYPE_SOUND);
+        const beforeRelease = fresh();
+        jaxe.releaseRecordedObject(recorded, jaxe.TYPE_SOUND, true);
+        check('short_lived_dies_at_programmer_sound_release', !jaxe.handleIsLive(recordedHandle) && !jaxe.handleIsLive(beforeRelease), '');
+        const beforeKeep = fresh();
+        const kept2 = fake(0x7ff202);
+        jaxe.handleAlloc(kept2, jaxe.TYPE_DSP);
+        jaxe.releaseRecordedObject(kept2, jaxe.TYPE_DSP, false);
+        check('short_lived_survives_plugin_record', jaxe.handleIsLive(beforeKeep), '');
+        jaxe.rawPtr = realRawPtr;
+        jaxe.fmod_chan_stop(pcmChannel);
+        jaxe.fmod_core_pcm_release(pcm);
+        jaxe.fmod_cg_release(gameGroup);
+        jaxe.fmod_core_release_sound(scratchSound);
+        await pump(3);
+        drainEvents();
+        check('short_lived_leave_no_slots', jaxe.liveCount === shortLive && jaxe.volatileCount === 0,
+            `live=${jaxe.liveCount} before=${shortLive} volatile=${jaxe.volatileCount}`);
+        // With the count at 0 the drop scans nothing. A slot marked behind
+        // the helpers' backs shows it.
+        {
+            const hidden = jaxe.handleAlloc({ $$: { ptr: 0 } }, jaxe.TYPE_CHANGROUP);
+            jaxe.slots[hidden & 0xFFFF].borrowed = jaxe.BORROWED_VOLATILE;
+            jaxe.freeVolatile();
+            check('short_lived_drop_skips_at_zero', jaxe.handleIsLive(hidden), '');
+            jaxe.slots[hidden & 0xFFFF].borrowed = jaxe.BORROWED_NONE;
+            jaxe.handleFree(hidden);
+        }
     }
 
     // A bulk destroy takes the shim callback off every instance group in

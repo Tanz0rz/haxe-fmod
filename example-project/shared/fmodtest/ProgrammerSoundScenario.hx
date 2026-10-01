@@ -4,6 +4,7 @@ import haxefmod.core.ChannelGroup;
 import haxefmod.core.ChannelMode;
 import haxefmod.core.Dsp;
 import haxefmod.core.DspType;
+import haxefmod.core.PcmStream;
 import haxefmod.studio.Callbacks;
 import haxefmod.core.Sound;
 import haxefmod.studio.EventInstance;
@@ -409,6 +410,62 @@ class ProgrammerSoundScenario implements TestScenario {
         FmodManager.Update();
         check("no_bogus_leaks", StudioSystem.liveHandleCount() == _atBaseline,
             'baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
+        startDrainDrop();
+    }
+
+    var _dropInstance:EventInstance = EventInstance.NULL;
+    var _dropStream:PcmStream = PcmStream.NULL;
+    var _dropChannel:haxefmod.core.Channel = haxefmod.core.Channel.NULL;
+    var _dropShortLived:Sound = Sound.NULL;
+    var _dropDestroyed:Bool = false;
+    var _dropLiveAtDestroy:Bool = false;
+    var _dropSettle:Int = 0;
+
+    /**
+     * The drain that releases the library's programmer sound ends every
+     * short-lived handle. A channel's current sound can be a subsound of
+     * that sound. The updates are held back while the line plays out, so
+     * the sound's stop and its destroy reach the game in one drain. The
+     * stop's handler takes a short-lived handle, and the destroy's handler
+     * sees it gone.
+     */
+    function startDrainDrop():Void {
+        _dropStream = PcmStream.create(48000, 1);
+        _dropChannel = _dropStream.play(true);
+        _dropDestroyed = false;
+        _dropShortLived = Sound.NULL;
+        _dropInstance = StudioSystem.getEvent(FmodEvents.DialogueSpeak).createInstance();
+        _dropInstance.setCallback(data -> {
+            switch (data) {
+                case SoundStopped:
+                    _dropShortLived = _dropChannel.getCurrentSound();
+                case ProgrammerSoundDestroyed(_):
+                    _dropDestroyed = true;
+                    _dropLiveAtDestroy = haxefmod.studio.native.NativeStudio.debug_handle_is_live(_dropShortLived);
+                default:
+            }
+        }, EventCallbackType.SOUND_STOPPED | EventCallbackType.DESTROY_PROGRAMMER_SOUND);
+        _dropInstance.assignProgrammerSound(AT_KEYS[0]);
+        _dropInstance.start();
+        host.setUpdaterInstalled(false);
+        _atFrames = 0;
+        _phase = "drain-drop";
+    }
+
+    function finishDrainDrop():Void {
+        host.setUpdaterInstalled(true);
+        if (!_dropDestroyed || _dropShortLived.isNull()) {
+            info("drain_drop_on_programmer_sound_release", 'no shared drain, skipped: destroyed=$_dropDestroyed handle=${(_dropShortLived : Int)} frames=$_atFrames');
+        } else {
+            check("drain_drop_on_programmer_sound_release", !_dropLiveAtDestroy, 'handle=${(_dropShortLived : Int)}');
+        }
+        _dropInstance.release();
+        _dropChannel.stop();
+        _dropStream.release();
+        StudioSystem.flushCommands();
+        FmodManager.Update();
+        check("no_drain_drop_leaks", StudioSystem.liveHandleCount() == _atBaseline,
+            'baseline=$_atBaseline now=${StudioSystem.liveHandleCount()}');
         teardownMeter();
         finishState();
     }
@@ -430,6 +487,20 @@ class ProgrammerSoundScenario implements TestScenario {
     }
 
     public function update(elapsed:Float):Void {
+        if (_phase == "drain-drop") {
+            // Studio runs, the drain waits until the line has played out
+            _atFrames++;
+            if (!haxefmod.runtime.FmodRuntime.isAutoUpdate()) haxefmod.studio.native.NativeStudio.sys_update();
+            if (_dropInstance.getPlaybackState() == FmodPlaybackState.STOPPED || _atFrames > 600) {
+                // Give the destroy record time to queue behind the stop
+                if (_atFrames > 600 || ++_dropSettle > 30) {
+                    _dropSettle = 0;
+                    FmodManager.Update();
+                    finishDrainDrop();
+                }
+            }
+            return;
+        }
         FmodManager.Update();
         if (_phase == "at-preload") {
             tickPreload();

@@ -134,6 +134,7 @@ abstract Geometry(Int) from Int to Int {
         var result:FmodResult = NativeStudio.geo_release(this);
         if (haxefmod.studio.UserData.releaseTookEffect(result)) {
             haxefmod.studio.UserData.clear(haxefmod.studio.UserData.UserDataKind.Geometry, this);
+            haxefmod.studio.EventInstance.dropDeadGroups();
         }
         return result;
     }

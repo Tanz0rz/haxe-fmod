@@ -39,7 +39,7 @@
 
     `FmodFlxPreloader` is the lime preloader that has FMOD ready before the first state. Set it in `Project.xml` with `<app preloader="haxefmod.flixel.FmodFlxPreloader" />`. It initializes FMOD while lime loads the assets. The default banks come from those assets. The runtime fetches none of them. It completes once initialization settled and installs `FmodFlxUpdater`. A subclass overrides `settings()` to pass [settings](settings.md#settings), since the first initialization wins and `init` cannot change them afterwards. It also overrides `create()` and `update()` for custom visuals, the way `FlxPreloader` allows. A default bank that is missing or fails to load puts a message on the preloader for `failureDisplayTime` seconds. The game then starts without that bank. The console names it.
 
-    A game that does not want the volume wiring calls `FmodManager.Initialize()` and `FmodFlxUpdater.init()` separately. `FmodFlxUpdater.isInstalled()` reports whether the hook is on. `removeHook()` takes it off. The Heaps and Kha updaters carry the same two calls. A game that calls `FmodManager.Update()` from its own frame code removes the hook first. Otherwise FMOD updates twice per frame.
+    A game that does not want the volume wiring calls `FmodManager.Initialize()` and `FmodFlxUpdater.init()` separately. `FmodFlxUpdater.isInstalled()` reports whether the hook is on. `removeHook()` takes it off. The Heaps and Kha updaters carry the same two calls. A game that calls `FmodManager.Update()` from its own frame code removes the hook first. Otherwise FMOD updates twice per frame. Components that the game creates after `removeHook()` leave the hook off. `FmodFlxUpdater.init()` and `FmodFlxSetup.init()` put the hook back. On Heaps and Kha the game calls the updater's `update()` instead. The components then keep ticking.
 
 === "Heaps"
 
@@ -51,7 +51,7 @@
     FmodHeapsSetup.init({liveUpdate: true});
     ```
 
-    `FmodHeapsSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. In the browser it loads the default banks through `hxd.net.BinaryLoader` from the bank folder. On HashLink it reads them from that folder on disk. It hands the bytes to the runtime and calls `onReady` once FMOD is usable. On HTML5 the bank fetches and the FMOD module load run in parallel. On HashLink both are synchronous and `onReady` runs before `preload` returns. `onFailed` runs instead when a bank cannot be loaded. FMOD is initialized with the settings either way. The game runs without that bank. The console names it.
+    `FmodHeapsSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. In the browser it loads the default banks through `hxd.net.BinaryLoader` from the bank folder. On HashLink it reads them from that folder on disk. It hands the bytes to the runtime and calls `onReady` once FMOD is usable. On HTML5 the bank fetches and the FMOD module load run in parallel. On HashLink both are synchronous and `onReady` runs before `preload` returns. `onFailed` runs instead when a bank cannot be loaded or FMOD refuses to initialize. After a bank failure FMOD is initialized with the settings. The game runs without that bank. The console names it.
 
     ```haxe
     import haxefmod.heaps.FmodHeapsSetup;
@@ -61,7 +61,7 @@
 
     Heaps has no global volume control of its own. The FMOD master bus is the volume. Wire your settings menu to `FmodManager.SetMasterVolume` and `SetMasterMute`.
 
-    On HashLink the updater rides the main thread's event loop, which Heaps pumps before `hxd.App.update`. In the browser it is a `requestAnimationFrame` loop. The positions an update sets reach FMOD at the start of the next frame. A game that wants them in the same frame calls `FmodManager.Update()` at the end of its own `update`. It removes the hook first with `FmodHeapsUpdater.removeHook()`. A game that drives FMOD itself calls `FmodManager.Initialize()` without the setup.
+    On HashLink the updater rides the main thread's event loop, which Heaps pumps before `hxd.App.update`. In the browser it is a `requestAnimationFrame` loop. The positions an update sets reach FMOD at the start of the next frame. A game that wants the positions in the same frame calls `FmodHeapsUpdater.removeHook()` once. The game then calls `FmodHeapsUpdater.update()` at the end of its own `update`. `update()` ticks every component and then calls `FmodManager.Update()`. Components that the game creates after `removeHook()` leave the hook off. `FmodHeapsUpdater.init()`, `FmodHeapsSetup.init()`, and `FmodHeapsSetup.preload()` put the hook back.
 
 === "Kha"
 
@@ -73,7 +73,7 @@
     FmodKhaSetup.init({liveUpdate: true});
     ```
 
-    `FmodKhaSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. Add the bank folder to the khafile assets. `kha.Assets.loadEverything` then loads the banks with everything else. Then call `preload` from its callback. It takes each bank in `autoLoadBanks` from `kha.Assets.blobs`. A bank named `Master.bank` is the blob `Master_bank`, the way khamake names assets. It hands each bank to the runtime and calls `onReady` once FMOD is usable. On a native target a bank missing from the blobs is read from the bank folder on disk. The working directory is searched first, then the directory the executable sits in. The stage command fills that folder. The khafile assets entry is needed for HTML5 only. `onFailed` runs instead when a bank is not available either way. FMOD is initialized with the settings either way. The game runs without that bank. The console names it.
+    `FmodKhaSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. Add the bank folder to the khafile assets. `kha.Assets.loadEverything` then loads the banks with everything else. Then call `preload` from its callback. It takes each bank in `autoLoadBanks` from `kha.Assets.blobs`. A bank named `Master.bank` is the blob `Master_bank`, the way khamake names assets. It hands each bank to the runtime and calls `onReady` once FMOD is usable. On a native target a bank missing from the blobs is read from the bank folder on disk. The working directory is searched first, then the directory the executable sits in. The stage command fills that folder. The khafile assets entry is needed for HTML5 only. `onFailed` runs instead when a bank is not available either way or FMOD refuses to initialize. After a bank failure FMOD is initialized with the settings. The game runs without that bank. The console names it.
 
     ```js
     if (platform === 'html5') project.addAssets('assets/fmod/Desktop/*.bank');
@@ -88,7 +88,7 @@
 
     Kha ships no global volume control. The FMOD master bus therefore carries the game's volume. Point your settings menu at `FmodManager.SetMasterVolume` and `SetMasterMute`.
 
-    A game that prefers its own wiring calls `FmodManager.Initialize()` and `FmodKhaUpdater.init()` separately. `FmodKhaUpdater.removeHook()` takes the frame task out again for a game that calls `FmodManager.Update()` from its own frame code.
+    A game that prefers its own wiring calls `FmodManager.Initialize()` and `FmodKhaUpdater.init()` separately. A game that runs FMOD from its own frame task calls `FmodKhaUpdater.removeHook()` once. That task then calls `FmodKhaUpdater.update()` each frame. `update()` ticks every component and then calls `FmodManager.Update()`. Components that the game creates after `removeHook()` leave the frame task off. `FmodKhaUpdater.init()`, `FmodKhaSetup.init()`, and `FmodKhaSetup.preload()` put the frame task back.
 
 ## Bank loader
 

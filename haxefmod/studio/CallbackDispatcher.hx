@@ -32,8 +32,6 @@ class CallbackDispatcher {
     public static inline var SYSTEM_TYPE_NAMESPACE:Int = 0x20000000;
 
     static var handlers:Map<Int, EventCallback> = new Map();
-    // Set when a DESTROYED record was delivered since the last update
-    static var destroyedSeen:Bool = false;
 
     /**
      * Router consulted before event-instance dispatch. Queue records that
@@ -129,11 +127,9 @@ class CallbackDispatcher {
         dropDeadHandlers();
         haxefmod.studio.EventInstance.dropDeadGroups();
         #else
-        // A destroyed instance took the handles reached from it along
-        if (destroyedSeen) {
-            destroyedSeen = false;
-            haxefmod.studio.EventInstance.dropDeadGroups();
-        }
+        // The drain freed every short-lived handle and what destroyed
+        // instances took along. Empty maps make this a few checks.
+        haxefmod.studio.EventInstance.dropDeadGroups();
         #end
         if (frameHook != null) frameHook();
     }
@@ -168,7 +164,6 @@ class CallbackDispatcher {
             }
         }
         if (type == (EventCallbackType.DESTROYED : Int)) {
-            destroyedSeen = true;
             handlers.remove(handle);
             // FMOD tore the instance down on its own, so release() never
             // ran and its userdata entry would otherwise outlive it

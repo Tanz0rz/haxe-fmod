@@ -723,7 +723,9 @@ class FmodManager {
 
     #if haxefmod_todo_beep
     static function playTodoBeep():Void {
-        if (!IsInitialized()) return;
+        // A marker never initializes FMOD. The game's own Initialize call
+        // must be the one that picks the settings.
+        if (!initialized || !FmodRuntime.isInitialized()) return;
         if (todoBeep.isNull()) {
             var rate = 32000;
             var samples = Std.int(rate * 0.09);

@@ -62,6 +62,10 @@ class jaxe {
     static pendingDestroy = [];
     static freeList = [];    // stack of free slot indices
     static liveCount = 0;
+    // Live slots of the volatile kind. The per-update drop returns at once
+    // while it is 0. Only setVolatile, setOwner, clearOwner, and handleFree
+    // change a slot's kind, since they keep it. Mirrors gFaxeVolatileCount.
+    static volatileCount = 0;
 
     // Callback event queue - JS mirror of native/shared/faxe_cbqueue.h.
     // JS is single-threaded so a plain array needs no locking.
@@ -138,8 +142,10 @@ class jaxe {
     // The handle for an object the game reached through another handle.
     // An object the table knows keeps its handle, so a group, sound, or
     // DSP the game created stays releasable. A new one is owned, so its
-    // release is refused, and dies with owner. A volatile one also dies
-    // wherever FMOD can destroy objects. Mirrors hlaxe_mint_borrowed.
+    // release is refused, and dies with owner. With isVolatile set,
+    // freeVolatile frees it too. It is short-lived: it dies at the next
+    // update or at the next call that stops, releases, or unloads
+    // anything. Mirrors hlaxe_mint_borrowed.
     static mintBorrowed(ptr, type, owner, isVolatile) {
         var found = jaxe.handleFind(ptr, type);
         // A group handle a walk minted in another instance's or bus's
@@ -159,7 +165,7 @@ class jaxe {
         if (handle === 0) return 0;
         jaxe.markOwned(handle);
         if (owner || isVolatile) jaxe.setOwner(handle, owner);
-        if (isVolatile) jaxe.slots[handle & 0xFFFF].borrowed = jaxe.BORROWED_VOLATILE;
+        if (isVolatile) jaxe.setVolatile(handle);
         return handle;
     }
 
@@ -389,6 +395,7 @@ class jaxe {
         var s = jaxe.slots[idx];
         if (!s || !s.alive || s.gen != gen) return;
         var kids = s.kids;
+        if (s.borrowed == jaxe.BORROWED_VOLATILE) jaxe.volatileCount--;
         s.alive = false;
         s.owned = false;
         s.parent = 0;
@@ -434,8 +441,16 @@ class jaxe {
             if (s.borrowed == jaxe.BORROWED_NONE) s.borrowed = jaxe.BORROWED_LINKED;
         } else {
             s.parent = 0;
+            if (s.borrowed != jaxe.BORROWED_VOLATILE) jaxe.volatileCount++;
             s.borrowed = jaxe.BORROWED_VOLATILE;
         }
+    }
+
+    // Marks a live borrowed handle volatile. Mirrors faxe_handle_set_volatile.
+    static setVolatile(handle) {
+        var s = jaxe.slots[handle & 0xFFFF];
+        if (s.borrowed != jaxe.BORROWED_VOLATILE) jaxe.volatileCount++;
+        s.borrowed = jaxe.BORROWED_VOLATILE;
     }
 
     // True for the types that hold a channel group for their whole life
@@ -500,6 +515,7 @@ class jaxe {
 
     static clearOwner(handle) {
         var s = jaxe.slots[handle & 0xFFFF];
+        if (s.borrowed == jaxe.BORROWED_VOLATILE) jaxe.volatileCount--;
         s.parent = 0;
         s.borrowed = jaxe.BORROWED_NONE;
     }
@@ -518,10 +534,11 @@ class jaxe {
         return handle;
     }
 
-    // Frees every volatile handle and what hangs off each. Called wherever
-    // FMOD can have destroyed objects. Mirrors faxe_handles_free_volatile.
+    // Frees every volatile handle and what hangs off each. Called at the
+    // start of each update drain and after every accepted call that stops,
+    // releases, or unloads anything. Mirrors faxe_handles_free_volatile.
     static freeVolatile() {
-        for (var i = 0; i < jaxe.slots.length; i++) {
+        for (var i = 0; i < jaxe.slots.length && jaxe.volatileCount > 0; i++) {
             var s = jaxe.slots[i];
             if (s.alive && s.borrowed == jaxe.BORROWED_VOLATILE) jaxe.handleFree((s.gen << 16) | i);
         }
@@ -953,12 +970,23 @@ class jaxe {
         // The subsound handles taken from a sound go with it
         if (h) { jaxe.freeChildren(h); jaxe.handleFree(h); }
         if (slotWrapper !== wrapper) jaxe.dropWrapper(wrapper);
+        // A channel's current sound can be one of the released sound's subsounds
+        if (release) jaxe.freeVolatile();
         return h;
     }
 
+    // True between the first fmod_cb_next of a drain and the call that ends it
+    static cbDrainOpen = false;
+
     static fmod_cb_next() {
+        // Short-lived handles die at the start of each update's drain
+        if (!jaxe.cbDrainOpen) {
+            jaxe.cbDrainOpen = true;
+            jaxe.freeVolatile();
+        }
         if (jaxe.cbQueue.length == 0) {
             jaxe.reclaimDestroyedInstances();
+            jaxe.cbDrainOpen = false;
             return false;
         }
         jaxe.cbCurrent = jaxe.cbQueue.shift();
@@ -1806,6 +1834,7 @@ class jaxe {
         if (!bus) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = bus.stopAllEvents(
             stopMode == 1 ? jaxe.FMOD.STUDIO_STOP_IMMEDIATE : jaxe.FMOD.STUDIO_STOP_ALLOWFADEOUT);
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeVolatile();
         return jaxe.lastResult;
     }
 
@@ -2051,6 +2080,12 @@ class jaxe {
         var bank = jaxe.resolveBankReady(handle);
         if (!bank) return jaxe.lastResult;
         jaxe.lastResult = bank.unloadSampleData();
+        // The flush runs the unload, so the sample data is gone before
+        // the short-lived handles to it go
+        if (jaxe.lastResult == jaxe.FMOD.OK) {
+            if (jaxe.gSystem) jaxe.gSystem.flushCommands();
+            jaxe.freeVolatile();
+        }
         return jaxe.lastResult;
     }
 
@@ -2361,6 +2396,11 @@ class jaxe {
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = evd.unloadSampleData();
+        // A flush lets the unload happen before the short-lived handles go
+        if (jaxe.lastResult == jaxe.FMOD.OK) {
+            if (jaxe.gSystem) jaxe.gSystem.flushCommands();
+            jaxe.freeVolatile();
+        }
         return jaxe.lastResult;
     }
 
@@ -2496,6 +2536,7 @@ class jaxe {
         if (!inst) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = inst.stop(
             stopMode == 1 ? jaxe.FMOD.STUDIO_STOP_IMMEDIATE : jaxe.FMOD.STUDIO_STOP_ALLOWFADEOUT);
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeVolatile();
         return jaxe.lastResult;
     }
 
@@ -2542,6 +2583,7 @@ class jaxe {
             }
             jaxe.handleFree(handle);
             jaxe.freeInstanceGroup(handle);
+            jaxe.freeVolatile();
         }
         return jaxe.lastResult;
     }
@@ -3367,6 +3409,7 @@ class jaxe {
         // Stopping tears down the channel's DSP chain, which destroys its
         // connection objects
         jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeVolatile();
         return jaxe.lastResult;
     }
 
@@ -3691,6 +3734,7 @@ class jaxe {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = group.stop();
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeVolatile();
         return jaxe.lastResult;
     }
 
@@ -4255,7 +4299,10 @@ class jaxe {
         if (!reverb) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = reverb.release();
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
-        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) jaxe.handleFree(handle);
+        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
+            jaxe.handleFree(handle);
+            jaxe.freeVolatile();
+        }
         return jaxe.lastResult;
     }
 
@@ -4780,7 +4827,10 @@ class jaxe {
         if (jaxe.isOwned(handle)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         jaxe.lastResult = group.release();
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
-        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) jaxe.handleFree(handle);
+        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
+            jaxe.handleFree(handle);
+            jaxe.freeVolatile();
+        }
         return jaxe.lastResult;
     }
 
@@ -4833,6 +4883,7 @@ class jaxe {
         var group = jaxe.resolveSoundGroup(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = group.stop();
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeVolatile();
         return jaxe.lastResult;
     }
 
@@ -5084,6 +5135,7 @@ class jaxe {
     static fmod_sys_stop_command_capture() {
         if (!jaxe.sysReady()) return jaxe.lastResult;
         jaxe.lastResult = jaxe.gSystem.stopCommandCapture();
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeVolatile();
         return jaxe.lastResult;
     }
 
@@ -5108,7 +5160,10 @@ class jaxe {
         if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = replay.release();
         // INVALID_HANDLE means FMOD freed the object already, so the slot goes too
-        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) jaxe.handleFree(handle);
+        if (jaxe.lastResult == jaxe.FMOD.OK || jaxe.lastResult == jaxe.ERR_INVALID_HANDLE) {
+            jaxe.handleFree(handle);
+            jaxe.freeVolatile();
+        }
         return jaxe.lastResult;
     }
 
@@ -5129,6 +5184,7 @@ class jaxe {
         var replay = jaxe.resolveReplay(handle);
         if (!replay) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = replay.stop();
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeVolatile();
         return jaxe.lastResult;
     }
 
@@ -5220,8 +5276,9 @@ class jaxe {
         // wrapper around a null pointer
         if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
         // A sound the table knows keeps its handle. Any other one gets a
-        // borrowed handle that refuses release and dies with the channel
-        // or with the next call that can destroy sounds.
+        // borrowed handle that refuses release. It is short-lived: it dies
+        // at the next update or at the next call that stops, releases, or
+        // unloads anything.
         return jaxe.mintBorrowed(out.val, jaxe.TYPE_SOUND, handle, true);
     }
 
@@ -6079,7 +6136,9 @@ class jaxe {
         jaxe.lastResult = group.getSound(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         // The group does not own the sound. A sound the table knows keeps
-        // its handle, any other one gets a volatile borrowed handle.
+        // its handle. Any other one gets a volatile borrowed handle. It is
+        // short-lived: it dies at the next update or at the next call that
+        // stops, releases, or unloads anything.
         return jaxe.mintBorrowed(out.val, jaxe.TYPE_SOUND, 0, true);
     }
 

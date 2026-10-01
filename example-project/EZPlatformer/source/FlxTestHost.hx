@@ -83,6 +83,15 @@ class FlxTestHost implements TestHost {
         FlxG.signals.postUpdate.dispatch();
         check("hardening_setup_sibling_remove_reinit", updaterHooks() == 1 && FmodFlxUpdater.isInstalled(),
             'hooks=${updaterHooks()} installed=${FmodFlxUpdater.isInstalled()}');
+        // After removeHook a new component leaves the hook out, and init
+        // puts it back
+        FmodFlxUpdater.removeHook();
+        var listener = new haxefmod.flixel.FmodFlxListener();
+        var leftOut = !FmodFlxUpdater.isInstalled();
+        listener.destroy();
+        FmodFlxUpdater.init();
+        check("hardening_setup_removed_hook_stays_out", leftOut && updaterHooks() == 1 && FmodFlxUpdater.isInstalled(),
+            'left_out=$leftOut hooks=${updaterHooks()} installed=${FmodFlxUpdater.isInstalled()}');
         // Every reinstall above left one closure behind at most, and the
         // deferred removals took the older ones out
         check("hardening_setup_reinit_no_leak", postUpdateHandlers() == baseline,

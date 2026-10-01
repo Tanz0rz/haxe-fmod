@@ -7,6 +7,7 @@ import haxefmod.runtime.IFmodPositionProvider;
 import haxefmod.runtime.ListenerTracker;
 import haxefmod.runtime.ZoneTrigger;
 import haxefmod.studio.EventInstance;
+import haxefmod.studio.Types.FmodStopMode;
 import haxefmod.studio.native.NativeStudioStub;
 
 /**
@@ -120,6 +121,11 @@ class TestComponentCores {
 		global.update();
 		assert(stub.testLastGlobalParameter == "Nope" && stub.testLastGlobalValue == 0,
 			"global path reaches StudioSystem.setParameter with the name and value");
+		// With an instance the global parameter stays untouched
+		stub.testLastGlobalParameter = null;
+		var local = new ZoneTrigger(provider, 0, 0, 10, 10, "Nope", 1, 0, cast 0x10010);
+		local.update();
+		assert(stub.testLastGlobalParameter == null, "an instance trigger leaves the global parameter alone");
 
 		// PROBE: the vertical extent and every edge count
 		var probeProvider = new MovableProvider(50, 150);
@@ -282,6 +288,7 @@ class TestComponentCores {
 		stub.testStopCalls = 0;
 		authored.update();
 		assert(stub.testStopCalls == 1, "the authored distance culls a far 3D event");
+		assert(stub.testLastStopMode == (FmodStopMode.ALLOWFADEOUT : Int), "culling lets the event fade out");
 		var starts = stub.testStartCalls;
 		far.x = 5;
 		authored.update();
@@ -299,6 +306,57 @@ class TestComponentCores {
 		silent.update();
 		assert(stub.testStopCalls == 0 && stub.testStartCalls == starts, "an event the game stopped is neither culled nor restarted");
 		silent.dispose();
+
+		// Turning culling off restarts the event the emitter culled
+		stub.testPlaybackState = 0;
+		far.x = 1000;
+		var toggled = new EmitterTracker(cast 0x10006, far);
+		toggled.stopEventsOutsideMaxDistance = true;
+		toggled.cullCheckInterval = 1;
+		stub.testStopCalls = 0;
+		toggled.update();
+		starts = stub.testStartCalls;
+		toggled.stopEventsOutsideMaxDistance = false;
+		toggled.update();
+		assert(stub.testStopCalls == 1 && stub.testStartCalls == starts + 1, "turning culling off restarts the culled event");
+		toggled.dispose();
+
+		// Far-off one-shots and 2D events play on. So does an event with a
+		// cull distance of zero.
+		function culling(handle:Int):EmitterTracker {
+			var tracker = new EmitterTracker(cast handle, far);
+			tracker.stopEventsOutsideMaxDistance = true;
+			tracker.cullCheckInterval = 1;
+			return tracker;
+		}
+		stub.testStopCalls = 0;
+		stub.testIsOneshot = true;
+		var oneshot = culling(0x10007);
+		oneshot.update();
+		stub.testIsOneshot = false;
+		assert(stub.testStopCalls == 0, "a far one-shot is not culled");
+		stub.testIs3D = false;
+		var flat = culling(0x10008);
+		flat.update();
+		stub.testIs3D = true;
+		assert(stub.testStopCalls == 0, "a far 2D event is not culled by the authored distance");
+		var zero = culling(0x10009);
+		zero.cullMaxDistance = 0;
+		zero.update();
+		assert(stub.testStopCalls == 0, "a cull distance of zero culls nothing");
+		for (tracker in [oneshot, flat, zero]) tracker.dispose();
+
+		// The distance is measured against the emitter's own listener
+		stub.testListenerIndex = 1;
+		stub.testStopCalls = 0;
+		var second = new EmitterTracker(cast 0x1000A, far);
+		second.listenerIndex = 1;
+		second.stopEventsOutsideMaxDistance = true;
+		second.cullCheckInterval = 1;
+		second.update();
+		assert(stub.testStopCalls == 1, "the cull check reads the emitter's listener");
+		second.dispose();
+		stub.testListenerIndex = 0;
 		stub.testPlaybackState = savedState;
 		stub.testListenerPosition = null;
 		stub.testIs3D = false;
@@ -327,6 +385,9 @@ class TestComponentCores {
 		listener.provider = provider;
 		listener.update();
 		assert(stub.testListenerPushes.length == 1, "one listener push per update with a provider");
+		new ListenerTracker(provider, 2).update();
+		assert(stub.testListenerPushes.length == 2 && stub.testListenerPushes[1].index == 2,
+			"the tracker drives the listener it was given");
 		stub.testRecordListenerPushes = false;
 	}
 }

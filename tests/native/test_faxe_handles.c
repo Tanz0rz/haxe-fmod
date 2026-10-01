@@ -41,6 +41,16 @@ static int sweep_all_dead(void* ptr, unsigned char type) {
     return 0;
 }
 
+/* The volatile kind as the table holds it, counted the slow way */
+static int count_volatile_slots(void) {
+    int i;
+    int n = 0;
+    for (i = 0; i < gFaxeSlotCap; i++) {
+        if (gFaxeSlots[i].alive && gFaxeSlots[i].borrowed == FAXE_BORROWED_VOLATILE) n++;
+    }
+    return n;
+}
+
 
 /* Seeded pseudo-random fuzz with a shadow model. Arbitrary integers into
  * resolve and free must behave exactly like the model predicts. A random
@@ -657,6 +667,100 @@ int main(void) {
         assert(!faxe_handle_is_live(hGroupA) && !faxe_handle_is_live(hBusGroup));
         faxe_handle_free(hGame);
         faxe_handle_free(hMaster);
+        assert(faxe_live_handle_count() == liveAtStart);
+    }
+
+    /* gFaxeVolatileCount follows every change of a slot's kind, so the
+     * per-update drop can return at once with no volatile slot alive */
+    {
+        static int objs[64];
+        int hs[64];
+        int n = 0;
+        int op;
+        unsigned int seed = 0x9E3779B9u;
+        int liveAtStart = faxe_live_handle_count();
+        assert(gFaxeVolatileCount == 0 && count_volatile_slots() == 0);
+        /* each helper by hand */
+        {
+            int owner = faxe_handle_alloc(&objs[0], FAXE_TYPE_EVI);
+            int dead = faxe_handle_alloc(&objs[1], FAXE_TYPE_EVI);
+            int a = faxe_handle_alloc(&objs[2], FAXE_TYPE_CHANGROUP);
+            int b = faxe_handle_alloc(&objs[3], FAXE_TYPE_CHANGROUP);
+            int kid = faxe_handle_alloc(&objs[4], FAXE_TYPE_DSP);
+            faxe_handle_free(dead);
+            faxe_handle_set_owner(a, dead);            /* dead owner: volatile */
+            assert(gFaxeVolatileCount == 1);
+            faxe_handle_set_owner(a, dead);            /* already volatile */
+            faxe_handle_set_volatile(a);
+            assert(gFaxeVolatileCount == 1);
+            faxe_handle_set_owner(b, owner);           /* linked */
+            assert(gFaxeVolatileCount == 1);
+            faxe_handle_set_volatile(b);
+            assert(gFaxeVolatileCount == 2);
+            faxe_handle_set_owner(b, owner);           /* a live owner keeps the kind */
+            assert(gFaxeVolatileCount == 2);
+            faxe_handle_clear_owner(b);
+            assert(gFaxeVolatileCount == 1);
+            faxe_handle_set_owned(a, 1);
+            assert(faxe_handle_adopt(a, owner) == 1);  /* volatile to linked */
+            assert(gFaxeVolatileCount == 0);
+            faxe_handle_set_volatile(a);
+            faxe_handle_set_owner(kid, a);
+            faxe_handle_set_volatile(kid);
+            assert(gFaxeVolatileCount == 2);
+            faxe_handle_free(owner);                   /* the cascade counts too */
+            assert(gFaxeVolatileCount == 0 && !faxe_handle_is_live(kid));
+            faxe_handle_free(b);
+        }
+        /* random kinds against the slow count */
+        for (op = 0; op < 20000; op++) {
+            unsigned int roll;
+            int pick;
+            seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
+            roll = seed % 8;
+            pick = n > 0 ? (int)((seed >> 8) % (unsigned int)n) : 0;
+            if (roll == 0 && n < 64) {
+                hs[n] = faxe_handle_alloc(&objs[n], FAXE_TYPE_CHANGROUP);
+                faxe_handle_set_owned(hs[n], 1);
+                n++;
+            } else if (n == 0) {
+                continue;
+            } else if (roll == 1) {
+                faxe_handle_set_owner(hs[pick], hs[(pick + 1) % n]);
+            } else if (roll == 2) {
+                faxe_handle_set_volatile(hs[pick]);
+            } else if (roll == 3) {
+                faxe_handle_clear_owner(hs[pick]);
+            } else if (roll == 4) {
+                faxe_handle_adopt(hs[pick], hs[(pick + 3) % n]);
+            } else if (roll == 5) {
+                faxe_handle_free(hs[pick]);
+            } else if (roll == 6) {
+                faxe_handles_free_volatile();
+                assert(gFaxeVolatileCount == 0);
+            } else {
+                faxe_handle_set_owner(hs[pick], 0);
+            }
+            /* drop the dead from the pick list, an owner cascade included */
+            {
+                int i, w = 0;
+                for (i = 0; i < n; i++) if (faxe_handle_is_live(hs[i])) hs[w++] = hs[i];
+                n = w;
+            }
+            assert(gFaxeVolatileCount == count_volatile_slots());
+        }
+        while (n > 0) faxe_handle_free(hs[--n]);
+        assert(gFaxeVolatileCount == 0);
+        /* with the count at 0 the drop scans nothing. A slot marked behind
+         * the helpers' backs shows it. */
+        {
+            int hidden = faxe_handle_alloc(&objs[0], FAXE_TYPE_CHANGROUP);
+            gFaxeSlots[hidden & 0xFFFF].borrowed = FAXE_BORROWED_VOLATILE;
+            faxe_handles_free_volatile();
+            assert(faxe_handle_is_live(hidden));
+            gFaxeSlots[hidden & 0xFFFF].borrowed = FAXE_BORROWED_NONE;
+            faxe_handle_free(hidden);
+        }
         assert(faxe_live_handle_count() == liveAtStart);
     }
 

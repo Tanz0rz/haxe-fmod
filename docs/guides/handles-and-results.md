@@ -42,7 +42,7 @@ instance.start();
 instance.release();
 ```
 
-**Borrowed handles** are the ones the game reaches through another handle: an instance's or a bus's group, a walked channel group, the DSP of a group or channel, a channel's sound. A borrowed handle dies with the handle it came from. An instance's group handle dies at the instance's `release()`, while the event plays on. `release()` on a borrowed handle returns `FMOD_ERR_INVALID_PARAM`. A walk that reaches an object the game created returns the game's own handle. A borrowed handle takes the longest lifetime among the calls that reached its object. A child group handle and the parent of an event's sound are short-lived. Fetch them again after any call that destroys objects. See [Limitations](../limitations.md#fixed-behaviors-and-caps).
+**Borrowed handles** are the ones the game reaches through another handle: an instance's or a bus's group, a walked channel group, the DSP of a group or channel, a channel's sound. A borrowed handle dies with the handle it came from. An instance's group handle dies at the instance's `release()`, while the event plays on. `release()` on a borrowed handle returns `FMOD_ERR_INVALID_PARAM`. A walk that reaches an object the game created returns the game's own handle. A child group, a channel's group or sound, a sound from a sound group, and a DSP graph walk are short-lived. They die at the next `FmodManager.Update()` or at the next call that stops, releases, or unloads anything. Fetch them again each frame. See [Limitations](../limitations.md#fixed-behaviors-and-caps).
 
 `Channel` handles end on their own when playback stops. The slot is reclaimed with the end callback, or by the next channel play or lookup. Call `stop()` to free it earlier.
 
@@ -56,7 +56,7 @@ Every handle has `setUserData(value)` and `getUserData()`. So does `StudioSystem
 - when FMOD destroys an event instance on its own and delivers `Destroyed`
 - when a channel with a handler ends and delivers `End`
 - when a call that destroys many objects at once succeeds. A bank unload drops the values of the event descriptions that died with it. A bank unload, `EventDescription.releaseAllInstances`, and `Bus.unlockChannelGroup` drop the value of every channel group that died.
-- when a borrowed handle dies with the handle it came from. The next call that releases or destroys objects drops the value. So does the update after FMOD destroyed an instance.
+- when a borrowed handle dies. The next `FmodManager.Update()` drops the value. So does the next call that stops, releases, or unloads anything.
 - for every handle that came from a bank on `unloadAll`, once FMOD accepted the call. A sound, DSP, or group the game created keeps its value. The system value stays.
 
 A recycled native slot gets a new generation and therefore a new handle int. A value left on a dead handle can never be read through the handle that later reuses its slot.

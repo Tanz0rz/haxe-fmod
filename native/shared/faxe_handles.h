@@ -85,9 +85,12 @@ typedef struct {
      * kids skips the table scan when it is freed. */
     unsigned char kids;
     /* How a handle the game did not create lives. FAXE_BORROWED_LINKED
-     * dies with its parent. FAXE_BORROWED_VOLATILE also dies at every
-     * call that can destroy FMOD objects (see faxe_handles_free_volatile),
-     * since its object can die with no handle of the table noticing. */
+     * dies with its parent. FAXE_BORROWED_VOLATILE also goes in
+     * faxe_handles_free_volatile, since its object can die with no handle
+     * of the table noticing. It is short-lived: it dies at the next update
+     * or at the next call that stops, releases, or unloads anything. Only
+     * the helpers below write this field, since they keep
+     * gFaxeVolatileCount. */
     unsigned char borrowed;
     int next_free;        /* free-list link, -1 = end of list */
 } FaxeSlot;
@@ -100,6 +103,9 @@ static FaxeSlot* gFaxeSlots = NULL;
 static int gFaxeSlotCap = 0;
 static int gFaxeFreeHead = -1;
 static int gFaxeLiveCount = 0;
+/* Live slots whose borrowed kind is FAXE_BORROWED_VOLATILE. The per-update
+ * drop returns at once while it is 0. */
+static int gFaxeVolatileCount = 0;
 
 /* Doubling growth. Links new slots into the free list (lowest index first). */
 static int faxe_handles_grow(void) {
@@ -271,6 +277,7 @@ static void faxe_handle_free_slot(int handle, int keepAux) {
     if (!s->alive || s->gen != gen) return;
 
     kids = s->kids;
+    if (s->borrowed == FAXE_BORROWED_VOLATILE) gFaxeVolatileCount--;
     s->alive = 0;
     s->owned = 0;
     s->parent = 0;
@@ -348,19 +355,23 @@ static void faxe_handle_set_owner(int handle, int owner) {
         if (s->borrowed == FAXE_BORROWED_NONE) s->borrowed = FAXE_BORROWED_LINKED;
     } else {
         s->parent = 0;
+        if (s->borrowed != FAXE_BORROWED_VOLATILE) gFaxeVolatileCount++;
         s->borrowed = FAXE_BORROWED_VOLATILE;
     }
 }
 
 /* Marks a live borrowed handle volatile. The handle must resolve. */
 static void faxe_handle_set_volatile(int handle) {
-    gFaxeSlots[handle & 0xFFFF].borrowed = FAXE_BORROWED_VOLATILE;
+    FaxeSlot* s = &gFaxeSlots[handle & 0xFFFF];
+    if (s->borrowed != FAXE_BORROWED_VOLATILE) gFaxeVolatileCount++;
+    s->borrowed = FAXE_BORROWED_VOLATILE;
 }
 
 /* Gives a live handle a fixed lifetime again: no owner, not volatile.
  * The master groups take this, since they live as long as the system. */
 static void faxe_handle_clear_owner(int handle) {
     FaxeSlot* s = &gFaxeSlots[handle & 0xFFFF];
+    if (s->borrowed == FAXE_BORROWED_VOLATILE) gFaxeVolatileCount--;
     s->parent = 0;
     s->borrowed = FAXE_BORROWED_NONE;
 }
@@ -446,11 +457,12 @@ static int faxe_handle_adopt(int handle, int owner) {
 }
 
 /* Frees every volatile handle and what hangs off each. The shims call
- * this wherever FMOD can have destroyed objects, since nothing tells
- * them which of these died. */
+ * this at the start of each update drain and after every accepted call
+ * that stops, releases, or unloads anything. Nothing tells them which
+ * of these objects died. With no volatile slot alive it returns at once. */
 static void faxe_handles_free_volatile(void) {
     int i;
-    for (i = 0; i < gFaxeSlotCap; i++) {
+    for (i = 0; i < gFaxeSlotCap && gFaxeVolatileCount > 0; i++) {
         FaxeSlot* s = &gFaxeSlots[i];
         if (s->alive && s->borrowed == FAXE_BORROWED_VOLATILE) faxe_handle_free_slot(((int)s->gen << 16) | i, 1);
     }

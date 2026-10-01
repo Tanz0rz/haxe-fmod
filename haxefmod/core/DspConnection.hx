@@ -50,8 +50,9 @@ abstract DspConnection(Int) from Int to Int {
 
     /**
      * The DSP feeding this connection. A known DSP returns its existing handle. Any other one gets a
-     * short-lived borrowed handle. Release refuses it, and it dies with this connection handle or whenever
-     * FMOD can destroy objects. Returns Dsp.NULL on failure, with the reason in StudioSystem.lastResult().
+     * borrowed handle that release refuses. It is short-lived: it dies at the next update or at the next
+     * call that stops, releases, or unloads anything. Returns Dsp.NULL on failure, with the reason in
+     * StudioSystem.lastResult().
      */
     public inline function getInputDsp():Dsp {
         return NativeStudio.dspconn_get_input_dsp(this);
@@ -59,8 +60,8 @@ abstract DspConnection(Int) from Int to Int {
 
     /**
      * The DSP this connection feeds. A known DSP returns its existing handle. Any other one gets a
-     * short-lived borrowed handle, the same as getInputDsp. Returns Dsp.NULL on failure, with the reason in
-     * StudioSystem.lastResult().
+     * borrowed handle that lives the way getInputDsp's does. Returns Dsp.NULL on failure, with the reason
+     * in StudioSystem.lastResult().
      */
     public inline function getOutputDsp():Dsp {
         return NativeStudio.dspconn_get_output_dsp(this);

@@ -11,12 +11,16 @@ import haxefmod.FmodManager;
     that loop once per frame, before hxd.App.update. haxe.MainLoop is
     never ticked there on Haxe 4.2 and later. In the browser the updater
     is a requestAnimationFrame loop. Every haxefmod.heaps component
-    registers here. The updater ticks each component before
-    FmodManager.Update() runs. The positions it samples are the ones the
-    last update set, so they reach FMOD at the start of the next frame.
-    A game that needs them in the same frame calls FmodManager.Update()
-    at the end of its own update and leaves this updater out with
-    removeHook().
+    registers here. Each frame the hook calls update(), which ticks each
+    component and then runs FmodManager.Update(). The positions it
+    samples are the ones the last update set, so they reach FMOD at the
+    start of the next frame.
+
+    A game that needs them in the same frame calls removeHook() once and
+    then calls update() at the end of its own update. The hook stays out
+    after that. A component created later registers without installing
+    it. init(), FmodHeapsSetup.init(), and FmodHeapsSetup.preload()
+    install it again.
 **/
 class FmodHeapsUpdater {
     /** How many times the frame hook was actually installed (1 after init). **/
@@ -26,6 +30,9 @@ class FmodHeapsUpdater {
     static var tickers:Array<IHeapsTicker> = [];
     static var lastStamp:Float = -1;
     static var installed:Bool = false;
+    // Set by removeHook() and cleared by init(). While set, add() leaves
+    // the hook out.
+    static var hookRemoved:Bool = false;
     #if js
     static var frameRequest:Int = 0;
     // True while browserFrame runs its tickers. An init from inside
@@ -37,8 +44,9 @@ class FmodHeapsUpdater {
     static var mainLoopEvent:haxe.MainLoop.MainEvent = null;
     #end
 
-    /** Installs the frame hook once. Later calls do nothing. **/
+    /** Installs the frame hook once and undoes an earlier removeHook(). Later calls do nothing. **/
     public static function init():Void {
+        hookRemoved = false;
         if (installed) return;
         installed = true;
         installCount++;
@@ -57,8 +65,13 @@ class FmodHeapsUpdater {
         return installed;
     }
 
-    /** Removes the frame hook. FmodManager.Update() then runs only when the game calls it. **/
+    /**
+        Removes the frame hook. The game then calls update() once per
+        frame. Components created afterwards leave the hook out. init()
+        installs it again.
+    **/
     public static function removeHook():Void {
+        hookRemoved = true;
         if (!installed) return;
         installed = false;
         lastStamp = -1;
@@ -94,9 +107,9 @@ class FmodHeapsUpdater {
     }
     #end
 
-    /** Registers a component to be ticked every frame, installing the frame hook if needed. **/
+    /** Registers a component to be ticked every frame. Installs the frame hook unless removeHook() took it out. **/
     public static function add(ticker:IHeapsTicker):Void {
-        init();
+        if (!hookRemoved) init();
         if (tickers.indexOf(ticker) == -1) tickers.push(ticker);
     }
 
@@ -111,7 +124,13 @@ class FmodHeapsUpdater {
         return tickers.length;
     }
 
-    static function frame():Void {
+    /**
+        Ticks every registered component with the seconds since the last
+        update, then runs FmodManager.Update(). The installed hook calls
+        it every frame. After removeHook() the game calls it at the end of
+        its own update instead.
+    **/
+    public static function update():Void {
         var now = haxe.Timer.stamp();
         var dt = lastStamp < 0 ? 0.0 : now - lastStamp;
         lastStamp = now;
@@ -120,6 +139,10 @@ class FmodHeapsUpdater {
             ticker.tick(dt);
         }
         FmodManager.Update();
+    }
+
+    static function frame():Void {
+        update();
     }
 }
 
