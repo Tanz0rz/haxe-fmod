@@ -36,7 +36,7 @@ haxelib run haxefmod generate [--strings <path>] [--out <dir>] [--package <pkg>]
 
 It also writes `FmodEventEnum.hx`, the enum covering every event, and a `...Guids` class beside each constants class.
 
-The generator parses the compiled strings bank, so it reflects exactly what the banks contain. Run it again after every bank build.
+The generator parses the compiled strings bank. It reflects exactly what the banks contain. Run it again after every bank build.
 
 ## todos
 
@@ -72,4 +72,4 @@ The command reads `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5). It stops with the re
 haxelib run haxefmod build-hdll
 ```
 
-The library ships pre-built HashLink libraries for FMOD Engine 2.03.12. Any other engine version needs the hdll compiled against your installed SDK, and this command does it. It detects the platform and finds the HashLink headers in the usual locations. It compiles and places the result in a `.haxefmod/` directory in your project. The build then prefers that copy over the bundled one. Set `HASHLINK_DIR` to your HashLink installation if the command cannot find the headers. You must have a C compiler (`gcc` on Linux, `cc` on macOS, `cl` on Windows). See [Platforms](../platforms.md#hashlink) for how the hdll is resolved at build time.
+The library ships pre-built HashLink libraries for FMOD Engine 2.03.12. Any other engine version needs the hdll compiled against your installed SDK. This command does it. It detects the platform and finds the HashLink headers in the usual locations. It compiles and places the result in a `.haxefmod/` directory in your project. The build then prefers that copy over the bundled one. Set `HASHLINK_DIR` to your HashLink installation if the command cannot find the headers. You must have a C compiler (`gcc` on Linux, `cc` on macOS, `cl` on Windows). See [Platforms](../platforms.md#hashlink) for how the hdll is resolved at build time.

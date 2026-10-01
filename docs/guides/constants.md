@@ -1,6 +1,6 @@
 # Generated constants
 
-Every event, bus, VCA, snapshot, and parameter in your FMOD Studio project becomes a Haxe constant. The constants have autocomplete, and a renamed event fails at compile time.
+Every event, bus, VCA, snapshot, and parameter in your FMOD Studio project becomes a Haxe constant. The constants have autocomplete. A renamed event fails at compile time.
 
 ```haxe
 FmodManager.PlaySong(FmodEvents.MusicMainLevel);
@@ -31,7 +31,7 @@ One class per path category found in the strings bank:
 | `FmodSnapshots.hx` | `snapshot:/...` |
 | `FmodParameters.hx` | `parameter:/...` |
 
-The `FmodParameters` constants hold full `parameter:/` paths. Every parameter call in `FmodManager` and on `FmodEvent` takes either form. So do `setParameter`, `getParameter`, `getParameterFinal`, and `setParameterWithLabel` on `EventInstance` and `StudioSystem`. FMOD addresses a parameter by its bare name, so the prefix is stripped for it. The parameter description lookups and FMOD's own `setParameterByName` forms take the bare name.
+The `FmodParameters` constants hold full `parameter:/` paths. Every parameter call in `FmodManager` and on `FmodEvent` takes either form. So do `setParameter`, `getParameter`, `getParameterFinal`, and `setParameterWithLabel` on `EventInstance` and `StudioSystem`. FMOD addresses a parameter by its bare name. The prefix is stripped for it. The parameter description lookups and FMOD's own `setParameterByName` forms take the bare name.
 
 Each file also holds a companion `...Guids` class with the same identifiers mapped to GUID strings. The class is separate so autocomplete on the main class shows paths only.
 
@@ -40,7 +40,7 @@ var path = FmodEvents.MusicMainLevel;      // "event:/Music/MainLevel"
 var guid = FmodEventsGuids.MusicMainLevel; // "{e5187c3f-...}"
 ```
 
-`FmodEventEnum.hx` holds a plain enum that covers every event, with values named like the `FmodEvents` constants. `FmodEventTools.path()` and `guid()` map the enum back, and both work as static extensions. Plain enums suit switch statements and tools that import Haxe enums, such as LDtk external enums. Projects that never touch the enum can ignore the file.
+`FmodEventEnum.hx` holds a plain enum that covers every event, with values named like the `FmodEvents` constants. `FmodEventTools.path()` and `guid()` map the enum back. Both work as static extensions. Plain enums suit switch statements and tools that import Haxe enums, such as LDtk external enums. Projects that never touch the enum can ignore the file.
 
 The generator derives an identifier from a path in four steps:
 

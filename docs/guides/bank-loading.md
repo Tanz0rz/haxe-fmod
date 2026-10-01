@@ -26,10 +26,10 @@ if (FmodRuntime.banks.isLoaded(FmodRuntime.bankPath("Vehicles.bank"))) {
 }
 ```
 
-A path that settles in `ERROR` is not deduplicated. A second load replaces the dead entry, so a game can retry a failed fetch.
+A path that settles in `ERROR` is not deduplicated. A second load replaces the dead entry. A game can retry a failed fetch.
 
-Two spellings of one file share one refcount, because `BankRegistry.normalizePath` collapses separators and `.` segments. Windows backslashes are accepted. Two paths FMOD reports as one bank share an entry too, so the last unload of either unloads it.
+Two spellings of one file share one refcount, because `BankRegistry.normalizePath` collapses separators and `.` segments. Windows backslashes are accepted. Two paths FMOD reports as one bank share an entry too. The last unload of either unloads it.
 
 ## Loading outside the registry
 
-`StudioSystem.loadBankFile`, `loadBankMemory`, `getBank`, and the `Bank` methods are FMOD's own calls and remain available. The registry adopts a bank loaded that way on the first registry load of the same path. `StudioSystem.unloadAll()` unloads everything, and the registry keeps its reference counts. A later registry load carries those counts forward.
+`StudioSystem.loadBankFile`, `loadBankMemory`, `getBank`, and the `Bank` methods are FMOD's own calls and remain available. The registry adopts a bank loaded that way on the first registry load of the same path. `StudioSystem.unloadAll()` unloads everything. The registry keeps its reference counts. A later registry load carries those counts forward.

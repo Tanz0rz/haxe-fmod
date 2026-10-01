@@ -15,7 +15,7 @@
 FMOD creates every sound through `System::createSound` with a mode and an exinfo struct. haxefmod splits that call into factories on `Sound`. Each factory returns `Sound.NULL` on failure and puts the reason in `StudioSystem.lastResult()`.
 
 - `Sound.create(path, ?loop, ?openOnly, ?mode, ?initialSubsound, ?exinfo)` loads a file. `loop` and `openOnly` set the matching mode bits. `mode` takes any further `ChannelMode` flags. `initialSubsound` picks the subsound an FSB stream starts on. `exinfo` is an `FmodCreateSoundExInfo` for the rest of `FMOD_CREATESOUNDEXINFO`. A sound opened with `openOnly` cannot play. It exists to be read.
-- `Sound.fromMemory(bytes, ?mode, ?length, ?exinfo)` takes an encoded file image the game already holds. FMOD copies the bytes, so the buffer can go after the call returns.
+- `Sound.fromMemory(bytes, ?mode, ?length, ?exinfo)` takes an encoded file image the game already holds. FMOD copies the bytes. The buffer can go after the call returns.
 - `Sound.fromPcm(bytes, sampleRate, channels, ?length)` makes a sample from 16-bit signed PCM. Stereo data is interleaved.
 - `Sound.createRecordBuffer(sampleRate, channels, seconds)` makes an empty 16-bit PCM sound of that length. `StudioSystem.recordStart` fills it.
 
@@ -33,7 +33,7 @@ On HTML5 only FSB images decode. See [Limitations](../limitations.md#html5). `fr
 
 ### Sample data
 
-`readData(buffer, ?length)` decodes PCM from a sound opened with `openOnly` into the buffer. It returns the number of bytes read. At the end of the file it returns `0`, and `StudioSystem.lastResult()` reports `FMOD_ERR_FILE_EOF`. On an error it returns the negated FMOD error code.
+`readData(buffer, ?length)` decodes PCM from a sound opened with `openOnly` into the buffer. It returns the number of bytes read. At the end of the file it returns `0`. `StudioSystem.lastResult()` reports `FMOD_ERR_FILE_EOF`. On an error it returns the negated FMOD error code.
 
 `lock(offset, length)` returns a copy of a byte range of a sample sound as `haxe.io.Bytes`. `unlock(data)` writes the edited copy back and closes the lock. Only one lock can be open per sound. A release with a lock open drops the lock with the sound.
 

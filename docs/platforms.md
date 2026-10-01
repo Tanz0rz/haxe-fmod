@@ -10,7 +10,7 @@ The FMOD web build is a WebAssembly module. The library's post-build step copies
 
 The wasm module and the default banks load in the background. `FmodManager.IsInitialized()` (or `FmodRuntime.isInitialized()`) reports true once the module is up and every default bank is loaded or has failed.
 
-The engine preloaders make that wait invisible. `FmodFlxPreloader` runs inside lime's preloader, and `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` call back once FMOD is ready. Each hands the default banks to the runtime as bytes it read during loading. The banks are fetched once, and the first scene starts with FMOD usable. [Engine components](guides/components.md#setup) shows the three.
+The engine preloaders make that wait invisible. `FmodFlxPreloader` runs inside lime's preloader. `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` call back once FMOD is ready. Each hands the default banks to the runtime as bytes it read during loading. The banks are fetched once. The first scene starts with FMOD usable. [Engine components](guides/components.md#setup) shows the three.
 
 The bytes go through `FmodRuntime.provideBank(fileName, bytes)`, with the `banksProvided` setting on. A game on another engine does the same from whatever loads its assets, then calls `FmodRuntime.onceReady(start, onFailed)`.
 
@@ -44,11 +44,11 @@ Bank loads are always asynchronous on HTML5. A bank file exists in the browser's
 
 ### Browser autoplay
 
-Browsers refuse to start audio before the user interacts with the page. The library listens for `click`, `keydown`, `pointerdown`, and `touchstart` from the moment its script loads. It resumes FMOD's mixer on the first of them, so a gesture made during the loading screen counts. An event started before that gesture is silent until the mixer resumes, then plays from that moment on. A game that wants sound from the first frame puts a "click to start" screen ahead of it.
+Browsers refuse to start audio before the user interacts with the page. The library listens for `click`, `keydown`, `pointerdown`, and `touchstart` from the moment its script loads. It resumes FMOD's mixer on the first of them. A gesture made during the loading screen counts. An event started before that gesture is silent until the mixer resumes, then plays from that moment on. A game that wants sound from the first frame puts a "click to start" screen ahead of it.
 
 ### Native-only calls
 
-A call to a feature the web build lacks is a compile error in a js build. A js build refuses the call at compile time and names the method and the reason. Set `-D haxefmod_html5_allow_unsupported` to compile it anyway. The call then returns `FMOD_ERR_UNSUPPORTED` in the browser, and the build prints one warning.
+A call to a feature the web build lacks is a compile error in a js build. A js build refuses the call at compile time and names the method and the reason. Set `-D haxefmod_html5_allow_unsupported` to compile it anyway. The call then returns `FMOD_ERR_UNSUPPORTED` in the browser. The build prints one warning.
 
 ## HashLink
 

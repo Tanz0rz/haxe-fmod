@@ -11,21 +11,21 @@
 
 === "HaxeFlixel"
 
-    The components are for HaxeFlixel 5.9.0 or newer. Each one is a `FlxBasic`. Add it to a state, and it updates and destroys with the state like any other flixel object.
+    The components are for HaxeFlixel 5.9.0 or newer. Each one is a `FlxBasic`. Add it to a state. It updates and destroys with the state like any other flixel object.
 
 === "Heaps"
 
-    Heaps has no component list to hook, so the components are plain objects and not scene nodes. Each one registers itself with the per-frame updater when created. Call its `dispose()` to unregister it. Keep a reference to any component you must end before the game does.
+    Heaps has no component list to hook. The components are plain objects and not scene nodes. Each one registers itself with the per-frame updater when created. Call its `dispose()` to unregister it. Keep a reference to any component you must end before the game does.
 
 === "Kha"
 
-    Kha has no scene graph, so the components follow any object with `x` and `y` fields. Add `width` and `height` fields to have the midpoint tracked instead of the corner. Each component registers itself with the per-frame updater when created. `dispose()` unregisters it. Keep a reference to any component you must end before the game does.
+    Kha has no scene graph. The components follow any object with `x` and `y` fields. Add `width` and `height` fields to have the midpoint tracked instead of the corner. Each component registers itself with the per-frame updater when created. `dispose()` unregisters it. Keep a reference to any component you must end before the game does.
 
 ## Setup
 
 === "HaxeFlixel"
 
-    Call `FmodFlxSetup.init(?settings)` once, in your first state. It initializes FMOD with the given [settings](settings.md#settings). It hooks `FlxG.signals.postUpdate` through `FmodFlxUpdater`, so `FmodManager.Update()` runs after every frame in every state. It forwards `FlxG.signals.focusGained` and `focusLost` to `FmodRuntime.setWindowFocused` (see [Window focus](fmod-manager.md#window-focus)).
+    Call `FmodFlxSetup.init(?settings)` once, in your first state. It initializes FMOD with the given [settings](settings.md#settings). It hooks `FlxG.signals.postUpdate` through `FmodFlxUpdater`. `FmodManager.Update()` runs after every frame in every state. It forwards `FlxG.signals.focusGained` and `focusLost` to `FmodRuntime.setWindowFocused` (see [Window focus](fmod-manager.md#window-focus)).
 
     It also wires flixel's own audio controls to FMOD. The volume keys and the sound tray drive the FMOD master bus. `FlxG.sound.volume` and `FlxG.sound.muted` map to bus volume and mute. The tray's beep is silenced because FMOD owns the audio.
 
@@ -37,13 +37,13 @@
 
     On HTML5 the volume wiring waits for the asynchronous initialization through `FmodRuntime.onceReady`. A call to `init` before FMOD is ready is safe.
 
-    `FmodFlxPreloader` is the lime preloader that has FMOD ready before the first state. Set it in `Project.xml` with `<app preloader="haxefmod.flixel.FmodFlxPreloader" />`. It initializes FMOD while lime loads the assets. The default banks come from those assets, so the runtime fetches none of them. It completes once initialization settled and installs `FmodFlxUpdater`. A subclass overrides `settings()` to pass [settings](settings.md#settings), since the first initialization wins and `init` cannot change them afterwards. It also overrides `create()` and `update()` for custom visuals, the way `FlxPreloader` allows. A default bank that is missing or fails to load puts a message on the preloader for `failureDisplayTime` seconds. The game then starts without that bank, and the console names it.
+    `FmodFlxPreloader` is the lime preloader that has FMOD ready before the first state. Set it in `Project.xml` with `<app preloader="haxefmod.flixel.FmodFlxPreloader" />`. It initializes FMOD while lime loads the assets. The default banks come from those assets. The runtime fetches none of them. It completes once initialization settled and installs `FmodFlxUpdater`. A subclass overrides `settings()` to pass [settings](settings.md#settings), since the first initialization wins and `init` cannot change them afterwards. It also overrides `create()` and `update()` for custom visuals, the way `FlxPreloader` allows. A default bank that is missing or fails to load puts a message on the preloader for `failureDisplayTime` seconds. The game then starts without that bank. The console names it.
 
-    A game that does not want the volume wiring calls `FmodManager.Initialize()` and `FmodFlxUpdater.init()` separately. `FmodFlxUpdater.isInstalled()` reports whether the hook is on, and `removeHook()` takes it off. The Heaps and Kha updaters carry the same two calls. A game that calls `FmodManager.Update()` from its own frame code removes the hook first. Otherwise FMOD updates twice per frame.
+    A game that does not want the volume wiring calls `FmodManager.Initialize()` and `FmodFlxUpdater.init()` separately. `FmodFlxUpdater.isInstalled()` reports whether the hook is on. `removeHook()` takes it off. The Heaps and Kha updaters carry the same two calls. A game that calls `FmodManager.Update()` from its own frame code removes the hook first. Otherwise FMOD updates twice per frame.
 
 === "Heaps"
 
-    Call `FmodHeapsSetup.init(?settings)` once from your `hxd.App`'s `init()`. It initializes FMOD with the given [settings](settings.md#settings). It installs `FmodHeapsUpdater`, so `FmodManager.Update()` runs every frame. It forwards the window's focus events to `FmodRuntime.setWindowFocused` (see [Window focus](fmod-manager.md#window-focus)).
+    Call `FmodHeapsSetup.init(?settings)` once from your `hxd.App`'s `init()`. It initializes FMOD with the given [settings](settings.md#settings). It installs `FmodHeapsUpdater`. `FmodManager.Update()` runs every frame. It forwards the window's focus events to `FmodRuntime.setWindowFocused` (see [Window focus](fmod-manager.md#window-focus)).
 
     ```haxe
     import haxefmod.heaps.FmodHeapsSetup;
@@ -51,7 +51,7 @@
     FmodHeapsSetup.init({liveUpdate: true});
     ```
 
-    `FmodHeapsSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. In the browser it loads the default banks through `hxd.net.BinaryLoader` from the bank folder. On HashLink it reads them from that folder on disk. It hands the bytes to the runtime and calls `onReady` once FMOD is usable. On HTML5 the bank fetches and the FMOD module load run in parallel. On HashLink both are synchronous and `onReady` runs before `preload` returns. `onFailed` runs instead when a bank cannot be loaded. FMOD is initialized with the settings either way, the game runs without that bank, and the console names it.
+    `FmodHeapsSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. In the browser it loads the default banks through `hxd.net.BinaryLoader` from the bank folder. On HashLink it reads them from that folder on disk. It hands the bytes to the runtime and calls `onReady` once FMOD is usable. On HTML5 the bank fetches and the FMOD module load run in parallel. On HashLink both are synchronous and `onReady` runs before `preload` returns. `onFailed` runs instead when a bank cannot be loaded. FMOD is initialized with the settings either way. The game runs without that bank. The console names it.
 
     ```haxe
     import haxefmod.heaps.FmodHeapsSetup;
@@ -59,13 +59,13 @@
     FmodHeapsSetup.preload({liveUpdate: true}, startGame, () -> trace("no audio"));
     ```
 
-    Heaps has no global volume control of its own, so the FMOD master bus is the volume. Wire your settings menu to `FmodManager.SetMasterVolume` and `SetMasterMute`.
+    Heaps has no global volume control of its own. The FMOD master bus is the volume. Wire your settings menu to `FmodManager.SetMasterVolume` and `SetMasterMute`.
 
     On HashLink the updater rides the main thread's event loop, which Heaps pumps before `hxd.App.update`. In the browser it is a `requestAnimationFrame` loop. The positions an update sets reach FMOD at the start of the next frame. A game that wants them in the same frame calls `FmodManager.Update()` at the end of its own `update`. It removes the hook first with `FmodHeapsUpdater.removeHook()`. A game that drives FMOD itself calls `FmodManager.Initialize()` without the setup.
 
 === "Kha"
 
-    Call `FmodKhaSetup.init(?settings)` once from the `System.start` callback. It initializes FMOD with the given [settings](settings.md#settings). It installs `FmodKhaUpdater` as a `Scheduler` frame task at priority 100. Kha runs frame tasks in ascending priority order. Give the game's own frame tasks a lower number, and `FmodManager.Update()` runs after them every frame. It mutes the master output while the application is paused or in the background, through `System.notifyOnApplicationState` (see [FmodManager](fmod-manager.md#window-focus)).
+    Call `FmodKhaSetup.init(?settings)` once from the `System.start` callback. It initializes FMOD with the given [settings](settings.md#settings). It installs `FmodKhaUpdater` as a `Scheduler` frame task at priority 100. Kha runs frame tasks in ascending priority order. Give the game's own frame tasks a lower number. `FmodManager.Update()` then runs after them every frame. It mutes the master output while the application is paused or in the background, through `System.notifyOnApplicationState` (see [FmodManager](fmod-manager.md#window-focus)).
 
     ```haxe
     import haxefmod.kha.FmodKhaSetup;
@@ -73,7 +73,7 @@
     FmodKhaSetup.init({liveUpdate: true});
     ```
 
-    `FmodKhaSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. Add the bank folder to the khafile assets, so `kha.Assets.loadEverything` loads the banks with everything else. Then call `preload` from its callback. It takes each bank in `autoLoadBanks` from `kha.Assets.blobs`. A bank named `Master.bank` is the blob `Master_bank`, the way khamake names assets. It hands each bank to the runtime and calls `onReady` once FMOD is usable. On a native target a bank missing from the blobs is read from the bank folder on disk. The working directory is searched first, then the directory the executable sits in. The stage command fills that folder, so the khafile assets entry is needed for HTML5 only. `onFailed` runs instead when a bank is not available either way. FMOD is initialized with the settings either way, the game runs without that bank, and the console names it.
+    `FmodKhaSetup.preload(?settings, onReady, ?onFailed)` does the same and has FMOD ready before the first scene. Add the bank folder to the khafile assets, so `kha.Assets.loadEverything` loads the banks with everything else. Then call `preload` from its callback. It takes each bank in `autoLoadBanks` from `kha.Assets.blobs`. A bank named `Master.bank` is the blob `Master_bank`, the way khamake names assets. It hands each bank to the runtime and calls `onReady` once FMOD is usable. On a native target a bank missing from the blobs is read from the bank folder on disk. The working directory is searched first, then the directory the executable sits in. The stage command fills that folder. The khafile assets entry is needed for HTML5 only. `onFailed` runs instead when a bank is not available either way. FMOD is initialized with the settings either way. The game runs without that bank. The console names it.
 
     ```js
     if (platform === 'html5') project.addAssets('assets/fmod/Desktop/*.bank');
@@ -92,7 +92,7 @@
 
 ## Bank loader
 
-The bank loader loads a set of banks through the refcounted registry and reports when all of them are ready. File names resolve against the configured bank folder. The loader calls `onLoaded` exactly once when every bank is loaded. It calls `onError` exactly once if any bank settles in an error state. A missing file or a failed fetch on HTML5 causes that. It also calls `onError` once when FMOD refused to initialize, since the banks never load then. The `loaded` property mirrors `onLoaded`. Loading is asynchronous by default, and `async = false` loads synchronously on native targets.
+The bank loader loads a set of banks through the refcounted registry and reports when all of them are ready. File names resolve against the configured bank folder. The loader calls `onLoaded` exactly once when every bank is loaded. It calls `onError` exactly once if any bank settles in an error state. A missing file or a failed fetch on HTML5 causes that. It also calls `onError` once when FMOD refused to initialize, since the banks never load then. The `loaded` property mirrors `onLoaded`. Loading is asynchronous by default. `async = false` loads synchronously on native targets.
 
 === "HaxeFlixel"
 
@@ -140,11 +140,11 @@ The emitter keeps an event instance positioned at a moving game object for as lo
     emitter.instance.setParameter("RPM", 0.4);
     ```
 
-    `FmodFlxEmitter.play(path, target)` creates and starts an instance. `new FmodFlxEmitter(instance, target)` wraps an instance you already created. The constructor installs `FmodFlxUpdater`, and the runtime update pushes the positions. Distance culling runs from the emitter's own `update`. An emitter the state never adds is positioned but never culled. Add it to the state when you turn culling on.
+    `FmodFlxEmitter.play(path, target)` creates and starts an instance. `new FmodFlxEmitter(instance, target)` wraps an instance you already created. The constructor installs `FmodFlxUpdater`. The runtime update pushes the positions. Distance culling runs from the emitter's own `update`. An emitter the state never adds is positioned but never culled. Add it to the state when you turn culling on.
 
 === "Heaps"
 
-    The instance follows the center of an `h2d.Object`'s bounds. Heaps objects carry no velocity, so the emitter derives one from the movement between frames. A jump larger than `teleportDistance` in one frame (default 500 units) counts as a cut. The emitter then pushes zero velocity for that frame and prevents a doppler spike.
+    The instance follows the center of an `h2d.Object`'s bounds. Heaps objects carry no velocity. The emitter derives one from the movement between frames. A jump larger than `teleportDistance` in one frame (default 500 units) counts as a cut. The emitter then pushes zero velocity for that frame and prevents a doppler spike.
 
     ```haxe
     import haxefmod.heaps.FmodHeapsEmitter;
@@ -159,7 +159,7 @@ The emitter keeps an event instance positioned at a moving game object for as lo
 
 === "Kha"
 
-    The instance follows a body's midpoint. Frame-to-frame movement gives the emitter its velocity. `teleportDistance` (default 500 units) sets the cut threshold, and a bigger one-frame jump counts as a cut. The emitter reports zero velocity for that frame, so no doppler spike reaches the sound.
+    The instance follows a body's midpoint. Frame-to-frame movement gives the emitter its velocity. `teleportDistance` (default 500 units) sets the cut threshold. A bigger one-frame jump counts as a cut. The emitter reports zero velocity for that frame. No doppler spike reaches the sound.
 
     ```haxe
     import haxefmod.kha.FmodKhaEmitter;
@@ -174,13 +174,13 @@ The emitter keeps an event instance positioned at a moving game object for as lo
 
 ### Distance culling
 
-Every engine's emitter shares the same culling, backed by one runtime tracker. Culling is opt-in. With `stopEventsOutsideMaxDistance = true`, the emitter stops its event with a fadeout while the event is out of range. The range is the event's authored maximum distance from the listener. The emitter restarts the event when the listener comes back in range. This saves voices on far-away looping emitters. The emitter restarts only an instance it stopped itself, so an instance the game stopped stays stopped.
+Every engine's emitter shares the same culling, backed by one runtime tracker. Culling is opt-in. With `stopEventsOutsideMaxDistance = true`, the emitter stops its event with a fadeout while the event is out of range. The range is the event's authored maximum distance from the listener. The emitter restarts the event when the listener comes back in range. This saves voices on far-away looping emitters. The emitter restarts only an instance it stopped itself. An instance the game stopped stays stopped.
 
-A restart begins from the event's start with the instance's parameters still applied. `listenerIndex` picks the listener the distance is measured against. `cullCheckInterval` sets how many frames pass between checks (default 6). `cullMaxDistance` overrides the authored distance when set to a positive value. One-shot events are never culled, because a stopped and restarted self-ending event would replay long after it had finished. With the default `cullMaxDistance` only 3D events are culled, and a 2D event is culled only when `cullMaxDistance` is set.
+A restart begins from the event's start with the instance's parameters still applied. `listenerIndex` picks the listener the distance is measured against. `cullCheckInterval` sets how many frames pass between checks (default 6). `cullMaxDistance` overrides the authored distance when set to a positive value. One-shot events are never culled, because a stopped and restarted self-ending event would replay long after it had finished. With the default `cullMaxDistance` only 3D events are culled. A 2D event is culled only when `cullMaxDistance` is set.
 
 ## Listener
 
-The listener positions an FMOD listener every frame. It pushes velocity alongside position, so authored doppler responds to listener movement.
+The listener positions an FMOD listener every frame. It pushes velocity alongside position. Authored doppler responds to listener movement.
 
 === "HaxeFlixel"
 
@@ -295,4 +295,4 @@ The trigger drives an FMOD parameter from a rectangular zone. While the target i
 
 ## Rolling your own
 
-Everything the components do goes through public runtime calls: `FmodRuntime.attach` with an `IFmodPositionProvider`, `StudioSystem.setListenerPosition2D`, and `FmodRuntime.banks`. A game on an engine without a component package writes the same few lines against its own object types. On Heaps and Kha, `FmodHeapsUpdater.add(ticker)` and `FmodKhaUpdater.add(ticker)` tick a custom component every frame, and `remove(ticker)` stops it. The engine-free cores in `haxefmod.runtime` (`EmitterTracker`, `ListenerTracker`, `ZoneTrigger`, `BankLoadTracker`) carry the shared behavior.
+Everything the components do goes through public runtime calls: `FmodRuntime.attach` with an `IFmodPositionProvider`, `StudioSystem.setListenerPosition2D`, and `FmodRuntime.banks`. A game on an engine without a component package writes the same few lines against its own object types. On Heaps and Kha, `FmodHeapsUpdater.add(ticker)` and `FmodKhaUpdater.add(ticker)` tick a custom component every frame. `remove(ticker)` stops it. The engine-free cores in `haxefmod.runtime` (`EmitterTracker`, `ListenerTracker`, `ZoneTrigger`, `BankLoadTracker`) carry the shared behavior.

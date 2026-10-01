@@ -4,7 +4,7 @@ Every FMOD object in `haxefmod.studio` and `haxefmod.core` is a typed handle. Ex
 
 ## Handles are integers
 
-A handle is an `abstract` over `Int`. The integer indexes a table on the native side that owns the real FMOD pointer. Haxe code never holds a raw pointer, and no Haxe allocation happens on an FMOD thread. Handles compare with `==`, fit in any collection, and cost nothing to copy.
+A handle is an `abstract` over `Int`. The integer indexes a table on the native side that owns the real FMOD pointer. Haxe code never holds a raw pointer. No Haxe allocation happens on an FMOD thread. Handles compare with `==`, fit in any collection, and cost nothing to copy.
 
 `0` is the null handle. Every handle type has a `NULL` constant and an `isNull()` method.
 
@@ -15,7 +15,7 @@ if (description.isNull()) {
 }
 ```
 
-The studio handles (`EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`) and `FmodEvent` also have `isValid()`. It asks the native side whether the handle still points at a live FMOD object. A released handle is stale, and so is a handle whose object FMOD destroyed on its own. `isNull()` is a local check and `isValid()` is a native call. The core handles have `isNull()` only. A stale core handle returns `FMOD_ERR_INVALID_HANDLE` from its next call.
+The studio handles (`EventInstance`, `EventDescription`, `Bank`, `Bus`, `Vca`, `CommandReplay`) and `FmodEvent` also have `isValid()`. It asks the native side whether the handle still points at a live FMOD object. A released handle is stale. A handle whose object FMOD destroyed on its own is stale too. `isNull()` is a local check and `isValid()` is a native call. The core handles have `isNull()` only. A stale core handle returns `FMOD_ERR_INVALID_HANDLE` from its next call.
 
 ## Stale handles are safe
 
@@ -31,7 +31,7 @@ event.release();      // also safe
 
 FMOD objects have two kinds of lifetime.
 
-**Looked-up handles** (`EventDescription`, `Bus`, `Vca`, `Bank`) refer to objects that live as long as their bank is loaded. `StudioSystem.getBus` caches one handle per path, so repeated bus lookups return the same handle. `getEvent`, `getVCA`, and `getBank` look the object up on each call. The game never releases these handles.
+**Looked-up handles** (`EventDescription`, `Bus`, `Vca`, `Bank`) refer to objects that live as long as their bank is loaded. `StudioSystem.getBus` caches one handle per path. Repeated bus lookups return the same handle. `getEvent`, `getVCA`, and `getBank` look the object up on each call. The game never releases these handles.
 
 **Created handles** (`EventInstance`, `Sound`, `Dsp`, custom `ChannelGroup`, `SoundGroup`, `CommandReplay`) are yours until you release them. `release()` on an event instance lets FMOD destroy it once it stops. Once FMOD accepts the call the handle is dead and the library drops any registered callback. A refused release keeps the instance and its callback. The instance plays out unless you stopped it first. Fire-and-forget playback is start followed by release. A group the game did not create is FMOD's. The master group, a bus's group, and an instance's group refuse `release()` with `FMOD_ERR_INVALID_PARAM`. So does a group first reached through a walk. The handle stays usable.
 
@@ -48,7 +48,7 @@ A handle that is never released holds a slot in the native table for the life of
 
 ## Userdata
 
-Every handle has `setUserData(value)` and `getUserData()`, and so does `StudioSystem`. FMOD's own userdata slot holds a raw pointer, which cannot carry a Haxe value across the binding. The value lives on the Haxe side, keyed by the handle. The library drops the value in five cases:
+Every handle has `setUserData(value)` and `getUserData()`. So does `StudioSystem`. FMOD's own userdata slot holds a raw pointer, which cannot carry a Haxe value across the binding. The value lives on the Haxe side, keyed by the handle. The library drops the value in five cases:
 
 - when the handle is released through the abstract (`release`, `stop`, `unload`) and FMOD accepted it or reported the handle dead. A channel drops it before the call. An event instance also drops the value of the group it handed out.
 - when FMOD destroys an event instance on its own and delivers `Destroyed`
