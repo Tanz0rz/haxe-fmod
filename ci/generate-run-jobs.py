@@ -206,6 +206,8 @@ def setup_steps(j):
             # since the browser legs cannot run without it.
             install = f"""          for attempt in 1 2 3; do
             bash ci/apt.sh install -y {pkgs} && break
+            status=$?
+            [ "$status" = 75 ] && exit 1
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done

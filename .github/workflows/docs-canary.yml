@@ -30,6 +30,10 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           bash ci/retry.sh npm install playwright@1.63.0 > /dev/null
+          # The packages --with-deps would fetch with no time limit come
+          # through the bounded wrapper first. The runner has the rest.
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y --no-install-recommends fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont fonts-wqy-zenhei xfonts-cyrillic xfonts-scalable
           bash ci/retry.sh npx playwright install --with-deps chromium
 
       - name: Compare fmod.com with the catalog

@@ -45,13 +45,17 @@ leans on:
      install, curl, wget, ssh, rsync, and gh api or release download
      call goes through ci/retry.sh.
      That covers the workflows, the composite actions, and the run job
-     generator. Every apt-get carries its retry option.
+     generator. Every apt-get goes through ci/apt.sh.
   15. The steps gated on a stale pre-built hdll are the known few, so a
      new gate cannot hide behind the branch escape hatch unnoticed. The
      three HashLink build gates and the two hdll ABI check steps read
      both hdll markers.
   16. Every chromium install waits for the GPU content slot, and its
-     headless probe fails the step.
+     headless probe fails the step. Each install sits in the generated
+     run jobs, which the generator holds to its template.
+  17. A job that calls a ci/ wrapper checks the repo out first.
+  18. Every tests/build*.hxml suite runs in the workflow and in
+     ci/local-ci.sh.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -311,8 +315,15 @@ for path in fetch_files:
             block_indent = None
         if stripped.startswith("#") or stripped.startswith("echo "):
             continue
-        if re.search(r"\bapt-get\b", line):
+        if re.search(r"\bapt-get\b", line) or re.search(r"(?<![\w./-])apt\s+(?:-\S+\s+)*(?:install|update|upgrade)\b", line):
             unretried.append(f"{os.path.relpath(path, ROOT)}:{n}")
+        # Playwright fetches packages with apt-get on its own. The step
+        # installs them through the wrapper first, so nothing is left
+        # for the unbounded fetch
+        if re.search(r"--with-deps|install-deps", line):
+            earlier = "".join(text_line for m, text_line in lines if n - 8 <= m < n)
+            if not re.search(r"ci/apt\.sh\"? install", earlier):
+                unretried.append(f"{os.path.relpath(path, ROOT)}:{n} playwright fetches its packages unbounded")
         if re.match(r"cd ", stripped) and not stripped.startswith("cd -"):
             moved = True
         if "retry.sh" in line or "apt.sh" in line:
@@ -386,6 +397,22 @@ for step in re.split(r"\n(?= {6}- )", text):
         name = re.search(r"- name: ([^\n]+)", step)
         line = text[:text.index(step)].count("\n") + 1
         ungated.append(f"line {line} ({name.group(1) if name else 'unnamed step'}) {', '.join(problems)}")
+# The gated installs are generated, so generate-run-jobs.py --check holds
+# each step to the template byte for byte. A copy outside the region
+# could wrap the gate in a block that never runs.
+generated_from = text.find("# ---- BEGIN generated run jobs")
+generated_to = text.find("# ---- END generated run jobs")
+for match in CHROMIUM_INSTALL.finditer(text):
+    if not (0 <= generated_from < match.start() < generated_to):
+        ungated.append(f"line {text[:match.start()].count(chr(10)) + 1} installs the browser outside the generated run jobs")
+# The generator's own check is what holds a step inside the region to
+# the template, so it runs here too
+if PATH == DEFAULT_WORKFLOW:
+    import subprocess
+    regenerated = subprocess.run([sys.executable, os.path.join(ROOT, "ci", "generate-run-jobs.py"), "--check"],
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if regenerated.returncode != 0:
+        ungated.append("the generated run jobs differ from ci/generate-run-jobs.py")
 # A job may not shrug off a failed step either
 if re.search(r"^    continue-on-error:", text, re.M):
     ungated.append("a job sets continue-on-error")
@@ -676,10 +703,17 @@ for path in fetch_files:
     if jobs_at < 0:
         continue
     for job in re.split(r"\n(?=  [\w-]+:\n)", workflow[jobs_at + 7:]):
-        call = re.search(r"bash \"?ci/(?:retry|apt)\.sh", job)
+        job = "\n".join(line for line in job.split("\n") if not line.lstrip().startswith("#"))
+        call = re.search(r"(?<!\$GITHUB_ACTION_PATH/)(?<![\w.])ci/(?:retry|apt)\.sh", job)
         if not call:
             continue
-        checkout = job.find("uses: actions/checkout")
+        # A real checkout step of this repo: no other repository, no path,
+        # no condition
+        checkout = -1
+        for step in re.finditer(r"^      - uses: actions/checkout@[^\n]*\n((?:        [^\n]*\n| *\n)*)", job, re.M):
+            if not re.search(r"^\s*(?:path|repository|if):", step.group(1), re.M):
+                checkout = step.start()
+                break
         if checkout < 0 or checkout > call.start():
             name = re.match(r"\s*([\w-]+):", job)
             no_checkout.append(f"{os.path.relpath(path, ROOT)}:{name.group(1) if name else '?'}")
@@ -693,8 +727,14 @@ else:
 suites = sorted(name for name in os.listdir(os.path.join(ROOT, "tests")) if re.match(r"build.*\.hxml$", name))
 with open(os.path.join(ROOT, "ci", "local-ci.sh")) as fh:
     local_runner = fh.read()
-not_run = [f"{where}: {suite}" for suite in suites for where, body in (("workflow", text), ("ci/local-ci.sh", local_runner))
-           if not re.search(r"\bhaxe tests/" + re.escape(suite) + r"(?![\w.-])", body)]
+def commands_only(body):
+    # Comment lines and echoed text name a suite without running it
+    return "\n".join(line for line in body.split("\n") if not re.match(r"\s*(#|echo\b)", line))
+not_run = [f"{where}: {suite}" for suite in suites for where, body in (("workflow", commands_only(text)), ("ci/local-ci.sh", commands_only(local_runner)))
+           if not re.search(r"(?:^\s*(?:run: |step \"[^\"]*\" )?|&& )haxe tests/" + re.escape(suite) + r"(?![\w.-])", body, re.M)]
+# A step switched off with a constant condition runs nothing
+if re.search(r"^\s*if:\s*(?:false|\$\{\{\s*false\s*\}\})\s*$", text, re.M):
+    not_run.append("workflow: a step or job is disabled with if: false")
 if not_run or len(suites) < 7:
     fail(f"test suites not run: {not_run} ({len(suites)} suites)")
 else:

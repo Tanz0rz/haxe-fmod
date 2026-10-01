@@ -13,6 +13,9 @@
 # killed attempt the runner's Azure mirror leaves the mirror list and
 # the rest go to the main archive. The unpack half runs once with no
 # limit, since killing dpkg leaves the package database broken.
+#
+# Exit 75 means the download attempts ran out. A caller that retries the
+# whole install stops on it, since another pass only meets the job limit.
 set -u
 [ "$#" -gt 0 ] || { echo "apt: no command given" >&2; exit 2; }
 OPTS="-o Acquire::Retries=1 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10"
@@ -52,7 +55,7 @@ case "$command" in
     bounded "$UPDATE_LIMIT" update "$@"
     ;;
   install)
-    bounded "$DOWNLOAD_LIMIT" install --download-only "$@" || exit $?
+    bounded "$DOWNLOAD_LIMIT" install --download-only "$@" || exit 75
     sudo apt-get install --no-download "$@"
     ;;
   *)

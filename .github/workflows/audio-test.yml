@@ -188,6 +188,7 @@ jobs:
         run: |
           haxe tests/build-defines.hxml
           haxe tests/build-debug-defaults.hxml
+          haxe tests/build-no-live-update.hxml
 
       # One init per process: the failure paths get their own suites
       - name: Test the default bank failure path
@@ -1574,6 +1575,9 @@ jobs:
           npm init -y > /dev/null
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 bash "$GITHUB_WORKSPACE/ci/retry.sh" npm install playwright@1.63.0 > /dev/null
           export PLAYWRIGHT_BROWSERS_PATH="$RUNNER_TEMP/pw-browsers"
+          # The packages --with-deps would fetch with no time limit come
+          # through the bounded wrapper first. The runner has the rest.
+          bash "$GITHUB_WORKSPACE/ci/apt.sh" install -y --no-install-recommends fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont fonts-wqy-zenhei xfonts-cyrillic xfonts-scalable
           bash "$GITHUB_WORKSPACE/ci/retry.sh" npx playwright install --with-deps firefox
 
       - name: Run api-probe state (firefox)
@@ -4376,6 +4380,8 @@ jobs:
           bash ci/apt.sh update
           for attempt in 1 2 3; do
             bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            status=$?
+            [ "$status" = 75 ] && exit 1
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
@@ -5712,6 +5718,8 @@ jobs:
           bash ci/apt.sh update
           for attempt in 1 2 3; do
             bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            status=$?
+            [ "$status" = 75 ] && exit 1
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
@@ -6811,6 +6819,8 @@ jobs:
           bash ci/apt.sh update
           for attempt in 1 2 3; do
             bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            status=$?
+            [ "$status" = 75 ] && exit 1
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
