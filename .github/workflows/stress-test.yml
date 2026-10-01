@@ -83,6 +83,9 @@ jobs:
       - name: Build stress target
         run: |
           cd example-project/EZPlatformer
+          # The shipped hdll trails the tree until update-hdlls lands, so
+          # the stress run builds its own from the shim sources
+          haxelib run haxefmod build-hdll
           haxelib run lime build hl -Daudio_test
 
       - name: Run stress state

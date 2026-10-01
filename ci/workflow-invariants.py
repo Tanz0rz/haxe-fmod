@@ -313,15 +313,16 @@ for path in fetch_files:
             continue
         if block_indent is not None and stripped and indent <= block_indent:
             block_indent = None
-        if stripped.startswith("#") or stripped.startswith("echo "):
+        if stripped.startswith("#"):
             continue
-        if re.search(r"\bapt-get\b", line) or re.search(r"(?<![\w./-])apt\s+(?:-\S+\s+)*(?:install|update|upgrade)\b", line):
+        line = "".join(seg for seg in re.split(r"(\s*(?:&&|\|\||;|\|)\s*)", line) if not seg.lstrip().startswith("echo "))
+        if re.search(r"\bapt-get\b", line) or re.search(r"(?<![\w./-])apt\s+(?:-\S+(?:\s+[^-\s]\S*=\S*)?\s+)*(?:install|reinstall|update|upgrade|full-upgrade|dist-upgrade)\b", line):
             unretried.append(f"{os.path.relpath(path, ROOT)}:{n}")
         # Playwright fetches packages with apt-get on its own. The step
         # installs them through the wrapper first, so nothing is left
         # for the unbounded fetch
         if re.search(r"--with-deps|install-deps", line):
-            earlier = "".join(text_line for m, text_line in lines if n - 8 <= m < n)
+            earlier = "".join(text_line for m, text_line in lines if n - 8 <= m < n and not text_line.lstrip().startswith("#"))
             if not re.search(r"ci/apt\.sh\"? install", earlier):
                 unretried.append(f"{os.path.relpath(path, ROOT)}:{n} playwright fetches its packages unbounded")
         if re.match(r"cd ", stripped) and not stripped.startswith("cd -"):
@@ -387,6 +388,8 @@ for step in re.split(r"\n(?= {6}- )", text):
         problems.append("has continue-on-error")
     if re.search(r"^ *done *\|\|", body, re.M):
         problems.append("lets a loop fail quietly (done ||)")
+    if re.search(r"^" + base + r"(?:if|while|until|case|select|function|trap|exit|return)\b|^" + base + r"[({]|^" + base + r"(?=\S)[^\n]*;\s*exit\b", body, re.M):
+        problems.append("wraps or leaves around the gate at its own indentation")
     if re.search(r"<<", body):
         problems.append("holds a heredoc")
     if re.search(r"^ *exit 0\b", body, re.M):
@@ -733,7 +736,7 @@ def commands_only(body):
 not_run = [f"{where}: {suite}" for suite in suites for where, body in (("workflow", commands_only(text)), ("ci/local-ci.sh", commands_only(local_runner)))
            if not re.search(r"(?:^\s*(?:run: |step \"[^\"]*\" )?|&& )haxe tests/" + re.escape(suite) + r"(?![\w.-])", body, re.M)]
 # A step switched off with a constant condition runs nothing
-if re.search(r"^\s*if:\s*(?:false|\$\{\{\s*false\s*\}\})\s*$", text, re.M):
+if re.search(r"^\s*if:\s*[\"']?(?:false|0|\$\{\{\s*(?:false|0|!\s*true|null|''|false\s*&&[^}]*)\s*\}\})[\"']?\s*(?:#.*)?$", text, re.M):
     not_run.append("workflow: a step or job is disabled with if: false")
 if not_run or len(suites) < 7:
     fail(f"test suites not run: {not_run} ({len(suites)} suites)")

@@ -23,6 +23,7 @@
 #                  (default: the fmod-sdk-cache checkout next to this repo)
 #   CHROMIUM       chromium binary (default: chromium-browser, then chromium)
 #   KHA            a Kha checkout with submodules (kha jobs). Default: ../Kha
+#   LOCAL_CI_ANY_HAXE  set to run with a Haxe version other than the workflow's
 #   NODE_PATH      where the playwright package resolves from (firefox job).
 #                  PLAYWRIGHT_BROWSERS_PATH is inherited, the image sets it
 #
@@ -36,6 +37,17 @@
 set -u
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# The workflow pins Haxe, and its interpreter differs between patch
+# releases in ways a test can see. A green run on another version says
+# nothing about the runner.
+WANT_HAXE="$(sed -n 's/^  HAXE_VERSION: //p' "$ROOT/.github/workflows/audio-test.yml" | head -n 1)"
+HAVE_HAXE="$(haxe --version 2>/dev/null || true)"
+if [ -n "$WANT_HAXE" ] && [ "$HAVE_HAXE" != "$WANT_HAXE" ] && [ -z "${LOCAL_CI_ANY_HAXE:-}" ]; then
+  echo "local-ci: Haxe $HAVE_HAXE is installed, the workflow runs $WANT_HAXE." >&2
+  echo "local-ci: install that version, or set LOCAL_CI_ANY_HAXE=1 to run anyway." >&2
+  exit 1
+fi
 OUT="$ROOT/ci/local"
 EXAMPLE="$ROOT/example-project/EZPlatformer"
 FMOD_SDK_ROOT="${FMOD_SDK_ROOT:-$ROOT/../fmod-sdk-cache/sdk/2.03.12}"

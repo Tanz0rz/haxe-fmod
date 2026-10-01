@@ -65,9 +65,9 @@ class TestEngineUpdaters {
 			FmodHeapsUpdater.removeHook();
 			FmodHeapsUpdater.init();
 		};
-		// The new repeat can run in the pass that installed it when the
-		// clock did not move, so that pass alone may tick twice. Every
-		// pass after it ticks once, which two hooks would not.
+		// Haxe 4.3.6 runs the new repeat in the pass that installed it and
+		// 4.3.7 does not, so that pass alone may tick twice. Every pass
+		// after it ticks once, which two hooks would not.
 		pumpHeaps(1);
 		ticks = ticker.ticks;
 		pumpHeaps(4);

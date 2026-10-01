@@ -1578,6 +1578,10 @@ jobs:
           # The packages --with-deps would fetch with no time limit come
           # through the bounded wrapper first. The runner has the rest.
           bash "$GITHUB_WORKSPACE/ci/apt.sh" install -y --no-install-recommends fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont fonts-wqy-zenhei xfonts-cyrillic xfonts-scalable
+          # Whatever else its dry run would install or upgrade goes
+          # through the wrapper too
+          PKGS=$(bash "$GITHUB_WORKSPACE/ci/retry.sh" npx playwright install-deps --dry-run firefox 2>/dev/null | awk '$1 == "Inst" { print $2 }' | sort -u | tr '\n' ' ') || true
+          if [ -n "$PKGS" ]; then bash "$GITHUB_WORKSPACE/ci/apt.sh" install -y --no-install-recommends $PKGS; fi
           bash "$GITHUB_WORKSPACE/ci/retry.sh" npx playwright install --with-deps firefox
 
       - name: Run api-probe state (firefox)
@@ -2021,19 +2025,19 @@ jobs:
           for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set VSPATH=%%i
           call "%VSPATH%\VC\Auxiliary\Build\vcvars64.bat" || exit /b 1
           for %%t in (handles cbqueue guid instctx pcmring) do (
-            cl /nologo /W3 /std:c11 /TC /Fe:%TEMP%\msvc_c_%%t.exe tests\native\test_faxe_%%t.c || exit /b 1
+            cl /nologo /W3 /WX /D_CRT_SECURE_NO_WARNINGS /std:c11 /TC /Fe:%TEMP%\msvc_c_%%t.exe tests\native\test_faxe_%%t.c || exit /b 1
             %TEMP%\msvc_c_%%t.exe || exit /b 1
-            cl /nologo /W3 /TP /Fe:%TEMP%\msvc_cpp_%%t.exe tests\native\test_faxe_%%t.c || exit /b 1
+            cl /nologo /W3 /WX /D_CRT_SECURE_NO_WARNINGS /TP /Fe:%TEMP%\msvc_cpp_%%t.exe tests\native\test_faxe_%%t.c || exit /b 1
             %TEMP%\msvc_cpp_%%t.exe || exit /b 1
           )
-          cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dsptype.exe tests\native\test_faxe_dsptype.c || exit /b 1
+          cl /nologo /W3 /WX /D_CRT_SECURE_NO_WARNINGS /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dsptype.exe tests\native\test_faxe_dsptype.c || exit /b 1
           %TEMP%\msvc_dsptype.exe || exit /b 1
-          cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dspdata.exe tests\native\test_faxe_dspdata.c || exit /b 1
+          cl /nologo /W3 /WX /D_CRT_SECURE_NO_WARNINGS /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dspdata.exe tests\native\test_faxe_dspdata.c || exit /b 1
           %TEMP%\msvc_dspdata.exe || exit /b 1
-          cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dspparams.exe tests\native\test_faxe_dspparams.c || exit /b 1
+          cl /nologo /W3 /WX /D_CRT_SECURE_NO_WARNINGS /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dspparams.exe tests\native\test_faxe_dspparams.c || exit /b 1
           %TEMP%\msvc_dspparams.exe || exit /b 1
           python ci\haxe-enum-values.py --check || exit /b 1
-          cl /nologo /W3 /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /I "%FMOD_SDK%\api\studio\inc" /Fe:%TEMP%\msvc_enums.exe tests\native\test_faxe_enums.c || exit /b 1
+          cl /nologo /W3 /WX /D_CRT_SECURE_NO_WARNINGS /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /I "%FMOD_SDK%\api\studio\inc" /Fe:%TEMP%\msvc_enums.exe tests\native\test_faxe_enums.c || exit /b 1
           %TEMP%\msvc_enums.exe || exit /b 1
 
   windows-hl-build:
@@ -4392,7 +4396,8 @@ jobs:
           done
           sudo snap wait system seed.loaded || true
           gpu_slot_connected() {
-            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 != "-" { found = 1 } END { exit found ? 0 : 1 }'
+            # The GPU slot and the gnome platform slot both carry a launcher
+            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 != "-" { gpu = 1 } $1 ~ /^content\[gnome-/ && $3 != "-" { gnome = 1 } END { exit gpu && gnome ? 0 : 1 }'
           }
           for i in $(seq 90); do
             gpu_slot_connected && break
@@ -5735,7 +5740,8 @@ jobs:
           done
           sudo snap wait system seed.loaded || true
           gpu_slot_connected() {
-            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 != "-" { found = 1 } END { exit found ? 0 : 1 }'
+            # The GPU slot and the gnome platform slot both carry a launcher
+            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 != "-" { gpu = 1 } $1 ~ /^content\[gnome-/ && $3 != "-" { gnome = 1 } END { exit gpu && gnome ? 0 : 1 }'
           }
           for i in $(seq 90); do
             gpu_slot_connected && break
@@ -6841,7 +6847,8 @@ jobs:
           done
           sudo snap wait system seed.loaded || true
           gpu_slot_connected() {
-            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 != "-" { found = 1 } END { exit found ? 0 : 1 }'
+            # The GPU slot and the gnome platform slot both carry a launcher
+            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\[gpu-/ && $3 != "-" { gpu = 1 } $1 ~ /^content\[gnome-/ && $3 != "-" { gnome = 1 } END { exit gpu && gnome ? 0 : 1 }'
           }
           for i in $(seq 90); do
             gpu_slot_connected && break

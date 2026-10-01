@@ -218,7 +218,8 @@ def setup_steps(j):
           done
           sudo snap wait system seed.loaded || true
           gpu_slot_connected() {{
-            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\\[gpu-/ && $3 != "-" {{ found = 1 }} END {{ exit found ? 0 : 1 }}'
+            # The GPU slot and the gnome platform slot both carry a launcher
+            snap connections chromium 2>/dev/null | awk '$1 ~ /^content\\[gpu-/ && $3 != "-" {{ gpu = 1 }} $1 ~ /^content\\[gnome-/ && $3 != "-" {{ gnome = 1 }} END {{ exit gpu && gnome ? 0 : 1 }}'
           }}
           for i in $(seq 90); do
             gpu_slot_connected && break

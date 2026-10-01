@@ -34,6 +34,10 @@ jobs:
           # through the bounded wrapper first. The runner has the rest.
           bash ci/apt.sh update
           bash ci/apt.sh install -y --no-install-recommends fonts-freefont-ttf fonts-ipafont-gothic fonts-tlwg-loma-otf fonts-unifont fonts-wqy-zenhei xfonts-cyrillic xfonts-scalable
+          # Whatever else its dry run would install or upgrade goes
+          # through the wrapper too
+          PKGS=$(bash ci/retry.sh npx playwright install-deps --dry-run chromium 2>/dev/null | awk '$1 == "Inst" { print $2 }' | sort -u | tr '\n' ' ') || true
+          if [ -n "$PKGS" ]; then bash ci/apt.sh install -y --no-install-recommends $PKGS; fi
           bash ci/retry.sh npx playwright install --with-deps chromium
 
       - name: Compare fmod.com with the catalog
