@@ -106,8 +106,8 @@ JOBS = [
 LINUX_HASHLINK = """
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \\
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \\
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Name the runner image for the cache key
@@ -205,7 +205,7 @@ def setup_steps(j):
             # waits for the first page to render, and fails the step too,
             # since the browser legs cannot run without it.
             install = f"""          for attempt in 1 2 3; do
-            sudo apt-get -o Acquire::Retries=3 install -y {pkgs} && break
+            bash ci/apt.sh install -y {pkgs} && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
@@ -233,10 +233,10 @@ def setup_steps(j):
             sleep 2
           done"""
         else:
-            install = f"          sudo apt-get -o Acquire::Retries=3 install -y {pkgs}"
+            install = f"          bash ci/apt.sh install -y {pkgs}"
         return f"""      - name: Install runtime dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
+          bash ci/apt.sh update
 {install}
 {LINUX_HASHLINK if j.hashlink else ""}
 {AUDIO_SETUP}"""

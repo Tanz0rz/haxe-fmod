@@ -41,6 +41,9 @@ jobs:
     if: ${{ !cancelled() && needs.catalog.result == 'failure' }}
     timeout-minutes: 5
     steps:
+      # The retry wrapper lives in the repo
+      - uses: actions/checkout@v5
+
       - name: Send failure email
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

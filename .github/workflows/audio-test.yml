@@ -799,8 +799,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y xvfb \
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y xvfb \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -943,8 +943,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y \
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -1000,8 +1000,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dev
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dev
 
       # The cache key carries a flavour ('app'), keeping it clear of the
       # package-check-cpp job's 'pkg' cache. Two jobs on one OS sharing a
@@ -1112,8 +1112,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dev
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dev
 
       # The cache key carries a flavour ('app'), keeping it clear of the
       # package-check-cpp job's 'pkg' cache. Two jobs on one OS sharing a
@@ -1203,8 +1203,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg \
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -1539,8 +1539,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio xvfb
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y pulseaudio xvfb
 
       - name: Build HTML5 target
         env:
@@ -2238,8 +2238,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg \
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg \
             libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
@@ -2918,8 +2918,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Name the runner image for the cache key
@@ -3013,8 +3013,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Name the runner image for the cache key
@@ -3336,8 +3336,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
             libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
 
       - name: Build test variant
@@ -3417,8 +3417,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
             libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
 
       - name: Build test variant
@@ -3495,8 +3495,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y clang libx11-dev libxinerama-dev libxrandr-dev libxcursor-dev libxi-dev libxkbcommon-dev \
             libgl1-mesa-dev libgl1-mesa-dri libegl1-mesa-dev libasound2-dev libudev-dev libwayland-dev wayland-protocols
 
       - name: Build test variant
@@ -3963,8 +3963,8 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
       - name: Start display and audio
         run: |
@@ -4173,8 +4173,8 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
       - name: Start display and audio
         run: |
@@ -4372,9 +4372,9 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
+          bash ci/apt.sh update
           for attempt in 1 2 3; do
-            sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
@@ -5464,13 +5464,13 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
       - name: Install system dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y libpng-dev libturbojpeg0-dev libsdl2-dev libgl1-mesa-dev \
             libopenal-dev libmbedtls-dev libuv1-dev libvorbis-dev libsqlite3-dev libz-dev
 
       - name: Name the runner image for the cache key
@@ -5708,9 +5708,9 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
+          bash ci/apt.sh update
           for attempt in 1 2 3; do
-            sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done
@@ -6398,8 +6398,8 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
       - name: Start display and audio
         run: |
@@ -6608,8 +6608,8 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
-          sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
+          bash ci/apt.sh update
+          bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg libgl1-mesa-dri libegl1 libgles2
 
       - name: Start display and audio
         run: |
@@ -6807,9 +6807,9 @@ jobs:
 
       - name: Install runtime dependencies
         run: |
-          sudo apt-get -o Acquire::Retries=3 update
+          bash ci/apt.sh update
           for attempt in 1 2 3; do
-            sudo apt-get -o Acquire::Retries=3 install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
+            bash ci/apt.sh install -y pulseaudio libasound2-plugins xvfb ffmpeg chromium-browser xdotool && break
             [ "$attempt" = 3 ] && exit 1
             sleep 30
           done

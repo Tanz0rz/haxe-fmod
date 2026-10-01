@@ -257,15 +257,16 @@ else:
 # 14. Every network fetch goes through the retry wrapper, and every
 # wrapper path resolves. A relative path after a cd, or a wrong depth
 # from an action directory, is exit 127 on the runner. The path check
-# is what catches both. Every apt-get carries its retry option, and a
-# comment or echo naming one is skipped.
+# is what catches both. Every apt-get goes through ci/apt.sh, which
+# bounds each download by the clock. A comment or echo naming one is
+# skipped.
 # The lookbehind rejects a name inside a longer word or after a dot. An
 # .ssh/config path or an env value never reads as a fetch, and a pip
 # reached by its path still does. A wrapper covers the command it
 # starts, so each segment between the shell's list and pipe operators
 # is checked on its own
 FETCH_RE = re.compile(r"(?<![\w.])(haxelib install|git (?:clone|fetch|pull|submodule)|npm (?:install|ci)|npx playwright install|curl\s|wget\s|brew install|pip\"? install|ssh\s|rsync\s|gh (?:api|release download))")
-WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)ci/retry\.sh\1")
+WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)ci/(retry|apt)\.sh\1")
 SEGMENT_RE = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")
 fetch_files = [os.path.join(os.path.dirname(PATH), wf) for wf in sorted(os.listdir(os.path.dirname(PATH))) if wf.endswith(".yml")]
 actions_dir = os.path.join(ROOT, ".github", "actions")
@@ -310,23 +311,24 @@ for path in fetch_files:
             block_indent = None
         if stripped.startswith("#") or stripped.startswith("echo "):
             continue
-        if re.search(r"\bapt-get\b", line) and not re.search(r"Acquire::Retries=[1-9]", line):
+        if re.search(r"\bapt-get\b", line):
             unretried.append(f"{os.path.relpath(path, ROOT)}:{n}")
         if re.match(r"cd ", stripped) and not stripped.startswith("cd -"):
             moved = True
-        if "retry.sh" in line:
+        if "retry.sh" in line or "apt.sh" in line:
             m = WRAPPER_RE.search(line)
+            script = m.group(4) + ".sh" if m else ""
             if not m:
                 unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} unrecognised wrapper spelling")
             elif m.group(2) == "$GITHUB_ACTION_PATH":
                 base = os.path.dirname(path)
-                target = os.path.normpath(os.path.join(base, m.group(3).lstrip("/"), "ci", "retry.sh"))
+                target = os.path.normpath(os.path.join(base, m.group(3).lstrip("/"), "ci", script))
                 if not os.path.exists(target):
                     unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} resolves to {os.path.relpath(target, ROOT)}")
             elif m.group(2) == "" and moved:
                 unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} relative wrapper after a cd")
-            elif m.group(2) != "$GITHUB_ACTION_PATH" and not os.path.exists(os.path.join(ROOT, "ci", "retry.sh")):
-                unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} ci/retry.sh is missing")
+            elif m.group(2) != "$GITHUB_ACTION_PATH" and not os.path.exists(os.path.join(ROOT, "ci", script)):
+                unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} ci/{script} is missing")
         for segment in SEGMENT_RE.split(line):
             if not FETCH_RE.search(segment):
                 continue
@@ -335,9 +337,9 @@ for path in fetch_files:
             else:
                 bare.append(f"{os.path.relpath(path, ROOT)}:{n}")
 if bare or unresolved or unretried or wrapped < 150:
-    fail(f"network fetches outside ci/retry.sh: {bare}, wrapper paths that do not resolve: {unresolved}, apt-get without retries: {unretried} ({wrapped} wrapped)")
+    fail(f"network fetches outside ci/retry.sh: {bare}, wrapper paths that do not resolve: {unresolved}, apt-get outside ci/apt.sh: {unretried} ({wrapped} wrapped)")
 else:
-    ok(f"{wrapped} network fetches go through ci/retry.sh, none bare, every wrapper path resolves, apt retries")
+    ok(f"{wrapped} network fetches go through ci/retry.sh, none bare, every wrapper path resolves, apt goes through ci/apt.sh")
 
 # 16. Every browser job waits for the chromium GPU content slot after
 # the install, and the headless probe that follows fails the step. The
@@ -349,12 +351,12 @@ else:
 # line starts its own line, and each loop bound equals its threshold.
 CHROMIUM_INSTALL = re.compile(r"\bapt(-get)?\b[^\n]*\binstall\b[^\n]*\bchromium-browser\b|snap install[^\n]*\bchromium\b")
 CHROMIUM_GATE = [
-    ("the seed wait", r"^ *sudo snap wait system seed\.loaded"),
-    ("the slot wait loop", r"^ *for i in \$\(seq 90\); do\n *gpu_slot_connected && break$"),
-    ("a fatal slot wait", r'^ *\[ "\$i" = 90 \] && \{ echo "::error ::the chromium GPU content slot never connected after the install"[^\n]*exit 1; \}$'),
-    ("the namespace discard", r"^ *sudo /usr/lib/snapd/snap-discard-ns chromium"),
-    ("the probe loop", r"^ *for i in \$\(seq 45\); do\n *chromium-browser --headless=new[^\n]*&& break$"),
-    ("a fatal probe", r'^ *\[ "\$i" = 45 \] && \{ echo "::error ::chromium never rendered a headless page after the install"[^\n]*exit 1; \}$'),
+    ("the seed wait", r"^{B}sudo snap wait system seed\.loaded"),
+    ("the slot wait loop", r"^{B}for i in \$\(seq 90\); do\n{B}  gpu_slot_connected && break$"),
+    ("a fatal slot wait", r'^{B}  \[ "\$i" = 90 \] && \{ echo "::error ::the chromium GPU content slot never connected after the install"[^\n]*exit 1; \}$'),
+    ("the namespace discard", r"^{B}sudo /usr/lib/snapd/snap-discard-ns chromium"),
+    ("the probe loop", r"^{B}for i in \$\(seq 45\); do\n{B}  chromium-browser --headless=new[^\n]*&& break$"),
+    ("a fatal probe", r'^{B}  \[ "\$i" = 45 \] && \{ echo "::error ::chromium never rendered a headless page after the install"[^\n]*exit 1; \}$'),
 ]
 chromium_installs = 0
 ungated = []
@@ -364,17 +366,37 @@ for step in re.split(r"\n(?= {6}- )", text):
     if not CHROMIUM_INSTALL.search(body):
         continue
     chromium_installs += 1
-    missing = [label for label, pattern in CHROMIUM_GATE if not re.search(pattern, body, re.M)]
+    # Each gate line sits at the run block's own indentation, so one
+    # inside an if, a function, or a heredoc does not count
+    block = re.search(r"run: \|\n( +)", body)
+    base = block.group(1) if block else "          "
+    missing = [label for label, pattern in CHROMIUM_GATE if not re.search(pattern.replace("{B}", base), body, re.M)]
     problems = ["lacks " + ", ".join(missing)] if missing else []
     if re.search(r"^ *continue-on-error:", body, re.M):
         problems.append("has continue-on-error")
     if re.search(r"^ *done *\|\|", body, re.M):
         problems.append("lets a loop fail quietly (done ||)")
+    if re.search(r"<<", body):
+        problems.append("holds a heredoc")
+    if re.search(r"^ *exit 0\b", body, re.M):
+        problems.append("can leave before the gate (exit 0)")
+    if [name for name in re.findall(r"^ *(\w+)\(\) *\{", body, re.M) if name != "gpu_slot_connected"]:
+        problems.append("wraps lines in a function of its own")
     if problems:
         name = re.search(r"- name: ([^\n]+)", step)
         line = text[:text.index(step)].count("\n") + 1
         ungated.append(f"line {line} ({name.group(1) if name else 'unnamed step'}) {', '.join(problems)}")
-if chromium_installs < 3 or ungated:
+# A job may not shrug off a failed step either
+if re.search(r"^    continue-on-error:", text, re.M):
+    ungated.append("a job sets continue-on-error")
+# Any other step that names the browser package installs it some other way
+other = len(re.findall(r"chromium-browser xdotool|snap install[^\n]*chromium", text))
+if other != chromium_installs:
+    ungated.append(f"{other} lines name the browser package, {chromium_installs} gated installs")
+# A package list held in a variable hides the install from the scan above
+if re.search(r"^ *\w+=[^\n]*\bchromium-browser\b", text, re.M):
+    ungated.append("a variable holds the browser package name")
+if chromium_installs != 3 or ungated:
     fail(f"chromium GPU slot waits out of step: {chromium_installs} installs, {ungated}")
 else:
     ok(f"{chromium_installs} chromium installs wait for the GPU content slot and fail on a dead probe")
@@ -640,6 +662,43 @@ if unwired:
     fail(f"harnesses in tests/js/ not invoked by the workflow: {unwired}")
 else:
     ok(f"all {len(harnesses)} tests/js harnesses are wired into the workflow")
+
+# 17. A job that calls a ci/ wrapper by its relative path checks the repo
+# out first. Without the checkout the wrapper is a missing file, and a
+# command substitution around it swallows the error.
+no_checkout = []
+for path in fetch_files:
+    if not path.endswith(".yml") or os.sep + "actions" + os.sep in path:
+        continue
+    with open(path) as fh:
+        workflow = fh.read()
+    jobs_at = workflow.find("\njobs:\n")
+    if jobs_at < 0:
+        continue
+    for job in re.split(r"\n(?=  [\w-]+:\n)", workflow[jobs_at + 7:]):
+        call = re.search(r"bash \"?ci/(?:retry|apt)\.sh", job)
+        if not call:
+            continue
+        checkout = job.find("uses: actions/checkout")
+        if checkout < 0 or checkout > call.start():
+            name = re.match(r"\s*([\w-]+):", job)
+            no_checkout.append(f"{os.path.relpath(path, ROOT)}:{name.group(1) if name else '?'}")
+if no_checkout:
+    fail(f"jobs that call a ci/ wrapper before any checkout: {no_checkout}")
+else:
+    ok("every job that calls a ci/ wrapper checks the repo out first")
+
+# 18. Every tests/build*.hxml suite runs in the workflow and in the local
+# runner. A suite left out of either keeps compiling and proves nothing.
+suites = sorted(name for name in os.listdir(os.path.join(ROOT, "tests")) if re.match(r"build.*\.hxml$", name))
+with open(os.path.join(ROOT, "ci", "local-ci.sh")) as fh:
+    local_runner = fh.read()
+not_run = [f"{where}: {suite}" for suite in suites for where, body in (("workflow", text), ("ci/local-ci.sh", local_runner))
+           if not re.search(r"\bhaxe tests/" + re.escape(suite) + r"(?![\w.-])", body)]
+if not_run or len(suites) < 7:
+    fail(f"test suites not run: {not_run} ({len(suites)} suites)")
+else:
+    ok(f"{len(suites)} hxml suites run in the workflow and ci/local-ci.sh")
 
 print()
 if failures:
