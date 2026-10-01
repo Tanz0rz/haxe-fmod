@@ -343,12 +343,29 @@ else:
 # the install, and the headless probe that follows fails the step. The
 # snap's launcher dies at once without the wrapper, and the browser
 # legs were lost to that twice.
-chromium_installs = text.count("chromium-browser xdotool")
-seed_waits = text.count("sudo snap wait system seed.loaded")
-slot_waits = text.count("gpu_slot_connected && break")
-fatal_probes = text.count('::error ::chromium never rendered a headless page after the install')
-if chromium_installs < 3 or seed_waits != chromium_installs or slot_waits != chromium_installs or fatal_probes != chromium_installs:
-    fail(f"chromium GPU slot waits out of step: {chromium_installs} installs, {seed_waits} seed waits, {slot_waits} slot waits, {fatal_probes} fatal probes")
+# Each step that installs the snap carries the whole gate itself, so an
+# install written another way or a probe that stopped failing is caught.
+CHROMIUM_INSTALL = re.compile(r"apt-get[^\n]*\binstall\b[^\n]*\bchromium-browser\b|snap install[^\n]*\bchromium\b")
+CHROMIUM_GATE = [
+    ("the seed wait", re.compile(r"sudo snap wait system seed\.loaded")),
+    ("the slot wait", re.compile(r"gpu_slot_connected && break")),
+    ("a fatal slot wait", re.compile(r"::error ::the chromium GPU content slot never connected after the install[^\n]*exit 1; \}")),
+    ("the namespace discard", re.compile(r"\n *sudo /usr/lib/snapd/snap-discard-ns chromium")),
+    ("a fatal probe", re.compile(r"::error ::chromium never rendered a headless page after the install[^\n]*exit 1; \}")),
+]
+chromium_installs = 0
+ungated = []
+for step in re.split(r"\n(?= *- name: )", text):
+    if not CHROMIUM_INSTALL.search(step):
+        continue
+    chromium_installs += 1
+    missing = [label for label, pattern in CHROMIUM_GATE if not pattern.search(step)]
+    if missing:
+        name = re.search(r"- name: ([^\n]+)", step)
+        line = text[:text.index(step)].count("\n") + 1
+        ungated.append(f"line {line} ({name.group(1) if name else 'unnamed step'}) lacks {', '.join(missing)}")
+if chromium_installs < 3 or ungated:
+    fail(f"chromium GPU slot waits out of step: {chromium_installs} installs, {ungated}")
 else:
     ok(f"{chromium_installs} chromium installs wait for the GPU content slot and fail on a dead probe")
 

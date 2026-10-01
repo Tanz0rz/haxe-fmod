@@ -25,9 +25,8 @@ env:
   HASHLINK_COMMIT: 781960a5daca32ad6d5cea87b255fe8b5872551e
   HAXE_VERSION: 4.3.6
   # Kode/Kha main as of 2026-08-28 (commit of 2026-08-20), the checkout the
-  # first Kha jobs ran on. Its Kore links a macOS executable the stage
-  # command can add the dylib rpath to. The 2026-09-01 Kore update links
-  # without header padding, so install_name_tool refuses the edit there.
+  # first Kha jobs ran on. kmake links a macOS executable with no header
+  # room, so the stage command rewrites the SDK search path in place.
   KHA_COMMIT: 1fb7ad4b5bc1e1b15a3f2be4b762cd4068d5f64c
   FMOD_SDK: ${{ github.workspace }}/fmod-sdk
 
@@ -7932,13 +7931,15 @@ jobs:
             # user commit or a concurrent job). Rebase onto the latest remote
             # branch before pushing and retry once if the push still races.
             # The fetch alone is retried: a rebase that stops on a conflict
-            # fails the job with the conflict as the last message.
-            bash ci/retry.sh git fetch origin "$BRANCH_NAME"
+            # fails the job with the conflict as the last message. The
+            # full ref names the branch. A release branch shares its name
+            # with the tag, and a bare name resolves to the tag first.
+            bash ci/retry.sh git fetch origin "refs/heads/$BRANCH_NAME"
             git rebase FETCH_HEAD
             check_markers
             if ! git push; then
               echo "Push rejected, rebasing and retrying once..."
-              bash ci/retry.sh git fetch origin "$BRANCH_NAME"
+              bash ci/retry.sh git fetch origin "refs/heads/$BRANCH_NAME"
               git rebase FETCH_HEAD
               check_markers
               git push

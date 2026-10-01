@@ -54,6 +54,22 @@ def gh(*args):
     sys.exit(1)
 
 
+def delete_cache(repo, cache_id, run=subprocess.run, pause=15):
+    # Three attempts like gh() above. GitHub evicts entries on its own, so
+    # a 404 means the entry is gone, which is the wanted outcome.
+    for attempt in range(1, 4):
+        result = run(["gh", "api", "-X", "DELETE",
+                      "repos/{}/actions/caches/{}".format(repo, cache_id)],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        if result.returncode == 0:
+            return True
+        if "HTTP 404" in result.stderr.decode("utf-8", "replace"):
+            return True
+        if attempt < 3:
+            time.sleep(pause)
+    return False
+
+
 def mb(size):
     return size / 1048576.0
 
@@ -252,6 +268,23 @@ def selftest():
     if any(f is None for f in families) or len(set(families)) != len(families):
         print("selftest FAIL: the family regex does not fit the workflows' keys: {}".format(families))
         sys.exit(1)
+    # A delete retries, and an entry GitHub evicted first counts as done
+    class Reply:
+        def __init__(self, code, err=b""):
+            self.returncode, self.stderr = code, err
+    for replies, expect, calls in (
+            ([Reply(0)], True, 1),
+            ([Reply(1, b"gh: Not Found (HTTP 404)")], True, 1),
+            ([Reply(1, b"gh: Server Error (HTTP 502)"), Reply(0)], True, 2),
+            ([Reply(1, b"gh: Forbidden (HTTP 403)")] * 3, False, 3)):
+        queue = list(replies)
+        made = []
+        def fake(command, **kwargs):
+            made.append(command)
+            return queue.pop(0)
+        if delete_cache("owner/repo", 7, run=fake, pause=0) != expect or len(made) != calls:
+            print("selftest FAIL: delete of {} replies gave {} calls".format(len(replies), len(made)))
+            sys.exit(1)
     print("prune-caches selftest: all rules hold")
 
 
@@ -304,11 +337,7 @@ def main():
 
     failed = 0
     for entry in doomed:
-        result = subprocess.run(
-            ["gh", "api", "-X", "DELETE",
-             "repos/{}/actions/caches/{}".format(options.repo, entry["id"])],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if result.returncode != 0:
+        if not delete_cache(options.repo, entry["id"]):
             failed += 1
             print("  failed to delete {}".format(entry["key"]))
     print("freed {:.0f} MB, leaving {:.0f} MB ({} failed)".format(
