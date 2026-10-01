@@ -29,7 +29,7 @@ abstract EventInstance(Int) from Int to Int {
     /**
      * Drops the handler, user data, and walked-group entry of every group
      * whose handle does not resolve, and the user data of every dead DSP,
-     * sound, and channel handle. A borrowed handle dies with the handle it
+     * DSP connection, sound, and channel handle. A borrowed handle dies with the handle it
      * was reached from, natively and with no call on it. A short-lived one
      * goes at the updates and calls LIMITATIONS.md names. Each of those
      * ends here once FMOD accepted it. Empty maps cost a few checks.

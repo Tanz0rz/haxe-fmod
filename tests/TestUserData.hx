@@ -39,6 +39,7 @@ class TestUserData {
 		testDescriptionCallback();
 		testClearAllCallbacksLeavesUserData();
 		testBorrowedHandlesDieWithOwner();
+		testBankUnloadRecord();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -540,5 +541,55 @@ class TestUserData {
 		NativeStudioStub.testSyntheticHandles = false;
 		NativeStudioStub.testDeadHandles = [];
 		assert("nothing left", UserData.count() == 0);
+	}
+
+	// A command replay unloads the banks it loaded with no call through
+	// the library. The shims raise BANK_UNLOAD for it and sweep the dead
+	// lookup handles, and the drain drops their entries. The game's
+	// handler sees the record only when its studio mask asked for it.
+	static function testBankUnloadRecord():Void {
+		reset();
+		NativeStudioStub.testSyntheticHandles = true;
+		var SC = haxefmod.studio.SystemCallbacks;
+		var bank:Bank = ++NativeStudioStub.testNextHandle;
+		var desc:EventDescription = ++NativeStudioStub.testNextHandle;
+		var bus:Bus = ++NativeStudioStub.testNextHandle;
+		var vca:Vca = ++NativeStudioStub.testNextHandle;
+		var inst:EventInstance = ++NativeStudioStub.testNextHandle;
+		var liveDesc:EventDescription = ++NativeStudioStub.testNextHandle;
+		bank.setUserData("bank");
+		desc.setUserData("desc");
+		bus.setUserData("bus");
+		vca.setUserData("vca");
+		inst.setUserData("inst");
+		liveDesc.setUserData("live");
+		desc.setCallback(function(_) {});
+		liveDesc.setCallback(function(_) {});
+		for (h in [(bank : Int), (desc : Int), (bus : Int), (vca : Int), (inst : Int)]) NativeStudioStub.testFree(h);
+		// No system handler installed: the record still drops the entries
+		CallbackDispatcher.deliver(0, CallbackDispatcher.BANK_UNLOAD_TYPE, 0, 0, 0, 0, 0, 0, "");
+		assert("bank unload record drops a dead bank's userdata", bank.getUserData() == null);
+		assert("bank unload record drops a dead description's userdata", desc.getUserData() == null);
+		assert("bank unload record drops a dead bus's userdata", bus.getUserData() == null);
+		assert("bank unload record drops a dead VCA's userdata", vca.getUserData() == null);
+		assert("bank unload record drops a dead instance's userdata", inst.getUserData() == null);
+		assert("bank unload record drops a dead description's handler", !desc.hasCallback());
+		assert("bank unload record keeps a live description's userdata", liveDesc.getUserData() == "live");
+		assert("bank unload record keeps a live description's handler", liveDesc.hasCallback());
+		assert("bank unload record type", CallbackDispatcher.BANK_UNLOAD_TYPE == SC.TYPE_BANK_UNLOAD);
+
+		var received:Array<haxefmod.studio.SystemCallbacks.SystemEvent> = [];
+		StudioSystem.setSystemCallback(function(e) received.push(e), SC.DEFAULT_CORE_MASK, SC.STUDIO_LIVEUPDATE_CONNECTED);
+		CallbackDispatcher.deliver(0, SC.TYPE_BANK_UNLOAD, 0, 0, 0, 0, 0, 0, "");
+		CallbackDispatcher.deliver(0, SC.TYPE_LIVEUPDATE_CONNECTED, 0, 0, 0, 0, 0, 0, "");
+		assert("bank unload record skips a handler whose mask left it out",
+			received.length == 1 && received[0].match(LiveUpdateConnected));
+		received = [];
+		StudioSystem.setSystemCallback(function(e) received.push(e));
+		CallbackDispatcher.deliver(0, SC.TYPE_BANK_UNLOAD, 0, 0, 0, 0, 0, 0, "bank:/X");
+		assert("bank unload record reaches a handler whose mask asked for it",
+			received.length == 1 && received[0].match(BankUnload("bank:/X")));
+		StudioSystem.clearSystemCallback();
+		NativeStudioStub.testDeadHandles = [];
 	}
 }

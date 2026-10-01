@@ -60,6 +60,7 @@ function mockSystems() {
         initialize: function (channels, studioFlags, coreFlags) { calls.push(['initialize', channels, studioFlags, coreFlags]); },
         loadBankFile: function (p, flags, outval) { outval.val = { bankPath: p }; },
         update: function () {},
+        setCallback: function (cb, mask) { calls.push(['setStudioCallback', cb, mask]); return 0; },
     };
     jaxe.FMOD.Studio_System_Create = function (outval) { outval.val = studio; };
     jaxe.FMOD.SPEAKERMODE_DEFAULT = 0;
@@ -138,6 +139,24 @@ check('init_flags_translate_to_core_flags', got.init && got.init[3] === (0x10000
     JSON.stringify(got.init));
 check('settings_apply_before_initialize',
     calls.findIndex(c => c[0] === 'setSoftwareChannels') < calls.findIndex(c => c[0] === 'initialize'), '');
+
+// A command replay unloads the banks it loaded with no call through the
+// shim. BANK_UNLOAD stays installed from init on, so the drain sweeps the
+// dead lookups. A game mask adds to it and mask 0 keeps it.
+{
+    const installs = calls.filter(c => c[0] === 'setStudioCallback');
+    check('studio_callback_installed_at_init', installs.length === 1
+        && installs[0][1] === jaxe.studioSystemCallback && installs[0][2] === 0x4
+        && calls.findIndex(c => c[0] === 'setStudioCallback') > calls.findIndex(c => c[0] === 'initialize'),
+        JSON.stringify(installs.map(c => c[2])));
+    calls.length = 0;
+    jaxe.fmod_sys_set_studio_callback_mask(0x8);
+    jaxe.fmod_sys_set_studio_callback_mask(0);
+    const masks = calls.filter(c => c[0] === 'setStudioCallback');
+    check('studio_callback_keeps_bank_unload', masks.length === 2 && masks[0][2] === 0xC
+        && masks[1][1] === jaxe.studioSystemCallback && masks[1][2] === 0x4 && jaxe.studioCallbackMask === 0,
+        JSON.stringify(masks.map(c => c[2])) + ' game=' + jaxe.studioCallbackMask);
+}
 
 // --- callback marshaling for shapes the wasm harnesses cannot author ---
 // FMOD's JS glue delivers timeline beats with flat keys.

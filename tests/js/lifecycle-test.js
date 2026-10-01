@@ -25,7 +25,7 @@ global.FMODModule = require(path.join(SDK, 'fmodstudio.js'));
 eval(fs.readFileSync(JAXE, 'utf8') + '\nglobal.jaxe = jaxe;');
 
 jaxe.preRun = function () {
-    for (const n of ['Master.bank', 'Master.strings.bank']) {
+    for (const n of ['Master.bank', 'Master.strings.bank', 'Extras.bank']) {
         jaxe.FMOD.FS_createDataFile('/', n, fs.readFileSync(path.join(BANKS, n)), true, false, false);
     }
 };
@@ -41,6 +41,8 @@ jaxe.onRuntimeInitialized = function () {
     var b = {};
     jaxe.gSystem.loadBankFile('/Master.bank', jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, b);
     jaxe.gSystem.loadBankFile('/Master.strings.bank', jaxe.FMOD.STUDIO_LOAD_BANK_NORMAL, b);
+    // The shim's own init keeps BANK_UNLOAD installed from here on
+    jaxe.installStudioCallback(jaxe.studioCallbackMask);
     jaxe.FmodIsInitialized = true;
     return jaxe.FMOD.OK;
 };
@@ -1150,6 +1152,42 @@ async function main() {
         jaxe.fmod_sys_load_bank_file('/NoSuchBank.bank', 6);
         jaxe.gSystem.loadBankFile = realLoad;
         check('load_bank_file_passes_every_flag', seenFlags === 6, `flags=${seenFlags}`);
+    }
+    // A command replay loads the banks its capture loaded and unloads them
+    // at its stop, with no call through the shim. The BANK_UNLOAD record
+    // that unload raises sweeps the lookup handles into the bank.
+    {
+        drainEvents();
+        const capturePath = '/replay-bank.cmd';
+        const captured = jaxe.fmod_sys_start_command_capture(capturePath, 0);
+        const extras = jaxe.fmod_sys_load_bank_file('/Extras.bank', 0);
+        // The strings bank can be gone by now, so the lookup goes by GUID
+        const bankId = '{2e34b84a-be93-4215-87db-9f769538a3a9}';
+        await pump(2);
+        jaxe.fmod_sys_stop_command_capture();
+        jaxe.fmod_bank_unload(extras);
+        await pump(2);
+        drainEvents();
+        check('replay_capture_loads_bank', captured === 0 && extras > 0, `capture=${captured} bank=${extras}`);
+        const replay = jaxe.fmod_sys_load_command_replay(capturePath, 0);
+        check('replay_bank_replay_starts', replay > 0 && jaxe.fmod_replay_start(replay) === 0, `replay=${replay} result=${jaxe.lastResult}`);
+        let replayBank = 0;
+        for (let i = 0; i < 50 && replayBank === 0; i++) {
+            await pump(1);
+            drainEvents();
+            replayBank = jaxe.fmod_sys_get_bank_by_id(bankId);
+        }
+        const ibuf = new Array(1024).fill(0);
+        const eventCount = replayBank > 0 ? jaxe.fmod_bank_get_event_list(replayBank, ibuf) : 0;
+        const events = ibuf.slice(0, eventCount);
+        check('replay_bank_loaded_by_replay', replayBank > 0 && eventCount > 0, `bank=${replayBank} events=${eventCount}`);
+        jaxe.fmod_replay_stop(replay);
+        for (let i = 0; i < 10; i++) { await pump(1); drainEvents(); }
+        const staleEvents = events.filter(h => jaxe.fmod_debug_handle_is_live(h) && !jaxe.fmod_evd_is_valid(h)).length;
+        const deadEvents = events.filter(h => !jaxe.fmod_debug_handle_is_live(h)).length;
+        check('replay_bank_unload_sweeps_lookups', jaxe.fmod_sys_get_bank_by_id(bankId) === 0 && !jaxe.fmod_debug_handle_is_live(replayBank)
+            && staleEvents === 0 && deadEvents > 0, `bankLive=${jaxe.fmod_debug_handle_is_live(replayBank)} stale=${staleEvents} dead=${deadEvents}`);
+        jaxe.fmod_replay_release(replay);
     }
     console.log(`LIFECYCLE_TEST: failures = ${fails}`);
     console.log(fails === 0 ? 'LIFECYCLE_TEST: COMPLETE' : 'LIFECYCLE_TEST: FAILED');

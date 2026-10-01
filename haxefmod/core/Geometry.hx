@@ -22,7 +22,8 @@ abstract Geometry(Int) from Int to Int {
     /**
      * Creates an empty geometry with room for the given polygon and vertex
      * counts (unsupported in HTML5). Returns Geometry.NULL on failure (see
-     * StudioSystem.lastResult).
+     * StudioSystem.lastResult). A count of 0x1000000 or more fails with
+     * FMOD_ERR_INVALID_PARAM.
      */
     public static macro function create(maxPolygons:haxe.macro.Expr, maxVertices:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Geometry.create", "the web build has no geometry occlusion");
@@ -31,7 +32,8 @@ abstract Geometry(Int) from Int to Int {
     /**
      * Creates an empty geometry with room for the given polygon and vertex
      * counts (unsupported in HTML5). Returns Geometry.NULL on failure (see
-     * StudioSystem.lastResult).
+     * StudioSystem.lastResult). A count of 0x1000000 or more fails with
+     * FMOD_ERR_INVALID_PARAM.
      */
     public static inline function create(maxPolygons:Int, maxVertices:Int):Geometry {
         return NativeStudio.sys_create_geometry(maxPolygons, maxVertices);

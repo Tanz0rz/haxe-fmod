@@ -14,8 +14,8 @@ import kha.Scheduler;
     FmodManager.Update(). The positions the game set this frame reach
     FMOD in the same frame.
 
-    A game that runs FMOD from its own task calls removeHook() once and
-    then calls update() from that task. The task stays out after that.
+    A game that runs FMOD from its own frame task calls removeHook() once
+    and then calls update() from that task. The task stays out after that.
     A component created later registers without installing it.
     init(), FmodKhaSetup.init(), and FmodKhaSetup.preload() install it
     again.
@@ -86,8 +86,8 @@ class FmodKhaUpdater {
         Ticks every registered component with the seconds since the last
         update, then runs FmodManager.Update(). The frame task calls it.
         After removeHook() the game calls it from its own frame task
-        instead. Kha gives a time task another clock, so a call from one
-        does not mark the frame done for a hook installed later.
+        instead. Kha gives a time task another clock. A call from a time
+        task does not mark the frame done for a hook installed later.
     **/
     public static function update():Void {
         // A frame task installed later in this frame finds the frame done
@@ -96,8 +96,9 @@ class FmodKhaUpdater {
         var dt = lastStamp < 0 ? 0.0 : now - lastStamp;
         lastStamp = now;
         // Copy first: a ticker can remove itself (a loader that just fired).
+        // One that an earlier tick removed is skipped.
         for (ticker in tickers.copy()) {
-            ticker.tick(dt);
+            if (tickers.indexOf(ticker) != -1) ticker.tick(dt);
         }
         FmodManager.Update();
     }

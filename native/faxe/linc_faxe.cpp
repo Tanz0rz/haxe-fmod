@@ -461,8 +461,15 @@ static inline FMOD::Sound* resolveSound(int h) {
 
 // mode is a full FMOD_MODE. initialSubsound >= 0 goes into
 // exinfo.initialsubsound for FSB streams, -1 leaves the default.
+// A path create with a memory mode would hand FMOD the path text as a
+// file image. FMOD reads the length the caller gave from it.
+static bool lincPathModeOk(int mode) {
+    return ((FMOD_MODE)mode & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT)) == 0;
+}
+
 int fmod_core_create_sound(const ::String& path, int mode, int initialSubsound) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (!lincPathModeOk(mode)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     FMOD::Sound* sound = NULL;
     FMOD_CREATESOUNDEXINFO exinfo;
     FMOD_CREATESOUNDEXINFO* exinfoPtr = NULL;
@@ -586,7 +593,7 @@ static char gFsbGuidOut[40];
 int fmod_core_create_sound_ex(const ::String& path, int mode, ::Array<int> ibuf, const ::String& dls, const ::String& key, const ::String& guidText) {
     gFsbGuidOut[0] = '\0';
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    if (ibuf == null() || ibuf->length < 20) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    if (ibuf == null() || ibuf->length < 20 || !lincPathModeOk(mode)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     FMOD::Sound* sound = NULL;
     FMOD_CREATESOUNDEXINFO exinfo;
     FMOD_GUID guid;
@@ -987,6 +994,7 @@ int fmod_chan_stop(int h) {
 //// Core DSP effects
 
 static void lincReclaimDeadLookups();
+static void lincSweepDeadLookups();
 
 // A lookup that cannot get a slot reports it: the table is full, so
 // the caller sees FMOD_ERR_MEMORY instead of a silent zero
@@ -2350,8 +2358,15 @@ int fmod_cg_set_callback(int h, bool enabled) {
 #define FAXE_CB_SYS_NAMESPACE 0x20000000u
 #define FAXE_CB_SYS_STUDIO_BIT 0x00000100u
 
-// The studio mask in force. Zero means no stash work on the unload paths.
+// The studio mask the game asked for. Zero means no stash work on the
+// unload paths.
 static unsigned int gSystemCallbackMask = 0;
+
+// The shim keeps BANK_UNLOAD installed whatever the game asked for. A
+// command replay unloads the banks it loaded with no call through the
+// shim, and the drain sweeps the dead lookups at that record. The
+// runtime hands the record to the game only when its mask asked for it.
+#define FAXE_STUDIO_CB_INTERNAL ((unsigned int)FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD)
 
 // Runs on whichever FMOD thread raised the event. Plain C data handling
 // only. ERROR copies the FMOD_ERRORCALLBACK_INFO strings into the
@@ -2441,13 +2456,17 @@ int fmod_sys_set_callback_mask(int mask) {
     return (int)gLastResult;
 }
 
+// Installs the shim's Studio callback with the game's mask and the
+// internal bit. Haxe thread only.
+static FMOD_RESULT lincInstallStudioCallback(unsigned int gameMask) {
+    return gStudioSystem->setCallback(lincStudioSystemCallback,
+        (FMOD_STUDIO_SYSTEM_CALLBACK_TYPE)(gameMask | FAXE_STUDIO_CB_INTERNAL));
+}
+
 int fmod_sys_set_studio_callback_mask(int mask) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
-    if (mask == 0) {
-        gLastResult = gStudioSystem->setCallback(NULL, 0);
-    } else {
-        gLastResult = gStudioSystem->setCallback(lincStudioSystemCallback, (FMOD_STUDIO_SYSTEM_CALLBACK_TYPE)mask);
-    }
+    // Mask 0 leaves the internal bit installed
+    gLastResult = lincInstallStudioCallback((unsigned int)mask);
     gSystemCallbackMask = (gLastResult == FMOD_OK) ? (unsigned int)mask : 0u;
     // The path stash serves the unload record alone, so it goes with that bit
     if (!(gSystemCallbackMask & FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD)) faxe_bankpath_clear();
@@ -3653,6 +3672,12 @@ bool fmod_cb_next() {
         freeDestroyedCtx((FaxeInstCtx*)gCbCurrent.opaque);
         gCbCurrent.opaque = NULL;
     }
+    // A bank unload the shim did not run, a command replay's cleanup for
+    // one, leaves lookup slots over dead objects. The unload already ran
+    // when this record was raised, so the sweep needs no flush.
+    if (gCbCurrent.type == (FAXE_CB_SYS_NAMESPACE | FAXE_CB_SYS_STUDIO_BIT | (uint32_t)FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD)) {
+        lincSweepDeadLookups();
+    }
     // A created record mints the handle here on the Haxe thread, in i1,
     // and records it on the instance. The destroyed record carries that
     // handle back, since its address died with the object. The freed
@@ -3930,6 +3955,9 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
 
     gStudioSystem->getCoreSystem(&gCoreSystem);
     faxe_cbq_init();
+    // The queue takes records from here on. A refused install leaves only
+    // the replay unloads unswept, so the init still succeeds.
+    lincInstallStudioCallback(gSystemCallbackMask);
     gLastResult = FMOD_OK;
     return (int)gLastResult;
 }
@@ -4255,15 +4283,20 @@ static int lincLookupSlotValid(void* ptr, unsigned char type) {
     }
 }
 
-static void lincReclaimDeadLookups() {
-    // Unload runs on FMOD's async command queue. Flushing makes the dead
-    // objects observable to isValid before the sweep.
-    if (gStudioSystem) gStudioSystem->flushCommands();
+// The sweep without a flush, for a caller whose unload already ran
+static void lincSweepDeadLookups() {
     faxe_handles_sweep_lookups(lincLookupSlotValid);
     // A destroyed instance's handle goes now rather than at its DESTROYED
     // drain, and the groups and DSPs reached from it go along
     faxe_handles_sweep_type(FAXE_TYPE_EVI, lincLookupSlotValid, NULL);
     faxe_handles_free_volatile();
+}
+
+static void lincReclaimDeadLookups() {
+    // Unload runs on FMOD's async command queue. Flushing makes the dead
+    // objects observable to isValid before the sweep.
+    if (gStudioSystem) gStudioSystem->flushCommands();
+    lincSweepDeadLookups();
 }
 
 // A channel that ended on its own keeps its slot. FMOD reports it as
@@ -5761,9 +5794,38 @@ static int geometryHandle(FMOD::Geometry* geometry) {
     return handle;
 }
 
+// FMOD sizes its geometry arrays in 32 bits. A polygon or vertex count
+// near 2^30 wraps that size, and FMOD then writes past the arrays. The
+// shim refuses counts from this limit up.
+#define LINC_GEOMETRY_COUNT_LIMIT 0x01000000u
+
+// A saved geometry blob holds its polygon and vertex limits at these
+// byte offsets. A blob too short to hold them goes to FMOD unchecked.
+#define LINC_GEOMETRY_MAX_POLYGONS_AT 12
+#define LINC_GEOMETRY_MAX_VERTICES_AT 16
+
+static bool lincGeometryCountOk(unsigned int count) {
+    return count < LINC_GEOMETRY_COUNT_LIMIT;
+}
+
+static bool lincGeometryBlobOk(const unsigned char* data, int len) {
+    unsigned int maxPolygons = 0;
+    unsigned int maxVertices = 0;
+    if (len < LINC_GEOMETRY_MAX_VERTICES_AT + 4) return true;
+    memcpy(&maxPolygons, data + LINC_GEOMETRY_MAX_POLYGONS_AT, 4);
+    memcpy(&maxVertices, data + LINC_GEOMETRY_MAX_VERTICES_AT, 4);
+    return lincGeometryCountOk(maxPolygons) && lincGeometryCountOk(maxVertices);
+}
+
 int fmod_sys_create_geometry(int maxPolygons, int maxVertices) {
     FMOD::Geometry* geometry = NULL;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    // A negative count reaches FMOD, which refuses it
+    if ((maxPolygons > 0 && !lincGeometryCountOk((unsigned int)maxPolygons))
+            || (maxVertices > 0 && !lincGeometryCountOk((unsigned int)maxVertices))) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
     gLastResult = gCoreSystem->createGeometry(maxPolygons, maxVertices, &geometry);
     if (gLastResult != FMOD_OK || !geometry) return 0;
     return geometryHandle(geometry);
@@ -5801,6 +5863,7 @@ int fmod_sys_load_geometry(::Array<unsigned char> data, int len) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     if (len > data->length) len = data->length;
+    if (!lincGeometryBlobOk((const unsigned char*)&data[0], len)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = gCoreSystem->loadGeometry(&data[0], len, &geometry);
     if (gLastResult != FMOD_OK || !geometry) return 0;
     return geometryHandle(geometry);

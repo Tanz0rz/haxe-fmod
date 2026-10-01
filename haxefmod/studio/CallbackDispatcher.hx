@@ -31,6 +31,13 @@ class CallbackDispatcher {
      */
     public static inline var SYSTEM_TYPE_NAMESPACE:Int = 0x20000000;
 
+    /**
+     * The BANK_UNLOAD system record. The shims raise it for every bank
+     * unload, also one a command replay runs on its own, and sweep the
+     * dead lookup handles when it drains.
+     */
+    public static inline var BANK_UNLOAD_TYPE:Int = SYSTEM_TYPE_NAMESPACE | 0x100 | 0x4;
+
     static var handlers:Map<Int, EventCallback> = new Map();
 
     /**
@@ -91,6 +98,20 @@ class CallbackDispatcher {
     }
     #end
 
+    /**
+     * Drops the entries of the handles a bank unload ended. The shim swept
+     * the bank, event description, bus, VCA, and instance handles whose
+     * objects died, and what was reached from them. Their user data and
+     * description handlers go here. Public for unit tests.
+     */
+    public static function dropAfterBankUnload():Void {
+        for (kind in [UserDataKind.Bank, UserDataKind.EventDescription, UserDataKind.Bus, UserDataKind.Vca, UserDataKind.EventInstance]) {
+            UserData.clearDead(kind);
+        }
+        haxefmod.studio.EventDescription.dropDeadCallbacks();
+        haxefmod.studio.EventInstance.dropDeadGroups();
+    }
+
     /** Removes the handler for an event instance. */
     public static function remove(handle:Int):Void {
         handlers.remove(handle);
@@ -149,6 +170,7 @@ class CallbackDispatcher {
         }
         // Same for system records
         if ((type & SYSTEM_TYPE_NAMESPACE) != 0) {
+            if (type == BANK_UNLOAD_TYPE) dropAfterBankUnload();
             if (systemRouter != null) systemRouter(type, i1, i2, i3, str, str2);
             return;
         }

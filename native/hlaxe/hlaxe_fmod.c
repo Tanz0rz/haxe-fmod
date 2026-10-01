@@ -528,6 +528,12 @@ static FMOD_SOUND* resolve_sound(int h) {
     return (FMOD_SOUND*)faxe_handle_resolve(h, FAXE_TYPE_SOUND);
 }
 
+/* A path create with a memory mode would hand FMOD the path text as a
+ * file image. FMOD reads the length the caller gave from it. */
+static int hlaxe_path_mode_ok(int mode) {
+    return ((FMOD_MODE)mode & (FMOD_OPENMEMORY | FMOD_OPENMEMORY_POINT)) == 0;
+}
+
 // mode is a full FMOD_MODE. initialSubsound >= 0 goes into
 // exinfo.initialsubsound for FSB streams, -1 leaves the default.
 HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode, int initialSubsound) {
@@ -536,6 +542,7 @@ HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode, int initialSubsoun
     FMOD_CREATESOUNDEXINFO* exinfoPtr = NULL;
     int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    if (!hlaxe_path_mode_ok(mode)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     if (initialSubsound >= 0) {
         memset(&exinfo, 0, sizeof(exinfo));
         exinfo.cbsize = sizeof(exinfo);
@@ -664,7 +671,7 @@ HL_PRIM int HL_NAME(core_create_sound_ex)(vbyte* path, int mode, vbyte* ints, vb
     int handle;
     gFsbGuidOut[0] = '\0';
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    if (!path || !ints) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    if (!path || !ints || !hlaxe_path_mode_ok(mode)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     if (!hlaxe_fill_exinfo(&exinfo, (const int*)ints, (const char*)dls, (const char*)key, (const char*)guidText, &guid)) {
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return 0;
@@ -1091,6 +1098,7 @@ DEFINE_PRIM(_I32, chan_stop, _I32);
 //// Core DSP effects
 
 static void hlaxe_reclaim_dead_lookups(void);
+static void hlaxe_sweep_dead_lookups(void);
 
 /* A lookup that cannot get a slot reports it: the table is full, so
  * the caller sees FMOD_ERR_MEMORY instead of a silent zero */
@@ -2618,8 +2626,15 @@ DEFINE_PRIM(_I32, cg_set_callback, _I32 _BOOL);
 #define FAXE_CB_SYS_NAMESPACE 0x20000000u
 #define FAXE_CB_SYS_STUDIO_BIT 0x00000100u
 
-// The studio mask in force. Zero means no stash work on the unload paths.
+// The studio mask the game asked for. Zero means no stash work on the
+// unload paths.
 static unsigned int gSystemCallbackMask = 0;
+
+// The shim keeps BANK_UNLOAD installed whatever the game asked for. A
+// command replay unloads the banks it loaded with no call through the
+// shim, and the drain sweeps the dead lookups at that record. The
+// runtime hands the record to the game only when its mask asked for it.
+#define FAXE_STUDIO_CB_INTERNAL ((unsigned int)FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD)
 
 // Runs on whichever FMOD thread raised the event. Plain C only. ERROR
 // copies the FMOD_ERRORCALLBACK_INFO strings into the record's fixed
@@ -2713,14 +2728,17 @@ HL_PRIM int HL_NAME(sys_set_callback_mask)(int mask) {
 }
 DEFINE_PRIM(_I32, sys_set_callback_mask, _I32);
 
+/* Installs the shim's Studio callback with the game's mask and the
+ * internal bit. Haxe thread only. */
+static FMOD_RESULT hlaxe_install_studio_callback(unsigned int gameMask) {
+    return FMOD_Studio_System_SetCallback(gStudioSystem, hlaxe_studio_system_callback,
+        (FMOD_STUDIO_SYSTEM_CALLBACK_TYPE)(gameMask | FAXE_STUDIO_CB_INTERNAL));
+}
+
 HL_PRIM int HL_NAME(sys_set_studio_callback_mask)(int mask) {
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
-    if (mask == 0) {
-        gLastResult = FMOD_Studio_System_SetCallback(gStudioSystem, NULL, 0);
-    } else {
-        gLastResult = FMOD_Studio_System_SetCallback(gStudioSystem, hlaxe_studio_system_callback,
-            (FMOD_STUDIO_SYSTEM_CALLBACK_TYPE)mask);
-    }
+    /* Mask 0 leaves the internal bit installed */
+    gLastResult = hlaxe_install_studio_callback((unsigned int)mask);
     gSystemCallbackMask = (gLastResult == FMOD_OK) ? (unsigned int)mask : 0u;
     /* The path stash serves the unload record alone, so it goes with that bit */
     if (!(gSystemCallbackMask & FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD)) faxe_bankpath_clear();
@@ -4078,6 +4096,12 @@ HL_PRIM bool HL_NAME(cb_next)() {
         free_destroyed_ctx((FaxeInstCtx*)gCbCurrent.opaque);
         gCbCurrent.opaque = NULL;
     }
+    /* A bank unload the shim did not run, a command replay's cleanup for
+     * one, leaves lookup slots over dead objects. The unload already ran
+     * when this record was raised, so the sweep needs no flush. */
+    if (gCbCurrent.type == (FAXE_CB_SYS_NAMESPACE | FAXE_CB_SYS_STUDIO_BIT | (uint32_t)FMOD_STUDIO_SYSTEM_CALLBACK_BANK_UNLOAD)) {
+        hlaxe_sweep_dead_lookups();
+    }
     /* A created record mints the handle here on the Haxe thread, in i1,
      * and records it on the instance. The destroyed record carries that
      * handle back, since its address died with the object. The freed
@@ -4361,6 +4385,9 @@ HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMod
 
     FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
     faxe_cbq_init();
+    /* The queue takes records from here on. A refused install leaves only
+     * the replay unloads unswept, so the init still succeeds. */
+    hlaxe_install_studio_callback(gSystemCallbackMask);
     gLastResult = FMOD_OK;
     return (int)gLastResult;
 }
@@ -4770,15 +4797,20 @@ static void hlaxe_reclaim_dead_channels(void) {
     faxe_handles_sweep_type(FAXE_TYPE_CHAN, hlaxe_channel_slot_valid, hlaxe_channel_detach_rolloff);
 }
 
-static void hlaxe_reclaim_dead_lookups(void) {
-    // Unload runs on FMOD's async command queue. Flushing makes the dead
-    // objects observable to IsValid before the sweep.
-    if (gStudioSystem) FMOD_Studio_System_FlushCommands(gStudioSystem);
+/* The sweep without a flush, for a caller whose unload already ran */
+static void hlaxe_sweep_dead_lookups(void) {
     faxe_handles_sweep_lookups(hlaxe_lookup_slot_valid);
     /* A destroyed instance's handle goes now rather than at its DESTROYED
      * drain, and the groups and DSPs reached from it go along */
     faxe_handles_sweep_type(FAXE_TYPE_EVI, hlaxe_lookup_slot_valid, NULL);
     faxe_handles_free_volatile();
+}
+
+static void hlaxe_reclaim_dead_lookups(void) {
+    // Unload runs on FMOD's async command queue. Flushing makes the dead
+    // objects observable to IsValid before the sweep.
+    if (gStudioSystem) FMOD_Studio_System_FlushCommands(gStudioSystem);
+    hlaxe_sweep_dead_lookups();
 }
 
 /* The group callbacks the game installed on instance groups, taken off
@@ -6450,9 +6482,38 @@ static int geometry_handle(FMOD_GEOMETRY* geometry) {
     return handle;
 }
 
+/* FMOD sizes its geometry arrays in 32 bits. A polygon or vertex count
+ * near 2^30 wraps that size, and FMOD then writes past the arrays. The
+ * shim refuses counts from this limit up. */
+#define HLAXE_GEOMETRY_COUNT_LIMIT 0x01000000u
+
+/* A saved geometry blob holds its polygon and vertex limits at these
+ * byte offsets. A blob too short to hold them goes to FMOD unchecked. */
+#define HLAXE_GEOMETRY_MAX_POLYGONS_AT 12
+#define HLAXE_GEOMETRY_MAX_VERTICES_AT 16
+
+static int hlaxe_geometry_count_ok(unsigned int count) {
+    return count < HLAXE_GEOMETRY_COUNT_LIMIT;
+}
+
+static int hlaxe_geometry_blob_ok(const vbyte* data, int len) {
+    unsigned int maxPolygons = 0;
+    unsigned int maxVertices = 0;
+    if (len < HLAXE_GEOMETRY_MAX_VERTICES_AT + 4) return 1;
+    memcpy(&maxPolygons, data + HLAXE_GEOMETRY_MAX_POLYGONS_AT, 4);
+    memcpy(&maxVertices, data + HLAXE_GEOMETRY_MAX_VERTICES_AT, 4);
+    return hlaxe_geometry_count_ok(maxPolygons) && hlaxe_geometry_count_ok(maxVertices);
+}
+
 HL_PRIM int HL_NAME(sys_create_geometry)(int maxPolygons, int maxVertices) {
     FMOD_GEOMETRY* geometry = NULL;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
+    /* A negative count reaches FMOD, which refuses it */
+    if ((maxPolygons > 0 && !hlaxe_geometry_count_ok((unsigned int)maxPolygons))
+            || (maxVertices > 0 && !hlaxe_geometry_count_ok((unsigned int)maxVertices))) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
     gLastResult = FMOD_System_CreateGeometry(gCoreSystem, maxPolygons, maxVertices, &geometry);
     if (gLastResult != FMOD_OK || !geometry) return 0;
     return geometry_handle(geometry);
@@ -6496,7 +6557,7 @@ DEFINE_PRIM(_I32, sys_get_geometry_occlusion, _F64 _F64 _F64 _F64 _F64 _F64 _BYT
 HL_PRIM int HL_NAME(sys_load_geometry)(vbyte* data, int len) {
     FMOD_GEOMETRY* geometry = NULL;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
+    if (!data || len <= 0 || !hlaxe_geometry_blob_ok(data, len)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_System_LoadGeometry(gCoreSystem, data, len, &geometry);
     if (gLastResult != FMOD_OK || !geometry) return 0;
     return geometry_handle(geometry);

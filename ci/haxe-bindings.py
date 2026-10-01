@@ -528,7 +528,7 @@ def render_coverage_md(table):
         "",
         f"Every FMOD function the native layer calls, with the haxefmod methods that reach it. Generated from the sources by `ci/haxe-bindings.py` for haxefmod {haxelib_version()} against FMOD {fmod_version()}. The functions the library leaves out are listed at the end with the reason for each.",
         "",
-        "The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, \"compile error\" marks a call a js build refuses. A cell that names methods marks those methods alone. The project define `-D haxefmod_html5_allow_unsupported` compiles it anyway, and the call then returns `FMOD_ERR_UNSUPPORTED` at runtime. The word \"limited\" marks a call the web build only partly supports.",
+        "The same table powers the browser extension that adds a Haxe tab to the [fmod.com API reference](https://www.fmod.com/docs/2.03/api/welcome.html). In the HTML5 column, \"compile error\" marks a call a js build refuses. A cell that names methods marks those methods alone. The project define `-D haxefmod_html5_allow_unsupported` compiles such a call anyway. The call then returns `FMOD_ERR_UNSUPPORTED` at runtime. The word \"limited\" marks a call the web build only partly supports.",
         "",
     ]
     total = 0

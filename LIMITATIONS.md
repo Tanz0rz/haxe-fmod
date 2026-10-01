@@ -83,7 +83,7 @@ These FMOD features cannot be bound from Haxe. Most hand FMOD a function pointer
   - a bank load without `NONBLOCKING`, also when FMOD refuses it
   - `StudioSystem.unloadAll()` and `EventDescription.releaseAllInstances()`, also when FMOD refuses them
   - on HTML5, `Bank.unload()` also when FMOD refuses it
-  - `FmodManager.LoadBank()` and `FmodManager.WaitForBanks()`
+  - `FmodManager.LoadBank()` when it loads a new bank, and `FmodManager.WaitForBanks()`
   - `FmodManager.PauseSong()` with automatic updates off
   - any other helper class call or component that makes one of these calls. `FmodManager.PlayOneShot` releases its instance. An emitter stops its event when it culls it.
 - **A walked group handle dies when another instance or bus reaches its group.** A walk from that instance or bus does it. So does its `getChannelGroup()`. That call gets a fresh handle with no user data. The handles reached from the old one die with it.

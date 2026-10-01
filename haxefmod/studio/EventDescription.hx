@@ -159,6 +159,14 @@ abstract EventDescription(Int) from Int to Int {
         descriptionCallbacks = new Map();
     }
 
+    /** Forgets the handlers of descriptions whose handle no longer resolves. A bank unload ends those. */
+    @:dox(hide)
+    public static function dropDeadCallbacks():Void {
+        if (!descriptionCallbacks.iterator().hasNext()) return;
+        var dead = [for (handle in descriptionCallbacks.keys()) if (!NativeStudio.debug_handle_is_live(handle)) handle];
+        for (handle in dead) descriptionCallbacks.remove(handle);
+    }
+
     /**
      * Number of live instances of this event. Returns 0 both on failure and for an event with no live instance.
      * StudioSystem.lastResult() tells the two apart.

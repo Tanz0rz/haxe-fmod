@@ -22,7 +22,7 @@ case NestedTimelineBeat(nested):   // FmodTimelineNestedBeatProperties: eventId,
 
 ## The default callback mask is every type
 
-`setCallback(handler)` without a mask now delivers every callback type. FMOD and its C# integration use the same default. `FmodManager.OnSongEvent`, `FmodManager.OnceSongEvent`, and `FmodEvent.onEvent` take the same default through it. `EventCallbackType.PLAYBACK_ALL` is gone. `EventCallbackType.ALL` is the same mask under FMOD's name. Passing the types a handler switches on is better. The mask also keeps a busy event from queuing more callbacks than the handler uses. Beat tracking at a fast tempo is one example:
+`setCallback(handler)` without a mask now delivers every callback type. FMOD and its C# integration use the same default. `FmodManager.OnSongEvent`, `FmodManager.OnceSongEvent`, and `FmodEvent.onEvent` take the same default through it. `EventCallbackType.PLAYBACK_ALL` is gone. `EventCallbackType.ALL` is FMOD's mask for every type. It also delivers the programmer sound, plugin, and start event command types that `PLAYBACK_ALL` left out. Passing the types a handler switches on is better. The mask also keeps a busy event from queuing more callbacks than the handler uses. Beat tracking at a fast tempo is one example:
 
 ```haxe
 import haxefmod.studio.Callbacks;

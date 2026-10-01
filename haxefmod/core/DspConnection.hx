@@ -108,8 +108,8 @@ abstract DspConnection(Int) from Int to Int {
     #end
     /**
      * Attaches a Haxe value to this handle. The value lives on the Haxe
-     * side keyed by the handle. A graph change ends the handle, and the
-     * value goes at the next update or the next call that stops,
+     * side keyed by the handle. A graph change ends the handle. The
+     * value goes at the next update or at the next call that stops,
      * releases, or unloads anything. A recycled native slot gets a new
      * generation and therefore a new handle int. Thus a stale entry does
      * not show up on the next handle in that slot.

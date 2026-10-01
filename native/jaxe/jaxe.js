@@ -321,9 +321,10 @@ class jaxe {
     // observable to isValid. Mirrors faxe_handles_sweep_lookups in the
     // native shims, and sweeps instance slots on top of that. The native
     // shims reclaim those when the DESTROYED event drains, which this
-    // target never receives.
-    static sweepDeadLookups() {
-        if (jaxe.gSystem) jaxe.gSystem.flushCommands();
+    // target never receives. noFlush skips the flush for a caller whose
+    // unload already ran.
+    static sweepDeadLookups(noFlush) {
+        if (jaxe.gSystem && !noFlush) jaxe.gSystem.flushCommands();
         for (var i = 0; i < jaxe.slots.length; i++) {
             var s = jaxe.slots[i];
             if (!s.alive) continue;
@@ -1006,6 +1007,11 @@ class jaxe {
             // value still reaches the handler for identity. The typed
             // resolve keeps a group's slot out of it.
             if (jaxe.handleResolve(cur.handle, jaxe.TYPE_CHAN)) jaxe.handleFree(cur.handle);
+        } else if (cur.type == (jaxe.CB_SYS_NAMESPACE | jaxe.CB_SYS_STUDIO_BIT | jaxe.STUDIO_CB_BANK_UNLOAD)) {
+            // A bank unload this shim did not run, a command replay's
+            // cleanup for one, leaves lookup slots over dead objects. The
+            // unload already ran, so the sweep needs no flush.
+            jaxe.sweepDeadLookups(true);
         } else if (cur.type == (jaxe.CB_SYS_NAMESPACE | 0x80) /* core ERROR */) {
             // The failing object's handle when the table knows it, never a
             // fresh one: a sound FMOD rejected can already be gone.
@@ -2948,9 +2954,14 @@ class jaxe {
 
     // mode is a full FMOD_MODE. initialSubsound >= 0 goes into
     // exinfo.initialsubsound for FSB streams, -1 leaves the default.
+    // OPENMEMORY and OPENMEMORY_POINT. A path create with either would
+    // hand FMOD the path text as a file image.
+    static PATH_MODE_MEMORY = 0x00000800 | 0x10000000;
+
     static fmod_core_create_sound(path, mode, initialSubsound) {
         if (typeof path !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        if ((mode & jaxe.PATH_MODE_MEMORY) != 0) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var soundOut = {};
         var exinfo = null;
         if ((initialSubsound | 0) >= 0) {
@@ -3052,7 +3063,10 @@ class jaxe {
     // Sound.create with a full FMOD_CREATESOUNDEXINFO. NONBLOCKING is
     // dropped as in fmod_core_create_sound.
     static fmod_core_create_sound_ex(path, mode, ibuf, dls, key, guidText) {
-        if (typeof path !== "string" || !ibuf || ibuf.length < 20) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
+        if (typeof path !== "string" || !ibuf || ibuf.length < 20 || (mode & jaxe.PATH_MODE_MEMORY) != 0) {
+            jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
+            return 0;
+        }
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
         var exinfo = jaxe.fillExInfo(ibuf, dls, key, guidText);
         if (!exinfo) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
@@ -4677,6 +4691,14 @@ class jaxe {
     static studioCallbackMask = 0;
     static STUDIO_CB_BANK_UNLOAD = 0x4;
 
+    // The shim keeps BANK_UNLOAD installed whatever the game asked for. A
+    // command replay unloads the banks it loaded with no call through the
+    // shim, and the drain sweeps the dead lookups at that record. The
+    // runtime hands the record to the game only when its mask asked for it.
+    static installStudioCallback(gameMask) {
+        return jaxe.gSystem.setCallback(jaxe.studioSystemCallback, (gameMask | jaxe.STUDIO_CB_BANK_UNLOAD) >>> 0);
+    }
+
     static studioSystemCallback(system, type, commanddata, userdata) {
         var str = "";
         if (type === 4 /* BANK_UNLOAD */ && commanddata) {
@@ -4732,11 +4754,8 @@ class jaxe {
     static fmod_sys_set_studio_callback_mask(mask) {
         if (!jaxe.sysReady()) return jaxe.lastResult;
         var wanted = mask >>> 0;
-        if (wanted === 0) {
-            jaxe.lastResult = jaxe.gSystem.setCallback(null, 0);
-        } else {
-            jaxe.lastResult = jaxe.gSystem.setCallback(jaxe.studioSystemCallback, wanted);
-        }
+        // Mask 0 leaves the internal bit installed
+        jaxe.lastResult = jaxe.installStudioCallback(wanted);
         // The mask is recorded once FMOD took it, the way the C shims do
         jaxe.studioCallbackMask = jaxe.lastResult == jaxe.FMOD.OK ? wanted : 0;
         if ((jaxe.studioCallbackMask & jaxe.STUDIO_CB_BANK_UNLOAD) == 0) jaxe.bankPathByRaw.clear();
@@ -5455,11 +5474,16 @@ class jaxe {
     // response is parameter 0.
     static DSP_TYPE_CONVOLUTION = 28;
 
+    // FMOD_MAX_CHANNEL_WIDTH, the most channels an impulse response may hold
+    static MAX_CHANNEL_WIDTH = 32;
+
     // Mirrors faxe_dspdata_write_ok. The glue cannot hand out descriptors,
-    // so a typed writer finds its parameter through getDataParameterIndex,
-    // which reports the first one of each type. FMOD divides by the
-    // channel count that opens an impulse response, and the wasm trap
-    // reaches the game as an exception.
+    // so a parameter's data type comes from getDataParameterIndex, which
+    // reports the first one of each type. FMOD divides by the channel
+    // count that opens an impulse response, and the wasm trap reaches the
+    // game as an exception. A count above the channel width corrupts the
+    // wasm heap. FMOD refuses a negative count itself. FMOD reads a whole
+    // FMOD_BOOL from a sidechain or finite length parameter.
     static dataWriteOk(dsp, index, kind, bytes) {
         var types = jaxe.DATA_KIND_TYPES[kind];
         if (types) {
@@ -5470,9 +5494,18 @@ class jaxe {
             }
             if (!found) return false;
         }
+        if (bytes.length < 4) {
+            var bools = [-3, -8];
+            for (var b = 0; b < bools.length; b++) {
+                var boolAt = {};
+                if (dsp.getDataParameterIndex(bools[b], boolAt) == jaxe.FMOD.OK && boolAt.val === index) return false;
+            }
+        }
         var type = {};
         if (index === 0 && dsp.getType(type) == jaxe.FMOD.OK && type.val === jaxe.DSP_TYPE_CONVOLUTION) {
-            return bytes.length >= 2 && (bytes[0] | (bytes[1] << 8)) !== 0;
+            if (bytes.length < 2) return false;
+            var channels = ((bytes[0] | (bytes[1] << 8)) << 16) >> 16;
+            return channels !== 0 && channels <= jaxe.MAX_CHANNEL_WIDTH;
         }
         return true;
     }
@@ -6458,6 +6491,9 @@ class jaxe {
             jaxe.gInitFailure = initResult;
             jaxe.lastResult = initResult;
             console.error("haxefmod: FMOD Studio initialize failed with result " + initResult + ". Every later FMOD call fails.");
+        } else {
+            // A refused install leaves only the replay unloads unswept
+            jaxe.installStudioCallback(jaxe.studioCallbackMask);
         }
 
         // A gesture that arrived while the wasm was still loading counts.

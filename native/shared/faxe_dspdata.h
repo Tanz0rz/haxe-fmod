@@ -246,24 +246,36 @@ static int faxe_dspdata_kind_takes(int kind, int datatype) {
 
 /* A convolution reverb's impulse response starts with its channel count
  * as a 16-bit value. FMOD divides by it, so 0 or a payload too short to
- * hold it kills the process. Every other parameter passes. */
+ * hold it kills the process. A count above FMOD_MAX_CHANNEL_WIDTH makes
+ * FMOD overrun the heap while it mixes. FMOD refuses a negative count
+ * itself. Every other parameter passes. */
 static int faxe_dspdata_ir_ok(int dspType, int index, const void* data, unsigned int len) {
     short channels = 0;
     if (dspType != (int)FMOD_DSP_TYPE_CONVOLUTIONREVERB || index != FMOD_DSP_CONVOLUTION_REVERB_PARAM_IR) return 1;
     if (!data || len < (unsigned int)sizeof(channels)) return 0;
     memcpy(&channels, data, sizeof(channels));
-    return channels != 0;
+    return channels != 0 && channels <= FMOD_MAX_CHANNEL_WIDTH;
+}
+
+/* FMOD reads a whole FMOD_BOOL from a sidechain or finite length
+ * parameter, whatever length it gets. A shorter payload goes no further. */
+static int faxe_dspdata_size_ok(int datatype, unsigned int len) {
+    if (datatype == FMOD_DSP_PARAMETER_DATA_TYPE_SIDECHAIN || datatype == FAXE_DSPDATA_TYPE_FINITE_LENGTH) {
+        return len >= (unsigned int)sizeof(FMOD_BOOL);
+    }
+    return 1;
 }
 
 /* The check before every data write. desc is the descriptor at index
  * (NULL when the index is out of range), kind the writer, dspType the
  * unit's FMOD_DSP_TYPE, data and len the payload FMOD would get. FMOD
- * crashes on a data write to a unit without parameters and on an empty
- * impulse response. */
+ * crashes on a data write to a unit without parameters and on a bad
+ * impulse response, and reads past a short sidechain payload. */
 static int faxe_dspdata_write_ok(const FMOD_DSP_PARAMETER_DESC* desc, int kind, int dspType, int index,
         const void* data, unsigned int len) {
     if (!desc || desc->type != FMOD_DSP_PARAMETER_TYPE_DATA) return 0;
     if (!faxe_dspdata_kind_takes(kind, desc->datadesc.datatype)) return 0;
+    if (!faxe_dspdata_size_ok(desc->datadesc.datatype, len)) return 0;
     return faxe_dspdata_ir_ok(dspType, index, data, len);
 }
 

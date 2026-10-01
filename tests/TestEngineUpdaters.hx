@@ -92,6 +92,13 @@ class TestEngineUpdaters {
 
 		// The interpreter runs its event loop at exit, so no hook may stay
 		FmodHeapsUpdater.removeHook();
+		// A component that an earlier tick disposed ticked once more in
+		// that frame
+		var lateTicks = late.ticks;
+		ticker.onTick = () -> FmodHeapsUpdater.remove(late);
+		FmodHeapsUpdater.update();
+		ticker.onTick = null;
+		assert(late.ticks == lateTicks, 'heaps: a component removed during the frame does not tick (ticks=${late.ticks - lateTicks})');
 		FmodHeapsUpdater.remove(ticker);
 		FmodHeapsUpdater.remove(late);
 		assert(FmodHeapsUpdater.count() == 0, "heaps: remove unregisters the components");
@@ -148,6 +155,13 @@ class TestEngineUpdaters {
 		kha.Scheduler.removeFrameTask(gameTask);
 
 		FmodKhaUpdater.removeHook();
+		// A component that an earlier tick disposed ticked once more in
+		// that frame
+		var lateTicks = late.ticks;
+		ticker.onTick = () -> FmodKhaUpdater.remove(late);
+		FmodKhaUpdater.update();
+		ticker.onTick = null;
+		assert(late.ticks == lateTicks, 'kha: a component removed during the frame does not tick (ticks=${late.ticks - lateTicks})');
 		FmodKhaUpdater.remove(ticker);
 		FmodKhaUpdater.remove(late);
 		assert(FmodKhaUpdater.count() == 0, "kha: remove unregisters the components");

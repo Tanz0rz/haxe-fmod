@@ -309,6 +309,13 @@ static void test_write_guard(void) {
     /* a negative count reaches FMOD, which refuses it itself */
     ir[0] = -1;
     assert(faxe_dspdata_write_ok(&desc, 0, conv, irIndex, ir, sizeof(ir)) == 1);
+    /* more channels than FMOD_MAX_CHANNEL_WIDTH overran the heap in the mixer */
+    ir[0] = FMOD_MAX_CHANNEL_WIDTH;
+    assert(faxe_dspdata_write_ok(&desc, 0, conv, irIndex, ir, sizeof(ir)) == 1);
+    ir[0] = FMOD_MAX_CHANNEL_WIDTH + 1;
+    assert(faxe_dspdata_write_ok(&desc, 0, conv, irIndex, ir, sizeof(ir)) == 0);
+    ir[0] = 32767;
+    assert(faxe_dspdata_write_ok(&desc, 0, conv, irIndex, ir, sizeof(ir)) == 0);
     ir[0] = 1;
     /* the payload check is for that one parameter */
     assert(faxe_dspdata_write_ok(&desc, 0, conv, irIndex + 1, empty, sizeof(empty)) == 1);
@@ -324,6 +331,18 @@ static void test_write_guard(void) {
     assert(faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_SIDECHAIN, desc.datadesc.datatype));
     assert(faxe_dspdata_write_ok(&desc, FAXE_DSPDATA_KIND_FINITE_LENGTH, (int)FMOD_DSP_TYPE_COMPRESSOR, 5, ir, 4) == 1);
     assert(faxe_dspdata_write_ok(&desc, FAXE_DSPDATA_KIND_ATTENUATION_RANGE, (int)FMOD_DSP_TYPE_COMPRESSOR, 5, ir, 4) == 0);
+    /* FMOD reads a whole FMOD_BOOL from a sidechain or finite length
+     * parameter, so a raw payload shorter than that read past its end */
+    assert(faxe_dspdata_write_ok(&desc, 0, (int)FMOD_DSP_TYPE_COMPRESSOR, 5, ir, 4) == 1);
+    assert(faxe_dspdata_write_ok(&desc, 0, (int)FMOD_DSP_TYPE_COMPRESSOR, 5, ir, 3) == 0);
+    assert(faxe_dspdata_write_ok(&desc, 0, (int)FMOD_DSP_TYPE_COMPRESSOR, 5, ir, 1) == 0);
+    desc.datadesc.datatype = FAXE_DSPDATA_TYPE_FINITE_LENGTH;
+    assert(faxe_dspdata_write_ok(&desc, 0, (int)FMOD_DSP_TYPE_UNKNOWN, 0, ir, 2) == 0);
+    assert(faxe_dspdata_write_ok(&desc, 0, (int)FMOD_DSP_TYPE_UNKNOWN, 0, ir, 4) == 1);
+    /* the size rule is for those two types alone */
+    desc.datadesc.datatype = FMOD_DSP_PARAMETER_DATA_TYPE_ATTENUATION_RANGE;
+    assert(faxe_dspdata_write_ok(&desc, 0, (int)FMOD_DSP_TYPE_UNKNOWN, 0, ir, 1) == 1);
+    desc.datadesc.datatype = FMOD_DSP_PARAMETER_DATA_TYPE_SIDECHAIN;
     assert(faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_FINITE_LENGTH, FAXE_DSPDATA_TYPE_FINITE_LENGTH));
     assert(faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_SIDECHAIN, FAXE_DSPDATA_TYPE_FINITE_LENGTH));
     assert(faxe_dspdata_kind_takes(FAXE_DSPDATA_KIND_ATTENUATION_RANGE, FMOD_DSP_PARAMETER_DATA_TYPE_ATTENUATION_RANGE));

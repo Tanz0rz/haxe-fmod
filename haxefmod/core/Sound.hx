@@ -95,6 +95,8 @@ abstract Sound(Int) from Int to Int {
      * initialSubsound wins over the argument when both are given. A
      * create with exinfo.fsbGuid ignores NONBLOCKING and loads inside
      * the call, and the field holds the FSB file's GUID afterwards.
+     * A mode with OPENMEMORY or OPENMEMORY_POINT fails with
+     * FMOD_ERR_INVALID_PARAM.
      */
     public static function create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1, ?exinfo:FmodCreateSoundExInfo):Sound {
         // A null path is an empty one, which FMOD refuses. The HashLink

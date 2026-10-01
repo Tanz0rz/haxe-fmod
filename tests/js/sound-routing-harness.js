@@ -84,6 +84,22 @@ async function main() {
         jaxe.fmod_core_create_sound('Nope.wav', NONBLOCKING, -1) === 0 && jaxe.fmod_sys_last_result() === ERR_FILE_NOTFOUND,
         `last=${jaxe.fmod_sys_last_result()}`);
     check('create_sound_bad_path', jaxe.fmod_core_create_sound(42, 0, -1) === 0 && jaxe.fmod_sys_last_result() === ERR_INVALID_PARAM, '');
+    // A memory mode on a path create handed the glue the path text as a
+    // file image. Both path creates refuse it, the native shims the same.
+    {
+        const rawInts = new Array(1024).fill(0);
+        rawInts[0] = 4; rawInts[2] = 1; rawInts[3] = 44100; rawInts[4] = 2;
+        const memoryPath = jaxe.fmod_core_create_sound('Jump.wav', 0x800 | 0x1000, -1);
+        const memoryResult = jaxe.fmod_sys_last_result();
+        const memoryEx = jaxe.fmod_core_create_sound_ex('Jump.wav', 0x800 | 0x1000, rawInts, '', '', '');
+        const memoryExResult = jaxe.fmod_sys_last_result();
+        const pointEx = jaxe.fmod_core_create_sound_ex('Jump.wav', 0x10000000 | 0x1000, rawInts, '', '', '');
+        const pointExResult = jaxe.fmod_sys_last_result();
+        check('create_sound_path_memory_mode', memoryPath === 0 && memoryResult === ERR_INVALID_PARAM
+            && memoryEx === 0 && memoryExResult === ERR_INVALID_PARAM && pointEx === 0 && pointExResult === ERR_INVALID_PARAM,
+            `plain=${memoryPath}/${memoryResult} ex=${memoryEx}/${memoryExResult} point=${pointEx}/${pointExResult}`);
+        for (const h of [memoryPath, memoryEx, pointEx]) if (h > 0) jaxe.fmod_core_release_sound(h);
+    }
 
     // --- create_sound_memory ---
     // A wav image hits the codec limit.

@@ -100,9 +100,9 @@ class UserData {
 
     /**
      * Drops the dead entries of the families whose handles die with the
-     * handle they were reached from: channel groups, DSPs, sounds, and
-     * channels. A native release or destroy frees those without a call on
-     * them. An empty family costs nothing.
+     * handle they were reached from: channel groups, DSPs, DSP connections,
+     * sounds, and channels. A native release, destroy, or graph change
+     * frees those without a call on them. An empty family costs nothing.
      */
     public static function dropDeadBorrowed():Void {
         for (kind in [UserDataKind.ChannelGroup, UserDataKind.Dsp, UserDataKind.DspConnection, UserDataKind.Sound, UserDataKind.Channel]) {

@@ -262,7 +262,29 @@ async function main() {
     for (let i = 0; i < 64; i++) irView.setInt16((1 + i) * 2, Math.round(Math.exp(-i / 16) * 12000), true);
     check('dsp_set_param_data_ir_after_refusals', jaxe.fmod_dsp_set_param_data(convolution, 0, irBytes.buffer, irBytes.length) === 0,
         `result=${jaxe.lastResult}`);
+    // More channels than FMOD_MAX_CHANNEL_WIDTH (32) corrupted the wasm
+    // heap while the reverb mixed. FMOD refuses a negative count itself.
+    function wideIr(channels) {
+        const bytes = new Uint8Array((1 + Math.abs(channels) * 4) * 2);
+        const view = new DataView(bytes.buffer);
+        view.setInt16(0, channels, true);
+        for (let i = 0; i < Math.abs(channels) * 4; i++) view.setInt16((1 + i) * 2, 1000, true);
+        return bytes;
+    }
+    const ir33 = wideIr(33), ir100 = wideIr(100), ir32 = wideIr(32), irNegative = wideIr(-1);
+    const wide33 = jaxe.fmod_dsp_set_param_data(convolution, 0, ir33.buffer, ir33.length);
+    const wide100 = jaxe.fmod_dsp_set_param_data(convolution, 0, ir100.buffer, ir100.length);
+    const wide32 = jaxe.fmod_dsp_set_param_data(convolution, 0, ir32.buffer, ir32.length);
+    const negative = jaxe.fmod_dsp_set_param_data(convolution, 0, irNegative.buffer, irNegative.length);
+    check('dsp_set_param_data_ir_channel_limit', wide33 === 31 && wide100 === 31 && wide32 === 0 && negative !== 0,
+        `33=${wide33} 100=${wide100} 32=${wide32} -1=${negative}`);
     jaxe.fmod_dsp_release(convolution);
+    // FMOD reads a whole FMOD_BOOL from the sidechain switch, so a shorter
+    // raw payload was read past its end
+    const shortSidechain = [1, 2, 3].map(n => jaxe.fmod_dsp_set_param_data(compressor, sidechainIndex, new Uint8Array(n).buffer, n));
+    const fullSidechain = jaxe.fmod_dsp_set_param_data(compressor, sidechainIndex, new Uint8Array(4).buffer, 4);
+    check('dsp_set_param_data_short_sidechain', shortSidechain.every(r => r === 31) && fullSidechain === 0,
+        `short=${shortSidechain.join(',')} full=${fullSidechain}`);
     // FMOD takes the eight byte range block on the compressor's sidechain
     // switch. The typed writer refuses a parameter of another data type.
     fbuf[0] = 1; fbuf[1] = 2;

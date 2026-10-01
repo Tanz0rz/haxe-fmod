@@ -295,6 +295,8 @@ abstract Dsp(Int) from Int to Int {
      * Uploads a data parameter payload, with the byte layout per the
      * effect's contract. A convolution impulse response, for example, is
      * 16-bit samples with the channel count as the first value.
+     * FMOD_ERR_INVALID_PARAM comes back for an impulse response with 0 or
+     * more than 32 channels and for a sidechain payload under 4 bytes.
      */
     public inline function setParameterData(index:Int, data:haxe.io.Bytes):FmodResult {
         return NativeStudio.dsp_set_param_data(this, index, data, data == null ? 0 : data.length);

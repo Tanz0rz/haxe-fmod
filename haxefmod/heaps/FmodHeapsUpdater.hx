@@ -135,8 +135,9 @@ class FmodHeapsUpdater {
         var dt = lastStamp < 0 ? 0.0 : now - lastStamp;
         lastStamp = now;
         // Copy first: a ticker can remove itself (a loader that just fired).
+        // One that an earlier tick removed is skipped.
         for (ticker in tickers.copy()) {
-            ticker.tick(dt);
+            if (tickers.indexOf(ticker) != -1) ticker.tick(dt);
         }
         FmodManager.Update();
     }

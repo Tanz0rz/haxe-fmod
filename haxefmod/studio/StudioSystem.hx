@@ -125,7 +125,7 @@ class StudioSystem {
      * Loads a bank file. On HTML5 the file must already be in the virtual
      * filesystem (the default banks are preloaded. Use FmodRuntime for
      * fetch-based loading). Returns Bank.NULL on failure. A load without
-     * NONBLOCKING ends the short-lived handles, also when FMOD refuses it.
+     * NONBLOCKING ends the short-lived handles. A refused load ends them too.
      */
     public static function loadBankFile(path:String, flags:FmodLoadBankFlags = NORMAL):Bank {
         var bank:Bank = NativeStudio.sys_load_bank_file(path, flags);
@@ -183,8 +183,8 @@ class StudioSystem {
      * Loads a bank from bytes (embedded, downloaded, or packed banks).
      * The data is copied, so the buffer is free after this returns. flags
      * are the same FmodLoadBankFlags loadBankFile takes. Returns Bank.NULL
-     * on failure. A load without NONBLOCKING ends the short-lived handles,
-     * also when FMOD refuses it.
+     * on failure. A load without NONBLOCKING ends the short-lived handles.
+     * A refused load ends them too.
      */
     public static function loadBankMemory(data:haxe.io.Bytes, flags:FmodLoadBankFlags = NORMAL):Bank {
         // Null reaches the shim, which refuses it with FMOD_ERR_INVALID_PARAM

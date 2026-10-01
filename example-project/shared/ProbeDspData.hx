@@ -236,7 +236,31 @@ class ProbeDspData {
         for (i in 0...64) irBytes.setUInt16((1 + i) * 2, Std.int(Math.exp(-i / 16) * 12000));
         var irUpload = convolution.setParameterData(irIndex, irBytes);
         @:privateAccess state.check("dsp_set_parameter_data_ir_after_refusals", irUpload.isOk(), 'result=${irUpload.toString()}');
+        // More channels than FMOD_MAX_CHANNEL_WIDTH (32) overran the heap
+        // while the reverb mixed. The widest count still goes through.
+        function wideIr(channels:Int):haxe.io.Bytes {
+            var bytes = haxe.io.Bytes.alloc((1 + channels * 4) * 2);
+            bytes.setUInt16(0, channels);
+            for (i in 0...channels * 4) bytes.setUInt16((1 + i) * 2, 1000);
+            return bytes;
+        }
+        var tooWide = convolution.setParameterData(irIndex, wideIr(33));
+        var muchTooWide = convolution.setParameterData(irIndex, wideIr(100));
+        var widest = convolution.setParameterData(irIndex, wideIr(32));
+        @:privateAccess state.check("dsp_set_parameter_data_ir_channel_limit", tooWide == FmodResult.FMOD_ERR_INVALID_PARAM
+            && muchTooWide == FmodResult.FMOD_ERR_INVALID_PARAM && widest.isOk(),
+            '33=${tooWide.toString()} 100=${muchTooWide.toString()} 32=${widest.toString()}');
         convolution.release();
+        // FMOD reads a whole FMOD_BOOL from a sidechain parameter, so a
+        // shorter raw payload was read past its end
+        var compressor = Dsp.create(DspType.COMPRESSOR);
+        var sidechainIndex:Int = DspCompressor.USESIDECHAIN;
+        var shortSidechain = [for (n in 1...4) compressor.setParameterData(sidechainIndex, haxe.io.Bytes.alloc(n))];
+        var fullSidechain = compressor.setParameterData(sidechainIndex, haxe.io.Bytes.alloc(4));
+        @:privateAccess state.check("dsp_set_parameter_data_short_sidechain", !compressor.isNull()
+            && shortSidechain.filter(r -> r != FmodResult.FMOD_ERR_INVALID_PARAM).length == 0 && fullSidechain.isOk(),
+            'short=${[for (r in shortSidechain) r.toString()]} full=${fullSidechain.toString()}');
+        compressor.release();
 
         // --- overall gain on a fader ---
         var fader = Dsp.create(DspType.FADER);

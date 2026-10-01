@@ -163,6 +163,8 @@ class ApiProbeScenario implements TestScenario {
         var again = StudioSystem.getBus("bus:/");
         check("bus_lookup_cached", (again : Int) == (master : Int), "");
 
+        // Before any section installs a system handler
+        probeReplayBankUnload();
         probeHelperSong();
         probeM3Surface();
         probeParityTail2();
@@ -521,6 +523,93 @@ class ApiProbeScenario implements TestScenario {
             'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 
+    /**
+     * A command replay loads the banks its capture loaded and unloads them
+     * at its cleanup, with no call through the library. The lookup
+     * handles into such a bank die with it, and their entries go. The
+     * first round runs before any system handler was installed, so the
+     * shim's own BANK_UNLOAD callback from init does the work. The second
+     * runs under a handler whose studio mask leaves the bit out, which
+     * never sees the record.
+     */
+    function probeReplayBankUnload():Void {
+        var events:Array<haxefmod.studio.SystemCallbacks.SystemEvent> = [];
+        var pump = function() {
+            for (i in 0...3) {
+                haxefmod.studio.native.NativeStudio.sys_update();
+                StudioSystem.flushCommands();
+            }
+            CallbackDispatcher.update();
+        };
+        var unloads = function() {
+            var n = 0;
+            for (e in events) switch (e) {
+                case BankUnload(_): n++;
+                default:
+            }
+            return n;
+        };
+        var capturePath = "probe-replay-bank.cmd.txt";
+        var captured = StudioSystem.startCommandCapture(capturePath);
+        var extras = StudioSystem.loadBankFile(FmodRuntime.bankPath("Extras.bank"));
+        if (!captured.isOk() || extras.isNull()) {
+            StudioSystem.stopCommandCapture();
+            if (!extras.isNull()) extras.unload();
+            info("replay_bank_unload", 'Extras bank or capture not available here, skipped (capture=${captured.toString()} result=${StudioSystem.lastResult().toString()})');
+            return;
+        }
+        var bankPath = extras.getPath();
+        // An event the Master bank holds too keeps its persistent lookup
+        // handle. It is minted here, before the baseline.
+        extras.getEventList();
+        pump();
+        StudioSystem.stopCommandCapture();
+        extras.unload();
+        pump();
+        var baseline = StudioSystem.liveHandleCount();
+
+        // The replay loads the bank again, and its stop unloads it
+        function replayRound(suffix:String):Void {
+            var replay = StudioSystem.loadCommandReplay(capturePath);
+            check("replay_bank_load" + suffix, !replay.isNull() && replay.start().isOk(), 'result=${StudioSystem.lastResult().toString()}');
+            var replayBank = haxefmod.studio.Bank.NULL;
+            for (i in 0...50) {
+                pump();
+                replayBank = StudioSystem.getBank(bankPath);
+                if (!replayBank.isNull()) break;
+            }
+            var descriptions = replayBank.isNull() ? [] : replayBank.getEventList();
+            check("replay_bank_loaded_by_replay" + suffix, !replayBank.isNull() && descriptions.length > 0,
+                'bank=${(replayBank : Int)} events=${descriptions.length} result=${StudioSystem.lastResult().toString()}');
+            replayBank.setUserData("replay bank");
+            for (d in descriptions) d.setUserData("replay event");
+            replay.stop();
+            for (i in 0...10) pump();
+            // An event another loaded bank also holds survives the unload
+            var live = function(h:Int) return haxefmod.studio.native.NativeStudio.debug_handle_is_live(h);
+            var bankLive = live(replayBank);
+            var staleEvents = descriptions.filter(d -> live(d) && !d.isValid()).length;
+            var deadEvents = descriptions.filter(d -> !live(d));
+            check("replay_bank_unload_sweeps_lookups" + suffix, StudioSystem.getBank(bankPath).isNull() && !bankLive && staleEvents == 0
+                && deadEvents.length > 0, 'bankLive=$bankLive staleEvents=$staleEvents deadEvents=${deadEvents.length} of ${descriptions.length}');
+            check("replay_bank_unload_drops_userdata" + suffix, replayBank.getUserData() == null
+                && deadEvents.filter(d -> d.getUserData() != null).length == 0, "");
+            for (d in descriptions) d.setUserData(null);
+            replay.release();
+        }
+        replayRound("");
+        StudioSystem.setSystemCallback(function(e) events.push(e), haxefmod.studio.SystemCallbacks.DEFAULT_CORE_MASK,
+            haxefmod.studio.SystemCallbacks.STUDIO_LIVEUPDATE_CONNECTED);
+        replayRound("_masked_handler");
+        check("syscb_bank_unload_masked_out", unloads() == 0, 'events=${events.length}');
+        StudioSystem.clearSystemCallback();
+        #if sys
+        try sys.FileSystem.deleteFile(capturePath) catch (e:Dynamic) {}
+        #end
+        check("no_handle_leaks_replay_bank_unload", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
+    }
+
     function probeRolloffAndGeometry():Void {
         var baseline = StudioSystem.liveHandleCount();
         var points:Array<FmodVector> = [{x: 0, y: 1, z: 0}, {x: 10, y: 0.5, z: 0}, {x: 20, y: 0, z: 0}];
@@ -731,6 +820,27 @@ class ApiProbeScenario implements TestScenario {
             loadedAttrs == null ? 'result=${StudioSystem.lastResult().toString()}' : 'direct=${loadedAttrs.direct}');
         check("sys_load_geometry_rejects_garbage", Geometry.load(haxe.io.Bytes.alloc(8)).isNull(),
             'result=${StudioSystem.lastResult().toString()}');
+        // FMOD sizes its geometry arrays in 32 bits and wrapped them near
+        // 2^30. The shims refuse a count of 0x1000000 or more.
+        var limit = 0x1000000;
+        var tooManyPolygons = Geometry.create(limit, 16);
+        var polygonsResult = StudioSystem.lastResult();
+        var tooManyVertices = Geometry.create(4, limit);
+        var verticesResult = StudioSystem.lastResult();
+        check("sys_create_geometry_count_limit", tooManyPolygons.isNull() && polygonsResult == FmodResult.FMOD_ERR_INVALID_PARAM
+            && tooManyVertices.isNull() && verticesResult == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'polygons=${polygonsResult.toString()} vertices=${verticesResult.toString()}');
+        var bigPolygons = saved.sub(0, saved.length);
+        bigPolygons.setInt32(12, limit);
+        var bigPolygonsLoad = Geometry.load(bigPolygons);
+        var bigPolygonsResult = StudioSystem.lastResult();
+        var bigVertices = saved.sub(0, saved.length);
+        bigVertices.setInt32(16, limit);
+        var bigVerticesLoad = Geometry.load(bigVertices);
+        var bigVerticesResult = StudioSystem.lastResult();
+        check("sys_load_geometry_count_limit", bigPolygonsLoad.isNull() && bigPolygonsResult == FmodResult.FMOD_ERR_INVALID_PARAM
+            && bigVerticesLoad.isNull() && bigVerticesResult == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'polygons=${bigPolygonsResult.toString()} vertices=${bigVerticesResult.toString()}');
 
         var releaseLoaded:FmodResult = loaded.release();
         var releaseGeometry:FmodResult = geometry.release();
@@ -3131,6 +3241,21 @@ class ApiProbeScenario implements TestScenario {
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_FORMAT,
             'handle=${(memory : Int)} result=${StudioSystem.lastResult().toString()}');
         #end
+        // A memory mode on a path create read the path text as a file image
+        var rawInfo:FmodCreateSoundExInfo = {length: 4, numChannels: 1, defaultFrequency: 44100, format: FmodSoundFormat.PCM16};
+        var memoryPath = Sound.create("assets/fmod/Jump.wav", false, false, ChannelMode.OPENMEMORY | ChannelMode.OPENRAW, -1, rawInfo);
+        var memoryPathResult = StudioSystem.lastResult();
+        var pointPath = Sound.create("assets/fmod/Jump.wav", false, false, ChannelMode.OPENMEMORY_POINT | ChannelMode.OPENRAW, -1, rawInfo);
+        var pointPathResult = StudioSystem.lastResult();
+        var plainMemoryPath = Sound.create("assets/fmod/Jump.wav", false, false, ChannelMode.OPENMEMORY);
+        var plainMemoryResult = StudioSystem.lastResult();
+        check("core_create_sound_path_memory_mode", memoryPath.isNull() && memoryPathResult == FmodResult.FMOD_ERR_INVALID_PARAM
+            && pointPath.isNull() && pointPathResult == FmodResult.FMOD_ERR_INVALID_PARAM
+            && plainMemoryPath.isNull() && plainMemoryResult == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'memory=${memoryPathResult.toString()} point=${pointPathResult.toString()} plain=${plainMemoryResult.toString()}');
+        if (!memoryPath.isNull()) memoryPath.release();
+        if (!pointPath.isNull()) pointPath.release();
+        if (!plainMemoryPath.isNull()) plainMemoryPath.release();
         check("core_create_sound_memory_null", Sound.fromMemory(null).isNull(), "");
         check("core_create_sound_memory_empty", Sound.fromMemory(haxe.io.Bytes.alloc(0)).isNull()
             && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM,

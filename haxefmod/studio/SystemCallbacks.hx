@@ -82,6 +82,13 @@ class SystemCallbacks {
     static var handler:Null<SystemCallback> = null;
 
     /**
+     * The studio mask the game asked for. The shims keep BANK_UNLOAD
+     * installed for their own sweep, so a BankUnload record reaches the
+     * handler only when this mask holds the bit.
+     */
+    static var studioMask:Int = 0;
+
+    /**
      * Installs the handler and tells FMOD which events to raise. Replaces
      * any existing handler. Null masks take the defaults.
      */
@@ -92,14 +99,16 @@ class SystemCallbacks {
         }
         installRouter();
         SystemCallbacks.handler = handler;
+        SystemCallbacks.studioMask = studioMask == null ? DEFAULT_STUDIO_MASK : studioMask;
         NativeStudio.sys_set_callback_mask(coreMask == null ? DEFAULT_CORE_MASK : coreMask);
-        NativeStudio.sys_set_studio_callback_mask(studioMask == null ? DEFAULT_STUDIO_MASK : studioMask);
+        NativeStudio.sys_set_studio_callback_mask(SystemCallbacks.studioMask);
     }
 
     /** Removes the handler and both native callbacks. */
     public static function clear():Void {
         if (handler == null) return;
         handler = null;
+        studioMask = 0;
         NativeStudio.sys_set_callback_mask(0);
         NativeStudio.sys_set_studio_callback_mask(0);
     }
@@ -152,6 +161,7 @@ class SystemCallbacks {
     /** Delivers one raw queue record. Public for unit tests. */
     public static function deliver(type:Int, str:String, i1:Int = 0, i2:Int = 0, i3:Int = 0, str2:String = ""):Void {
         if (handler == null) return;
+        if (type == TYPE_BANK_UNLOAD && (studioMask & STUDIO_BANK_UNLOAD) == 0) return;
         var event = decode(type, str, i1, i2, i3, str2);
         if (event == null) return;
         try {
