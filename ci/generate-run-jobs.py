@@ -209,6 +209,11 @@ def setup_steps(j):
             status=$?
             [ "$status" = 75 ] && exit 1
             [ "$attempt" = 3 ] && exit 1
+            # A snap store error in the package's install script leaves
+            # the browser snap without its platform snaps. The next
+            # attempt then finds it installed and the browser dies at
+            # launch, so the snap goes first.
+            sudo snap remove --purge chromium 2>/dev/null || true
             sleep 30
           done
           sudo snap wait system seed.loaded || true

@@ -65,6 +65,10 @@ class TestEngineUpdaters {
 			FmodHeapsUpdater.removeHook();
 			FmodHeapsUpdater.init();
 		};
+		// The new repeat can run in the pass that installed it when the
+		// clock did not move, so that pass alone may tick twice. Every
+		// pass after it ticks once, which two hooks would not.
+		pumpHeaps(1);
 		ticks = ticker.ticks;
 		pumpHeaps(4);
 		assert(FmodHeapsUpdater.isInstalled() && ticker.ticks == ticks + 4,
