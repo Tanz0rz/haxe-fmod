@@ -1,23 +1,8 @@
-# FMOD for Haxe on HTML5, HashLink, Windows, Linux, and macOS
-
-Works natively on HaxeFlixel, Heaps, and Kha
+# FMOD for Haxe
 
 Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then follow the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446).
 
 **Setup instructions, guides, and the API reference live on the [documentation site](https://www.tanz0rz.com/haxe-fmod/).**
-
-## Features
-
-- The [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and [FMOD Core API](https://www.fmod.com/docs/2.03/api/core-api.html) at runtime, with some known [limitations](https://www.tanz0rz.com/haxe-fmod/limitations/)
-  - Events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), and more
-- Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) with payloads (beats, timeline markers, etc.)
-- [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
-- [Helper class](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
-- [Generated constants](https://www.tanz0rz.com/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks
-- [TODO markers](#tracking-sound-work-with-todos) for sound effects to add later
-- An [extension for fmod.com](https://www.tanz0rz.com/haxe-fmod/guides/extension/) to integrate Haxe examples into the official docs
-
-This is a faithful implementation of the FMOD stack. If this library does not support something you need, open an Issue.
 
 ## Supported Platforms
 
@@ -28,6 +13,21 @@ This is a faithful implementation of the FMOD stack. If this library does not su
 | Linux    | x86_64                | C++, HashLink | HashLink              | Kore C++, Kore HL/C |
 | macOS    | ARM64 (Apple Silicon) | C++, HashLink | HashLink through HL/C | Kore C++, Kore HL/C |
 
+## Features
+
+- The [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and [FMOD Core API](https://www.fmod.com/docs/2.03/api/core-api.html) at runtime, with some known [limitations](https://www.tanz0rz.com/haxe-fmod/limitations/)
+
+- Events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), and more
+
+- Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) with payloads (beats, timeline markers, etc.)
+- [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
+- [Helper class](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
+- [Generated constants](https://www.tanz0rz.com/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks
+- [TODO markers](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers) for sound effects to add later
+- [fmod.com extension](https://www.tanz0rz.com/haxe-fmod/guides/extension/) to integrate Haxe examples into the official docs
+
+If this library does not support something you need, open an Issue. 
+
 ## Getting Started
 
 The [getting started walkthrough](https://www.tanz0rz.com/haxe-fmod/getting-started/) takes a new project from an empty build file to a playing sound. Every step that differs by engine has HaxeFlixel, Heaps, and Kha tabs.
@@ -36,7 +36,7 @@ Once you are set up, `haxelib run haxefmod check` verifies your local dev enviro
 
 ## Using the Library in Code
 
-The FmodManager class is the primary way to interact with FMOD in your game. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://www.tanz0rz.com/haxe-fmod/guides/constants/)). Every call and its description is in the [FmodManager API reference](https://www.tanz0rz.com/haxe-fmod/api/haxefmod/FmodManager.html).
+The `FmodManager` class is the primary way to interact with FMOD in your game. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://www.tanz0rz.com/haxe-fmod/guides/constants/)). Every call and its description is in the [FmodManager API reference](https://www.tanz0rz.com/haxe-fmod/api/haxefmod/FmodManager.html).
 
 ```haxe
 var engine:FmodEvent;
@@ -66,10 +66,10 @@ public function OnBeat():Void {
 }
 ```
 
-FmodManager covers the common cases. Anything else FMOD exposes is reachable through the deeper layers:
+FmodManager covers most common cases. Anything else FMOD exposes is reachable through the deeper layers:
 
 ```haxe
-// Escape hatch example: everything FMOD Studio exposes is reachable
+// Example of reaching beyond FmodManager: everything FMOD Studio exposes is reachable
 import haxefmod.studio.StudioSystem;
 
 var music = StudioSystem.getBus("bus:/Music");
@@ -81,38 +81,42 @@ trace(description.getParameterDescriptionCount());
 
 ## Generating Constants From Your Banks
 
-The [export script](https://github.com/Tanz0rz/haxe-fmod/blob/master/fmod-scripts/ExportHaxeConstants.js) turns every event, bus, VCA, snapshot, and parameter in your FMOD Studio project into a Haxe constant. Once installed, `Ctrl+B` in FMOD Studio writes the constants to your project and builds your banks in one step.
+The [export script](https://github.com/Tanz0rz/haxe-fmod/blob/master/fmod-scripts/ExportHaxeConstants.js) turns every event, bus, VCA, snapshot, and parameter in your FMOD Studio project into a Haxe constant. Once installed, `Ctrl+B` in FMOD Studio writes the constants to your project and builds your banks.
+
+[Generating constants in the docs](https://www.tanz0rz.com/haxe-fmod/guides/constants/) covers the details of the setup and what gets generated.
 
 ![Haxe Constants Demo](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_constants.gif)
 
 ```haxe
 FmodManager.PlaySong(FmodEvents.MusicLetsGo);
-FmodManager.PlaySong("event:/Music/LetsGo"); // the same call with the path
+FmodManager.PlaySong("event:/Music/LetsGo"); // the same call using the explicit path string
 ```
-
-[Generating constants in the docs](https://www.tanz0rz.com/haxe-fmod/guides/constants/) covers the setup and what gets generated.
 
 ## FMOD Studio Live Update
 
 One of the most powerful features of the FMOD ecosystem. Mix your sounds in real-time by binding FMOD Studio to a running instance of your game.
 
-Live Update **only works on C++ and HashLink builds**. HTML5 builds do not support it. The FMOD team says this is a limitation of running games inside web browsers, with no plans to support it.
+Live Update **only works on HashLink and C++ builds**. HTML5 builds do not support it. The FMOD team says this is a limitation of running games inside web browsers and they do not have plans to support it.
 
 [Live Update in the docs](https://www.tanz0rz.com/haxe-fmod/live-update/) covers turning it on and off.
 
 ## Tracking Sound Work With TODOs
 
-Sound effects usually land after the gameplay they belong to. Leave a marker where one is missing and keep building:
+If your code is ready for a sound effect that doesn't exist yet, leave an intelligent marker as a placeholder.
 
 ```haxe
 FmodManager.Todo("door creak when the vault opens");
 ```
 
-`haxelib run haxefmod todos` lists every remaining marker with its file and line. The call compiles away in release builds. A build with `-D haxefmod_todo_beep` also plays a short placeholder blip, so you hear the gaps while playtesting. Details are in [the docs](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers).
+- `haxelib run haxefmod todos` lists every remaining marker with its file and line. 
 
-## fmod.com Extension
+- Builds with `-D haxefmod_todo_beep` plays a short placeholder blip so you hear the sounds that are still missing while playtesting. 
 
-The [fmod.com extension](https://www.tanz0rz.com/haxe-fmod/guides/extension/) adds a Haxe tab to every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/core-api.html). The tab sits beside C, C++, C#, and JS. The tab shows the haxefmod method that wraps the function. Functions haxefmod does not expose say so and give the reason. The [install steps](https://www.tanz0rz.com/haxe-fmod/guides/extension/#install) cover Chrome, Firefox, and the userscript.
+More details can be found [in the docs here](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers).
+
+## fmod.com Extension (beta)
+
+**Experimental**: The code snippets are occasionally incorrect, but this will still provide value if you are a docs-first developer
 
 ![The Haxe tab on fmod.com](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_extension.png)
 
