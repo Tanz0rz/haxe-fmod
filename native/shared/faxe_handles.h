@@ -62,6 +62,11 @@ typedef struct {
      * lengths). A sound FMOD freed takes the lock with it, so the slot
      * only frees the record. */
     void* lock;
+    /* malloc'd copy of an encoded file image a stream or an OPENONLY
+     * sound reads from for its whole life. FMOD keeps reading it after
+     * createSound returns. Freed with the slot, which a sound loses only
+     * once FMOD released it. */
+    void* image;
     unsigned short gen;   /* 1..FAXE_GEN_MAX once used, 0 = never used yet */
     unsigned char type;
     unsigned char alive;
@@ -71,11 +76,24 @@ typedef struct {
      * did not create carries the mark too. The public release entry points
      * refuse such a handle. */
     unsigned char owned;
-    /* The handle of the owned sound this subsound was taken from, or 0.
-     * Such a child dies with its parent (see faxe_handles_free_children). */
+    /* The handle this slot was reached from, or 0. That is the owned
+     * sound a subsound was taken from, or the owner of a borrowed handle.
+     * Freeing a handle frees every slot that names it here. */
     int parent;
+    /* 1 once another slot named this one as its parent. A slot without
+     * kids skips the table scan when it is freed. */
+    unsigned char kids;
+    /* How a handle the game did not create lives. FAXE_BORROWED_LINKED
+     * dies with its parent. FAXE_BORROWED_VOLATILE also dies at every
+     * call that can destroy FMOD objects (see faxe_handles_free_volatile),
+     * since its object can die with no handle of the table noticing. */
+    unsigned char borrowed;
     int next_free;        /* free-list link, -1 = end of list */
 } FaxeSlot;
+
+#define FAXE_BORROWED_NONE 0
+#define FAXE_BORROWED_LINKED 1
+#define FAXE_BORROWED_VOLATILE 2
 
 static FaxeSlot* gFaxeSlots = NULL;
 static int gFaxeSlotCap = 0;
@@ -121,10 +139,13 @@ static int faxe_handle_alloc(void* ptr, unsigned char type) {
     s->ptr = ptr;
     s->aux = NULL;
     s->lock = NULL;
+    s->image = NULL;
     s->type = type;
     s->alive = 1;
     s->owned = 0;
     s->parent = 0;
+    s->kids = 0;
+    s->borrowed = FAXE_BORROWED_NONE;
     if (s->gen == 0) s->gen = 1; /* first use of this slot */
 
     gFaxeLiveCount++;
@@ -153,16 +174,17 @@ static int faxe_handle_find_or_alloc(void* ptr, unsigned char type) {
     return faxe_handle_alloc(ptr, type);
 }
 
-/* Lookup handles (buses, VCAs, event descriptions, channel groups) are
- * cached for dedup and normally live for the whole session. A bank
- * unload kills their FMOD objects while the slots stay alive. FMOD can
- * later hand a recycled address to a new object, and the pointer dedup
- * would wrongly match it. Sweeping right after an unload frees every
- * lookup slot whose object the validator reports dead. FMOD IsValid is
- * documented safe on destroyed objects, and address reuse cannot have
- * happened yet inside the same call. Bank slots are swept the same
- * way: a single unload frees its own slot, and unloadAll kills every
- * bank at once. Instances and sounds reclaim their slots through their
+/* Lookup handles (buses, VCAs, event descriptions) are cached for dedup
+ * and normally live for the whole session. A bank unload kills their
+ * FMOD objects while the slots stay alive. FMOD can later hand a
+ * recycled address to a new object, and the pointer dedup would wrongly
+ * match it. Sweeping right after an unload frees every lookup slot whose
+ * object the validator reports dead. FMOD IsValid is documented safe on
+ * destroyed objects, and address reuse cannot have happened yet inside
+ * the same call. Bank slots are swept the same way: a single unload
+ * frees its own slot, and unloadAll kills every bank at once. Channel
+ * groups have no such check in FMOD, so they die with their owner
+ * handle instead. Instances and sounds reclaim their slots through their
  * own release paths. */
 typedef int (*FaxeLookupValidator)(void* ptr, unsigned char type);
 static void faxe_handle_free(int handle);
@@ -172,7 +194,7 @@ static void faxe_handles_sweep_lookups(FaxeLookupValidator is_valid) {
         FaxeSlot* s = &gFaxeSlots[i];
         if (!s->alive) continue;
         if (s->type != FAXE_TYPE_BUS && s->type != FAXE_TYPE_VCA && s->type != FAXE_TYPE_EVD
-            && s->type != FAXE_TYPE_CHANGROUP && s->type != FAXE_TYPE_BANK) continue;
+            && s->type != FAXE_TYPE_BANK) continue;
         if (!is_valid(s->ptr, s->type)) {
             faxe_handle_free(((int)s->gen << 16) | i);
         }
@@ -229,10 +251,14 @@ static void* faxe_handle_resolve(int handle, unsigned char type) {
 }
 
 /* Frees the slot and bumps its generation, or retires it, so stale handles
- * stop resolving. */
-static void faxe_handle_free(int handle) {
+ * stop resolving. keepAux leaves the aux block allocated: a borrowed
+ * handle can die while its object lives on, and FMOD keeps reading the
+ * rolloff points it was lent. The few bytes leak instead. */
+static void faxe_handle_free_slot(int handle, int keepAux) {
     int idx;
+    int i;
     unsigned short gen;
+    unsigned char kids;
     FaxeSlot* s;
 
     if (handle <= 0) return;
@@ -243,21 +269,38 @@ static void faxe_handle_free(int handle) {
     s = &gFaxeSlots[idx];
     if (!s->alive || s->gen != gen) return;
 
+    kids = s->kids;
     s->alive = 0;
     s->owned = 0;
     s->parent = 0;
+    s->kids = 0;
+    s->borrowed = FAXE_BORROWED_NONE;
     s->ptr = NULL;
-    if (s->aux) { free(s->aux); s->aux = NULL; }
+    if (s->aux && !keepAux) free(s->aux);
+    s->aux = NULL;
     if (s->lock) { free(s->lock); s->lock = NULL; }
+    if (s->image) { free(s->image); s->image = NULL; }
     s->type = FAXE_TYPE_NONE;
     gFaxeLiveCount--;
     /* A generation that wraps would let a retained stale handle resolve
      * again. A slot at the last generation retires and stays off the
      * free list. The table then grows past it. */
-    if (s->gen >= FAXE_GEN_MAX) return;
-    s->gen = (unsigned short)(s->gen + 1);
-    s->next_free = gFaxeFreeHead;
-    gFaxeFreeHead = idx;
+    if (s->gen < FAXE_GEN_MAX) {
+        s->gen = (unsigned short)(s->gen + 1);
+        s->next_free = gFaxeFreeHead;
+        gFaxeFreeHead = idx;
+    }
+    if (!kids) return;
+    /* Every handle reached from this one goes too, and theirs in turn.
+     * Their objects can outlive them, so their aux blocks stay. */
+    for (i = 0; i < gFaxeSlotCap; i++) {
+        FaxeSlot* c = &gFaxeSlots[i];
+        if (c->alive && c->parent == handle) faxe_handle_free_slot(((int)c->gen << 16) | i, 1);
+    }
+}
+
+static void faxe_handle_free(int handle) {
+    faxe_handle_free_slot(handle, 0);
 }
 
 /* Whether a handle of any type still resolves: alive, with its generation. */
@@ -291,6 +334,86 @@ static int faxe_handle_is_owned(int handle) {
  * resolve (callers check first). */
 static void faxe_handle_set_parent(int handle, int parent) {
     gFaxeSlots[handle & 0xFFFF].parent = parent;
+    if (parent > 0 && (parent & 0xFFFF) < gFaxeSlotCap) gFaxeSlots[parent & 0xFFFF].kids = 1;
+}
+
+/* Makes a live handle a borrowed one that dies with owner. An owner that
+ * no longer resolves leaves the handle volatile instead. The handle must
+ * resolve (callers check first). */
+static void faxe_handle_set_owner(int handle, int owner) {
+    FaxeSlot* s = &gFaxeSlots[handle & 0xFFFF];
+    if (owner > 0 && owner != handle && faxe_handle_is_live(owner)) {
+        faxe_handle_set_parent(handle, owner);
+        if (s->borrowed == FAXE_BORROWED_NONE) s->borrowed = FAXE_BORROWED_LINKED;
+    } else {
+        s->parent = 0;
+        s->borrowed = FAXE_BORROWED_VOLATILE;
+    }
+}
+
+/* Marks a live borrowed handle volatile. The handle must resolve. */
+static void faxe_handle_set_volatile(int handle) {
+    gFaxeSlots[handle & 0xFFFF].borrowed = FAXE_BORROWED_VOLATILE;
+}
+
+/* Gives a live handle a fixed lifetime again: no owner, not volatile.
+ * The master groups take this, since they live as long as the system. */
+static void faxe_handle_clear_owner(int handle) {
+    FaxeSlot* s = &gFaxeSlots[handle & 0xFFFF];
+    s->parent = 0;
+    s->borrowed = FAXE_BORROWED_NONE;
+}
+
+/* The handle a live handle was reached from, 0 for none or a dead handle. */
+static int faxe_handle_get_parent(int handle) {
+    if (!faxe_handle_is_live(handle)) return 0;
+    return gFaxeSlots[handle & 0xFFFF].parent;
+}
+
+/* The type tag of a live handle, FAXE_TYPE_NONE for a dead one. */
+static unsigned char faxe_handle_get_type(int handle) {
+    if (!faxe_handle_is_live(handle)) return FAXE_TYPE_NONE;
+    return gFaxeSlots[handle & 0xFFFF].type;
+}
+
+/* How a live handle lives (FAXE_BORROWED_*), NONE for a dead one. */
+static unsigned char faxe_handle_get_borrowed(int handle) {
+    if (!faxe_handle_is_live(handle)) return FAXE_BORROWED_NONE;
+    return gFaxeSlots[handle & 0xFFFF].borrowed;
+}
+
+/* The end of the owner chain above a live handle: the handle itself when
+ * nothing owns it. A chain longer than the table is cut there. */
+static int faxe_handle_root(int handle) {
+    int steps = 0;
+    while (steps++ < gFaxeSlotCap) {
+        int parent = faxe_handle_get_parent(handle);
+        if (parent == 0 || !faxe_handle_is_live(parent)) return handle;
+        handle = parent;
+    }
+    return handle;
+}
+
+/* Frees every volatile handle and what hangs off each. The shims call
+ * this wherever FMOD can have destroyed objects, since nothing tells
+ * them which of these died. */
+static void faxe_handles_free_volatile(void) {
+    int i;
+    for (i = 0; i < gFaxeSlotCap; i++) {
+        FaxeSlot* s = &gFaxeSlots[i];
+        if (s->alive && s->borrowed == FAXE_BORROWED_VOLATILE) faxe_handle_free_slot(((int)s->gen << 16) | i, 1);
+    }
+}
+
+/* Frees every slot of one type that holds ptr. A new object at that
+ * address proves each of them stale. */
+static void faxe_handles_free_ptr(void* ptr, unsigned char type) {
+    int i;
+    if (!ptr) return;
+    for (i = 0; i < gFaxeSlotCap; i++) {
+        FaxeSlot* s = &gFaxeSlots[i];
+        if (s->alive && s->type == type && s->ptr == ptr) faxe_handle_free_slot(((int)s->gen << 16) | i, 0);
+    }
 }
 
 /* Frees every live slot linked to the parent handle, and the slots
@@ -339,6 +462,14 @@ static void faxe_handle_set_lock(int handle, void* lock) {
     FaxeSlot* s = &gFaxeSlots[handle & 0xFFFF];
     if (s->lock) free(s->lock);
     s->lock = lock;
+}
+
+/* Parks the image copy FMOD reads a memory sound from. The handle must
+ * resolve (callers check first). */
+static void faxe_handle_set_image(int handle, void* image) {
+    FaxeSlot* s = &gFaxeSlots[handle & 0xFFFF];
+    if (s->image) free(s->image);
+    s->image = image;
 }
 
 static int faxe_live_handle_count(void) {

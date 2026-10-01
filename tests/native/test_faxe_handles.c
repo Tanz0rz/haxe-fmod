@@ -273,6 +273,25 @@ int main(void) {
         assert(faxe_live_handle_count() == 0);
     }
 
+    /* the memory image a stream reads lives exactly as long as its slot.
+     * ASan reports a leak or a double free if either end is wrong. */
+    {
+        int hi = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);
+        int idx = hi & 0xFFFF;
+        assert(gFaxeSlots[idx].image == NULL);    /* nothing parked on a fresh slot */
+        faxe_handle_set_image(hi, malloc(64));
+        assert(gFaxeSlots[idx].image != NULL);
+        assert(gFaxeSlots[idx].aux == NULL && gFaxeSlots[idx].lock == NULL);
+        faxe_handle_set_image(hi, malloc(64));    /* frees the first copy */
+        faxe_handle_free(hi);                     /* free releases the copy */
+        assert(gFaxeSlots[idx].image == NULL);
+        hi = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);
+        assert((hi & 0xFFFF) == idx);
+        assert(gFaxeSlots[idx].image == NULL);    /* a recycled slot starts clean */
+        faxe_handle_free(hi);
+        assert(faxe_live_handle_count() == 0);
+    }
+
     /* slot reuse bumps generation */
     int h2 = faxe_handle_alloc(&dummy2, FAXE_TYPE_EVI);
     assert((h2 & 0xFFFF) == (h1 & 0xFFFF));  /* same slot recycled */
@@ -421,6 +440,127 @@ int main(void) {
         assert(faxe_handle_resolve(other, FAXE_TYPE_SOUND) == &objC);
         assert(gHookPtr == NULL && gHookHandle == 0);
         faxe_handle_free(other);
+    }
+
+    /* A borrowed handle dies with the handle it was reached from, and so
+     * does everything reached from it in turn */
+    {
+        static int inst, group, child, grand, dsp, other;
+        int liveAtStart = faxe_live_handle_count();
+        int hInst = faxe_handle_alloc(&inst, FAXE_TYPE_EVI);
+        int hGroup = faxe_handle_alloc(&group, FAXE_TYPE_CHANGROUP);
+        int hChild = faxe_handle_alloc(&child, FAXE_TYPE_CHANGROUP);
+        int hGrand = faxe_handle_alloc(&grand, FAXE_TYPE_CHANGROUP);
+        int hDsp = faxe_handle_alloc(&dsp, FAXE_TYPE_DSP);
+        int hOther = faxe_handle_alloc(&other, FAXE_TYPE_CHANGROUP);
+        void* childAux = malloc(48);
+        void* groupAux = malloc(48);
+        assert(gFaxeSlots[hInst & 0xFFFF].kids == 0);   /* nothing hangs off a fresh slot */
+        faxe_handle_set_owner(hGroup, hInst);
+        faxe_handle_set_owner(hChild, hGroup);
+        faxe_handle_set_owner(hGrand, hChild);
+        faxe_handle_set_owner(hDsp, hGroup);
+        assert(gFaxeSlots[hInst & 0xFFFF].kids == 1 && gFaxeSlots[hGroup & 0xFFFF].kids == 1);
+        assert(gFaxeSlots[hOther & 0xFFFF].kids == 0 && gFaxeSlots[hGrand & 0xFFFF].kids == 0);
+        assert(faxe_handle_get_borrowed(hGroup) == FAXE_BORROWED_LINKED);
+        assert(faxe_handle_get_borrowed(hOther) == FAXE_BORROWED_NONE);
+        assert(faxe_handle_get_parent(hGrand) == hChild);
+        assert(faxe_handle_root(hGrand) == hInst && faxe_handle_root(hInst) == hInst);
+        assert(faxe_handle_get_type(faxe_handle_root(hDsp)) == FAXE_TYPE_EVI);
+        faxe_handle_set_aux(hChild, childAux);
+        faxe_handle_set_aux(hGroup, groupAux);
+
+        faxe_handle_free(hInst);
+        assert(!faxe_handle_is_live(hGroup) && !faxe_handle_is_live(hChild));
+        assert(!faxe_handle_is_live(hGrand) && !faxe_handle_is_live(hDsp));
+        assert(faxe_handle_resolve(hOther, FAXE_TYPE_CHANGROUP) == &other);  /* an unlinked slot stays */
+        assert(faxe_handle_get_type(hGroup) == FAXE_TYPE_NONE);
+        /* the cascade leaves the rolloff blocks to FMOD, which can still
+         * read them, and forgets them on the slot. ASan reports a double
+         * free here if the table freed them. */
+        assert(gFaxeSlots[hChild & 0xFFFF].aux == NULL && gFaxeSlots[hGroup & 0xFFFF].aux == NULL);
+        free(childAux);
+        free(groupAux);
+        /* a recycled slot starts with no kids and no owner */
+        {
+            int again = faxe_handle_alloc(&inst, FAXE_TYPE_EVI);
+            assert(gFaxeSlots[again & 0xFFFF].kids == 0 && gFaxeSlots[again & 0xFFFF].parent == 0);
+            assert(faxe_handle_get_borrowed(again) == FAXE_BORROWED_NONE);
+            faxe_handle_free(again);
+        }
+
+        /* the direct free of a borrowed handle still frees its own aux,
+         * the object it names is gone */
+        {
+            int owner = faxe_handle_alloc(&inst, FAXE_TYPE_EVI);
+            int borrowed = faxe_handle_alloc(&group, FAXE_TYPE_CHANGROUP);
+            faxe_handle_set_owner(borrowed, owner);
+            faxe_handle_set_aux(borrowed, malloc(16));
+            faxe_handle_free(borrowed);
+            assert(faxe_handle_is_live(owner));        /* a kid never takes its owner along */
+            faxe_handle_free(owner);
+        }
+
+        /* an owner that does not resolve makes the handle volatile, and
+         * the volatile sweep frees exactly those and what hangs off them */
+        {
+            int dead = faxe_handle_alloc(&inst, FAXE_TYPE_EVI);
+            int linkedOwner = faxe_handle_alloc(&dsp, FAXE_TYPE_DSP);
+            int vol;
+            int volKid;
+            int linked;
+            faxe_handle_free(dead);
+            vol = faxe_handle_alloc(&group, FAXE_TYPE_CHANGROUP);
+            faxe_handle_set_owner(vol, dead);
+            assert(faxe_handle_get_borrowed(vol) == FAXE_BORROWED_VOLATILE && faxe_handle_get_parent(vol) == 0);
+            volKid = faxe_handle_alloc(&child, FAXE_TYPE_CHANGROUP);
+            faxe_handle_set_owner(volKid, vol);
+            assert(faxe_handle_get_borrowed(volKid) == FAXE_BORROWED_LINKED);
+            linked = faxe_handle_alloc(&grand, FAXE_TYPE_SOUND);
+            faxe_handle_set_owner(linked, linkedOwner);
+            faxe_handle_set_aux(vol, malloc(8));       /* freed by hand below */
+            {
+                void* volAux = faxe_handle_get_aux(vol);
+                faxe_handles_free_volatile();
+                assert(!faxe_handle_is_live(vol) && !faxe_handle_is_live(volKid));
+                assert(faxe_handle_is_live(linked) && faxe_handle_is_live(linkedOwner));
+                free(volAux);                          /* the sweep kept it for FMOD */
+            }
+            /* set_volatile and clear_owner switch a live handle's kind */
+            faxe_handle_set_volatile(linked);
+            assert(faxe_handle_get_borrowed(linked) == FAXE_BORROWED_VOLATILE);
+            faxe_handle_clear_owner(linked);
+            assert(faxe_handle_get_borrowed(linked) == FAXE_BORROWED_NONE && faxe_handle_get_parent(linked) == 0);
+            faxe_handles_free_volatile();
+            assert(faxe_handle_is_live(linked));
+            faxe_handle_free(linked);
+            faxe_handle_free(linkedOwner);
+            /* a handle never owns itself */
+            {
+                int self = faxe_handle_alloc(&group, FAXE_TYPE_CHANGROUP);
+                faxe_handle_set_owner(self, self);
+                assert(faxe_handle_get_parent(self) == 0);
+                faxe_handle_free(self);
+            }
+        }
+
+        /* free_ptr drops every slot of one type at an address, so a new
+         * object there never meets a stale handle */
+        {
+            int a = faxe_handle_alloc(&group, FAXE_TYPE_CHANGROUP);
+            int b = faxe_handle_alloc(&group, FAXE_TYPE_CHANGROUP);
+            int c = faxe_handle_alloc(&group, FAXE_TYPE_DSP);
+            int k = faxe_handle_alloc(&child, FAXE_TYPE_CHANGROUP);
+            faxe_handle_set_owner(k, a);
+            faxe_handle_set_aux(a, malloc(8));        /* the dead object's block goes */
+            faxe_handles_free_ptr(&group, FAXE_TYPE_CHANGROUP);
+            faxe_handles_free_ptr(NULL, FAXE_TYPE_CHANGROUP);
+            assert(!faxe_handle_is_live(a) && !faxe_handle_is_live(b) && !faxe_handle_is_live(k));
+            assert(faxe_handle_resolve(c, FAXE_TYPE_DSP) == &group);
+            faxe_handle_free(c);
+        }
+        faxe_handle_free(hOther);
+        assert(faxe_live_handle_count() == liveAtStart);
     }
 
     printf("faxe_handles: all assertions passed\n");

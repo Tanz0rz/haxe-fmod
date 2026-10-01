@@ -188,7 +188,7 @@ class EmitterPanTestState extends FlxState {
 
     /**
      * Runs the culling flow against a looping event with an explicit cull
-     * distance. The example bank has no authored 3D distances. The flow
+     * distance. The flow
      * covers four cases: cull when far, restart when near, restart when
      * culling is disabled mid-cull, and leave one-shots alone entirely.
      */

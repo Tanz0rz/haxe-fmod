@@ -15,7 +15,7 @@
 FMOD creates every sound through `System::createSound` with a mode and an exinfo struct. haxefmod splits that call into factories on `Sound`. Each factory returns `Sound.NULL` on failure and puts the reason in `StudioSystem.lastResult()`.
 
 - `Sound.create(path, ?loop, ?openOnly, ?mode, ?initialSubsound, ?exinfo)` loads a file. `loop` and `openOnly` set the matching mode bits. `mode` takes any further `ChannelMode` flags. `initialSubsound` picks the subsound an FSB stream starts on. `exinfo` is an `FmodCreateSoundExInfo` for the rest of `FMOD_CREATESOUNDEXINFO`. A sound opened with `openOnly` cannot play. It exists to be read.
-- `Sound.fromMemory(bytes, ?mode, ?length, ?exinfo)` takes an encoded file image the game already holds. FMOD copies the bytes. The buffer can go after the call returns.
+- `Sound.fromMemory(bytes, ?mode, ?length, ?exinfo)` takes an encoded file image the game already holds. The buffer can go after the call returns, in every mode.
 - `Sound.fromPcm(bytes, sampleRate, channels, ?length)` makes a sample from 16-bit signed PCM. Stereo data is interleaved.
 - `Sound.createRecordBuffer(sampleRate, channels, seconds)` makes an empty 16-bit PCM sound of that length. `StudioSystem.recordStart` fills it.
 

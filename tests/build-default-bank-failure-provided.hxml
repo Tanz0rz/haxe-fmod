@@ -1,0 +1,5 @@
+-cp .
+-cp tests
+-D provided_mode
+-main tests.TestDefaultBankFailure
+--interp

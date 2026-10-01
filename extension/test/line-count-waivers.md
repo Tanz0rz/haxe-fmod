@@ -14,9 +14,7 @@
 | advanced-core-api-topics | Added new DSP effects | C++ | 13 | 36 | The site lists the thirteen kinds added in 2.01, the tab shows the whole DspType enum. |
 | core-api-channelcontrol | ChannelControl::addFadePoint | C++ | 5 | 4 | getDspClock returns the clocks, no out variable to declare. |
 | core-api-channelcontrol | FMOD_CHANNELCONTROL_CALLBACK | C# | 7 | 1 | The five delegate parameters arrive as one ChannelEvent (types.txt skip). |
-| core-api-common | FMOD_CPU_USAGE | C# | 8 | 9 | FmodSystemCpuUsage carries the Studio update field too, one struct for both getCPUUsage calls. |
 | core-api-common | FMOD_GUID | C# | 1 | 7 | The site names System.Guid, FmodGuid declares NULL and the four data fields. |
-| core-api-common | FMOD_MODE | C# | 31 | 37 | ChannelMode keeps six aliases with the older haxefmod spelling of the 3D flags. |
 | core-api-common | FMOD_SYNCPOINT | C# | 1 | 3 | The site shows IntPtr, FmodSyncPoint is an index abstract with a NULL value. |
 | core-api-common | FMOD_THREAD_AFFINITY | C# | 34 | 19 | The 64-bit group values and the per-thread defaults do not fit an Int (types.txt skip). |
 | core-api-common | FMOD_THREAD_PRIORITY | C# | 22 | 24 | CONVOLUTION1 and CONVOLUTION2 are in the 2.03 header, the C# integration leaves them out. |
@@ -58,7 +56,6 @@
 | studio-api-getting-started | 12.1.1 Studio API Initialization | text | 15 | 7 | Initialize creates and initializes both systems in one call with one result check. |
 | studio-api-system | FMOD_STUDIO_ADVANCEDSETTINGS | C# | 9 | 7 | cbsize and the encryption key are init-time only (types.txt skip). |
 | studio-api-system | FMOD_STUDIO_BANK_INFO | C# | 9 | 5 | The four file callbacks run on FMOD's loading threads (types.txt skip). |
-| studio-api-system | FMOD_STUDIO_CPU_USAGE | C# | 3 | 9 | FmodSystemCpuUsage carries the Core fields too, one struct for both getCPUUsage calls. |
 | studio-api-system | FMOD_STUDIO_LOAD_MEMORY_ALIGNMENT | C/C++ | 1 | 3 | One define against a class constant with its opening and closing lines. |
 | studio-api-system | FMOD_STUDIO_LOAD_MEMORY_MODE#2 | JavaScript | 2 | 4 | Two JavaScript constants against an enum with its opening and closing lines. |
 | studio-api-system | FMOD_STUDIO_SOUND_INFO | C# | 7 | 9 | name carries name_or_data and the exinfo fields are flattened into four fields (types.txt skip). |

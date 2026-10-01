@@ -355,7 +355,9 @@ def shown_declaration(code, member_name=None):
             j += 1
         member = lines[i:j + 1]
         public = " public " in " " + stripped or (values_public and match.group(1) == "var" and not re.search(r"\b(static|private)\b", stripped))
-        if public and match.group(1) == "var" and (member_name is None or re.search(r"\bvar\s+" + re.escape(member_name) + r"\b", stripped)):
+        # A deprecated alias is haxefmod's own leftover, so it stays off the tab
+        deprecated = any("@:deprecated" in entry for entry in meta)
+        if public and not deprecated and match.group(1) == "var" and (member_name is None or re.search(r"\bvar\s+" + re.escape(member_name) + r"\b", stripped)):
             out.extend(meta)
             out.extend(member)
         meta = []

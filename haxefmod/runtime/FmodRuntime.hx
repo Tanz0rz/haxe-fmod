@@ -58,7 +58,7 @@ class FmodRuntime {
     static var systemFailed:Bool = false;
 
     /** Expected native binding ABI - lockstep with the manifest "# abi-version:". */
-    public static inline var BINDING_ABI:Int = 13;
+    public static inline var BINDING_ABI:Int = 14;
 
     /**
      * Initializes FMOD with the given settings (see FmodSettings for the
@@ -512,9 +512,10 @@ class FmodRuntime {
     static var debugLevel:Int = -1;
 
     /**
-     * Sets FMOD's log level on the FmodSettings.logLevel scale. On HTML5
-     * the call waits for the module, and the 2.03.12 web package then
-     * reports it unsupported, since it exports no logger.
+     * Sets FMOD's log level on the FmodSettings.logLevel scale. The
+     * release FMOD libraries the build links report FMOD_ERR_UNSUPPORTED
+     * and write no log. On HTML5 the call waits for the module, and the
+     * 2.03.12 web package exports no logger.
      */
     public static function setDebugLevel(level:Int):Void {
         debugLevel = level;

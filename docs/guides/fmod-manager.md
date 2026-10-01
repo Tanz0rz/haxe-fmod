@@ -6,7 +6,7 @@ Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup cal
 
 ## Initialization and update
 
-`FmodManager.Initialize(?settings)` starts FMOD. Every other `FmodManager` call initializes with defaults on first use. The call is optional. Call it yourself to pass [settings](settings.md#settings) or to control when the engine starts. The first initialization wins. The library ignores settings passed to a later call.
+`FmodManager.Initialize(?settings)` starts FMOD. Every other `FmodManager` call initializes with defaults on first use. Calling `Initialize` is optional. Call it yourself to pass [settings](settings.md#settings) or to control when the engine starts. The first initialization wins. The library ignores settings passed to a later call.
 
 ```haxe
 FmodManager.Initialize({liveUpdate: true, numChannels: 256});
@@ -14,7 +14,7 @@ FmodManager.Initialize({liveUpdate: true, numChannels: 256});
 
 Call `FmodManager.Update()` once per frame. It delivers callbacks, pushes positions for attached instances, and drives song transitions. Audio continues without it, because a background thread (native) or timer (HTML5) services the FMOD mixer. Typed callbacks only arrive from `Update()`. `SetAutoUpdate(false)` turns the background servicing off for games that drive FMOD from their own loop. `IsAutoUpdate()` reports the state.
 
-`IsInitialized()` reports true once the engine and the default banks are usable. Native targets initialize synchronously. It is true immediately there. HTML5 initializes asynchronously. The [engine preloaders](components.md#setup) wait for it before the first scene. A game that uses them never sees it false. `InitializeFailed()` reports that a default bank failed to load or was never provided, or that FMOD refused to initialize. A missing bank leaves the system running without it. Check this first. `FmodFlxPreloader` shows a message and starts the game without that bank. The Heaps and Kha preloads call their `onFailed` instead, or `onReady` when there is none. `InitializeSettled()` turns true once every default bank is loaded or has failed, or FMOD refused. A loading scene of your own starts the game on that.
+`IsInitialized()` reports true once the engine and the default banks are usable. Native targets initialize synchronously. `IsInitialized()` is true immediately there. HTML5 initializes asynchronously. The [engine preloaders](components.md#setup) wait for it before the first scene. A game that uses them never sees it false. `InitializeFailed()` reports that a default bank failed to load or was never provided, or that FMOD refused to initialize. A missing bank leaves the system running without it. Check `InitializeFailed()` first. `FmodFlxPreloader` shows a message and starts the game without that bank. The Heaps and Kha preloads call their `onFailed` instead, or `onReady` when there is none. `InitializeSettled()` turns true once every default bank is loaded or has failed, or FMOD refused. A loading scene of your own starts the game on that.
 
 `EnableDebugMessages()` traces every `FmodManager` operation. It also sets FMOD's log level to the most verbose value. See [Limitations](../limitations.md#fixed-behaviors-and-caps) for when FMOD writes that log. Debug builds enable it automatically.
 
@@ -69,7 +69,7 @@ The song has one callback slot. A new registration replaces any previous handler
 
 ## Events
 
-`PlayOneShot(path)` starts an event and releases it straight away. FMOD destroys it when it finishes. `PlayOneShotAt(path, x, y)` does the same at a 2D position relative to listener 0. `PlayOneShotAttached(path, provider)` follows a moving object until the event ends. Attached playback is for one-shot events only. A looping event never ends. It would never release.
+`PlayOneShot(path)` starts an event and releases it straight away. FMOD destroys it when it finishes. `PlayOneShotAt(path, x, y)` does the same at a 2D position relative to listener 0. `PlayOneShotAttached(path, provider)` follows a moving object until the event ends. Attached playback is for one-shot events only. A looping event never ends. The automatic release would never fire.
 
 ```haxe
 FmodManager.PlayOneShot(FmodEvents.SFXCoin);
@@ -173,7 +173,7 @@ FmodRuntime.setWindowFocused(false);
 
 ## Sound TODO markers
 
-`FmodManager.Todo("description")` marks a spot in game code that still needs a sound. Release builds compile the call away. Debug builds trace each call site once. A build with `-D haxefmod_todo_beep` also plays a short placeholder blip. Missing sounds are audible during playtesting.
+`FmodManager.Todo("description")` marks a spot in game code that still needs a sound. Release builds compile the call away. Debug builds trace each call site once. A build with `-D haxefmod_todo_beep` also plays a short placeholder blip. Missing sounds are then audible during playtesting.
 
 ```haxe
 FmodManager.Todo("door creak when the cellar opens");

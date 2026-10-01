@@ -29,7 +29,7 @@ event.release();      // also safe
 
 ## Lifetimes
 
-FMOD objects have two kinds of lifetime.
+FMOD objects have three kinds of lifetime.
 
 **Looked-up handles** (`EventDescription`, `Bus`, `Vca`, `Bank`) refer to objects that live as long as their bank is loaded. `StudioSystem.getBus` caches one handle per path. Repeated bus lookups return the same handle. `getEvent`, `getVCA`, and `getBank` look the object up on each call. The game never releases these handles.
 
@@ -41,6 +41,8 @@ var instance = description.createInstance();
 instance.start();
 instance.release();
 ```
+
+**Borrowed handles** are the ones the game reaches through another handle: a walked channel group, the DSP of a group or channel, a channel's sound. A borrowed handle dies with the handle it came from. `release()` refuses it.
 
 `Channel` handles end on their own when playback stops. The slot is reclaimed with the end callback, or by the next channel play or lookup. Call `stop()` to free it earlier.
 
@@ -87,11 +89,11 @@ if (sound.isNull()) {
 }
 ```
 
-Numeric arguments pass through to FMOD for validation. An out-of-range index or count comes back as the same error code native FMOD reports.
+Numeric arguments pass through to FMOD for validation. See [Limitations](../limitations.md#fixed-behaviors-and-caps).
 
 ## Enumerations and struct returns
 
-List getters (`getBankList`, `getEventList`, `getInstanceList`, and the other enumerations) return a Haxe array of handles. The library caps a result at 1024 entries. It truncates a larger result and logs a warning with the real total.
+List getters (`getBankList`, `getEventList`, `getInstanceList`, and the other enumerations) return a Haxe array of handles. The library caps a result. See [Limitations](../limitations.md#fixed-behaviors-and-caps).
 
 Struct-shaped results (`FmodParameterDescription`, `Fmod3DAttributes`, `FmodCpuUsage`, and the rest of `haxefmod.studio.Types`) are typedefs. A getter that returns one returns `null` on failure.
 

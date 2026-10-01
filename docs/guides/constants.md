@@ -9,7 +9,7 @@ FmodManager.SetBusVolume(FmodBuses.SFX, 0.8);
 
 ## The FMOD Studio export script
 
-The recommended way to run the generator is from inside FMOD Studio, so constants and banks stay in step.
+The recommended way to run the generator is from inside FMOD Studio. Constants and banks then stay in step.
 
 1. Copy [`fmod-scripts/ExportHaxeConstants.js`](https://github.com/Tanz0rz/haxe-fmod/blob/master/fmod-scripts/ExportHaxeConstants.js) into your FMOD Studio scripts folder. That is `Scripts` next to your `.fspro`, or the global scripts directory under the Studio install.
 2. Reload scripts from the Scripts menu.

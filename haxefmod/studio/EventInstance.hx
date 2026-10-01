@@ -28,16 +28,18 @@ abstract EventInstance(Int) from Int to Int {
 
     /**
      * Drops the handler, user data, and walked-group entry of every group
-     * whose handle does not resolve. A bank unload, a release of every
-     * instance, and a bus unlock call this once FMOD accepted them. The
-     * native side sweeps the dead groups first, so a destroyed group has
-     * lost its slot by then. StudioSystem.unloadAll drops the entries of
-     * every dead group and clears the walked-group map.
+     * whose handle does not resolve, and the user data of every dead DSP,
+     * sound, and channel handle. A borrowed handle dies with the handle it
+     * was reached from, natively and with no call on it. So every call
+     * that releases or destroys objects ends here once FMOD accepted it,
+     * and the callback drain does after an instance died. Empty maps cost
+     * nothing.
      */
     @:dox(hide)
     public static function dropDeadGroups():Void {
         haxefmod.core.ChannelCallbacks.forgetDeadGroups();
-        UserData.clearDead(UserDataKind.ChannelGroup);
+        UserData.dropDeadBorrowed();
+        if (!walkedGroups.iterator().hasNext()) return;
         var dead = [for (instance in walkedGroups.keys()) if (!NativeStudio.debug_handle_is_live(walkedGroups.get(instance))) instance];
         for (instance in dead) walkedGroups.remove(instance);
     }
@@ -116,8 +118,9 @@ abstract EventInstance(Int) from Int to Int {
             CallbackDispatcher.remove(this);
             UserData.clear(UserDataKind.EventInstance, this);
             // The instance's group dies with it, so its handler and user
-            // data go too
+            // data go too, and so do those of every handle reached from it
             forgetInstance(this);
+            dropDeadGroups();
         }
         return result;
     }

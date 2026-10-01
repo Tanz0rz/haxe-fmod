@@ -98,6 +98,18 @@ class UserData {
         for (handle in dead) map.remove(handle);
     }
 
+    /**
+     * Drops the dead entries of the families whose handles die with the
+     * handle they were reached from: channel groups, DSPs, sounds, and
+     * channels. A native release or destroy frees those without a call on
+     * them. An empty family costs nothing.
+     */
+    public static function dropDeadBorrowed():Void {
+        for (kind in [UserDataKind.ChannelGroup, UserDataKind.Dsp, UserDataKind.Sound, UserDataKind.Channel]) {
+            if (maps[kind].iterator().hasNext()) clearDead(kind);
+        }
+    }
+
     /** Drops every entry of one family. */
     public static function clearKind(kind:Int):Void {
         maps[kind] = new Map();

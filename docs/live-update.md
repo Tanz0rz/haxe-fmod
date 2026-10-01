@@ -1,6 +1,6 @@
 # Live Update
 
-FMOD Studio Live Update connects Studio to the running game, so you can mix in real time while you play. [FMOD's guide](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) covers the Studio side of the connection.
+FMOD Studio Live Update connects Studio to the running game. You mix in real time while you play. [FMOD's guide](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) covers the Studio side of the connection.
 
 ## Where it works
 
@@ -26,6 +26,6 @@ FmodManager.Initialize({liveUpdate: true});
 
 ## Port and firewall
 
-Live Update opens TCP port 9264 by default. The `profilePort` setting picks another port.
+Live Update opens a TCP port. See [Limitations](limitations.md#fixed-behaviors-and-caps) for the default port and the setting that changes it.
 
 The game listens on a local socket. macOS and Windows therefore show a firewall dialog the first time a Live Update build runs. Allow the connection once and the dialog does not return.

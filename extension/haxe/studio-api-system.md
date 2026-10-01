@@ -26,7 +26,7 @@ Type: haxefmod.studio.Types.FmodCommandReplayFlags
 
 ## FMOD_STUDIO_CPU_USAGE
 verdict: bound
-Type: haxefmod.studio.Types.FmodSystemCpuUsage
+Type: haxefmod.studio.Types.FmodStudioCpuUsage
 
 ## FMOD_STUDIO_INITFLAGS
 verdict: bound

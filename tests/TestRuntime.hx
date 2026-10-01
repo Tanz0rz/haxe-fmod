@@ -408,10 +408,11 @@ class TestRuntime {
 		stub.testBankUnloadCalls = 0;
 		assert(!FmodRuntime.allBanksProvided(), "nothing is provided before init resolves the settings");
 		FmodRuntime.provideBank("assets/fmod/Desktop/Master.bank", haxe.io.Bytes.alloc(32));
+		FmodRuntime.provideBankFailed("Stray.bank", "a name init drops");
 		assert(FmodRuntime.bankPath("Master.bank", "custom/banks") == "custom/banks/Master.bank", "bankPath takes the folder before init");
 		assert(FmodRuntime.providedBankCount() == 0, "no provided bank is loaded before init");
 		stub.testBankMemoryLoads = [];
-		FmodRuntime.init({autoLoadBanks: ["Master.bank"], banksProvided: true, dspBufferSize: 1024, dspNumBuffers: 3,
+		FmodRuntime.init({autoLoadBanks: ["Master.bank"], banksProvided: true, maxAttachedVelocity: 250, dspBufferSize: 1024, dspNumBuffers: 3,
 			output: FmodOutputType.NOSOUND, resamplerMethod: FmodDspResampler.SPLINE, rawSpeakers: 4,
 			memoryTracking: true, memoryPoolSize: 1000, logFile: "fmod-test.log", logLevel: 3,
 			logFlags: FmodDebugFlags.TYPE_MEMORY,
@@ -426,6 +427,7 @@ class TestRuntime {
 			handleInitialSize: 16384, studioUpdatePeriod: 30, idleSampleDataPoolSize: 524288,
 			streamingScheduleDelay: 4096, encryptionKey: "secret"});
 		assert(!FmodRuntime.isInitialized(), "settings alone do not make it initialized");
+		assert(FmodRuntime.maxAttachedVelocity() == 250, "init hands maxAttachedVelocity to the attach loop");
 		assert(FmodRuntime.settings().banksProvided, "banksProvided reaches the resolved settings");
 		assert(FmodRuntime.allBanksProvided(), "the provided bank is found by its file name");
 		assert(FmodRuntime.providedBankCount() == 1 && stub.testBankMemoryLoads.length == 1 && stub.testBankMemoryLoads[0] == 32,

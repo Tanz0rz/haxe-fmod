@@ -31,7 +31,7 @@ FMOD_CODEC_SETPOSITION_CALLBACK                     cannot   runs on FMOD's thre
 FMOD_CODEC_SOUNDCREATE_CALLBACK                     cannot   runs on FMOD's threads inside a codec plugin, plugin authoring is C only
 FMOD_CODEC_SEEK_METHOD                              cannot   the seek origin of a codec plugin file callback, plugin authoring is C only
 FMOD_CODEC_STATE_FUNCTIONS                          cannot   codec plugins are written in C, Sound.create loads every format FMOD decodes and PcmStream feeds decoded audio
-FMOD_CPU_USAGE                                      haxefmod.studio.Types.FmodSystemCpuUsage
+FMOD_CPU_USAGE                                      haxefmod.studio.Types.FmodCoreCpuUsage
 FMOD_CREATESOUNDEXINFO                              haxefmod.studio.Types.FmodCreateSoundExInfo   the optional argument of Sound.create and Sound.fromMemory, the callback and pointer fields run on FMOD threads skip: cbsize,inclusionlistnum,pcmreadcallback,pcmsetposcallback,nonblockcallback,userdata,fileuseropen,fileuserclose,fileuserread,fileuserseek,fileuserasyncread,fileuserasynccancel,fileuserdata
 FMOD_DEBUG_CALLBACK                                 cannot   runs on FMOD's threads, the log goes to the platform output at FmodSettings.logLevel instead
 FMOD_DEBUG_FLAGS                                    haxefmod.studio.Types.FmodDebugFlags
@@ -217,7 +217,7 @@ FMOD_STUDIO_COMMANDREPLAY_FLAGS                     haxefmod.studio.Types.FmodCo
 FMOD_STUDIO_COMMANDREPLAY_FRAME_CALLBACK            cannot   runs on FMOD's threads, CommandReplay plays back without hooks
 FMOD_STUDIO_COMMANDREPLAY_LOAD_BANK_CALLBACK        cannot   runs on FMOD's threads, CommandReplay plays back without hooks
 FMOD_STUDIO_COMMAND_INFO                            haxefmod.studio.Types.FmodCommandInfo
-FMOD_STUDIO_CPU_USAGE                               haxefmod.studio.Types.FmodSystemCpuUsage
+FMOD_STUDIO_CPU_USAGE                               haxefmod.studio.Types.FmodStudioCpuUsage
 FMOD_STUDIO_EVENT_CALLBACK                          haxefmod.studio.Callbacks.EventCallback   the handle it is registered on stands in for the event argument, the decoded EventCallbackData replaces type and parameters skip: EVENT_CALLBACK_TYPE,EVENTINSTANCE
 FMOD_STUDIO_EVENT_CALLBACK_TYPE                     haxefmod.studio.Callbacks.EventCallbackType
 FMOD_STUDIO_EVENT_PROPERTY                          haxefmod.studio.Types.FmodEventProperty

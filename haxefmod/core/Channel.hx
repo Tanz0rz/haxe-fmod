@@ -454,8 +454,10 @@ abstract Channel(Int) from Int to Int {
     }
 
     /**
-     * The sound this channel plays (a borrowed reference: never release it). Returns Sound.NULL on failure,
-     * with the reason in StudioSystem.lastResult().
+     * The sound this channel plays. A sound the game created comes back under its own handle. Any other
+     * sound (an event's, a PcmStream's) gets a borrowed handle. Release refuses it, and it dies with this
+     * channel handle or at the next call that can destroy sounds. Returns Sound.NULL on failure, with the
+     * reason in StudioSystem.lastResult().
      */
     public inline function getCurrentSound():haxefmod.core.Sound {
         return NativeStudio.chan_get_current_sound(this);
@@ -520,7 +522,8 @@ abstract Channel(Int) from Int to Int {
     }
 
     /**
-     * The effect at chain position `index` (a known DSP returns its existing handle). Returns Dsp.NULL on
+     * The effect at chain position `index`. A known DSP returns its existing handle. Any other one gets a
+     * borrowed handle, which release refuses and which dies with this channel handle. Returns Dsp.NULL on
      * failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getDsp(index:Int):Dsp {
@@ -541,8 +544,9 @@ abstract Channel(Int) from Int to Int {
     }
 
     /**
-     * The group this channel is routed into (a known group returns its existing handle). Returns
-     * ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
+     * The group this channel is routed into. A known group returns its existing handle. Any other one gets
+     * a borrowed handle. Release refuses it, and it dies with this channel handle or whenever FMOD can
+     * destroy objects. Returns ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getChannelGroup():ChannelGroup {
         return NativeStudio.chan_get_channel_group(this);
@@ -603,7 +607,10 @@ abstract Channel(Int) from Int to Int {
     public function stop():FmodResult {
         haxefmod.core.ChannelCallbacks.remove(this);
         UserData.clear(UserDataKind.Channel, this);
-        return NativeStudio.chan_stop(this);
+        var result:FmodResult = NativeStudio.chan_stop(this);
+        // The handles reached from the channel died with its handle
+        haxefmod.studio.EventInstance.dropDeadGroups();
+        return result;
     }
 
     /**

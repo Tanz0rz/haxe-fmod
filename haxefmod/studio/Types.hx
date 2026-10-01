@@ -386,15 +386,25 @@ typedef FmodMemoryUsage = {
     var sampledata:Int;
 }
 
-/** System-wide CPU usage in percent of one core (FMOD_STUDIO_CPU_USAGE + FMOD_CPU_USAGE) */
-typedef FmodSystemCpuUsage = {
-    var studioUpdate:Float;
+/** Studio CPU usage in percent of one core (FMOD_STUDIO_CPU_USAGE) */
+typedef FmodStudioCpuUsage = {
+    var update:Float;
+}
+
+/** Core CPU usage in percent of one core (FMOD_CPU_USAGE) */
+typedef FmodCoreCpuUsage = {
     var dsp:Float;
     var stream:Float;
     var geometry:Float;
     var update:Float;
     var convolution1:Float;
     var convolution2:Float;
+}
+
+/** The two structs Studio::System::getCPUUsage fills */
+typedef FmodSystemCpuUsage = {
+    var studio:FmodStudioCpuUsage;
+    var core:FmodCoreCpuUsage;
 }
 
 /** One internal buffer's usage (FMOD_STUDIO_BUFFER_INFO) */
@@ -1478,7 +1488,13 @@ typedef FmodCreateSoundExInfo = {
     @:optional var minMidiGranularity:Int;
     /** Which of FMOD's nonblocking threads handles a ChannelMode.NONBLOCKING load, 0 to 4. */
     @:optional var nonBlockThreadId:Int;
-    /** The GUID of the FSB subsound to load, for FSB files that carry GUIDs. */
+    /**
+     * FMOD writes the FSB file's GUID here during the load. Set the field
+     * (FmodGuid.NULL works) to get the value back. A value passed in
+     * names an FSB file FMOD already loaded, which saves it a disk read.
+     * A file without a GUID and a failed create leave the field as
+     * passed. So does the web build, whose runtime never writes it.
+     */
     @:optional var fsbGuid:FmodGuid;
 }
 

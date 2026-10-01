@@ -17,6 +17,7 @@ import haxefmod.studio.CommandReplay;
 import haxefmod.core.Sound;
 import haxefmod.studio.EventDescription;
 import haxefmod.studio.EventInstance;
+import haxefmod.studio.FmodResult;
 import haxefmod.studio.StudioSystem;
 import haxefmod.studio.UserData;
 import haxefmod.studio.Vca;
@@ -36,6 +37,7 @@ class TestUserData {
 		testSystemAndUnloadAll();
 		testDescriptionCallback();
 		testClearAllCallbacksLeavesUserData();
+		testBorrowedHandlesDieWithOwner();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -59,6 +61,8 @@ class TestUserData {
 		NativeStudioStub.testOwnedHandles = [];
 		NativeStudioStub.testPcmReleaseResult = 68;
 		NativeStudioStub.testUnloadAllResult = 68;
+		NativeStudioStub.testDeadHandles = [];
+		NativeStudioStub.testOwnerOf = new Map();
 	}
 
 	static function testSetGetClearPerKind():Void {
@@ -291,6 +295,9 @@ class TestUserData {
 		var pinVca:Vca = 405; pinVca.setUserData("v");
 		var pinDeadGroup:ChannelGroup = 406; pinDeadGroup.setUserData("g");
 		var pinDeadChannel:Channel = 407; pinDeadChannel.setUserData("c");
+		var keepSound:Sound = 408; keepSound.setUserData("s");
+		var keepDsp:Dsp = 409; keepDsp.setUserData("d");
+		var keepChannel:Channel = 410; keepChannel.setUserData("c");
 		NativeStudioStub.testDeadHandles = [406, 407];
 		NativeStudioStub.testUnloadAllResult = 0;
 		StudioSystem.unloadAll();
@@ -302,6 +309,9 @@ class TestUserData {
 		assert("unloadAll drops a dead group's userdata", pinDeadGroup.getUserData() == null);
 		assert("unloadAll drops a dead channel's userdata", pinDeadChannel.getUserData() == null);
 		assert("unloadAll keeps the system value", StudioSystem.getUserData() == "sys");
+		assert("unloadAll keeps the userdata of a sound, DSP, and channel that survived",
+			keepSound.getUserData() == "s" && keepDsp.getUserData() == "d" && keepChannel.getUserData() == "c");
+		keepSound.setUserData(null); keepDsp.setUserData(null); keepChannel.setUserData(null);
 		StudioSystem.setUserData(null);
 		assert("unloadAll clears handles", UserData.count() == 0);
 		assert("unloadAll clears description callbacks", !desc.hasCallback());
@@ -358,5 +368,68 @@ class TestUserData {
 		FmodManager.ClearAllCallbacks();
 		assert("ClearAllCallbacks drops description handler", !desc.hasCallback());
 		assert("ClearAllCallbacks keeps userdata", desc.getUserData() == "d");
+	}
+
+	// A handle the game reached through another one (a walked group, a
+	// group's DSP, a channel's sound) died natively with that handle, and
+	// its Haxe entries outlived it. FMOD then reused the address and the
+	// stale handle drove another instance's group with the old userdata.
+	static function testBorrowedHandlesDieWithOwner():Void {
+		reset();
+		NativeStudioStub.testSyntheticHandles = true;
+		NativeStudioStub.testReleaseResult = 0;
+		var group:ChannelGroup = ++NativeStudioStub.testNextHandle;
+		var child = group.getGroup(0);
+		var fader = group.getDsp(0);
+		assert("a walked group is borrowed", !child.isNull() && NativeStudioStub.testOwnedHandles.contains(child));
+		assert("a borrowed group refuses release", child.release() == FmodResult.FMOD_ERR_INVALID_PARAM);
+		assert("a borrowed DSP refuses release", fader.release() == FmodResult.FMOD_ERR_INVALID_PARAM);
+		child.setUserData("child");
+		fader.setUserData("fader");
+		haxefmod.core.ChannelCallbacks.setGroup(child, function(_) {});
+		var keep:Dsp = ++NativeStudioStub.testNextHandle;
+		keep.setUserData("keep");
+		assert("release of the owner reports FMOD's result", group.release() == FmodResult.FMOD_OK);
+		assert("the walked group's userdata died with its owner", child.getUserData() == null);
+		assert("the DSP's userdata died with its owner", fader.getUserData() == null);
+		assert("the walked group's handler died with its owner", !@:privateAccess haxefmod.core.ChannelCallbacks.handlers.exists(child));
+		assert("an unrelated handle keeps its userdata", keep.getUserData() == "keep");
+
+		// A channel's borrowed sound and DSP go with the channel
+		var channel:Channel = ++NativeStudioStub.testNextHandle;
+		var sound = channel.getCurrentSound();
+		var channelDsp = channel.getDsp(0);
+		assert("a channel's sound is borrowed", sound.release() == FmodResult.FMOD_ERR_INVALID_PARAM);
+		sound.setUserData("sound");
+		channelDsp.setUserData("dsp");
+		channel.stop();
+		assert("stop drops the borrowed sound's userdata", sound.getUserData() == null);
+		assert("stop drops the borrowed DSP's userdata", channelDsp.getUserData() == null);
+
+		// An instance FMOD destroyed: the native drain freed what hangs off
+		// it, and the Haxe drain drops the entries once per update
+		var inst:EventInstance = ++NativeStudioStub.testNextHandle;
+		var instGroup:ChannelGroup = ++NativeStudioStub.testNextHandle;
+		NativeStudioStub.testOwnerOf.set(instGroup, inst);
+		var walked = instGroup.getParentGroup();
+		walked.setUserData("walked");
+		NativeStudioStub.testFree(inst);
+		CallbackDispatcher.deliver(inst, EventCallbackType.DESTROYED, 0, 0, 0, 0, 0, 0, "");
+		CallbackDispatcher.update();
+		assert("the destroyed instance's walked group loses its userdata", walked.getUserData() == null);
+
+		// A refused release keeps every entry
+		var refused:ChannelGroup = ++NativeStudioStub.testNextHandle;
+		var refusedChild = refused.getGroup(0);
+		refusedChild.setUserData("kept");
+		NativeStudioStub.testReleaseResult = 31;
+		refused.release();
+		assert("a refused release keeps the borrowed entries", refusedChild.getUserData() == "kept");
+		refusedChild.setUserData(null);
+		keep.setUserData(null);
+		NativeStudioStub.testReleaseResult = 68;
+		NativeStudioStub.testSyntheticHandles = false;
+		NativeStudioStub.testDeadHandles = [];
+		assert("nothing left", UserData.count() == 0);
 	}
 }

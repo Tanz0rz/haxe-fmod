@@ -126,7 +126,7 @@ export FMOD_SDK_WEB="$HOME/fmod/fmodstudioapi20312html5" # (use $HOME rather tha
 # FMOD_SDK_WEB=C:\path\to\fmodstudioapi20312html5
 ```
 
-Both variables can be set at the same time. One machine holds the desktop SDK and the HTML5 SDK.
+Both variables can be set at the same time. One machine can hold the desktop SDK and the HTML5 SDK.
 
 ## 4. Check your setup
 
@@ -202,7 +202,7 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
 
 === "Kha"
 
-    Add the bank folder to the khafile assets for the browser, so `kha.Assets.loadEverything` loads the banks with everything else. Then call `FmodKhaSetup.preload()` from its callback. It initializes FMOD from those assets. A native target reads the bank folder instead. It calls back once FMOD is ready. The first scene then plays at once, on HTML5 too. See [Engine components](guides/components.md#setup).
+    Add the bank folder to the khafile assets for the browser. `kha.Assets.loadEverything` then loads the banks with everything else. Then call `FmodKhaSetup.preload()` from its callback. It initializes FMOD from those assets. A native target reads the bank folder instead. It calls back once FMOD is ready. The first scene then plays at once, on HTML5 too. See [Engine components](guides/components.md#setup).
 
     ```js
     if (platform === 'html5') project.addAssets('assets/fmod/Desktop/*.bank');
@@ -237,14 +237,7 @@ Banks load from `assets/fmod/Desktop` by default. [Bank loading](guides/bank-loa
 
 ### One import for every file
 
-The setup import belongs in the entry point alone. `FmodManager` and the generated constants are used from every file that plays a sound. An `import.hx` at the root of your source path imports them once for every module under it. This is a Haxe compiler feature. It works the same on every engine and target. Wrap the imports in `#if !macro`. The FMOD classes use build macros. An import inside the macro context breaks compilation. The three example games carry this file for `FmodManager`.
-
-```haxe
-#if !macro
-import haxefmod.FmodManager;
-import FmodEvents;
-#end
-```
+An [`import.hx`](guides/auto-imports.md) imports `FmodManager` and the generated constants into every file.
 
 HTML5 initializes asynchronously. The preloaders above cover that. The first scene starts with FMOD ready. A game that starts FMOD some other way polls `FmodManager.IsInitialized()` first. [Platforms](platforms.md#html5) shows that pattern.
 
@@ -262,7 +255,7 @@ HTML5 initializes asynchronously. The preloaders above cover that. The first sce
     lime test mac
     ```
 
-    On a native target you hear your event as soon as the game window opens. In the browser audio starts after the player's first click, key press, pointer, or touch. Browsers hold audio suspended until then. The loading screen counts.
+    On a native target you hear your event as soon as the game window opens. In the browser audio starts after the player's first click, key press, pointer, or touch. Browsers hold audio suspended until then. A gesture on the loading screen counts.
 
     If the build succeeds but stays silent, run `haxelib run haxefmod check` from the project directory. It covers the environment. Then read the game's console output with `FmodManager.EnableDebugMessages()` on. In the browser the network tab shows whether the bank files were fetched.
 
@@ -283,7 +276,7 @@ HTML5 initializes asynchronously. The preloaders above cover that. The first sce
     cd build/hl && ./run.sh
     ```
 
-    **On macOS**: the game compiles through HL/C into a native executable. The steps differ. Run `haxelib run haxefmod build-hdll` first, so `.haxefmod/hlaxe_fmod.hdll` exists. Then send the compile to C and link it against your HashLink installation.
+    **On macOS**: the game compiles through HL/C into a native executable. The steps differ. Run `haxelib run haxefmod build-hdll` first. The command writes `.haxefmod/hlaxe_fmod.hdll`. Then send the compile to C and link it against your HashLink installation.
 
     ```bash
     HL_PREFIX=$(brew --prefix)
@@ -314,7 +307,7 @@ HTML5 initializes asynchronously. The preloaders above cover that. The first sce
     <script src="game.js"></script>
     ```
 
-    In the browser audio starts after the player's first click, key press, pointer, or touch. Browsers hold audio suspended until then. The loading screen counts. A silent page with no errors is usually a bank that never arrived. Check the network tab for the `.bank` requests.
+    In the browser audio starts after the player's first click, key press, pointer, or touch. Browsers hold audio suspended until then. A gesture on the loading screen counts. A silent page with no errors is usually a bank that never arrived. Check the network tab for the `.bank` requests.
 
 === "Kha"
 
@@ -338,7 +331,7 @@ HTML5 initializes asynchronously. The preloaders above cover that. The first sce
 
     You hear your event as soon as the window opens. A silent run with a clean build points at missing banks. The console output names the failing path when `FmodManager.EnableDebugMessages()` is on.
 
-    **In the browser**: khamake writes an `index.html` only when none exists. Copy your own into the output directory before the build, so the page loads the FMOD engine first. Host the directory as a static site with the banks under `assets/fmod/Desktop`.
+    **In the browser**: khamake writes an `index.html` only when none exists. Copy your own into the output directory before the build. Your page must load the FMOD engine first. Host the directory as a static site with the banks under `assets/fmod/Desktop`.
 
     ```bash
     mkdir -p build/html5
@@ -353,7 +346,7 @@ HTML5 initializes asynchronously. The preloaders above cover that. The first sce
     <script src="kha.js"></script>
     ```
 
-    In the browser audio starts after the player's first click, key press, pointer, or touch. Browsers hold audio suspended until then. The loading screen counts. Check the network tab for the `.bank` requests when the page stays silent.
+    In the browser audio starts after the player's first click, key press, pointer, or touch. Browsers hold audio suspended until then. A gesture on the loading screen counts. Check the network tab for the `.bank` requests when the page stays silent.
 
 **macOS note**: SDK libraries downloaded through a browser carry the quarantine attribute. FMOD signs its libraries. Builds normally run without issue. If macOS blocks the dylibs, clear the flag with `xattr -dr com.apple.quarantine "$FMOD_SDK"`.
 

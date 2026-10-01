@@ -94,7 +94,7 @@ abstract Sound(Int) from Int to Int {
      * length, stream buffer sizes, encryption key, and the others). Its
      * initialSubsound wins over the argument when both are given. A
      * create with exinfo.fsbGuid ignores NONBLOCKING and loads inside
-     * the call.
+     * the call, and the field holds the FSB file's GUID afterwards.
      */
     public static function create(path:String, loop:Bool = false, openOnly:Bool = false, mode:Int = 0, initialSubsound:Int = -1, ?exinfo:FmodCreateSoundExInfo):Sound {
         // A null path is an empty one, which FMOD refuses. The HashLink
@@ -103,16 +103,31 @@ abstract Sound(Int) from Int to Int {
         var fullMode = mode | (loop ? ChannelMode.LOOP_NORMAL : 0) | (openOnly ? ChannelMode.OPENONLY : 0);
         if (exinfo == null) return NativeStudio.core_create_sound(path, fullMode, initialSubsound);
         packExInfo(exinfo, initialSubsound);
-        return NativeStudio.core_create_sound_ex(path, fullMode, exText(exinfo.dlsName), exText(exinfo.encryptionKey),
+        var sound:Sound = NativeStudio.core_create_sound_ex(path, fullMode, exText(exinfo.dlsName), exText(exinfo.encryptionKey),
             exinfo.fsbGuid == null ? "" : (exinfo.fsbGuid : String));
+        takeFsbGuid(sound, exinfo);
+        return sound;
+    }
+
+    /**
+     * Hands back the GUID FMOD wrote into exinfo.fsbguid during a create
+     * that passed one. The field keeps its value when the create failed
+     * or the backend reports none.
+     */
+    static function takeFsbGuid(sound:Sound, exinfo:FmodCreateSoundExInfo):Void {
+        if (sound.isNull() || exinfo.fsbGuid == null) return;
+        var written = NativeStudio.core_last_fsb_guid();
+        if (written != "") exinfo.fsbGuid = written;
     }
 
     /**
      * A sound from an encoded file image in memory (wav, ogg, mp3, fsb,
-     * anything Sound.create would load from disk). FMOD copies the bytes,
-     * so the buffer is free after this returns. mode takes the same
-     * ChannelMode flags as create. NONBLOCKING is ignored and the load
-     * finishes inside the call. Returns Sound.NULL on failure. The
+     * anything Sound.create would load from disk). The buffer is free
+     * after this returns, in every mode. A CREATESTREAM or OPENONLY sound
+     * reads from a copy the library keeps until the sound is released.
+     * mode takes the same ChannelMode flags as create. NONBLOCKING is
+     * ignored and the load finishes inside the call. Returns Sound.NULL
+     * on failure. The
      * web build decodes FSB only, so a wav or ogg image reports
      * FMOD_ERR_FORMAT there. Use fromPcm for raw sample data, or pass an
      * exinfo with numChannels, defaultFrequency, and format together
@@ -125,8 +140,10 @@ abstract Sound(Int) from Int to Int {
         var count = length == -1 || length > data.length ? data.length : length;
         if (exinfo == null) return NativeStudio.core_create_sound_memory(data, count, mode);
         packExInfo(exinfo, -1);
-        return NativeStudio.core_create_sound_memory_ex(data, count, mode, exText(exinfo.dlsName), exText(exinfo.encryptionKey),
+        var sound:Sound = NativeStudio.core_create_sound_memory_ex(data, count, mode, exText(exinfo.dlsName), exText(exinfo.encryptionKey),
             exinfo.fsbGuid == null ? "" : (exinfo.fsbGuid : String));
+        takeFsbGuid(sound, exinfo);
+        return sound;
     }
 
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
@@ -557,6 +574,8 @@ abstract Sound(Int) from Int to Int {
         if (UserData.releaseTookEffect(result)) {
             for (sub in subs) UserData.clear(UserDataKind.Sound, sub);
             UserData.clear(UserDataKind.Sound, this);
+            // Every borrowed sound handle went with the release
+            haxefmod.studio.EventInstance.dropDeadGroups();
         }
         return result;
     }

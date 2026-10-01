@@ -87,6 +87,16 @@ class RuntimeInitTest {
 					check("initialized_once_banks_usable", false, "timed out");
 					finish();
 				}
+			} else if (mode == "refused" || mode == "staggered") {
+				if (FmodRuntime.initSettled() || polls > 200) {
+					js.Syntax.code("clearInterval({0})", timer);
+					var warns = traces.filter(t -> t.indexOf("failed to load") >= 0 || t.indexOf("could not start loading") >= 0);
+					check(mode + "_settles", FmodRuntime.initSettled(), 'polls=$polls');
+					check(mode + "_reports_failure", FmodRuntime.initFailed(), "");
+					check(mode + "_pair_runs_on_failed", !pairReady && pairFailed == 1, 'failed=$pairFailed');
+					check(mode + "_failure_reported_once", warns.length == 1, 'count=${warns.length}');
+					finish();
+				}
 			} else if (mode == "provided") {
 				if (FmodRuntime.initSettled() || polls > 200) {
 					js.Syntax.code("clearInterval({0})", timer);

@@ -72,8 +72,8 @@ async function main() {
     // The flags reach the glue. A stream request on a wav fails on the codec
     // rather than on the mode.
     // A missing file with an initial subsound gives a clean not-found.
-    // The glue drops NONBLOCKING rather than rejecting it, and reports it
-    // unsupported (see the shim comment).
+    // The shim drops NONBLOCKING, which the glue rejects. A missing file
+    // then reports not found.
     check('create_sound_stream_flag_reaches_glue',
         jaxe.fmod_core_create_sound('Jump.wav', CREATESTREAM | MODE_3D, -1) === 0 && jaxe.fmod_sys_last_result() === ERR_FORMAT,
         `last=${jaxe.fmod_sys_last_result()}`);

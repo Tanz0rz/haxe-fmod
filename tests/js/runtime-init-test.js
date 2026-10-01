@@ -51,11 +51,24 @@ function runMode(mode) {
             if (raw.indexOf('missing/') >= 0 || !fs.existsSync(file)) {
                 return Promise.resolve({ ok: false, status: 404 });
             }
+            if (global.RUNTIME_TEST_MODE === 'staggered') {
+                if (name === 'Master.strings.bank') return Promise.resolve({ ok: false, status: 404 });
+                const b = fs.readFileSync(file);
+                return new Promise(res => setTimeout(() => res({ ok: true, arrayBuffer: () => Promise.resolve(
+                    b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)) }), 1000));
+            }
             const bytes = fs.readFileSync(file);
             return Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve(
                 bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)) });
         };
         eval(fs.readFileSync(${JSON.stringify(JAXE)}, 'utf8') + '\\nglobal.jaxe = jaxe;');
+        if (global.RUNTIME_TEST_MODE === 'refused') {
+            const realAsync = jaxe.fmod_sys_load_bank_async;
+            jaxe.fmod_sys_load_bank_async = function (p) {
+                if (String(p).endsWith('/Master.bank')) { jaxe.lastResult = 38; return 0; }
+                return realAsync(p);
+            };
+        }
         // Node has no audio device: route to NOSOUND inside the bootstrap
         const realBootstrap = jaxe.onRuntimeInitialized;
         jaxe.onRuntimeInitialized = function () {
@@ -87,5 +100,7 @@ function runMode(mode) {
 runMode('ok');
 runMode('missing');
 runMode('provided');
+runMode('refused');
+runMode('staggered');
 console.log(fails === 0 ? 'RUNTIME_INIT_TEST: ALL MODES COMPLETE' : 'RUNTIME_INIT_TEST: FAILED');
 process.exit(fails === 0 ? 0 : 1);

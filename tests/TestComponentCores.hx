@@ -226,7 +226,25 @@ class TestComponentCores {
 		// A nonzero handle is invalid on the stub backend, so it attaches
 		// and would be pruned by the runtime's next update
 		var fake:EventInstance = cast 0x10002;
+		haxefmod.studio.native.NativeStudioStub.testLast3d = null;
 		var tracker = new EmitterTracker(fake, provider);
+		var first = haxefmod.studio.native.NativeStudioStub.testLast3d;
+		assert(first != null && first[1] == 1 && first[2] == 2, "attaching pushes the position at once");
+		// The velocity cap reaches the attach push and the listener push
+		var fast = new FastProvider();
+		var savedCap = @:privateAccess FmodRuntime.attached.maxVelocity;
+		@:privateAccess FmodRuntime.attached.maxVelocity = 10;
+		var capped = new EmitterTracker(cast 0x10003, fast);
+		var pushed = haxefmod.studio.native.NativeStudioStub.testLast3d;
+		assert(pushed != null && Math.abs(pushed[3] - 6) < 0.0001 && Math.abs(pushed[4] - 8) < 0.0001, "the attach push caps the velocity");
+		haxefmod.studio.native.NativeStudioStub.testListenerPushes = [];
+		haxefmod.studio.native.NativeStudioStub.testRecordListenerPushes = true;
+		new ListenerTracker(fast).update();
+		var lp = haxefmod.studio.native.NativeStudioStub.testListenerPushes;
+		assert(lp.length == 1 && Math.abs(lp[0].vx - 6) < 0.0001 && Math.abs(lp[0].vy - 8) < 0.0001, "the listener push caps the velocity");
+		haxefmod.studio.native.NativeStudioStub.testRecordListenerPushes = false;
+		@:privateAccess FmodRuntime.attached.maxVelocity = savedCap;
+		capped.dispose();
 		assert(FmodRuntime.attachedCount() == baseline + 1, "constructing attaches the instance");
 		assert(FmodRuntime.isAttachedProvider(provider), "the provider is reported attached");
 		// Culling is off by default, and with no listener attributes the
@@ -236,6 +254,43 @@ class TestComponentCores {
 		tracker.stopEventsOutsideMaxDistance = true;
 		tracker.cullCheckInterval = 1;
 		tracker.update();
+
+		// The authored distance culls a playing 3D event with no explicit
+		// distance, and an event the game stopped itself is left alone
+		var stub = haxefmod.studio.native.NativeStudioStub;
+		stub.testListenerPosition = [0, 0, 0];
+		stub.testIs3D = true;
+		stub.testMinMaxDistance = [1, 20];
+		var savedState = stub.testPlaybackState;
+		var far = new MovableProvider(1000, 0);
+		var authored = new EmitterTracker(cast 0x10004, far);
+		authored.stopEventsOutsideMaxDistance = true;
+		authored.cullCheckInterval = 1;
+		stub.testPlaybackState = 0; // PLAYING
+		stub.testStopCalls = 0;
+		authored.update();
+		assert(stub.testStopCalls == 1, "the authored distance culls a far 3D event");
+		var starts = stub.testStartCalls;
+		far.x = 5;
+		authored.update();
+		assert(stub.testStartCalls == starts + 1, "a culled event restarts inside the authored distance");
+		authored.dispose();
+		var silent = new EmitterTracker(cast 0x10005, far);
+		silent.stopEventsOutsideMaxDistance = true;
+		silent.cullCheckInterval = 1;
+		stub.testPlaybackState = 2; // STOPPED, by the game
+		far.x = 1000;
+		stub.testStopCalls = 0;
+		silent.update();
+		starts = stub.testStartCalls;
+		far.x = 5;
+		silent.update();
+		assert(stub.testStopCalls == 0 && stub.testStartCalls == starts, "an event the game stopped is neither culled nor restarted");
+		silent.dispose();
+		stub.testPlaybackState = savedState;
+		stub.testListenerPosition = null;
+		stub.testIs3D = false;
+		stub.testMinMaxDistance = null;
 
 		tracker.dispose();
 		assert(FmodRuntime.attachedCount() == baseline, "dispose detaches");
@@ -285,4 +340,12 @@ private class SpyTrigger extends ZoneTrigger {
 	override function apply(value:Float):Void {
 		applied.push(value);
 	}
+}
+
+private class FastProvider implements IFmodPositionProvider {
+	public function new() {}
+	public function fmodX():Float return 0;
+	public function fmodY():Float return 0;
+	public function fmodVelocityX():Float return 30;
+	public function fmodVelocityY():Float return 40;
 }

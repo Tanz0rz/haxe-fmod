@@ -5,9 +5,9 @@ import haxe.macro.Context;
 
 /**
  * Compile-time environment check, wired by include.xml so it runs on every
- * lime build of a project using haxefmod. Heaps and Kha builds run it
- * too, and any other build opts in with --macro
- * haxefmod.tools.BuildCheck.verify() in its hxml. The check applies to
+ * lime build of a project using haxefmod. Heaps, Kha, and other builds
+ * run it when their hxml or khafile adds --macro
+ * haxefmod.tools.BuildCheck.verify(). The check applies to
  * the hl, cpp, and js targets, the ones that ship an FMOD runtime.
  *
  * The checks live in a macro because lime ignores postbuild failures. An

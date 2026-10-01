@@ -355,36 +355,138 @@ async function main() {
     check('instGroup_callback_map_pruned_with_slot', !jaxe.chanCallbackHandles.has(groupRaw),
         `size=${jaxe.chanCallbackHandles.size}`);
 
-    // A group FMOD destroyed keeps its slot until a sweep, and the new
-    // group of a create can land on the freed address. fmod_cg_create
-    // sweeps the dead group slots first, so no later walk can alias the
-    // new group under the dead handle.
+    // A group FMOD destroyed keeps its slot until its owner instance's
+    // slot goes. The web runtime never reports the destruction, so the
+    // drain asks about every instance a handle hangs off and frees the
+    // dead one with its group handle.
     {
         const staleLive = jaxe.liveCount;
         const staleInst = jaxe.fmod_evd_create_instance(evd);
         jaxe.fmod_evi_start(staleInst);
         await pump(3);
         const staleGroup = jaxe.fmod_evi_get_channel_group(staleInst);
-        check('stale_group_handle', staleGroup > 0, `handle=${staleGroup}`);
+        const staleChild = jaxe.fmod_cg_get_group(staleGroup, 0);
+        check('stale_group_handle', staleGroup > 0 && staleChild > 0, `handle=${staleGroup} child=${staleChild}`);
         // Destroy the instance behind the shim's back, so the group dies
-        // with it and both slots stay
+        // with it and every slot stays
         jaxe.fmod_evi_stop(staleInst, 1);
         jaxe.handleResolve(staleInst, jaxe.TYPE_EVI).release();
         jaxe.gSystem.flushCommands();
         await pump(3);
-        check('dead_group_slot_lingers_until_sweep',
-            jaxe.handleResolve(staleGroup, jaxe.TYPE_CHANGROUP) != null
-            && !jaxe.lookupSlotUsable(jaxe.slots[staleGroup & 0xFFFF]), '');
-        const fresh = jaxe.fmod_cg_create('sweep-probe');
-        check('cg_create_sweeps_dead_group_slots',
-            fresh > 0 && jaxe.handleResolve(staleGroup, jaxe.TYPE_CHANGROUP) == null,
-            `fresh=${fresh} stale=${staleGroup}`);
-        jaxe.fmod_cg_release(fresh);
-        jaxe.fmod_evi_release(staleInst);
-        await pump(2);
+        check('dead_group_slot_lingers_until_drain', jaxe.handleResolve(staleGroup, jaxe.TYPE_CHANGROUP) != null, '');
         drainEvents();
-        check('cg_create_sweep_leaves_no_slots', jaxe.liveCount === staleLive,
+        check('drain_frees_destroyed_instance_and_its_groups',
+            jaxe.handleResolve(staleInst, jaxe.TYPE_EVI) == null
+            && jaxe.handleResolve(staleGroup, jaxe.TYPE_CHANGROUP) == null
+            && jaxe.handleResolve(staleChild, jaxe.TYPE_CHANGROUP) == null,
+            `inst=${jaxe.handleIsLive(staleInst)} group=${jaxe.handleIsLive(staleGroup)} child=${jaxe.handleIsLive(staleChild)}`);
+        check('drain_reclaim_leaves_no_slots', jaxe.liveCount === staleLive,
             `live=${jaxe.liveCount} before=${staleLive}`);
+    }
+
+    // A slot naming a group that FMOD freed behind the shim's back goes
+    // when a created group lands at that address, so no walk hands the
+    // new group out under the dead handle
+    {
+        const reuseLive = jaxe.liveCount;
+        const first = jaxe.fmod_cg_create('reuse-a');
+        const wrapper = jaxe.resolveCg(first);
+        const raw = jaxe.rawPtr(wrapper);
+        // A second wrapper for the same group, as a walk would hold it
+        const master = jaxe.resolveCg(jaxe.fmod_cg_get_master());
+        let second = null;
+        const n = {};
+        master.getNumGroups(n);
+        for (let i = 0; i < n.val && !second; i++) {
+            const g = {};
+            master.getGroup(i, g);
+            if (jaxe.rawPtr(g.val) === raw) second = g.val; else jaxe.dropWrapper(g.val);
+        }
+        const stale = second ? jaxe.handleAlloc(second, jaxe.TYPE_CHANGROUP) : 0;
+        wrapper.release();
+        let fresh = 0;
+        let fresh2 = 0;
+        fresh = jaxe.fmod_cg_create('reuse-b');
+        const reused = jaxe.rawPtr(jaxe.resolveCg(fresh)) === raw;
+        if (!reused) fresh2 = jaxe.fmod_cg_create('reuse-c');
+        check('cg_create_frees_stale_slots_at_its_address',
+            stale > 0 && (reused || jaxe.rawPtr(jaxe.resolveCg(fresh2)) === raw)
+            && jaxe.handleResolve(stale, jaxe.TYPE_CHANGROUP) == null
+            && jaxe.handleResolve(first, jaxe.TYPE_CHANGROUP) == null,
+            `stale=${stale} reused=${reused} first=${jaxe.handleIsLive(first)}`);
+        jaxe.fmod_cg_release(fresh);
+        if (fresh2) jaxe.fmod_cg_release(fresh2);
+        // The master group lookup keeps its slot
+        check('cg_create_reuse_leaves_no_slots', jaxe.liveCount === reuseLive + 1,
+            `live=${jaxe.liveCount} before=${reuseLive}`);
+    }
+
+    // A handle the game reaches through another one dies with it, refuses
+    // release, and a volatile one dies wherever FMOD can destroy objects.
+    // The walked handles once outlived their instance and a new group at
+    // the same address answered to them.
+    {
+        const borrowLive = jaxe.liveCount;
+        const inst = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_start(inst);
+        await pump(3);
+        const group = jaxe.fmod_evi_get_channel_group(inst);
+        const parent = jaxe.fmod_cg_get_parent_group(group);
+        const head = jaxe.fmod_cg_get_dsp(group, -1);
+        check('borrowed_walk_minted', group > 0 && parent > 0 && head > 0, `group=${group} parent=${parent} head=${head}`);
+        check('borrowed_walk_linked', jaxe.slots[parent & 0xFFFF].parent === group
+            && jaxe.slots[group & 0xFFFF].parent === inst && jaxe.slots[head & 0xFFFF].parent === group, '');
+        check('borrowed_group_release_refused', jaxe.fmod_cg_release(parent) === jaxe.ERR_INVALID_PARAM, `result=${jaxe.lastResult}`);
+        check('borrowed_dsp_release_refused', jaxe.fmod_dsp_release(head) === jaxe.ERR_INVALID_PARAM, `result=${jaxe.lastResult}`);
+        // A walk from the master can reach a group that dies with any
+        // instance, so it is volatile
+        const master = jaxe.fmod_cg_get_master();
+        const fromMaster = jaxe.fmod_cg_get_group(master, 0);
+        check('borrowed_master_walk_volatile', fromMaster > 0
+            && jaxe.slots[fromMaster & 0xFFFF].borrowed === jaxe.BORROWED_VOLATILE, `handle=${fromMaster}`);
+        // A walk that reaches the master group gets its fixed handle
+        const own = jaxe.fmod_cg_create('walk-to-master');
+        const up = jaxe.fmod_cg_get_parent_group(own);
+        check('borrowed_walk_to_master_fixed', up === master
+            && jaxe.slots[master & 0xFFFF].borrowed === jaxe.BORROWED_NONE, `up=${up} master=${master}`);
+        jaxe.fmod_cg_release(own);
+        jaxe.fmod_evi_stop(inst, 1);
+        jaxe.fmod_evi_release(inst);
+        check('borrowed_handles_die_with_instance', !jaxe.handleIsLive(group) && !jaxe.handleIsLive(parent)
+            && !jaxe.handleIsLive(head), '');
+        jaxe.gSystem.flushCommands();
+        await pump(3);
+        drainEvents();
+        check('borrowed_volatile_dies_after_destroy', !jaxe.handleIsLive(fromMaster), `handle=${fromMaster}`);
+        const fresh = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_start(fresh);
+        await pump(3);
+        const freshGroup = jaxe.fmod_evi_get_channel_group(fresh);
+        const freshParent = jaxe.fmod_cg_get_parent_group(freshGroup);
+        check('borrowed_fresh_instance_own_handles', freshGroup > 0 && freshParent > 0
+            && freshGroup !== group && freshParent !== parent, `old=${group}/${parent} new=${freshGroup}/${freshParent}`);
+        jaxe.fmod_evi_stop(fresh, 1);
+        jaxe.fmod_evi_release(fresh);
+
+        // A PcmStream's sound reached through its channel refuses release
+        // and dies with the stream
+        const pcm = jaxe.fmod_core_pcm_create(48000, 1, 9600);
+        const pcmChannel = jaxe.fmod_core_pcm_play(pcm, 0, true);
+        const pcmSound = jaxe.fmod_chan_get_current_sound(pcmChannel);
+        check('borrowed_pcm_sound_release_refused', pcmSound > 0
+            && jaxe.fmod_core_release_sound(pcmSound) === jaxe.ERR_INVALID_PARAM, `sound=${pcmSound} result=${jaxe.lastResult}`);
+        const sgSound = jaxe.fmod_sg_get_sound(jaxe.fmod_sys_get_master_sound_group(), 0);
+        check('borrowed_sound_group_sound_volatile', sgSound > 0
+            && jaxe.slots[sgSound & 0xFFFF].borrowed === jaxe.BORROWED_VOLATILE, `sound=${sgSound}`);
+        check('borrowed_pcm_release', jaxe.fmod_core_pcm_release(pcm) === 0, `result=${jaxe.lastResult}`);
+        check('borrowed_pcm_sound_dies_with_stream', !jaxe.handleIsLive(pcmSound) && !jaxe.handleIsLive(sgSound), '');
+        jaxe.fmod_chan_stop(pcmChannel);
+        jaxe.gSystem.flushCommands();
+        await pump(3);
+        drainEvents();
+        // The master groups got their slots in the blocks above
+        check('borrowed_leaves_no_slots', jaxe.liveCount === borrowLive,
+            `live=${jaxe.liveCount} before=${borrowLive}`);
     }
 
     // A bulk destroy takes the shim callback off every instance group in

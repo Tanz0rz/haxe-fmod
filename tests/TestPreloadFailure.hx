@@ -55,7 +55,9 @@ class TestPreloadFailure {
 		FmodRuntime.provideBank("Stray.bank", null);
 		assert(traces.filter(t -> t.indexOf("Stray.bank could not be provided") >= 0).length == 1, "before init a stray name is reported like any other");
 		stub.testBankMemoryLoads = [];
-		FmodRuntime.init({autoLoadBanks: ["Master.bank", "Master.strings.bank", "en/Extra.bank", "fr/Extra.bank"], banksProvided: true});
+		FmodRuntime.init({autoLoadBanks: ["Master.bank", "Master.strings.bank", "en/Extra.bank", "fr/Extra.bank", "Never.bank"], banksProvided: true});
+		assert(traces.filter(t -> t.indexOf("Never.bank could not be provided") >= 0 && t.indexOf("not provided before init") >= 0).length == 1,
+			"a default bank the preloader never provided fails at native init");
 
 		// The stub reports the system up only when told, so the handlers
 		// stay pending until then

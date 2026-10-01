@@ -148,8 +148,7 @@ class StudioSystem {
             // core object the game created survives, and a dead group
             // loses its entry
             for (kind in [UserDataKind.EventDescription, UserDataKind.EventInstance, UserDataKind.Bank, UserDataKind.Bus, UserDataKind.Vca]) UserData.clearKind(kind);
-            UserData.clearDead(UserDataKind.ChannelGroup);
-            UserData.clearDead(UserDataKind.Channel);
+            UserData.dropDeadBorrowed();
             EventDescription.clearAllCallbacks();
             CallbackDispatcher.clearAll();
             haxefmod.core.ChannelCallbacks.forgetDeadGroups();
@@ -471,18 +470,20 @@ class StudioSystem {
 
     //// Profiling
 
-    /** System-wide CPU usage, or null on failure. */
+    /** System-wide CPU usage as the Studio part and the Core part, or null on failure. */
     public static function getCpuUsage():Null<FmodSystemCpuUsage> {
         var result:FmodResult = NativeStudio.sys_get_cpu_usage();
         if (!result.isOk()) return null;
         return {
-            studioUpdate: Scratch.readF(0),
-            dsp: Scratch.readF(1),
-            stream: Scratch.readF(2),
-            geometry: Scratch.readF(3),
-            update: Scratch.readF(4),
-            convolution1: Scratch.readF(5),
-            convolution2: Scratch.readF(6),
+            studio: {update: Scratch.readF(0)},
+            core: {
+                dsp: Scratch.readF(1),
+                stream: Scratch.readF(2),
+                geometry: Scratch.readF(3),
+                update: Scratch.readF(4),
+                convolution1: Scratch.readF(5),
+                convolution2: Scratch.readF(6),
+            },
         };
     }
 

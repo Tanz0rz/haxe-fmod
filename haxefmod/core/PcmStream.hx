@@ -169,6 +169,8 @@ abstract PcmStream(Int) from Int to Int {
         if (UserData.releaseTookEffect(result)) {
             clearReadCallback();
             UserData.clear(UserDataKind.PcmStream, this);
+            // A borrowed handle for the stream's sound went with it
+            haxefmod.studio.EventInstance.dropDeadGroups();
         }
         return result;
     }

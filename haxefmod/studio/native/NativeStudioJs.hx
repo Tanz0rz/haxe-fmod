@@ -244,6 +244,7 @@ class NativeStudioJs {
     /** Reads the exinfo slots from the Scratch int buffer (packed by Sound.packExInfo) */
     public static inline function core_create_sound_ex(path:String, mode:Int, dls:String, key:String, guid:String):Int return Raw.fmod_core_create_sound_ex(path, mode, Scratch.intBuf(), dls, key, guid);
     public static inline function core_create_sound_memory_ex(data:haxe.io.Bytes, len:Int, mode:Int, dls:String, key:String, guid:String):Int return Raw.fmod_core_create_sound_memory_ex(data.getData(), len, mode, Scratch.intBuf(), dls, key, guid);
+    public static inline function core_last_fsb_guid():String return Raw.fmod_core_last_fsb_guid();
     public static inline function core_release_sound(handle:Int):Int return Raw.fmod_core_release_sound(handle);
     public static inline function core_sound_is_owned(handle:Int):Bool return Raw.fmod_core_sound_is_owned(handle);
     public static inline function core_get_sound_length(handle:Int, unit:Int):Int return Raw.fmod_core_get_sound_length(handle, unit);
@@ -951,6 +952,7 @@ private extern class Raw {
     static function fmod_core_create_sound_memory(data:haxe.io.BytesData, len:Int, mode:Int):Int;
     static function fmod_core_create_sound_ex(path:String, mode:Int, ibuf:Array<Int>, dls:String, key:String, guid:String):Int;
     static function fmod_core_create_sound_memory_ex(data:haxe.io.BytesData, len:Int, mode:Int, ibuf:Array<Int>, dls:String, key:String, guid:String):Int;
+    static function fmod_core_last_fsb_guid():String;
     static function fmod_core_release_sound(handle:Int):Int;
     static function fmod_core_sound_is_owned(handle:Int):Bool;
     static function fmod_core_get_sound_length(handle:Int, unit:Int):Int;

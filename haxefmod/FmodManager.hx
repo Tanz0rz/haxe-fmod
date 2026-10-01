@@ -50,7 +50,7 @@ class FmodManager {
         log("Initialized");
     }
 
-    /** Turns on FMOD debug logging at its most verbose level and traces every FmodManager operation. Debug builds enable it automatically. */
+    /** Traces every FmodManager operation and sets FMOD's log level to its most verbose value. Only the logging FMOD libraries write that log. Debug builds enable it automatically. */
     public static function EnableDebugMessages():Void {
         debug = true;
         FmodRuntime.setDebugLevel(3); // 3 = log everything (the FmodSettings.logLevel scale)

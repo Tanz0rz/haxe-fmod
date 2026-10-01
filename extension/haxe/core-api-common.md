@@ -14,7 +14,7 @@ Type: haxefmod.studio.Types.FmodChannelOrder
 
 ## FMOD_CPU_USAGE
 verdict: bound
-Type: haxefmod.studio.Types.FmodSystemCpuUsage
+Type: haxefmod.studio.Types.FmodCoreCpuUsage
 
 ## FMOD_DEBUG_CALLBACK
 verdict: cannot FMOD calls it on whichever of its threads logs. No Haxe target can run code there. The log goes to the platform's standard output at the level set by FmodSettings.logLevel, or to the file named by FmodSettings.logFile on native targets.

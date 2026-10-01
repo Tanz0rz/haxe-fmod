@@ -1549,6 +1549,31 @@ class TestStudioSurface {
 		Sound.fromMemory(haxe.io.Bytes.alloc(32));
 		assert(stub.testLastExInfoInts == null, "fromMemory without exinfo takes the plain path");
 
+		// fsbGuid is an out value: the GUID FMOD wrote comes back after a
+		// create that passed the field
+		var written = "{869b35d5-1b77-994e-0954-832a349c6244}";
+		stub.testExCreateHandle = 65536;
+		stub.testFsbGuidOut = written;
+		var guidInfo:FmodCreateSoundExInfo = {fsbGuid: FmodGuid.NULL};
+		Sound.create("x.fsb", false, false, 0, -1, guidInfo);
+		assert((guidInfo.fsbGuid : String) == written, "create hands back the GUID FMOD wrote");
+		var memoryGuidInfo:FmodCreateSoundExInfo = {fsbGuid: FmodGuid.NULL};
+		Sound.fromMemory(haxe.io.Bytes.alloc(32), 0, -1, memoryGuidInfo);
+		assert((memoryGuidInfo.fsbGuid : String) == written, "fromMemory hands back the GUID FMOD wrote");
+		var unasked:FmodCreateSoundExInfo = {};
+		Sound.create("x.fsb", false, false, 0, -1, unasked);
+		assert(unasked.fsbGuid == null, "a create without the field leaves it unset");
+		stub.testFsbGuidOut = "";
+		var unwritten:FmodCreateSoundExInfo = {fsbGuid: guid};
+		Sound.create("x.wav", false, false, 0, -1, unwritten);
+		assert(unwritten.fsbGuid == guid, "a GUID FMOD did not write keeps the passed value");
+		stub.testExCreateHandle = 0;
+		stub.testFsbGuidOut = written;
+		var failed:FmodCreateSoundExInfo = {fsbGuid: guid};
+		Sound.create("x.fsb", false, false, 0, -1, failed);
+		assert(failed.fsbGuid == guid, "a failed create keeps the passed value");
+		stub.testFsbGuidOut = "";
+
 		// FmodVersion and the reverb presets under FMOD's names
 		assert(FmodVersion.VERSION == 0x00020312, "FmodVersion matches the linked SDK");
 		assert(haxefmod.core.Reverb.ReverbPresets.UNDERWATER.decayTime == Reverb.PRESET_UNDERWATER.decayTime

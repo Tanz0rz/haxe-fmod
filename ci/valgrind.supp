@@ -8,14 +8,3 @@
    ...
    fun:*lime_font_get_family_name*
 }
-
-# FMOD checks a channel group handle by reading the object it points
-# at. The dead lookup sweep asks about groups FMOD already freed, and
-# FMOD answers FMOD_ERR_INVALID_HANDLE from that read.
-{
-   fmod_reads_a_freed_channel_group_to_refuse_it
-   Memcheck:Addr4
-   obj:*libfmod.so*
-   fun:_ZN4FMOD14ChannelControl9getVolumeEPf
-   fun:*lincLookupSlotValid*
-}

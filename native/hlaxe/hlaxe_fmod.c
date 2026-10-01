@@ -59,7 +59,7 @@ static void* gListBuf[FAXE_LIST_MAX];
 // the unreferenced string from the binary, erasing the marker the scan
 // depends on. Volatile reads cannot be folded, so the string survives any
 // optimization level.
-static const volatile char gAbiMarker[] = "hlaxe_fmod_abi=13";
+static const volatile char gAbiMarker[] = "hlaxe_fmod_abi=14";
 
 /* The hash of the shim sources this hdll was built from, passed in by
  * build-hdll (ci/hlaxe-src-hash.py computes the same one). The package
@@ -549,29 +549,56 @@ HL_PRIM int HL_NAME(core_create_sound)(vbyte* path, int mode, int initialSubsoun
 }
 DEFINE_PRIM(_I32, core_create_sound, _BYTES _I32 _I32);
 
-// An encoded file image (wav, ogg, mp3, fsb) already in memory. FMOD
-// copies the bytes, so the buffer is free once this returns. A
-// NONBLOCKING open would read the image from FMOD's loader thread after
-// the return, so the flag is dropped and the copy happens in the call.
+/* A stream and an OPENONLY sound read their memory image for as long as
+ * they live, so they get a private copy that dies with the handle. Every
+ * other mode makes FMOD copy the bytes inside the call. Returns the bytes
+ * to hand FMOD, NULL when the copy cannot be made. */
+static const char* hlaxe_memory_image(const vbyte* data, int len, FMOD_MODE mode, void** copy) {
+    *copy = NULL;
+    if (!(mode & (FMOD_CREATESTREAM | FMOD_OPENONLY))) return (const char*)data;
+    *copy = malloc((size_t)len);
+    if (*copy) memcpy(*copy, data, (size_t)len);
+    return (const char*)*copy;
+}
+
+/* Creates the sound from a memory image and gives it a handle. The image
+ * copy, when there is one, goes on the slot or back to the heap. */
+static int hlaxe_create_from_image(const vbyte* data, int len, FMOD_MODE mode, FMOD_CREATESOUNDEXINFO* exinfo) {
+    FMOD_SOUND* sound = NULL;
+    void* copy;
+    const char* image;
+    int handle;
+    /* A NONBLOCKING open reads the image from FMOD's loader thread after
+     * the return. The open happens in the call instead. */
+    mode = (mode & ~(FMOD_MODE)(FMOD_OPENMEMORY_POINT | FMOD_NONBLOCKING)) | FMOD_OPENMEMORY;
+    image = hlaxe_memory_image(data, len, mode, &copy);
+    if (!image) { gLastResult = FMOD_ERR_MEMORY; return 0; }
+    gLastResult = FMOD_System_CreateSound(gCoreSystem, image, mode, exinfo, &sound);
+    if (gLastResult != FMOD_OK || !sound) {
+        free(copy);
+        return 0;
+    }
+    handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
+    if (handle == 0) {
+        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
+        FMOD_Sound_Release(sound);
+        free(copy);
+        return 0;
+    }
+    if (copy) faxe_handle_set_image(handle, copy);
+    return handle;
+}
+
+// An encoded file image (wav, ogg, mp3, fsb) already in memory. The
+// buffer is free once this returns, in every mode.
 HL_PRIM int HL_NAME(core_create_sound_memory)(vbyte* data, int len, int mode) {
     FMOD_CREATESOUNDEXINFO exinfo;
-    FMOD_SOUND* sound = NULL;
-    int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     memset(&exinfo, 0, sizeof(exinfo));
     exinfo.cbsize = sizeof(exinfo);
     exinfo.length = (unsigned int)len;
-    gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)data,
-        ((FMOD_MODE)mode & ~(FMOD_MODE)(FMOD_OPENMEMORY_POINT | FMOD_NONBLOCKING)) | FMOD_OPENMEMORY, &exinfo, &sound);
-    if (gLastResult != FMOD_OK || !sound) return 0;
-    handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
-    if (handle == 0) {
-        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
-        FMOD_Sound_Release(sound);
-        return 0;
-    }
-    return handle;
+    return hlaxe_create_from_image(data, len, (FMOD_MODE)mode, &exinfo);
 }
 DEFINE_PRIM(_I32, core_create_sound_memory, _BYTES _I32 _I32);
 
@@ -618,6 +645,10 @@ static int hlaxe_fill_exinfo(FMOD_CREATESOUNDEXINFO* exinfo, const int* ints, co
     return 1;
 }
 
+/* The GUID FMOD wrote into exinfo.fsbguid during the last create with
+ * exinfo that passed one, braced. Empty after any other create. */
+static char gFsbGuidOut[40];
+
 // Sound.create with a full FMOD_CREATESOUNDEXINFO. ints is the Scratch
 // int buffer packed by the Haxe side, the strings are empty when unset.
 HL_PRIM int HL_NAME(core_create_sound_ex)(vbyte* path, int mode, vbyte* ints, vbyte* dls, vbyte* key, vbyte* guidText) {
@@ -626,6 +657,7 @@ HL_PRIM int HL_NAME(core_create_sound_ex)(vbyte* path, int mode, vbyte* ints, vb
     FMOD_GUID guid;
     FMOD_MODE openMode = (FMOD_MODE)mode;
     int handle;
+    gFsbGuidOut[0] = '\0';
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     if (!path || !ints) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     if (!hlaxe_fill_exinfo(&exinfo, (const int*)ints, (const char*)dls, (const char*)key, (const char*)guidText, &guid)) {
@@ -644,6 +676,7 @@ HL_PRIM int HL_NAME(core_create_sound_ex)(vbyte* path, int mode, vbyte* ints, vb
         FMOD_Sound_Release(sound);
         return 0;
     }
+    if (exinfo.fsbguid) faxe_guid_format(&guid, gFsbGuidOut, sizeof(gFsbGuidOut));
     return handle;
 }
 DEFINE_PRIM(_I32, core_create_sound_ex, _BYTES _I32 _BYTES _BYTES _BYTES _BYTES);
@@ -651,10 +684,10 @@ DEFINE_PRIM(_I32, core_create_sound_ex, _BYTES _I32 _BYTES _BYTES _BYTES _BYTES)
 // Sound.fromMemory with a full FMOD_CREATESOUNDEXINFO. len is the byte
 // count and overrides the packed length slot.
 HL_PRIM int HL_NAME(core_create_sound_memory_ex)(vbyte* data, int len, int mode, vbyte* ints, vbyte* dls, vbyte* key, vbyte* guidText) {
-    FMOD_SOUND* sound = NULL;
     FMOD_CREATESOUNDEXINFO exinfo;
     FMOD_GUID guid;
     int handle;
+    gFsbGuidOut[0] = '\0';
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     if (!data || len <= 0 || !ints) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     if (!hlaxe_fill_exinfo(&exinfo, (const int*)ints, (const char*)dls, (const char*)key, (const char*)guidText, &guid)) {
@@ -662,18 +695,18 @@ HL_PRIM int HL_NAME(core_create_sound_memory_ex)(vbyte* data, int len, int mode,
         return 0;
     }
     exinfo.length = (unsigned int)len;
-    gLastResult = FMOD_System_CreateSound(gCoreSystem, (const char*)data,
-        ((FMOD_MODE)mode & ~(FMOD_MODE)(FMOD_OPENMEMORY_POINT | FMOD_NONBLOCKING)) | FMOD_OPENMEMORY, &exinfo, &sound);
-    if (gLastResult != FMOD_OK || !sound) return 0;
-    handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
-    if (handle == 0) {
-        gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
-        FMOD_Sound_Release(sound);
-        return 0;
-    }
+    handle = hlaxe_create_from_image(data, len, (FMOD_MODE)mode, &exinfo);
+    if (handle && exinfo.fsbguid) faxe_guid_format(&guid, gFsbGuidOut, sizeof(gFsbGuidOut));
     return handle;
 }
 DEFINE_PRIM(_I32, core_create_sound_memory_ex, _BYTES _I32 _I32 _BYTES _BYTES _BYTES _BYTES);
+
+// The GUID FMOD wrote back during the last create with exinfo, empty
+// when that create failed or passed no GUID.
+HL_PRIM vbyte* HL_NAME(core_last_fsb_guid)() {
+    return (vbyte*)gFsbGuidOut;
+}
+DEFINE_PRIM(_BYTES, core_last_fsb_guid, _NO_ARG);
 
 // The open Sound::lock range parked on a sound handle. FMOD returns two
 // pointers because the range can wrap around the end of the sample
@@ -707,6 +740,10 @@ static int collect_subsound_handles(FMOD_SOUND* parent, int* out, int cap) {
         int inTree = 0;
         if (!gFaxeSlots[i].alive || gFaxeSlots[i].type != FAXE_TYPE_SOUND) continue;
         if (gFaxeSlots[i].ptr == (void*)parent) continue;
+        /* A sound the library owns, or one borrowed from an event or a
+         * channel, can be gone already, so FMOD is never asked about it.
+         * The release frees the borrowed ones below. */
+        if (gFaxeSlots[i].owned) continue;
         /* The walk climbs the parent chain, so a subsound of a subsound
          * goes with the tree too */
         up = (FMOD_SOUND*)gFaxeSlots[i].ptr;
@@ -754,6 +791,7 @@ HL_PRIM int HL_NAME(core_release_sound)(int h) {
         if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
             for (i = 0; i < n; i++) faxe_handle_free(subs[i]);
             faxe_handle_free(h);
+            faxe_handles_free_volatile();
         }
         free(subs);
     }
@@ -943,6 +981,9 @@ HL_PRIM int HL_NAME(core_pcm_release)(int h) {
      * Clearing the user data first makes any straggling pcmread fall to
      * its silence path instead of touching the ring. */
     FMOD_Sound_SetUserData(ps->sound, NULL);
+    /* A handle a channel lookup minted for the stream's sound dies here,
+     * so it never names the freed sound */
+    faxe_handles_free_ptr(ps->sound, FAXE_TYPE_SOUND);
     gLastResult = FMOD_Sound_Release(ps->sound);
     /* INVALID_HANDLE means FMOD freed the sound already, so the stream
      * goes with the slot. Any other refusal keeps the stream alive, and
@@ -954,6 +995,7 @@ HL_PRIM int HL_NAME(core_pcm_release)(int h) {
     faxe_pcmring_destroy(ps->ring);
     free(ps);
     faxe_handle_free(h);
+    faxe_handles_free_volatile();
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, core_pcm_release, _I32);
@@ -1052,26 +1094,78 @@ static int hlaxe_handle_or_memory(void* ptr, unsigned char type) {
     return handle;
 }
 
-/* Defined with the lookup sweeps below, needed by the group mint */
-static int hlaxe_lookup_slot_valid(void* ptr, unsigned char type);
+/* The handle for an object the game reached through another handle. An
+ * object the table knows keeps its handle, so a group, sound, or DSP the
+ * game created stays releasable. A new one is owned, so its release is
+ * refused, and dies with owner. A volatile one also dies wherever FMOD
+ * can destroy objects (faxe_handles_free_volatile). Owner 0 makes a
+ * volatile handle with nothing above it. */
+static int hlaxe_mint_borrowed(void* ptr, unsigned char type, int owner, int isVolatile) {
+    int handle = faxe_handle_find(ptr, type);
+    if (handle) return handle;
+    handle = hlaxe_handle_or_memory(ptr, type);
+    if (!handle) return 0;
+    faxe_handle_set_owned(handle, 1);
+    if (owner || isVolatile) faxe_handle_set_owner(handle, owner);
+    if (isVolatile) faxe_handle_set_volatile(handle);
+    return handle;
+}
 
-/* A group the game did not create is owned: the master, a bus's, an
- * instance's, or one first reached through a walk. Its release is
- * refused. A group the game created stays releasable through a walk,
- * since its slot is found rather than minted here. */
-static int hlaxe_mint_walked_group(void* ptr, unsigned char type) {
-    int found = faxe_handle_find(ptr, type);
-    int handle;
-    /* A dead group slot at a recycled address is no match. A sound group
-     * has no validator, so its slot stands. */
-    if (found && type == FAXE_TYPE_CHANGROUP && !hlaxe_lookup_slot_valid(ptr, type)) {
-        faxe_handle_free(found);
-        found = 0;
+/* The handle of the group an owner holds for its whole life: a bus's or
+ * an instance's. A handle anchored to another bus or instance names a
+ * group that died at this address, so it goes. One a walk minted first
+ * moves under owner, which bounds its life better. */
+static int hlaxe_mint_anchored(void* group, int owner) {
+    int found = faxe_handle_find(group, FAXE_TYPE_CHANGROUP);
+    if (found && gFaxeSlots[found & 0xFFFF].owned) {
+        int parent = faxe_handle_get_parent(found);
+        unsigned char parentType = faxe_handle_get_type(parent);
+        if (parent != owner && (parentType == FAXE_TYPE_EVI || parentType == FAXE_TYPE_BUS)) {
+            faxe_handle_free(found);
+            found = 0;
+        } else if (parent != owner || faxe_handle_get_borrowed(found) != FAXE_BORROWED_LINKED) {
+            faxe_handle_clear_owner(found);
+            faxe_handle_set_owner(found, owner);
+        }
     }
     if (found) return found;
-    handle = hlaxe_handle_or_memory(ptr, type);
-    if (handle) faxe_handle_set_owned(handle, 1);
+    found = hlaxe_handle_or_memory(group, FAXE_TYPE_CHANGROUP);
+    if (!found) return 0;
+    faxe_handle_set_owned(found, 1);
+    faxe_handle_set_owner(found, owner);
+    return found;
+}
+
+/* The handle of an object that lives as long as the system: the master
+ * channel group and the master sound group. It is owned and never
+ * borrowed, even when a walk reached it first. */
+static int hlaxe_mint_fixed(void* ptr, unsigned char type) {
+    int handle = faxe_handle_find(ptr, type);
+    if (!handle) {
+        handle = hlaxe_handle_or_memory(ptr, type);
+        if (!handle) return 0;
+    }
+    faxe_handle_clear_owner(handle);
+    faxe_handle_set_owned(handle, 1);
     return handle;
+}
+
+/* The handle of a group a walk reached. The master group lives as long
+ * as the system, so a walk that reaches it gets its fixed handle. */
+static int hlaxe_mint_walked_group(void* group, int from, int isVolatile) {
+    FMOD_CHANNELGROUP* master = NULL;
+    if (gCoreSystem && FMOD_System_GetMasterChannelGroup(gCoreSystem, &master) == FMOD_OK && master == group) {
+        return hlaxe_mint_fixed(group, FAXE_TYPE_CHANGROUP);
+    }
+    return hlaxe_mint_borrowed(group, FAXE_TYPE_CHANGROUP, from, isVolatile);
+}
+
+/* Whether a group walked from this handle can die unseen. Groups under
+ * an instance die with it. Anything reached from a bus, the master, or a
+ * group the game made can belong to an instance that dies on its own. */
+static int hlaxe_walk_is_volatile(int from) {
+    return faxe_handle_get_borrowed(from) == FAXE_BORROWED_VOLATILE
+        || faxe_handle_get_type(faxe_handle_root(from)) != FAXE_TYPE_EVI;
 }
 
 static FMOD_DSP* resolve_dsp(int h) {
@@ -1118,6 +1212,7 @@ HL_PRIM int HL_NAME(dsp_release)(int h) {
         faxe_handle_free(h);
         // Releasing a DSP tears down its connections
         faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+        faxe_handles_free_volatile();
     }
     return (int)gLastResult;
 }
@@ -1290,7 +1385,7 @@ HL_PRIM int HL_NAME(cg_get_master)() {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_GetMasterChannelGroup(gCoreSystem, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return hlaxe_mint_walked_group(group, FAXE_TYPE_CHANGROUP);
+    return hlaxe_mint_fixed(group, FAXE_TYPE_CHANGROUP);
 }
 DEFINE_PRIM(_I32, cg_get_master, _NO_ARG);
 
@@ -1298,11 +1393,11 @@ HL_PRIM int HL_NAME(cg_create)(vbyte* name) {
     FMOD_CHANNELGROUP* group = NULL;
     int handle;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
-    /* A group FMOD destroyed can hold a slot at the address the new one
-     * gets, so the dead slots go before the mint */
-    faxe_handles_sweep_type(FAXE_TYPE_CHANGROUP, hlaxe_lookup_slot_valid, NULL);
     gLastResult = FMOD_System_CreateChannelGroup(gCoreSystem, (const char*)name, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
+    /* A handle for a group FMOD destroyed can still name this address
+     * until its owner goes. It is stale, so it goes first. */
+    faxe_handles_free_ptr(group, FAXE_TYPE_CHANGROUP);
     handle = faxe_handle_alloc(group, FAXE_TYPE_CHANGROUP);
     if (handle == 0) {
         gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
@@ -1337,6 +1432,7 @@ HL_PRIM int HL_NAME(cg_release)(int h) {
         faxe_handle_free(h);
         /* Releasing the group destroys the connections of every DSP in it */
         faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+        faxe_handles_free_volatile();
     } else if (userData) {
         /* A refused release keeps the callback the game installed */
         FMOD_ChannelGroup_SetUserData(group, userData);
@@ -1573,6 +1669,7 @@ HL_PRIM int HL_NAME(bus_unlock_channel_group)(int h) {
     FMOD_STUDIO_BUS* bus = (FMOD_STUDIO_BUS*)faxe_handle_resolve(h, FAXE_TYPE_BUS);
     FMOD_CHANNELGROUP* group = NULL;
     void* userData = NULL;
+    FMOD_RESULT result;
     if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     /* The unlock can destroy the group, so the shim callback comes off
      * first. A group that survives the unlock gets it back. */
@@ -1582,16 +1679,23 @@ HL_PRIM int HL_NAME(bus_unlock_channel_group)(int h) {
         FMOD_ChannelGroup_SetCallback(group, NULL);
         FMOD_ChannelGroup_SetUserData(group, NULL);
     }
-    gLastResult = FMOD_Studio_Bus_UnlockChannelGroup(bus);
-    /* The group can be destroyed once unlocked: reclaim its cached handle
-     * before a recycled address can alias it */
-    if (gLastResult == FMOD_OK) hlaxe_reclaim_dead_lookups();
-    /* The handle in the user data still resolves to a group that survived
-     * the unlock. A new group at a recycled address never answers for it. */
-    if (userData && faxe_handle_resolve((int)(intptr_t)userData, FAXE_TYPE_CHANGROUP) == (void*)group) {
-        FMOD_ChannelGroup_SetUserData(group, userData);
-        FMOD_ChannelGroup_SetCallback(group, hlaxe_channel_callback);
+    result = FMOD_Studio_Bus_UnlockChannelGroup(bus);
+    if (result == FMOD_OK) hlaxe_reclaim_dead_lookups();
+    /* The bus says whether its group survived the unlock. A destroyed
+     * group's handles go before a recycled address can alias them, and
+     * a surviving group gets its callback back. */
+    if (group) {
+        FMOD_CHANNELGROUP* now = NULL;
+        int survived = result != FMOD_OK
+            || (FMOD_Studio_Bus_GetChannelGroup(bus, &now) == FMOD_OK && now == group);
+        if (!survived) {
+            faxe_handles_free_ptr(group, FAXE_TYPE_CHANGROUP);
+        } else if (userData && faxe_handle_resolve((int)(intptr_t)userData, FAXE_TYPE_CHANGROUP) == (void*)group) {
+            FMOD_ChannelGroup_SetUserData(group, userData);
+            FMOD_ChannelGroup_SetCallback(group, hlaxe_channel_callback);
+        }
     }
+    gLastResult = result;
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, bus_unlock_channel_group, _I32);
@@ -1602,7 +1706,7 @@ HL_PRIM int HL_NAME(bus_get_channel_group)(int h) {
     if (!bus) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_Bus_GetChannelGroup(bus, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return hlaxe_mint_walked_group(group, FAXE_TYPE_CHANGROUP);
+    return hlaxe_mint_anchored(group, h);
 }
 DEFINE_PRIM(_I32, bus_get_channel_group, _I32);
 
@@ -1745,7 +1849,8 @@ HL_PRIM int HL_NAME(dsp_get_input_dsp)(int h, int index) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetInput(dsp, index, &input, &conn);
     if (gLastResult != FMOD_OK || !input) return 0;
-    return hlaxe_handle_or_memory(input, FAXE_TYPE_DSP);
+    /* A neighbour in the graph belongs to nobody the walk knows */
+    return hlaxe_mint_borrowed(input, FAXE_TYPE_DSP, h, 1);
 }
 DEFINE_PRIM(_I32, dsp_get_input_dsp, _I32 _I32);
 
@@ -1815,7 +1920,7 @@ HL_PRIM int HL_NAME(cg_get_group)(int h, int index) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetGroup(group, index, &child);
     if (gLastResult != FMOD_OK || !child) return 0;
-    return hlaxe_mint_walked_group(child, FAXE_TYPE_CHANGROUP);
+    return hlaxe_mint_walked_group(child, h, hlaxe_walk_is_volatile(h));
 }
 DEFINE_PRIM(_I32, cg_get_group, _I32 _I32);
 
@@ -1825,7 +1930,7 @@ HL_PRIM int HL_NAME(cg_get_parent_group)(int h) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetParentGroup(group, &parent);
     if (gLastResult != FMOD_OK || !parent) return 0;
-    return hlaxe_mint_walked_group(parent, FAXE_TYPE_CHANGROUP);
+    return hlaxe_mint_walked_group(parent, h, hlaxe_walk_is_volatile(h));
 }
 DEFINE_PRIM(_I32, cg_get_parent_group, _I32);
 
@@ -2664,7 +2769,7 @@ HL_PRIM int HL_NAME(sys_get_master_sound_group)() {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     gLastResult = FMOD_System_GetMasterSoundGroup(gCoreSystem, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return hlaxe_mint_walked_group(group, FAXE_TYPE_SOUNDGROUP);
+    return hlaxe_mint_fixed(group, FAXE_TYPE_SOUNDGROUP);
 }
 DEFINE_PRIM(_I32, sys_get_master_sound_group, _NO_ARG);
 
@@ -2977,25 +3082,17 @@ HL_PRIM int HL_NAME(evi_get_channel_group)(int h) {
     FMOD_CHANNELGROUP* group = NULL;
     FaxeInstCtx* ctx;
     int cgHandle;
-    int found;
     if (!instance) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Studio_EventInstance_GetChannelGroup(instance, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
     ctx = instance_ctx(instance);
     /* Another instance's dead group can sit at this address until its
-     * context drains. The validity sweep frees such a slot and keeps a
-     * live one the game reached through a group walk, with its rolloff.
-     * The sweep runs only when a foreign slot holds the address. */
-    found = faxe_handle_find(group, FAXE_TYPE_CHANGROUP);
-    if (found != 0 && (!ctx || found != ctx->cgHandle)) {
-        faxe_handles_sweep_type(FAXE_TYPE_CHANGROUP, hlaxe_lookup_slot_valid, NULL);
-    }
-    cgHandle = hlaxe_mint_walked_group(group, FAXE_TYPE_CHANGROUP);
-    /* The group dies with the instance, outside every sweep trigger. Record
-     * the handle on the context so the DESTROYED drain reclaims the slot
-     * before a recycled group address can alias it. A restarted instance
-     * gets a new group, so a differing previous handle is dead: reclaim it
-     * here for the same reason. */
+     * context drains. The anchored mint drops that handle. */
+    cgHandle = hlaxe_mint_anchored(group, h);
+    /* The handle dies with the instance handle. The context records it
+     * too, so the DESTROYED drain reclaims it after a release minted a
+     * fresh instance handle. A restarted instance can get a new group, so
+     * a differing previous handle is dead and goes here. */
     if (ctx) {
         if (ctx->cgHandle != 0 && ctx->cgHandle != cgHandle) {
             faxe_handle_free(ctx->cgHandle);
@@ -3164,15 +3261,16 @@ HL_PRIM bool HL_NAME(chan_get_volume_ramp)(int h) {
 }
 DEFINE_PRIM(_BOOL, chan_get_volume_ramp, _I32);
 
-// The returned handle is a borrowed reference: do not release a sound
-// obtained this way
+// A sound the table knows keeps its handle. Any other one (an event's
+// sound, a PcmStream's) gets a borrowed handle that refuses release and
+// dies with the channel or with the next call that can destroy sounds.
 HL_PRIM int HL_NAME(chan_get_current_sound)(int h) {
     FMOD_CHANNEL* channel = resolve_channel(h);
     FMOD_SOUND* sound = NULL;
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Channel_GetCurrentSound(channel, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
-    return hlaxe_handle_or_memory(sound, FAXE_TYPE_SOUND);
+    return hlaxe_mint_borrowed(sound, FAXE_TYPE_SOUND, h, 1);
 }
 DEFINE_PRIM(_I32, chan_get_current_sound, _I32);
 
@@ -3247,7 +3345,7 @@ HL_PRIM int HL_NAME(chan_get_dsp)(int h, int index) {
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Channel_GetDSP(channel, index, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return hlaxe_handle_or_memory(dsp, FAXE_TYPE_DSP);
+    return hlaxe_mint_borrowed(dsp, FAXE_TYPE_DSP, h, 0);
 }
 DEFINE_PRIM(_I32, chan_get_dsp, _I32 _I32);
 
@@ -3269,7 +3367,7 @@ HL_PRIM int HL_NAME(sound_get_sound_group)(int h) {
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Sound_GetSoundGroup(sound, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return hlaxe_mint_walked_group(group, FAXE_TYPE_SOUNDGROUP);
+    return hlaxe_mint_borrowed(group, FAXE_TYPE_SOUNDGROUP, 0, 0);
 }
 DEFINE_PRIM(_I32, sound_get_sound_group, _I32);
 
@@ -3381,7 +3479,7 @@ HL_PRIM int HL_NAME(dsp_get_output_dsp)(int h, int index) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetOutput(dsp, index, &output, &conn);
     if (gLastResult != FMOD_OK || !output) return 0;
-    return hlaxe_handle_or_memory(output, FAXE_TYPE_DSP);
+    return hlaxe_mint_borrowed(output, FAXE_TYPE_DSP, h, 1);
 }
 DEFINE_PRIM(_I32, dsp_get_output_dsp, _I32 _I32);
 
@@ -3402,7 +3500,7 @@ HL_PRIM int HL_NAME(dspconn_get_input_dsp)(int h) {
     if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSPConnection_GetInput(conn, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return hlaxe_handle_or_memory(dsp, FAXE_TYPE_DSP);
+    return hlaxe_mint_borrowed(dsp, FAXE_TYPE_DSP, h, 1);
 }
 DEFINE_PRIM(_I32, dspconn_get_input_dsp, _I32);
 
@@ -3412,7 +3510,7 @@ HL_PRIM int HL_NAME(dspconn_get_output_dsp)(int h) {
     if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSPConnection_GetOutput(conn, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return hlaxe_handle_or_memory(dsp, FAXE_TYPE_DSP);
+    return hlaxe_mint_borrowed(dsp, FAXE_TYPE_DSP, h, 1);
 }
 DEFINE_PRIM(_I32, dspconn_get_output_dsp, _I32);
 
@@ -3816,6 +3914,9 @@ static void free_destroyed_ctx(FaxeInstCtx* ctx) {
         ctx->pluginDsps[i] = NULL;
         ctx->pluginHandles[i] = 0;
     }
+    /* The instance took its sounds, groups, and DSPs along. A volatile
+     * handle can name any of them. */
+    faxe_handles_free_volatile();
     faxe_instctx_destroy(ctx);
 }
 
@@ -4556,13 +4657,7 @@ static int hlaxe_lookup_slot_valid(void* ptr, unsigned char type) {
         case FAXE_TYPE_VCA: return FMOD_Studio_VCA_IsValid((FMOD_STUDIO_VCA*)ptr) ? 1 : 0;
         case FAXE_TYPE_EVD: return FMOD_Studio_EventDescription_IsValid((FMOD_STUDIO_EVENTDESCRIPTION*)ptr) ? 1 : 0;
         case FAXE_TYPE_BANK: return FMOD_Studio_Bank_IsValid((FMOD_STUDIO_BANK*)ptr) ? 1 : 0;
-        case FAXE_TYPE_CHANGROUP: {
-            // Core objects are handle-validated inside FMOD: a call on a
-            // destroyed group reports FMOD_ERR_INVALID_HANDLE safely
-            float volume = 0.0f;
-            return FMOD_ChannelGroup_GetVolume((FMOD_CHANNELGROUP*)ptr, &volume)
-                != FMOD_ERR_INVALID_HANDLE ? 1 : 0;
-        }
+        case FAXE_TYPE_EVI: return FMOD_Studio_EventInstance_IsValid((FMOD_STUDIO_EVENTINSTANCE*)ptr) ? 1 : 0;
         default: return 1;
     }
 }
@@ -4596,6 +4691,10 @@ static void hlaxe_reclaim_dead_lookups(void) {
     // objects observable to IsValid before the sweep.
     if (gStudioSystem) FMOD_Studio_System_FlushCommands(gStudioSystem);
     faxe_handles_sweep_lookups(hlaxe_lookup_slot_valid);
+    /* A destroyed instance's handle goes now rather than at its DESTROYED
+     * drain, and the groups and DSPs reached from it go along */
+    faxe_handles_sweep_type(FAXE_TYPE_EVI, hlaxe_lookup_slot_valid, NULL);
+    faxe_handles_free_volatile();
 }
 
 /* The group callbacks the game installed on instance groups, taken off
@@ -6675,7 +6774,7 @@ HL_PRIM int HL_NAME(chan_get_channel_group)(int h) {
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_Channel_GetChannelGroup(channel, &group);
     if (gLastResult != FMOD_OK || !group) return 0;
-    return hlaxe_mint_walked_group(group, FAXE_TYPE_CHANGROUP);
+    return hlaxe_mint_walked_group(group, h, 1);
 }
 DEFINE_PRIM(_I32, chan_get_channel_group, _I32);
 
@@ -6730,14 +6829,17 @@ HL_PRIM vbyte* HL_NAME(sg_get_name)(int h) {
 }
 DEFINE_PRIM(_BYTES, sg_get_name, _I32);
 
-// Borrowed reference, the group does not own the sound
+// The group does not own the sound, and nothing tells which handle
+// would. A sound the table knows keeps its handle. Any other one gets a
+// volatile borrowed handle that dies with the next call that can
+// destroy sounds.
 HL_PRIM int HL_NAME(sg_get_sound)(int h, int index) {
     FMOD_SOUNDGROUP* group = resolve_soundgroup(h);
     FMOD_SOUND* sound = NULL;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_SoundGroup_GetSound(group, index, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
-    return hlaxe_handle_or_memory(sound, FAXE_TYPE_SOUND);
+    return hlaxe_mint_borrowed(sound, FAXE_TYPE_SOUND, 0, 1);
 }
 DEFINE_PRIM(_I32, sg_get_sound, _I32 _I32);
 
@@ -7572,7 +7674,8 @@ HL_PRIM int HL_NAME(cg_get_dsp)(int h, int index) {
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetDSP(group, index, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
-    return hlaxe_handle_or_memory(dsp, FAXE_TYPE_DSP);
+    /* The chain lives as long as the group, a volatile group's included */
+    return hlaxe_mint_borrowed(dsp, FAXE_TYPE_DSP, h, faxe_handle_get_borrowed(h) == FAXE_BORROWED_VOLATILE);
 }
 DEFINE_PRIM(_I32, cg_get_dsp, _I32 _I32);
 

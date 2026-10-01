@@ -45,6 +45,8 @@ class TestDefineOverrides {
 		var explicit = FmodSettingsResolver.resolve({numChannels: 32, bankFolder: "explicit"});
 		assert(explicit.numChannels == 32, "explicit settings beat the channel define");
 		assert(explicit.bankFolder == "explicit", "explicit settings beat the folder define");
+		haxefmod.runtime.FmodRuntime.init({autoLoadBanks: []});
+		assert(!haxefmod.runtime.FmodRuntime.isMuteWhenUnfocused(), "init applies the resolved mute policy");
 		#elseif debug
 		// The -debug build with no haxefmod defines: liveUpdate defaults on
 		assert(resolved.liveUpdate == true, "debug builds default liveUpdate on");

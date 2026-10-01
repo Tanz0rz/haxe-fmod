@@ -186,7 +186,7 @@ class PanTestScenario implements TestScenario {
 
     /**
      * Runs the culling flow against a looping event with an explicit cull
-     * distance. The example bank has no authored 3D distances. The phases
+     * distance. The phases
      * cull when far, restart when near, and restart when culling is
      * disabled mid-cull. One-shots stay untouched.
      */

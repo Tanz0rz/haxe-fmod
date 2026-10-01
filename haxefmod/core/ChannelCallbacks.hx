@@ -89,6 +89,7 @@ class ChannelCallbacks {
 
     /** Drops the handler of every group whose handle no longer resolves. */
     public static function forgetDeadGroups():Void {
+        if (!groups.iterator().hasNext()) return;
         var dead = [for (handle in groups.keys()) if (!NativeStudio.debug_handle_is_live(handle)) handle];
         for (handle in dead) forgetGroup(handle);
     }

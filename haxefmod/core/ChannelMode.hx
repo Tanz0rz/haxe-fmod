@@ -42,11 +42,16 @@ class ChannelMode {
     public static inline var LOWMEM:Int = 0x08000000;
     public static inline var VIRTUAL_PLAYFROMSTART:Int = 0x80000000;
 
-    /** Aliases for the 3D flags with the older haxefmod spelling, the same bits. */
+    @:deprecated("ChannelMode.HEAD_RELATIVE_3D is now MODE_3D_HEADRELATIVE")
     public static inline var HEAD_RELATIVE_3D:Int = MODE_3D_HEADRELATIVE;
+    @:deprecated("ChannelMode.WORLD_RELATIVE_3D is now MODE_3D_WORLDRELATIVE")
     public static inline var WORLD_RELATIVE_3D:Int = MODE_3D_WORLDRELATIVE;
+    @:deprecated("ChannelMode.INVERSE_ROLLOFF_3D is now MODE_3D_INVERSEROLLOFF")
     public static inline var INVERSE_ROLLOFF_3D:Int = MODE_3D_INVERSEROLLOFF;
+    @:deprecated("ChannelMode.LINEAR_ROLLOFF_3D is now MODE_3D_LINEARROLLOFF")
     public static inline var LINEAR_ROLLOFF_3D:Int = MODE_3D_LINEARROLLOFF;
+    @:deprecated("ChannelMode.LINEAR_SQUARE_ROLLOFF_3D is now MODE_3D_LINEARSQUAREROLLOFF")
     public static inline var LINEAR_SQUARE_ROLLOFF_3D:Int = MODE_3D_LINEARSQUAREROLLOFF;
+    @:deprecated("ChannelMode.INVERSE_TAPERED_ROLLOFF_3D is now MODE_3D_INVERSETAPEREDROLLOFF")
     public static inline var INVERSE_TAPERED_ROLLOFF_3D:Int = MODE_3D_INVERSETAPEREDROLLOFF;
 }

@@ -140,8 +140,11 @@ abstract ChannelGroup(Int) from Int to Int {
     }
 
     /**
-     * A nested child group by index (a known group returns its existing handle). Returns ChannelGroup.NULL on
-     * failure, with the reason in StudioSystem.lastResult().
+     * A nested child group by index. A known group returns its existing handle. Any other one gets a
+     * borrowed handle. Release refuses it, and it dies with this handle. A walk that starts at a bus, the
+     * master, or a group the game made can reach groups of instances that die on their own, so those
+     * handles also die whenever FMOD can destroy objects. Returns ChannelGroup.NULL on failure, with the
+     * reason in StudioSystem.lastResult().
      */
     public inline function getGroup(index:Int):ChannelGroup {
         return NativeStudio.cg_get_group(this, index);
@@ -149,8 +152,8 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * The group this one feeds. The master group has no parent, so it reports ChannelGroup.NULL with
-     * lastResult still FMOD_OK. Returns ChannelGroup.NULL on failure, with the reason in
-     * StudioSystem.lastResult().
+     * lastResult still FMOD_OK. A handle minted here is borrowed the way getGroup's is. Returns
+     * ChannelGroup.NULL on failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getParentGroup():ChannelGroup {
         return NativeStudio.cg_get_parent_group(this);
@@ -578,6 +581,8 @@ abstract ChannelGroup(Int) from Int to Int {
         if (UserData.releaseTookEffect(result)) {
             haxefmod.core.ChannelCallbacks.forgetGroup(this);
             UserData.clear(UserDataKind.ChannelGroup, this);
+            // The handles reached from this one died with it
+            haxefmod.studio.EventInstance.dropDeadGroups();
         }
         return result;
     }
@@ -641,7 +646,8 @@ abstract ChannelGroup(Int) from Int to Int {
     /**
      * The effect at chain position `index`. DSP_HEAD, DSP_FADER and DSP_TAIL work here too. DSP_HEAD is the
      * unit closest to the output, the one a group-wide send takes its input from. DSP_TAIL is closest to the
-     * input. A known DSP returns its existing handle. Returns Dsp.NULL when the index is out of range and on
+     * input. A known DSP returns its existing handle. Any other one gets a borrowed handle, which release
+     * refuses and which dies with this group handle. Returns Dsp.NULL when the index is out of range and on
      * any other failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getDsp(index:Int):Dsp {

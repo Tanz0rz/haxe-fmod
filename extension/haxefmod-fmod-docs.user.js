@@ -372,7 +372,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The group this channel is routed into (a known group returns its existing handle).",
+     "doc": "The group this channel is routed into.",
      "gated": false,
      "name": "getChannelGroup",
      "signature": "getChannelGroup():ChannelGroup",
@@ -388,7 +388,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The sound this channel plays (a borrowed reference: never release it).",
+     "doc": "The sound this channel plays.",
      "gated": false,
      "name": "getCurrentSound",
      "signature": "getCurrentSound():haxefmod.core.Sound",
@@ -420,7 +420,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The effect at chain position index (a known DSP returns its existing handle).",
+     "doc": "The effect at chain position index.",
      "gated": false,
      "name": "getDsp",
      "signature": "getDsp(index:Int):Dsp",
@@ -1772,7 +1772,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The group this channel is routed into (a known group returns its existing handle).",
+     "doc": "The group this channel is routed into.",
      "gated": false,
      "name": "getChannelGroup",
      "signature": "getChannelGroup():ChannelGroup",
@@ -1788,7 +1788,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The sound this channel plays (a borrowed reference: never release it).",
+     "doc": "The sound this channel plays.",
      "gated": false,
      "name": "getCurrentSound",
      "signature": "getCurrentSound():haxefmod.core.Sound",
@@ -1838,7 +1838,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": true,
-     "doc": "The effect at chain position index (a known DSP returns its existing handle).",
+     "doc": "The effect at chain position index.",
      "gated": false,
      "name": "getDsp",
      "signature": "getDsp(index:Int):Dsp",
@@ -1945,7 +1945,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "A nested child group by index (a known group returns its existing handle).",
+     "doc": "A nested child group by index.",
      "gated": false,
      "name": "getGroup",
      "signature": "getGroup(index:Int):ChannelGroup",
@@ -2359,7 +2359,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "ChannelControl::getSystemObject",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back."
+    "No Haxe declaration, another call plays this role. haxefmod has one core system. haxefmod.core.CoreSystem reaches it directly. No object needs to hand it back."
    ]
   },
   "channelcontrol_getuserdata": {
@@ -3715,7 +3715,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "A nested child group by index (a known group returns its existing handle).",
+     "doc": "A nested child group by index.",
      "gated": false,
      "name": "getGroup",
      "signature": "getGroup(index:Int):ChannelGroup",
@@ -4551,7 +4551,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Turns on FMOD debug logging at its most verbose level and traces every FmodManager operation.",
+     "doc": "Traces every FmodManager operation and sets FMOD's log level to its most verbose value.",
      "name": "EnableDebugMessages",
      "signature": "EnableDebugMessages():Void",
      "static": true,
@@ -4786,7 +4786,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The DSP feeding input slot index (a known DSP returns its existing handle).",
+     "doc": "The DSP feeding input slot index.",
      "gated": false,
      "name": "getInput",
      "signature": "getInput(index:Int):Dsp",
@@ -4918,7 +4918,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The DSP fed by output slot index (a known DSP returns its existing handle).",
+     "doc": "The DSP fed by output slot index.",
      "gated": false,
      "name": "getOutput",
      "signature": "getOutput(index:Int):Dsp",
@@ -5111,7 +5111,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "DSP::getSystemObject",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back."
+    "No Haxe declaration, another call plays this role. haxefmod has one core system. haxefmod.core.CoreSystem reaches it directly. No object needs to hand it back."
    ]
   },
   "dsp_gettype": {
@@ -5232,7 +5232,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "DSP::setCallback",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering(), Dsp.getFftSpectrumInfo(), or Dsp.getParameterData() instead."
+    "Cannot be bound. FMOD runs the callback on its mixer thread. No Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering(), Dsp.getFftSpectrumInfo(), or Dsp.getParameterData() instead."
    ]
   },
   "dsp_setchannelformat": {
@@ -5441,7 +5441,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": false,
-     "doc": "The DSP feeding this connection (a known DSP returns its existing handle).",
+     "doc": "The DSP feeding this connection.",
      "gated": false,
      "name": "getInputDsp",
      "signature": "getInputDsp():Dsp",
@@ -5489,7 +5489,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": false,
-     "doc": "The DSP this connection feeds (a known DSP returns its existing handle).",
+     "doc": "The DSP this connection feeds.",
      "gated": false,
      "name": "getOutputDsp",
      "signature": "getOutputDsp():Dsp",
@@ -5585,7 +5585,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_close",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
    ]
   },
   "file_getdiskbusy": {
@@ -5610,7 +5610,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_open",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
    ]
   },
   "file_read": {
@@ -5619,7 +5619,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_read",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
    ]
   },
   "file_seek": {
@@ -5628,7 +5628,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_seek",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
    ]
   },
   "file_seek_1": {
@@ -5637,7 +5637,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "file_seek",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
+    "Cannot be bound. FMOD runs file callbacks on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths."
    ]
   },
   "file_setdiskbusy": {
@@ -5689,7 +5689,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "FSBank_Build",
    "html5": false,
    "notes": [
-    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks."
    ]
   },
   "fsbank_buildcancel": {
@@ -5698,7 +5698,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "FSBank_BuildCancel",
    "html5": false,
    "notes": [
-    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks."
    ]
   },
   "fsbank_fetchfsbmemory": {
@@ -5707,7 +5707,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "FSBank_FetchFSBMemory",
    "html5": false,
    "notes": [
-    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks."
    ]
   },
   "fsbank_fetchnextprogressitem": {
@@ -5716,7 +5716,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "FSBank_FetchNextProgressItem",
    "html5": false,
    "notes": [
-    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks."
    ]
   },
   "fsbank_init": {
@@ -5725,7 +5725,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "FSBank_Init",
    "html5": false,
    "notes": [
-    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks."
    ]
   },
   "fsbank_memorygetstats": {
@@ -5734,7 +5734,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "FSBank_MemoryGetStats",
    "html5": false,
    "notes": [
-    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks."
    ]
   },
   "fsbank_memoryinit": {
@@ -5743,7 +5743,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "FSBank_MemoryInit",
    "html5": false,
    "notes": [
-    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks."
    ]
   },
   "fsbank_release": {
@@ -5752,7 +5752,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "FSBank_Release",
    "html5": false,
    "notes": [
-    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks."
    ]
   },
   "fsbank_releaseprogressitem": {
@@ -5761,7 +5761,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "FSBank_ReleaseProgressItem",
    "html5": false,
    "notes": [
-    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio."
+    "Cannot be bound. FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks."
    ]
   },
   "geometry_addpolygon": {
@@ -6090,7 +6090,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "getValue",
    "html5": false,
    "notes": [
-    "Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly."
+    "Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods. Getters return values directly."
    ]
   },
   "memory_free": {
@@ -6099,7 +6099,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Memory_Free",
    "html5": false,
    "notes": [
-    "Cannot be bound. It frees a raw pointer from FMOD's heap. Haxe code never receives one, so there is nothing to free. Release handles with the release() method of the object that created them."
+    "Cannot be bound. It frees a raw pointer from FMOD's heap. Haxe code never receives one. Release handles with the release() method of the object that created them."
    ]
   },
   "memory_getstats": {
@@ -6148,7 +6148,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "ReadFile",
    "html5": false,
    "notes": [
-    "Cannot be bound. It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and Sound.fromPcm() plays raw PCM you already hold."
+    "Cannot be bound. It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold. Sound.fromPcm() plays raw PCM you already hold."
    ]
   },
   "reverb3d_get3dattributes": {
@@ -6301,7 +6301,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "setValue",
    "html5": false,
    "notes": [
-    "Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly."
+    "Cannot be bound. This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods. Getters return values directly."
    ]
   },
   "sound_addsyncpoint": {
@@ -6739,7 +6739,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Sound::getSystemObject",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back."
+    "No Haxe declaration, another call plays this role. haxefmod has one core system. haxefmod.core.CoreSystem reaches it directly. No object needs to hand it back."
    ]
   },
   "sound_gettag": {
@@ -7177,7 +7177,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "The sound at position index in this group (a known sound returns its existing handle).",
+     "doc": "The sound at position index in this group.",
      "gated": false,
      "name": "getSound",
      "signature": "getSound(index:Int):haxefmod.core.Sound",
@@ -7193,7 +7193,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "SoundGroup::getSystemObject",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back."
+    "No Haxe declaration, another call plays this role. haxefmod has one core system. haxefmod.core.CoreSystem reaches it directly. No object needs to hand it back."
    ]
   },
   "soundgroup_getuserdata": {
@@ -8061,7 +8061,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::CommandReplay::getSystem",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod has one Studio system, and StudioSystem reaches it directly. A replay never needs to hand it back."
+    "No Haxe declaration, another call plays this role. haxefmod has one Studio system. StudioSystem reaches it directly. A replay never needs to hand it back."
    ]
   },
   "studio_commandreplay_getuserdata": {
@@ -9019,7 +9019,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::EventInstance::getSystem",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod has one Studio system, and StudioSystem reaches it directly. An instance never needs to hand it back."
+    "No Haxe declaration, another call plays this role. haxefmod has one Studio system. StudioSystem reaches it directly. An instance never needs to hand it back."
    ]
   },
   "studio_eventinstance_gettimelineposition": {
@@ -9491,7 +9491,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::parseID",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. FmodGuid.fromString parses the braced text into a FmodGuid, and a plain String converts on its own."
+    "No Haxe declaration, another call plays this role. FmodGuid.fromString parses the braced text into a FmodGuid. A plain String converts on its own."
    ]
   },
   "studio_system_create": {
@@ -9804,7 +9804,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": true,
-     "doc": "System-wide CPU usage, or null on failure.",
+     "doc": "System-wide CPU usage as the Studio part and the Core part, or null on failure.",
      "gated": false,
      "name": "getCpuUsage",
      "signature": "getCpuUsage():Null<FmodSystemCpuUsage>",
@@ -10246,7 +10246,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::initialize",
    "html5": false,
    "notes": [
-    "No Haxe declaration, the library owns this choice. FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels, and studioflags come from liveUpdate and memoryTracking. The flags come from the core fields profiling and distanceFilter, and extradriverdata is never passed."
+    "No Haxe declaration, the library owns this choice. FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels. studioflags come from liveUpdate and memoryTracking. The flags come from the core fields profiling and distanceFilter. extradriverdata is never passed."
    ]
   },
   "studio_system_isvalid": {
@@ -10264,7 +10264,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::loadBankCustom",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD_STUDIO_BANK_INFO is declared as haxefmod.studio.Types.FmodStudioBankInfo (size, userData, userDataLength). The load itself needs the four file callbacks the struct carries. FMOD runs those on its streaming and loading threads, where no Haxe target can execute code. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
+    "Cannot be bound. FMOD_STUDIO_BANK_INFO is declared as haxefmod.studio.Types.FmodStudioBankInfo (size, userData, userDataLength). The load itself needs the four file callbacks the struct carries. FMOD runs those on its streaming and loading threads, where no Haxe target can execute code. StudioSystem.loadBankFile and loadBankMemory are the bank paths. Sound.create and Sound.fromPcm are the sound paths."
    ]
   },
   "studio_system_loadbankfile": {
@@ -10389,7 +10389,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "Studio::System::release",
    "html5": false,
    "notes": [
-    "No Haxe declaration, the library owns this choice. There is no shutdown call. FmodManager.Initialize() creates the system once, and FMOD is released when the process exits. Banks, instances, and handles need no teardown order at quit."
+    "No Haxe declaration, the library owns this choice. There is no shutdown call. FmodManager.Initialize() creates the system once. FMOD is released when the process exits. Banks, instances, and handles need no teardown order at quit."
    ]
   },
   "studio_system_resetbufferusage": {
@@ -10885,7 +10885,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::attachFileSystem",
    "html5": false,
    "notes": [
-    "Cannot be bound. A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
+    "Cannot be bound. A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths. Sound.create and Sound.fromPcm are the sound paths."
    ]
   },
   "system_close": {
@@ -10928,7 +10928,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::createDSP",
    "html5": false,
    "notes": [
-    "Cannot be bound. A DSP description is a struct of callbacks FMOD runs on its mixer thread. No Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type), and a unit from a loaded plugin with Dsp.createByPlugin(handle)."
+    "Cannot be bound. A DSP description is a struct of callbacks FMOD runs on its mixer thread. No Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type). A unit from a loaded plugin is created with Dsp.createByPlugin(handle)."
    ]
   },
   "system_createdspbyplugin": {
@@ -11087,7 +11087,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::createStream",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. Sound.create with the ChannelMode.CREATESTREAM mode streams from a file, and PcmStream.create streams sample data the game writes."
+    "No Haxe declaration, another call plays this role. Sound.create with the ChannelMode.CREATESTREAM mode streams from a file. PcmStream.create streams sample data the game writes."
    ]
   },
   "system_detachchannelgroupfromport": {
@@ -11194,7 +11194,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::getCPUUsage",
    "html5": false,
    "notes": [
-    "No Haxe declaration, another call plays this role. haxefmod covers this with StudioSystem.getCpuUsage(). It returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update percentage."
+    "No Haxe declaration, another call plays this role. haxefmod covers this with StudioSystem.getCpuUsage(). Its core field is this struct, next to the Studio usage in its studio field."
    ]
   },
   "system_getdefaultmixmatrix": {
@@ -11938,7 +11938,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerCodec",
    "html5": false,
    "notes": [
-    "Cannot be bound. A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
+    "Cannot be bound. A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin. The built-in DSP types are created with Dsp.create."
    ]
   },
   "system_registerdsp": {
@@ -11947,7 +11947,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerDSP",
    "html5": false,
    "notes": [
-    "Cannot be bound. A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
+    "Cannot be bound. A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin. The built-in DSP types are created with Dsp.create."
    ]
   },
   "system_registeroutput": {
@@ -11956,7 +11956,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::registerOutput",
    "html5": false,
    "notes": [
-    "Cannot be bound. A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create."
+    "Cannot be bound. A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin. The built-in DSP types are created with Dsp.create."
    ]
   },
   "system_release": {
@@ -11992,7 +11992,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::set3DRolloffCallback",
    "html5": false,
    "notes": [
-    "Cannot be bound. FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Channel.set3DCustomRolloff takes a curve of points instead, and the built-in rolloff modes are set through Channel.setMode and ChannelGroup.setMode."
+    "Cannot be bound. FMOD runs the callback on its mixer thread. No Haxe target can execute code there. Channel.set3DCustomRolloff takes a curve of points instead. The built-in rolloff modes are set through Channel.setMode and ChannelGroup.setMode."
    ]
   },
   "system_set3dsettings": {
@@ -12130,7 +12130,7 @@ const HAXEFMOD_BINDINGS = {
    "heading": "System::setFileSystem",
    "html5": false,
    "notes": [
-    "Cannot be bound. A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths."
+    "Cannot be bound. A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths. Sound.create and Sound.fromPcm are the sound paths."
    ]
   },
   "system_setgeometrysettings": {
@@ -12614,7 +12614,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_CPU_USAGE": {
-   "code": "package haxefmod.studio;\n\ntypedef FmodSystemCpuUsage = {\n    var studioUpdate:Float;\n    var dsp:Float;\n    var stream:Float;\n    var geometry:Float;\n    var update:Float;\n    var convolution1:Float;\n    var convolution2:Float;\n}",
+   "code": "package haxefmod.studio;\n\ntypedef FmodCoreCpuUsage = {\n    var dsp:Float;\n    var stream:Float;\n    var geometry:Float;\n    var update:Float;\n    var convolution1:Float;\n    var convolution2:Float;\n}",
    "member": null,
    "notes": [],
    "type": null,
@@ -12702,7 +12702,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_MODE": {
-   "code": "package haxefmod.core;\n\nclass ChannelMode {\n    public static inline var DEFAULT:Int = 0x00000000;\n    public static inline var LOOP_OFF:Int = 0x00000001;\n    public static inline var LOOP_NORMAL:Int = 0x00000002;\n    public static inline var LOOP_BIDI:Int = 0x00000004;\n    public static inline var MODE_2D:Int = 0x00000008;\n    public static inline var MODE_3D:Int = 0x00000010;\n    public static inline var CREATESTREAM:Int = 0x00000080;\n    public static inline var CREATESAMPLE:Int = 0x00000100;\n    public static inline var CREATECOMPRESSEDSAMPLE:Int = 0x00000200;\n    public static inline var OPENUSER:Int = 0x00000400;\n    public static inline var OPENMEMORY:Int = 0x00000800;\n    public static inline var OPENMEMORY_POINT:Int = 0x10000000;\n    public static inline var OPENRAW:Int = 0x00001000;\n    public static inline var OPENONLY:Int = 0x00002000;\n    public static inline var ACCURATETIME:Int = 0x00004000;\n    public static inline var MPEGSEARCH:Int = 0x00008000;\n    public static inline var NONBLOCKING:Int = 0x00010000;\n    public static inline var UNIQUE:Int = 0x00020000;\n    public static inline var MODE_3D_HEADRELATIVE:Int = 0x00040000;\n    public static inline var MODE_3D_WORLDRELATIVE:Int = 0x00080000;\n    public static inline var MODE_3D_INVERSEROLLOFF:Int = 0x00100000;\n    public static inline var MODE_3D_LINEARROLLOFF:Int = 0x00200000;\n    public static inline var MODE_3D_LINEARSQUAREROLLOFF:Int = 0x00400000;\n    public static inline var MODE_3D_INVERSETAPEREDROLLOFF:Int = 0x00800000;\n    public static inline var MODE_3D_CUSTOMROLLOFF:Int = 0x04000000;\n    public static inline var MODE_3D_IGNOREGEOMETRY:Int = 0x40000000;\n    public static inline var IGNORETAGS:Int = 0x02000000;\n    public static inline var LOWMEM:Int = 0x08000000;\n    public static inline var VIRTUAL_PLAYFROMSTART:Int = 0x80000000;\n    public static inline var HEAD_RELATIVE_3D:Int = MODE_3D_HEADRELATIVE;\n    public static inline var WORLD_RELATIVE_3D:Int = MODE_3D_WORLDRELATIVE;\n    public static inline var INVERSE_ROLLOFF_3D:Int = MODE_3D_INVERSEROLLOFF;\n    public static inline var LINEAR_ROLLOFF_3D:Int = MODE_3D_LINEARROLLOFF;\n    public static inline var LINEAR_SQUARE_ROLLOFF_3D:Int = MODE_3D_LINEARSQUAREROLLOFF;\n    public static inline var INVERSE_TAPERED_ROLLOFF_3D:Int = MODE_3D_INVERSETAPEREDROLLOFF;\n}",
+   "code": "package haxefmod.core;\n\nclass ChannelMode {\n    public static inline var DEFAULT:Int = 0x00000000;\n    public static inline var LOOP_OFF:Int = 0x00000001;\n    public static inline var LOOP_NORMAL:Int = 0x00000002;\n    public static inline var LOOP_BIDI:Int = 0x00000004;\n    public static inline var MODE_2D:Int = 0x00000008;\n    public static inline var MODE_3D:Int = 0x00000010;\n    public static inline var CREATESTREAM:Int = 0x00000080;\n    public static inline var CREATESAMPLE:Int = 0x00000100;\n    public static inline var CREATECOMPRESSEDSAMPLE:Int = 0x00000200;\n    public static inline var OPENUSER:Int = 0x00000400;\n    public static inline var OPENMEMORY:Int = 0x00000800;\n    public static inline var OPENMEMORY_POINT:Int = 0x10000000;\n    public static inline var OPENRAW:Int = 0x00001000;\n    public static inline var OPENONLY:Int = 0x00002000;\n    public static inline var ACCURATETIME:Int = 0x00004000;\n    public static inline var MPEGSEARCH:Int = 0x00008000;\n    public static inline var NONBLOCKING:Int = 0x00010000;\n    public static inline var UNIQUE:Int = 0x00020000;\n    public static inline var MODE_3D_HEADRELATIVE:Int = 0x00040000;\n    public static inline var MODE_3D_WORLDRELATIVE:Int = 0x00080000;\n    public static inline var MODE_3D_INVERSEROLLOFF:Int = 0x00100000;\n    public static inline var MODE_3D_LINEARROLLOFF:Int = 0x00200000;\n    public static inline var MODE_3D_LINEARSQUAREROLLOFF:Int = 0x00400000;\n    public static inline var MODE_3D_INVERSETAPEREDROLLOFF:Int = 0x00800000;\n    public static inline var MODE_3D_CUSTOMROLLOFF:Int = 0x04000000;\n    public static inline var MODE_3D_IGNOREGEOMETRY:Int = 0x40000000;\n    public static inline var IGNORETAGS:Int = 0x02000000;\n    public static inline var LOWMEM:Int = 0x08000000;\n    public static inline var VIRTUAL_PLAYFROMSTART:Int = 0x80000000;\n}",
    "member": null,
    "notes": [],
    "type": null,
@@ -15419,7 +15419,7 @@ const HAXEFMOD_EXAMPLES = {
    "verdict": "bound"
   },
   "FMOD_STUDIO_CPU_USAGE": {
-   "code": "package haxefmod.studio;\n\ntypedef FmodSystemCpuUsage = {\n    var studioUpdate:Float;\n    var dsp:Float;\n    var stream:Float;\n    var geometry:Float;\n    var update:Float;\n    var convolution1:Float;\n    var convolution2:Float;\n}",
+   "code": "package haxefmod.studio;\n\ntypedef FmodStudioCpuUsage = {\n    var update:Float;\n}",
    "member": null,
    "notes": [],
    "type": null,

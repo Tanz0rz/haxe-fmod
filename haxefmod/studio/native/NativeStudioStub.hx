@@ -11,6 +11,7 @@ package haxefmod.studio.native;
 class NativeStudioStub {
     static inline var ERR_UNSUPPORTED = 68;
     static inline var ERR_INVALID_PARAM = 31;
+    static inline var ERR_INVALID_HANDLE = 30;
 
     // Test hooks: unit tests set these to simulate specific backend
     // behavior that the uniform no-op defaults cannot express. The
@@ -69,12 +70,18 @@ class NativeStudioStub {
     public static function sys_get_parameter_label(parameterName:String, labelIndex:Int):String return "";
     public static function sys_get_num_listeners():Int return 0;
     public static function sys_set_num_listeners(count:Int):Int return ERR_UNSUPPORTED;
-    public static function sys_get_listener_attributes(index:Int):Int return ERR_UNSUPPORTED;
+    // A test sets the listener position the cull check reads back
+    public static var testListenerPosition:Array<Float> = null;
+    public static function sys_get_listener_attributes(index:Int):Int {
+        if (testListenerPosition == null) return ERR_UNSUPPORTED;
+        for (i in 0...15) haxefmod.studio.native.Scratch.writeF(i, i < testListenerPosition.length ? testListenerPosition[i] : 0);
+        return 0;
+    }
     /** Every listener position push while testRecordListenerPushes is on, for the unit tests. */
-    public static var testListenerPushes:Array<{index:Int, x:Float, y:Float}> = [];
+    public static var testListenerPushes:Array<{index:Int, x:Float, y:Float, vx:Float, vy:Float}> = [];
     public static var testRecordListenerPushes:Bool = false;
     public static function sys_set_listener_attributes(index:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float, hasAttenuation:Bool, ax:Float, ay:Float, az:Float):Int {
-        if (testRecordListenerPushes) testListenerPushes.push({index: index, x: px, y: py});
+        if (testRecordListenerPushes) testListenerPushes.push({index: index, x: px, y: py, vx: vx, vy: vy});
         return ERR_UNSUPPORTED;
     }
     public static function sys_last_parameter_guid():String return "";
@@ -183,7 +190,8 @@ class NativeStudioStub {
     public static function evd_is_snapshot(handle:Int):Bool return false;
     public static function evd_is_oneshot(handle:Int):Bool return false;
     public static function evd_is_stream(handle:Int):Bool return false;
-    public static function evd_is_3d(handle:Int):Bool return false;
+    public static var testIs3D:Bool = false;
+    public static function evd_is_3d(handle:Int):Bool return testIs3D;
     public static function evd_is_doppler_enabled(handle:Int):Bool return false;
     public static function evd_has_sustain_point(handle:Int):Bool return false;
     public static var testCreateInstanceCalls:Int = 0;
@@ -224,7 +232,11 @@ class NativeStudioStub {
         testStartCalls++;
         return ERR_UNSUPPORTED;
     }
-    public static function evi_stop(handle:Int, stopMode:Int):Int return ERR_UNSUPPORTED;
+    public static var testStopCalls:Int = 0;
+    public static function evi_stop(handle:Int, stopMode:Int):Int {
+        testStopCalls++;
+        return ERR_UNSUPPORTED;
+    }
     public static function evi_key_off(handle:Int):Int return ERR_UNSUPPORTED;
     public static var testReleasedHandles:Array<Int> = [];
     public static function evi_release(handle:Int):Int {
@@ -248,9 +260,17 @@ class NativeStudioStub {
     public static function evi_get_timeline_position(handle:Int):Int return 0;
     public static function evi_set_timeline_position(handle:Int, positionMs:Int):Int return ERR_UNSUPPORTED;
     public static function evi_is_virtual(handle:Int):Bool return false;
-    public static function evi_get_min_max_distance(handle:Int):Int return ERR_UNSUPPORTED;
+    // The authored distance range a test hands the cull check
+    public static var testMinMaxDistance:Array<Float> = null;
+    public static function evi_get_min_max_distance(handle:Int):Int {
+        if (testMinMaxDistance == null) return ERR_UNSUPPORTED;
+        haxefmod.studio.native.Scratch.writeF(0, testMinMaxDistance[0]);
+        haxefmod.studio.native.Scratch.writeF(1, testMinMaxDistance[1]);
+        return 0;
+    }
     public static function evi_get_3d_attributes(handle:Int):Int return ERR_UNSUPPORTED;
-    public static function evi_set_3d_attributes(handle:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int return ERR_UNSUPPORTED;
+    public static var testLast3d:Array<Float> = null;
+    public static function evi_set_3d_attributes(handle:Int, px:Float, py:Float, pz:Float, vx:Float, vy:Float, vz:Float, fx:Float, fy:Float, fz:Float, ux:Float, uy:Float, uz:Float):Int { testLast3d = [handle, px, py, vx, vy]; return ERR_UNSUPPORTED; }
     public static function evi_get_listener_mask(handle:Int):Int return 0;
     public static function evi_set_listener_mask(handle:Int, mask:Int):Int return ERR_UNSUPPORTED;
     public static function evi_get_property(handle:Int, property:Int):Float return 0.0;
@@ -301,26 +321,32 @@ class NativeStudioStub {
     }
     public static var testLastExInfoInts:Array<Int> = null;
     public static var testLastExInfoStrings:Array<String> = null;
+    /** The handle both exinfo creates return, and the GUID the next core_last_fsb_guid reports. Tests fill them. */
+    public static var testExCreateHandle:Int = 0;
+    public static var testFsbGuidOut:String = "";
     public static function core_create_sound_ex(path:String, mode:Int, dls:String, key:String, guid:String):Int {
         testLastCreateSoundMode = mode;
         testLastExInfoInts = [for (i in 0...20 + Scratch.readI(19)) Scratch.readI(i)];
         testLastExInfoStrings = [dls, key, guid];
-        return 0;
+        return testExCreateHandle;
     }
     public static function core_create_sound_memory_ex(data:haxe.io.Bytes, len:Int, mode:Int, dls:String, key:String, guid:String):Int {
         testLastMemoryLen = len;
         testLastMemoryMode = mode;
         testLastExInfoInts = [for (i in 0...20 + Scratch.readI(19)) Scratch.readI(i)];
         testLastExInfoStrings = [dls, key, guid];
-        return 0;
+        return testExCreateHandle;
     }
+    public static function core_last_fsb_guid():String return testFsbGuidOut;
     public static var testLastPlayGroup:Int = -1;
     /** The result the core object releases, the replay release, and the bank unload report. The PCM stream and the event instance have their own paths. */
     public static var testReleaseResult:Int = ERR_UNSUPPORTED;
     /** Handles the stub reports as library-owned, whose release is refused. Tests fill it. */
     public static var testOwnedHandles:Array<Int> = [];
     public static function core_release_sound(handle:Int):Int {
-        return testOwnedHandles.contains(handle) ? ERR_INVALID_PARAM : testReleaseResult;
+        if (testOwnedHandles.contains(handle)) return ERR_INVALID_PARAM;
+        if (testReleaseResult == 0 || testReleaseResult == ERR_INVALID_HANDLE) testFree(handle);
+        return testReleaseResult;
     }
     public static function core_sound_is_owned(handle:Int):Bool return testOwnedHandles.contains(handle);
     public static function core_get_sound_length(handle:Int, unit:Int):Int return -1;
@@ -350,12 +376,17 @@ class NativeStudioStub {
     public static function chan_set_paused(handle:Int, paused:Bool):Int return ERR_UNSUPPORTED;
     public static function chan_get_paused(handle:Int):Bool return false;
     public static function chan_is_playing(handle:Int):Bool return false;
-    public static function chan_stop(handle:Int):Int return ERR_UNSUPPORTED;
+    public static function chan_stop(handle:Int):Int {
+        if (!testSyntheticHandles) return ERR_UNSUPPORTED;
+        testFree(handle);
+        return 0;
+    }
 
     // Core DSP effects
     public static function dsp_create_by_type(type:Int):Int return 0;
     public static function dsp_release(handle:Int):Int {
         if (testOwnedHandles.indexOf(handle) >= 0) return ERR_INVALID_PARAM;
+        if (testReleaseResult == 0 || testReleaseResult == ERR_INVALID_HANDLE) testFree(handle);
         return testReleaseResult;
     }
     public static function dsp_set_param_float(handle:Int, index:Int, value:Float):Int return ERR_UNSUPPORTED;
@@ -383,6 +414,7 @@ class NativeStudioStub {
         // A group the game did not create is refused before the native call
         if (testOwnedHandles.indexOf(handle) >= 0) return ERR_INVALID_PARAM;
         testCgCallLog.push("release:" + handle);
+        if (testReleaseResult == 0 || testReleaseResult == ERR_INVALID_HANDLE) testFree(handle);
         return testReleaseResult;
     }
     public static function cg_set_volume(handle:Int, volume:Float):Int return ERR_UNSUPPORTED;
@@ -439,8 +471,8 @@ class NativeStudioStub {
     public static function dspconn_get_type(handle:Int):Int return 0;
     public static function cg_add_group(handle:Int, childHandle:Int, propagateDspClock:Bool):Int return 0;
     public static function cg_get_num_groups(handle:Int):Int return 0;
-    public static function cg_get_group(handle:Int, index:Int):Int return 0;
-    public static function cg_get_parent_group(handle:Int):Int return 0;
+    public static function cg_get_group(handle:Int, index:Int):Int return testBorrow(handle);
+    public static function cg_get_parent_group(handle:Int):Int return testBorrow(handle);
     public static function chan_set_mute(handle:Int, mute:Bool):Int return ERR_UNSUPPORTED;
     public static function chan_get_mute(handle:Int):Bool return false;
     public static function chan_set_low_pass_gain(handle:Int, gain:Float):Int return ERR_UNSUPPORTED;
@@ -588,7 +620,7 @@ class NativeStudioStub {
     public static function chan_get_audibility(handle:Int):Float return 0.0;
     public static function chan_set_volume_ramp(handle:Int, ramp:Bool):Int return ERR_UNSUPPORTED;
     public static function chan_get_volume_ramp(handle:Int):Bool return false;
-    public static function chan_get_current_sound(handle:Int):Int return 0;
+    public static function chan_get_current_sound(handle:Int):Int return testBorrow(handle);
     public static function chan_set_loop_points(handle:Int, start:Int, startType:Int, end:Int, endType:Int):Int {
         testLastLoopUnits = [startType, endType];
         return ERR_UNSUPPORTED;
@@ -601,7 +633,7 @@ class NativeStudioStub {
     public static function chan_get_index(handle:Int):Int return -1;
     public static function chan_get_3d_cone_orientation(handle:Int):Int return ERR_UNSUPPORTED;
     public static function chan_get_num_dsps(handle:Int):Int return 0;
-    public static function chan_get_dsp(handle:Int, index:Int):Int return 0;
+    public static function chan_get_dsp(handle:Int, index:Int):Int return testBorrow(handle);
 
     // Sound name, group getter, and loop count
     public static function sound_get_name(handle:Int):String return "";
@@ -746,7 +778,7 @@ class NativeStudioStub {
     public static function chan_get_dsp_index(handle:Int, dsp:Int):Int return -1;
     public static function chan_get_fade_points(handle:Int):Int return 0;
     public static function chan_get_mix_matrix(handle:Int, inChannelHop:Int):Int return 0;
-    public static function chan_get_channel_group(handle:Int):Int return 0;
+    public static function chan_get_channel_group(handle:Int):Int return testBorrow(handle);
     public static function cg_set_dsp_index(handle:Int, dsp:Int, index:Int):Int return ERR_UNSUPPORTED;
     public static function cg_get_dsp_index(handle:Int, dsp:Int):Int return -1;
     public static function cg_get_fade_points(handle:Int):Int return 0;
@@ -778,6 +810,28 @@ class NativeStudioStub {
     public static function debug_live_handle_count():Int return 0;
     // Every handle stays live unless a test lists it as dead
     public static var testDeadHandles:Array<Int> = [];
+    /**
+     * The native owner links, reduced: each borrowed handle the stub
+     * minted maps to the handle it was reached from. A freed handle takes
+     * its borrowed handles along into testDeadHandles.
+     */
+    public static var testOwnerOf:Map<Int, Int> = new Map();
+    public static function testBorrow(owner:Int):Int {
+        if (!testSyntheticHandles || owner <= 0 || !debug_handle_is_live(owner)) return 0;
+        var handle = ++testNextHandle;
+        testOwnerOf.set(handle, owner);
+        testOwnedHandles.push(handle);
+        return handle;
+    }
+    public static function testFree(handle:Int):Void {
+        if (testDeadHandles.indexOf(handle) < 0) testDeadHandles.push(handle);
+        for (child in [for (k in testOwnerOf.keys()) k]) {
+            if (testOwnerOf.get(child) == handle) {
+                testOwnerOf.remove(child);
+                testFree(child);
+            }
+        }
+    }
     public static function debug_handle_is_live(handle:Int):Bool return handle > 0 && testDeadHandles.indexOf(handle) < 0;
     public static function binding_abi_version():Int return 0;
 
@@ -864,7 +918,7 @@ class NativeStudioStub {
 
 
     public static function cg_get_num_dsps(handle:Int):Int return 0;
-    public static function cg_get_dsp(handle:Int, index:Int):Int return 0;
+    public static function cg_get_dsp(handle:Int, index:Int):Int return testBorrow(handle);
 
     //// Init settings and system info
     /** When set, the output type is refused the way a backend refuses one it lacks. */

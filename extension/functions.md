@@ -2,15 +2,15 @@
 
 ## channelcontrol_getsystemobject
 <!-- ChannelControl::getSystemObject -->
-verdict: covered haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
+verdict: covered haxefmod has one core system. haxefmod.core.CoreSystem reaches it directly. No object needs to hand it back.
 
 ## dsp_getsystemobject
 <!-- DSP::getSystemObject -->
-verdict: covered haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
+verdict: covered haxefmod has one core system. haxefmod.core.CoreSystem reaches it directly. No object needs to hand it back.
 
 ## dsp_setcallback
 <!-- DSP::setCallback -->
-verdict: cannot FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering(), Dsp.getFftSpectrumInfo(), or Dsp.getParameterData() instead.
+verdict: cannot FMOD runs the callback on its mixer thread. No Haxe target can execute code there. Poll the unit from the game loop with Dsp.getMetering(), Dsp.getFftSpectrumInfo(), or Dsp.getParameterData() instead.
 
 ## dsp_showconfigdialog
 <!-- DSP::showConfigDialog -->
@@ -30,51 +30,51 @@ verdict: covered haxefmod does this for you on HTML5.
 
 ## readfile
 <!-- ReadFile -->
-verdict: cannot It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold, and Sound.fromPcm() plays raw PCM you already hold.
+verdict: cannot It returns a raw wasm heap address, which has no meaning in Haxe. StudioSystem.loadBankMemory() loads a bank from bytes you already hold. Sound.fromPcm() plays raw PCM you already hold.
 
 ## memory_free
 <!-- Memory_Free -->
-verdict: cannot It frees a raw pointer from FMOD's heap. Haxe code never receives one, so there is nothing to free. Release handles with the release() method of the object that created them.
+verdict: cannot It frees a raw pointer from FMOD's heap. Haxe code never receives one. Release handles with the release() method of the object that created them.
 
 ## file_open
 <!-- file_open -->
-verdict: cannot FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
+verdict: cannot FMOD runs file callbacks on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## file_close
 <!-- file_close -->
-verdict: cannot FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
+verdict: cannot FMOD runs file callbacks on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## file_read
 <!-- file_read -->
-verdict: cannot FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
+verdict: cannot FMOD runs file callbacks on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## file_seek
 <!-- file_seek -->
-verdict: cannot FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
+verdict: cannot FMOD runs file callbacks on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## setvalue
 <!-- setValue -->
-verdict: cannot This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly.
+verdict: cannot This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods. Getters return values directly.
 
 ## getvalue
 <!-- getValue -->
-verdict: cannot This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods, and getters return values directly.
+verdict: cannot This reads and writes the wasm heap through a raw address, which has no meaning in Haxe. Values cross into FMOD through the typed haxefmod methods. Getters return values directly.
 
 ## file_seek_1
 <!-- file_seek -->
-verdict: cannot FMOD runs file callbacks on its streaming and loading threads, and no Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
+verdict: cannot FMOD runs file callbacks on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile, loadBankMemory, Sound.create, and Sound.fromPcm are the loading paths.
 
 ## sound_getsystemobject
 <!-- Sound::getSystemObject -->
-verdict: covered haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
+verdict: covered haxefmod has one core system. haxefmod.core.CoreSystem reaches it directly. No object needs to hand it back.
 
 ## soundgroup_getsystemobject
 <!-- SoundGroup::getSystemObject -->
-verdict: covered haxefmod has one core system, and haxefmod.core.CoreSystem reaches it directly, so no object needs to hand it back.
+verdict: covered haxefmod has one core system. haxefmod.core.CoreSystem reaches it directly. No object needs to hand it back.
 
 ## system_attachfilesystem
 <!-- System::attachFileSystem -->
-verdict: cannot A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
+verdict: cannot A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths. Sound.create and Sound.fromPcm are the sound paths.
 
 ## system_close
 <!-- System::close -->
@@ -86,7 +86,7 @@ verdict: covered haxefmod calls this for you.
 
 ## system_createdsp
 <!-- System::createDSP -->
-verdict: cannot A DSP description is a struct of callbacks FMOD runs on its mixer thread. No Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type), and a unit from a loaded plugin with Dsp.createByPlugin(handle).
+verdict: cannot A DSP description is a struct of callbacks FMOD runs on its mixer thread. No Haxe target can execute code there. All 33 built-in DSP types are created with Dsp.create(type). A unit from a loaded plugin is created with Dsp.createByPlugin(handle).
 
 ## system_createdspconnection
 <!-- System::createDSPConnection -->
@@ -94,7 +94,7 @@ verdict: covered haxefmod covers this with Dsp.addInput(), which connects two un
 
 ## system_createstream
 <!-- System::createStream -->
-verdict: covered Sound.create with the ChannelMode.CREATESTREAM mode streams from a file, and PcmStream.create streams sample data the game writes.
+verdict: covered Sound.create with the ChannelMode.CREATESTREAM mode streams from a file. PcmStream.create streams sample data the game writes.
 
 ## system_get3dlistenerattributes
 <!-- System::get3DListenerAttributes -->
@@ -106,7 +106,7 @@ verdict: covered haxefmod covers this with StudioSystem.getNumListeners().
 
 ## system_getcpuusage
 <!-- System::getCPUUsage -->
-verdict: covered haxefmod covers this with StudioSystem.getCpuUsage(). It returns the core mixer, stream, geometry, update, and convolution figures next to the Studio update percentage.
+verdict: covered haxefmod covers this with StudioSystem.getCpuUsage(). Its core field is this struct, next to the Studio usage in its studio field.
 
 ## system_getoutputhandle
 <!-- System::getOutputHandle -->
@@ -118,15 +118,15 @@ verdict: covered haxefmod calls this for you.
 
 ## system_registercodec
 <!-- System::registerCodec -->
-verdict: cannot A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
+verdict: cannot A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin. The built-in DSP types are created with Dsp.create.
 
 ## system_registerdsp
 <!-- System::registerDSP -->
-verdict: cannot A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
+verdict: cannot A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin. The built-in DSP types are created with Dsp.create.
 
 ## system_registeroutput
 <!-- System::registerOutput -->
-verdict: cannot A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin, and the built-in DSP types are created with Dsp.create.
+verdict: cannot A plugin description is a struct of callbacks FMOD runs on its mixer and streaming threads. No Haxe target can execute code there. A prebuilt plugin binary loads with StudioSystem.loadPlugin. The built-in DSP types are created with Dsp.create.
 
 ## system_release
 <!-- System::release -->
@@ -142,11 +142,11 @@ verdict: covered haxefmod covers this with StudioSystem.setNumListeners().
 
 ## system_set3drolloffcallback
 <!-- System::set3DRolloffCallback -->
-verdict: cannot FMOD runs the callback on its mixer thread, and no Haxe target can execute code there. Channel.set3DCustomRolloff takes a curve of points instead, and the built-in rolloff modes are set through Channel.setMode and ChannelGroup.setMode.
+verdict: cannot FMOD runs the callback on its mixer thread. No Haxe target can execute code there. Channel.set3DCustomRolloff takes a curve of points instead. The built-in rolloff modes are set through Channel.setMode and ChannelGroup.setMode.
 
 ## system_setfilesystem
 <!-- System::setFileSystem -->
-verdict: cannot A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
+verdict: cannot A custom file system is a set of callbacks FMOD runs on its streaming and loading threads. No Haxe target can execute code there. StudioSystem.loadBankFile and loadBankMemory are the bank paths. Sound.create and Sound.fromPcm are the sound paths.
 
 ## system_update
 <!-- System::update -->
@@ -154,7 +154,7 @@ verdict: covered haxefmod calls this for you.
 
 ## studio_commandreplay_getsystem
 <!-- Studio::CommandReplay::getSystem -->
-verdict: covered haxefmod has one Studio system, and StudioSystem reaches it directly. A replay never needs to hand it back.
+verdict: covered haxefmod has one Studio system. StudioSystem reaches it directly. A replay never needs to hand it back.
 
 ## studio_commandreplay_setcreateinstancecallback
 <!-- Studio::CommandReplay::setCreateInstanceCallback -->
@@ -170,7 +170,7 @@ verdict: cannot FMOD runs the callback on its update thread while the replay pla
 
 ## studio_parseid
 <!-- Studio::parseID -->
-verdict: covered FmodGuid.fromString parses the braced text into a FmodGuid, and a plain String converts on its own.
+verdict: covered FmodGuid.fromString parses the braced text into a FmodGuid. A plain String converts on its own.
 
 ## studio_eventdescription_getparameterdescriptionbyid
 <!-- Studio::EventDescription::getParameterDescriptionByID -->
@@ -190,7 +190,7 @@ verdict: covered haxefmod covers this with EventDescription.setCallback(handler,
 
 ## studio_eventinstance_getsystem
 <!-- Studio::EventInstance::getSystem -->
-verdict: covered haxefmod has one Studio system, and StudioSystem reaches it directly. An instance never needs to hand it back.
+verdict: covered haxefmod has one Studio system. StudioSystem reaches it directly. An instance never needs to hand it back.
 
 ## studio_system_getparameterdescriptionbyid
 <!-- Studio::System::getParameterDescriptionByID -->
@@ -206,7 +206,7 @@ verdict: covered haxefmod covers this with FmodManager.IsInitialized(), which re
 
 ## studio_system_loadbankcustom
 <!-- Studio::System::loadBankCustom -->
-verdict: cannot FMOD_STUDIO_BANK_INFO is declared as haxefmod.studio.Types.FmodStudioBankInfo (size, userData, userDataLength). The load itself needs the four file callbacks the struct carries. FMOD runs those on its streaming and loading threads, where no Haxe target can execute code. StudioSystem.loadBankFile and loadBankMemory are the bank paths, and Sound.create and Sound.fromPcm are the sound paths.
+verdict: cannot FMOD_STUDIO_BANK_INFO is declared as haxefmod.studio.Types.FmodStudioBankInfo (size, userData, userDataLength). The load itself needs the four file callbacks the struct carries. FMOD runs those on its streaming and loading threads, where no Haxe target can execute code. StudioSystem.loadBankFile and loadBankMemory are the bank paths. Sound.create and Sound.fromPcm are the sound paths.
 
 ## studio_system_registerplugin
 <!-- Studio::System::registerPlugin -->
@@ -218,44 +218,44 @@ verdict: cannot It names a plugin registered from a description struct. That reg
 
 ## fsbank_init
 <!-- FSBank_Init -->
-verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
+verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks.
 
 ## fsbank_build
 <!-- FSBank_Build -->
-verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
+verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks.
 
 ## fsbank_buildcancel
 <!-- FSBank_BuildCancel -->
-verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
+verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks.
 
 ## fsbank_release
 <!-- FSBank_Release -->
-verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
+verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks.
 
 ## fsbank_releaseprogressitem
 <!-- FSBank_ReleaseProgressItem -->
-verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
+verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks.
 
 ## fsbank_memorygetstats
 <!-- FSBank_MemoryGetStats -->
-verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
+verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks.
 
 ## fsbank_memoryinit
 <!-- FSBank_MemoryInit -->
-verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
+verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks.
 
 ## fsbank_fetchfsbmemory
 <!-- FSBank_FetchFSBMemory -->
-verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
+verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks.
 
 ## fsbank_fetchnextprogressitem
 <!-- FSBank_FetchNextProgressItem -->
-verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only, and banks are built with FMOD Studio.
+verdict: cannot FSBank is FMOD's offline bank encoder, shipped as a separate tool library outside the runtime SDK. haxefmod links the runtime only. FMOD Studio builds the banks.
 
 ## studio_system_release
 <!-- Studio::System::release -->
-verdict: library There is no shutdown call. FmodManager.Initialize() creates the system once, and FMOD is released when the process exits. Banks, instances, and handles need no teardown order at quit.
+verdict: library There is no shutdown call. FmodManager.Initialize() creates the system once. FMOD is released when the process exits. Banks, instances, and handles need no teardown order at quit.
 
 ## studio_system_initialize
 <!-- Studio::System::initialize -->
-verdict: library FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels, and studioflags come from liveUpdate and memoryTracking. The flags come from the core fields profiling and distanceFilter, and extradriverdata is never passed.
+verdict: library FmodManager.Initialize(settings) makes this call. maxchannels is FmodSettings.numChannels. studioflags come from liveUpdate and memoryTracking. The flags come from the core fields profiling and distanceFilter. extradriverdata is never passed.

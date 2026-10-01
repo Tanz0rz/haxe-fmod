@@ -251,8 +251,9 @@ abstract Dsp(Int) from Int to Int {
     }
 
     /**
-     * The DSP feeding input slot `index` (a known DSP returns its existing handle). Returns Dsp.NULL on
-     * failure, with the reason in StudioSystem.lastResult().
+     * The DSP feeding input slot `index`. A known DSP returns its existing handle. Any other one gets a
+     * short-lived borrowed handle. Release refuses it, and it dies with this handle or whenever FMOD can
+     * destroy objects. Returns Dsp.NULL on failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getInput(index:Int):Dsp {
         return NativeStudio.dsp_get_input_dsp(this, index);
@@ -312,8 +313,9 @@ abstract Dsp(Int) from Int to Int {
     }
 
     /**
-     * The DSP fed by output slot `index` (a known DSP returns its existing handle). Returns Dsp.NULL on
-     * failure, with the reason in StudioSystem.lastResult().
+     * The DSP fed by output slot `index`. A known DSP returns its existing handle. Any other one gets a
+     * short-lived borrowed handle, the same as getInput. Returns Dsp.NULL on failure, with the reason in
+     * StudioSystem.lastResult().
      */
     public inline function getOutput(index:Int):Dsp {
         return NativeStudio.dsp_get_output_dsp(this, index);
@@ -446,7 +448,11 @@ abstract Dsp(Int) from Int to Int {
      */
     public inline function release():FmodResult {
         var result:FmodResult = NativeStudio.dsp_release(this);
-        if (UserData.releaseTookEffect(result)) UserData.clear(UserDataKind.Dsp, this);
+        if (UserData.releaseTookEffect(result)) {
+            UserData.clear(UserDataKind.Dsp, this);
+            // The handles reached from this one died with it
+            haxefmod.studio.EventInstance.dropDeadGroups();
+        }
         return result;
     }
 

@@ -48,6 +48,9 @@ instance.setCallback(handler, EventCallbackType.STARTED | EventCallbackType.TIME
 - `Dsp.getMetering` returns `FmodDspMeteringInfo` with `numSamples`, `peakLevel`, `rmsLevel`, and `numChannels`. The `{peak, rms}` form is gone.
 - `StudioSystem.getListenerAttributes` returns `FmodListenerAttributes`, which adds `attenuationPosition` to the base fields. It still reads as an `Fmod3DAttributes`. `setListenerAttributes(index, attributes, ?attenuationPosition)` takes the base type plus an optional attenuation position.
 - `Sound.getFormat` returns `type` and `format` next to `channels` and `bits`.
+- `StudioSystem.getCpuUsage` returns FMOD's two structs. `usage.studioUpdate` is now `usage.studio.update`. `usage.dsp`, `stream`, `geometry`, `update`, `convolution1`, and `convolution2` are now under `usage.core`.
+- The six `ChannelMode` 3D flags carry FMOD's names. `HEAD_RELATIVE_3D` is `MODE_3D_HEADRELATIVE`, `WORLD_RELATIVE_3D` is `MODE_3D_WORLDRELATIVE`, `INVERSE_ROLLOFF_3D` is `MODE_3D_INVERSEROLLOFF`, `LINEAR_ROLLOFF_3D` is `MODE_3D_LINEARROLLOFF`, `LINEAR_SQUARE_ROLLOFF_3D` is `MODE_3D_LINEARSQUAREROLLOFF`, and `INVERSE_TAPERED_ROLLOFF_3D` is `MODE_3D_INVERSETAPEREDROLLOFF`. The old names remain as deprecated aliases for this release.
+- A handle the game reaches through another handle is borrowed. Examples are a walked channel group, a group's or channel's DSP, and a channel's sound. It dies with the handle it came from, and `release` refuses it. Fetch it again after its owner is gone.
 - GUIDs are `FmodGuid`, an abstract over the braced text form. It converts to and from `String`. String call sites keep compiling.
 - `haxefmod.studio.CoreSound` is deprecated. Use `haxefmod.core.Sound`.
 - The `FmodManager` mixer calls read as questions and name the master bus. `GetBusMute(path)` is now `IsBusMuted(path)`. `SetBusVolumeMaster`, `GetBusVolumeMaster`, `SetBusMuteMaster`, and `GetBusMuteMaster` are now `SetMasterVolume`, `GetMasterVolume`, `SetMasterMute`, and `IsMasterMuted`. `SetBusVolume` and `SetBusMute` keep their names. The old names remain as deprecated aliases for this release and the compiler warns at every use.
@@ -57,7 +60,7 @@ instance.setCallback(handler, EventCallbackType.STARTED | EventCallbackType.TIME
 
 ## HTML5 builds
 
-A call to a method FMOD's web build cannot make is now a compile error in a js build. The error names the method and the reason. `-D haxefmod_html5_allow_unsupported` compiles it with a one-time warning. The call returns `FMOD_ERR_UNSUPPORTED` at runtime. Every such method carries "(unsupported in HTML5)" in its documentation.
+A call to a method FMOD's web build cannot make is now a compile error in a js build. The error names the method and the reason. `-D haxefmod_html5_allow_unsupported` compiles it with a one-time warning. The call then returns `FMOD_ERR_UNSUPPORTED` at runtime. Every such method carries "(unsupported in HTML5)" in its documentation.
 
 Seven calls a 2.0 js build compiled now fail that build:
 
@@ -70,7 +73,7 @@ Each returned `null` or `FMOD_ERR_UNSUPPORTED` in a 2.0 browser build. Remove th
 
 ## HashLink
 
-The binding ABI is 13. The build refuses a prebuilt `hlaxe_fmod.hdll` from 2.0 and prints instructions. Run `haxelib run haxefmod build-hdll` once, or use the hdlls shipped in the 3.0 package.
+The binding ABI is 14. The build refuses a prebuilt `hlaxe_fmod.hdll` from 2.0 and prints instructions. Run `haxelib run haxefmod build-hdll` once, or use the hdlls shipped in the 3.0 package.
 
 # Migrating from haxefmod 1.x to 2.0
 

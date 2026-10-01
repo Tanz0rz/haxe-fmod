@@ -110,6 +110,22 @@ async function main() {
     const goodGuid = jaxe.fmod_core_create_sound_memory_ex(pcm, pcm.byteLength, F.OPENRAW >>> 0,
         exinfo({ numchannels: 1, defaultfrequency: 48000, format: F.SOUND_FORMAT_PCM16 }), '', '', '{0225c47b-e69f-4785-b89c-fd321387934a}');
     check('exinfo_guid_parses', goodGuid !== 0, `handle=${goodGuid} result=${jaxe.lastResult}`);
+    // The web glue never writes the FSB GUID back, even for an FSB that
+    // carries one, so the shim reports nothing and Sound.create keeps
+    // the value the game passed
+    const bankFile = path.join(__dirname, '..', '..', 'example-project', 'EZPlatformer', 'assets', 'fmod', 'Desktop', 'Master.bank');
+    const bank = new Uint8Array(fs.readFileSync(bankFile));
+    let fsbAt = -1;
+    for (let i = 0; i + 60 < bank.length && fsbAt < 0; i++) {
+        if (bank[i] === 0x46 && bank[i + 1] === 0x53 && bank[i + 2] === 0x42 && bank[i + 3] === 0x35) fsbAt = i;
+    }
+    const fsbView = new DataView(bank.buffer, bank.byteOffset + fsbAt);
+    const fsbSize = 60 + fsbView.getInt32(12, true) + fsbView.getInt32(16, true) + fsbView.getInt32(20, true);
+    const fsb = bank.slice(fsbAt, fsbAt + fsbSize).buffer;
+    const fsbSound = jaxe.fmod_core_create_sound_memory_ex(fsb, fsb.byteLength, 0, exinfo({}), '', '', '{00000000-0000-0000-0000-000000000000}');
+    check('exinfo_fsb_guid_not_written', fsbAt >= 0 && fsbSound !== 0 && jaxe.fmod_core_last_fsb_guid() === '',
+        `at=${fsbAt} handle=${fsbSound} guid=${jaxe.fmod_core_last_fsb_guid()} result=${jaxe.lastResult}`);
+    jaxe.fmod_core_release_sound(fsbSound);
     check('exinfo_path_uninitialized_args', jaxe.fmod_core_create_sound_ex(42, 0, exinfo({}), '', '', '') === 0
         && jaxe.lastResult === F.ERR_INVALID_PARAM, `result=${jaxe.lastResult}`);
     jaxe.fmod_core_release_sound(goodGuid);

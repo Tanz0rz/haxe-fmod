@@ -413,6 +413,30 @@ class ApiProbeScenario implements TestScenario {
     }
 
     #if sys
+    /** The FSB file inside the example Master.bank, null when the bank is out of reach. */
+    static function probeFsbImage():Null<haxe.io.Bytes> {
+        var bank = try sys.io.File.getBytes("assets/fmod/Desktop/Master.bank") catch (e:Dynamic) null;
+        if (bank == null) return null;
+        for (i in 0...bank.length - 60) {
+            if (bank.get(i) != 0x46 || bank.getString(i, 4) != "FSB5") continue;
+            // Header: 60 bytes, then the sample headers, the name table, and the data
+            var size = 60 + bank.getInt32(i + 12) + bank.getInt32(i + 16) + bank.getInt32(i + 20);
+            return i + size <= bank.length ? bank.sub(i, size) : null;
+        }
+        return null;
+    }
+
+    /** A GUID stored the way FMOD_GUID lays it out, in FMOD's braced text form. */
+    static function probeGuidText(bytes:haxe.io.Bytes, at:Int):String {
+        inline function hex(value:Int, digits:Int):String return StringTools.hex(value, digits).toLowerCase();
+        var text = "{" + hex(bytes.getInt32(at), 8) + "-" + hex(bytes.getUInt16(at + 4), 4) + "-" + hex(bytes.getUInt16(at + 6), 4) + "-";
+        for (k in 0...8) {
+            if (k == 2) text += "-";
+            text += hex(bytes.get(at + 8 + k), 2);
+        }
+        return text + "}";
+    }
+
     static function writeProbeWav():String {
         var data = probeWavBytes();
         var dir = Sys.getEnv("TMPDIR");
@@ -1976,7 +2000,131 @@ class ApiProbeScenario implements TestScenario {
             'count=${FmodRuntime.attachedCount()} frames=$_oneShotFrames');
         check("no_handle_leaks_oneshot", StudioSystem.liveHandleCount() == _oneShotBaseline,
             'baseline=$_oneShotBaseline now=${StudioSystem.liveHandleCount()}');
+        startBorrowedLifetimes();
+    }
 
+    var _waitingForBorrowed:Bool = false;
+    var _borrowedFrames:Int = 0;
+    var _borrowedBaseline:Int = 0;
+    var _borrowedInstance:EventInstance = EventInstance.NULL;
+    var _borrowedGroup:ChannelGroup = ChannelGroup.NULL;
+    var _borrowedParent:ChannelGroup = ChannelGroup.NULL;
+    var _borrowedChild:ChannelGroup = ChannelGroup.NULL;
+    var _borrowedDsp:Dsp = Dsp.NULL;
+    var _borrowedFresh:EventInstance = EventInstance.NULL;
+    var _borrowedStream:EventInstance = EventInstance.NULL;
+    var _borrowedStreamSound:Sound = Sound.NULL;
+    var _borrowedStreamChannel:Channel = Channel.NULL;
+
+    /** The first channel under a group, depth first. */
+    static function probeFirstChannel(group:ChannelGroup):Channel {
+        if (group.isNull()) return Channel.NULL;
+        if (group.getNumChannels() > 0) return group.getChannel(0);
+        for (i in 0...group.getNumGroups()) {
+            var found = probeFirstChannel(group.getGroup(i));
+            if (!found.isNull()) return found;
+        }
+        return Channel.NULL;
+    }
+
+    /**
+     * Handles the game reaches through another handle die with it. A
+     * group walked from an instance outlived the instance, FMOD reused
+     * the address for the next instance's group, and the stale handle
+     * then drove that group with the old user data.
+     */
+    function startBorrowedLifetimes():Void {
+        _borrowedBaseline = StudioSystem.liveHandleCount();
+        // A PcmStream's sound reached through its channel is borrowed: the
+        // release is refused and the handle dies with the stream
+        var pcm = PcmStream.create(48000, 1);
+        var pcmChannel = pcm.play(true);
+        var pcmSound = pcmChannel.getCurrentSound();
+        check("borrowed_pcm_sound_release_refused", !pcmSound.isNull()
+            && pcmSound.release() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'handle=${(pcmSound : Int)} result=${StudioSystem.lastResult().toString()}');
+        check("borrowed_pcm_stream_still_releases", pcm.release().isOk(), 'result=${StudioSystem.lastResult().toString()}');
+        pcmSound.getLength();
+        check("borrowed_pcm_sound_dies_with_stream", StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+        // The channel ended with its sound. Its slot goes with the stop.
+        pcmChannel.stop();
+
+        _borrowedInstance = StudioSystem.getEvent(FmodEvents.SFXCoin).createInstance();
+        _borrowedInstance.start();
+        StudioSystem.flushCommands();
+        _borrowedGroup = _borrowedInstance.getChannelGroup();
+        _borrowedParent = _borrowedGroup.getParentGroup();
+        _borrowedChild = _borrowedGroup.getGroupCount() > 0 ? _borrowedGroup.getGroup(0) : ChannelGroup.NULL;
+        _borrowedDsp = _borrowedGroup.getDsp(ChannelGroup.DSP_HEAD);
+        check("borrowed_walk_minted", !_borrowedGroup.isNull() && !_borrowedParent.isNull() && !_borrowedDsp.isNull(),
+            'group=${(_borrowedGroup : Int)} parent=${(_borrowedParent : Int)} dsp=${(_borrowedDsp : Int)}');
+        check("borrowed_walked_group_release_refused", _borrowedParent.release() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${StudioSystem.lastResult().toString()}');
+        _borrowedParent.setUserData("first instance");
+        _borrowedDsp.setUserData("first instance");
+        // A streaming event plays a sound FMOD makes for the instance and
+        // frees with it. The handle a channel lookup minted for it dies
+        // with the instance too.
+        _borrowedStream = StudioSystem.getEvent(FmodEvents.MusicMainLevel).createInstance();
+        _borrowedStream.start();
+        StudioSystem.flushCommands();
+        _borrowedStreamChannel = probeFirstChannel(_borrowedStream.getChannelGroup());
+        _borrowedStreamSound = _borrowedStreamChannel.getCurrentSound();
+        info("borrowed_stream_sound", 'channel=${(_borrowedStreamChannel : Int)} sound=${(_borrowedStreamSound : Int)}');
+        _borrowedStream.stop(IMMEDIATE);
+        _borrowedStream.release();
+        // FMOD destroys the instance on its own thread, outside any call
+        // the game makes. The drain that reports it frees the handles.
+        _borrowedInstance.stop(IMMEDIATE);
+        _borrowedInstance.release();
+        _borrowedFrames = 0;
+        _waitingForBorrowed = true;
+    }
+
+    function finishBorrowedLifetimes():Void {
+        _borrowedParent.getName();
+        check("borrowed_walked_group_dies_with_instance", StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()} frames=$_borrowedFrames');
+        _borrowedChild.getName();
+        check("borrowed_child_group_dies_with_instance", _borrowedChild.isNull()
+            || StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE, 'result=${StudioSystem.lastResult().toString()}');
+        _borrowedDsp.getNumParameters();
+        check("borrowed_group_dsp_dies_with_instance", StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
+        check("borrowed_userdata_dropped", _borrowedParent.getUserData() == null && _borrowedDsp.getUserData() == null, "");
+        check("borrowed_stream_sound_dies_with_instance", !_borrowedStreamSound.isNull()
+            && !haxefmod.studio.native.NativeStudio.debug_handle_is_live(_borrowedStreamSound),
+            'sound=${(_borrowedStreamSound : Int)} frames=$_borrowedFrames');
+        // The channel ended with the instance. Its slot goes with the stop.
+        _borrowedStreamChannel.stop();
+        // The next instance's groups can sit at the same addresses. They
+        // get handles of their own, and the old handles stay dead.
+        _borrowedFresh = StudioSystem.getEvent(FmodEvents.SFXCoin).createInstance();
+        _borrowedFresh.start();
+        StudioSystem.flushCommands();
+        var freshGroup = _borrowedFresh.getChannelGroup();
+        var freshParent = freshGroup.getParentGroup();
+        var freshDsp = freshGroup.getDsp(ChannelGroup.DSP_HEAD);
+        check("borrowed_fresh_instance_own_handles", !freshParent.isNull() && freshParent != _borrowedParent
+            && freshGroup != _borrowedGroup && freshDsp != _borrowedDsp,
+            'old=${(_borrowedParent : Int)}/${(_borrowedGroup : Int)} new=${(freshParent : Int)}/${(freshGroup : Int)}');
+        var staleResult = _borrowedParent.setVolume(0.25);
+        var freshVolume = freshParent.getVolume();
+        check("borrowed_stale_handle_drives_nothing", staleResult == FmodResult.FMOD_ERR_INVALID_HANDLE
+            && Math.abs(freshVolume - 1.0) < 0.001, 'result=${staleResult.toString()} volume=$freshVolume');
+        check("borrowed_fresh_group_no_old_userdata", freshParent.getUserData() == null && freshDsp.getUserData() == null, "");
+        _borrowedFresh.stop(IMMEDIATE);
+        _borrowedFresh.release();
+        _borrowedFrames = 0;
+        _waitingForBorrowedDrain = true;
+    }
+
+    var _waitingForBorrowedDrain:Bool = false;
+
+    function finishBorrowedDrain():Void {
+        check("no_handle_leaks_borrowed", StudioSystem.liveHandleCount() == _borrowedBaseline,
+            'baseline=$_borrowedBaseline now=${StudioSystem.liveHandleCount()} frames=$_borrowedFrames');
         info("live_handle_count_after", Std.string(StudioSystem.liveHandleCount()));
         log('API_PROBE: COMPLETE passed=$_passCount failed=$_failCount');
         host.setStatus('API_PROBE complete: $_passCount passed, $_failCount failed');
@@ -2202,7 +2350,7 @@ class ApiProbeScenario implements TestScenario {
 
         // System profiling - informational (unsupported pieces on html5)
         var sysCpu = StudioSystem.getCpuUsage();
-        info("sys_get_cpu_usage", sysCpu == null ? 'unavailable result=${StudioSystem.lastResult().toString()}' : 'dsp=${sysCpu.dsp}');
+        info("sys_get_cpu_usage", sysCpu == null ? 'unavailable result=${StudioSystem.lastResult().toString()}' : 'dsp=${sysCpu.core.dsp} studio=${sysCpu.studio.update}');
         var sysMem = StudioSystem.getMemoryUsage();
         info("sys_get_memory_usage", sysMem == null ? 'unavailable result=${StudioSystem.lastResult().toString()}' : 'inclusive=${sysMem.inclusive}');
         var bufferUsage = StudioSystem.getBufferUsage();
@@ -2390,18 +2538,21 @@ class ApiProbeScenario implements TestScenario {
         var routed = sound.play(true, group);
         check("core_play_sound_into_group", !routed.isNull() && routed.getChannelGroup() == group,
             'channel=${(routed : Int)} group=${(routed.getChannelGroup() : Int)}');
-        // The head lookup mints a handle for FMOD's pooled channel DSP,
-        // which outlives the channel like the group lookups in
-        // ProbeGroupDsp. It is allowed for in the leak check below.
-        var beforeHead = StudioSystem.liveHandleCount();
-        check("channel_dsp_head_constant", !routed.getDsp(Channel.DSP_HEAD).isNull(),
+        // The head lookup borrows FMOD's pooled channel DSP. The handle
+        // refuses release and dies with the channel handle.
+        var head = routed.getDsp(Channel.DSP_HEAD);
+        check("channel_dsp_head_constant", !head.isNull(),
             'result=${StudioSystem.lastResult().toString()}');
-        var headLookup = StudioSystem.liveHandleCount() - beforeHead;
+        check("channel_dsp_borrowed_release_refused", head.release() == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'result=${StudioSystem.lastResult().toString()}');
         // FMOD_CHANNELCONTROL_DSP_HEAD, _FADER, _TAIL are -1, -2, -3
         check("channel_dsp_constants_match_group", Channel.DSP_HEAD == -1 && ChannelGroup.DSP_HEAD == -1
             && Channel.DSP_FADER == -2 && ChannelGroup.DSP_FADER == -2
             && Channel.DSP_TAIL == -3 && ChannelGroup.DSP_TAIL == -3, "");
         routed.stop();
+        head.getNumParameters();
+        check("channel_dsp_borrowed_dies_with_channel", StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'result=${StudioSystem.lastResult().toString()}');
         var unrouted = sound.play(true);
         check("core_play_sound_default_master", !unrouted.isNull() && unrouted.getChannelGroup() == ChannelGroup.master(),
             'group=${(unrouted.getChannelGroup() : Int)} master=${(ChannelGroup.master() : Int)}');
@@ -2430,6 +2581,27 @@ class ApiProbeScenario implements TestScenario {
         check("core_create_sound_memory_loads_in_call", !eager.isNull() && eager.getOpenState() == FmodOpenState.READY,
             'handle=${(eager : Int)} state=${(eager.getOpenState() : Int)}');
         eager.release();
+        // A stream and an OPENONLY sound read the image for their whole
+        // life. The binding keeps its own copy, so the game's buffer can
+        // change or go once the call returns.
+        var kept = probeWavBytes();
+        var opened = Sound.fromMemory(kept, ChannelMode.CREATESTREAM | ChannelMode.OPENONLY);
+        var firstRead = haxe.io.Bytes.alloc(256);
+        var firstCount = opened.readData(firstRead);
+        kept.fill(0, kept.length, 0x77);
+        opened.seekData(0);
+        var secondRead = haxe.io.Bytes.alloc(256);
+        var secondCount = opened.readData(secondRead);
+        check("core_create_sound_memory_stream_keeps_image", !opened.isNull() && firstCount == 256
+            && secondCount == 256 && secondRead.compare(firstRead) == 0 && secondRead.get(100) != 0x77,
+            'handle=${(opened : Int)} reads=$firstCount/$secondCount byte=${secondRead.get(100)}');
+        opened.release();
+        var streamed = Sound.fromMemory(probeWavBytes(), ChannelMode.CREATESTREAM | ChannelMode.LOOP_NORMAL);
+        var streamedChannel = streamed.play();
+        check("core_create_sound_memory_stream_plays", !streamed.isNull() && !streamedChannel.isNull()
+            && streamedChannel.isPlaying(), 'handle=${(streamed : Int)} result=${StudioSystem.lastResult().toString()}');
+        streamedChannel.stop();
+        streamed.release();
         #else
         // The web build decodes FSB only
         check("core_create_sound_memory_format_limit", memory.isNull()
@@ -2456,6 +2628,34 @@ class ApiProbeScenario implements TestScenario {
         check("core_create_sound_guid_loads_in_call", !guided.isNull() && guided.getOpenState() == FmodOpenState.READY,
             'handle=${(guided : Int)} state=${(guided.getOpenState() : Int)}');
         guided.release();
+        // fsbGuid is an out value. FMOD writes the FSB file's GUID into it,
+        // from a file and from memory alike. The example bank carries one
+        // FSB, whose header holds the GUID at byte 44.
+        var fsb = probeFsbImage();
+        if (fsb == null) {
+            info("core_create_sound_fsb_guid", "bank file not reachable from cwd, skipped");
+        } else {
+            var expected = probeGuidText(fsb, 44);
+            var fromMemoryInfo:FmodCreateSoundExInfo = {fsbGuid: FmodGuid.NULL};
+            var fsbMemory = Sound.fromMemory(fsb, 0, -1, fromMemoryInfo);
+            check("core_create_sound_memory_fsb_guid_out", !fsbMemory.isNull() && (fromMemoryInfo.fsbGuid : String) == expected,
+                'got=${fromMemoryInfo.fsbGuid} expected=$expected result=${StudioSystem.lastResult().toString()}');
+            fsbMemory.release();
+            var fsbPath = wavPath + ".fsb";
+            sys.io.File.saveBytes(fsbPath, fsb);
+            var fromFileInfo:FmodCreateSoundExInfo = {fsbGuid: FmodGuid.NULL};
+            var fsbFile = Sound.create(fsbPath, false, false, ChannelMode.NONBLOCKING, -1, fromFileInfo);
+            check("core_create_sound_fsb_guid_out", !fsbFile.isNull() && (fromFileInfo.fsbGuid : String) == expected,
+                'got=${fromFileInfo.fsbGuid} expected=$expected result=${StudioSystem.lastResult().toString()}');
+            fsbFile.release();
+            try sys.FileSystem.deleteFile(fsbPath) catch (e:Dynamic) {}
+            // A wav has no GUID, so the passed value stays
+            var wavInfo:FmodCreateSoundExInfo = {fsbGuid: FmodGuid.NULL};
+            var wavSound = Sound.create(wavPath, false, false, 0, -1, wavInfo);
+            check("core_create_sound_fsb_guid_kept_without_one", !wavSound.isNull() && wavInfo.fsbGuid == FmodGuid.NULL,
+                'got=${wavInfo.fsbGuid}');
+            wavSound.release();
+        }
         var async = Sound.create(wavPath, false, false, ChannelMode.NONBLOCKING);
         check("core_create_sound_nonblocking", !async.isNull(), 'result=${StudioSystem.lastResult().toString()}');
         var state = async.getOpenState();
@@ -2523,9 +2723,8 @@ class ApiProbeScenario implements TestScenario {
         group.release();
         StudioSystem.flushCommands();
         CallbackDispatcher.update();
-        check("no_handle_leaks_sound_routing", StudioSystem.liveHandleCount() == baseline + headLookup
-            && headLookup <= 1,
-            'baseline=$baseline headLookup=$headLookup now=${StudioSystem.liveHandleCount()}');
+        check("no_handle_leaks_sound_routing", StudioSystem.liveHandleCount() == baseline,
+            'baseline=$baseline now=${StudioSystem.liveHandleCount()}');
     }
 
     /**
@@ -3201,6 +3400,25 @@ class ApiProbeScenario implements TestScenario {
             if (FmodRuntime.attachedCount() == _oneShotAttachedBaseline || _oneShotFrames > 600) {
                 _waitingForOneShot = false;
                 finishOneShotAttached();
+            }
+        }
+        if (_waitingForBorrowed) {
+            _borrowedFrames++;
+            StudioSystem.flushCommands();
+            // The DESTROYED record lands within a few frames. The timeout
+            // makes a handle that never dies fail loudly instead of hanging.
+            var streamSoundGone = !haxefmod.studio.native.NativeStudio.debug_handle_is_live(_borrowedStreamSound);
+            if (streamSoundGone || _borrowedFrames > 300) {
+                _waitingForBorrowed = false;
+                finishBorrowedLifetimes();
+            }
+        }
+        if (_waitingForBorrowedDrain) {
+            _borrowedFrames++;
+            StudioSystem.flushCommands();
+            if (StudioSystem.liveHandleCount() == _borrowedBaseline || _borrowedFrames > 300) {
+                _waitingForBorrowedDrain = false;
+                finishBorrowedDrain();
             }
         }
         if (!_done) return;
