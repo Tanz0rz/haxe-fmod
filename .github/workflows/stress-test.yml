@@ -189,6 +189,7 @@ jobs:
           bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
           bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
           bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install hxcpp 4.3.2 --always --quiet
           haxelib dev haxefmod $GITHUB_WORKSPACE
           yes | haxelib run lime setup || true
 
@@ -287,6 +288,18 @@ jobs:
             grep -B2 -A14 "Invalid\|Mismatched" /tmp/valgrind.log | head -120
             exit 1
           fi
+          # A crash after COMPLETE leaves the signal's code, and a hang
+          # leaves the timeout's. Neither is 42.
+          if [ "$STATUS" != "0" ]; then
+            echo "FAIL: the game exited with $STATUS under valgrind"
+            tail -40 /tmp/valgrind.log
+            exit 1
+          fi
+          grep -q "ERROR SUMMARY: 0 errors" /tmp/valgrind.log || {
+            echo "FAIL: valgrind's summary reports errors"
+            tail -40 /tmp/valgrind.log
+            exit 1
+          }
           echo "Probe suite ran clean under valgrind memcheck"
 
       - name: Upload valgrind log

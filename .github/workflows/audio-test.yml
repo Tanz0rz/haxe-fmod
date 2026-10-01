@@ -194,6 +194,8 @@ jobs:
         run: |
           haxe tests/build-preload-failure.hxml
           haxe tests/build-init-refused.hxml
+          haxe tests/build-default-bank-failure.hxml
+          haxe tests/build-default-bank-failure-provided.hxml
 
       # The shared headers own the cross-thread lifetime contracts.
       # ASan/UBSan cover the single-threaded invariants (including the

@@ -350,7 +350,7 @@ job_unit_tests() {
   step "Check the generated bindings table and example translations" bash -eo pipefail -c '
     python3 ci/haxe-bindings.py --check && python3 ci/haxe-catalog.py --check'
   step "Test the default bank failure path" bash -eo pipefail -c '
-    haxe tests/build-preload-failure.hxml && haxe tests/build-init-refused.hxml'
+    haxe tests/build-preload-failure.hxml && haxe tests/build-init-refused.hxml && haxe tests/build-default-bank-failure.hxml && haxe tests/build-default-bank-failure-provided.hxml'
   step "Run native tests under AddressSanitizer and UBSan" bash -eo pipefail -c '
     for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums; do
       gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \

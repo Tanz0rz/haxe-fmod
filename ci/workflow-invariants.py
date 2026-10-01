@@ -345,25 +345,35 @@ else:
 # legs were lost to that twice.
 # Each step that installs the snap carries the whole gate itself, so an
 # install written another way or a probe that stopped failing is caught.
-CHROMIUM_INSTALL = re.compile(r"apt-get[^\n]*\binstall\b[^\n]*\bchromium-browser\b|snap install[^\n]*\bchromium\b")
+# Comment lines are dropped and continued lines joined first. Each gate
+# line starts its own line, and each loop bound equals its threshold.
+CHROMIUM_INSTALL = re.compile(r"\bapt(-get)?\b[^\n]*\binstall\b[^\n]*\bchromium-browser\b|snap install[^\n]*\bchromium\b")
 CHROMIUM_GATE = [
-    ("the seed wait", re.compile(r"sudo snap wait system seed\.loaded")),
-    ("the slot wait", re.compile(r"gpu_slot_connected && break")),
-    ("a fatal slot wait", re.compile(r"::error ::the chromium GPU content slot never connected after the install[^\n]*exit 1; \}")),
-    ("the namespace discard", re.compile(r"\n *sudo /usr/lib/snapd/snap-discard-ns chromium")),
-    ("a fatal probe", re.compile(r"::error ::chromium never rendered a headless page after the install[^\n]*exit 1; \}")),
+    ("the seed wait", r"^ *sudo snap wait system seed\.loaded"),
+    ("the slot wait loop", r"^ *for i in \$\(seq 90\); do\n *gpu_slot_connected && break$"),
+    ("a fatal slot wait", r'^ *\[ "\$i" = 90 \] && \{ echo "::error ::the chromium GPU content slot never connected after the install"[^\n]*exit 1; \}$'),
+    ("the namespace discard", r"^ *sudo /usr/lib/snapd/snap-discard-ns chromium"),
+    ("the probe loop", r"^ *for i in \$\(seq 45\); do\n *chromium-browser --headless=new[^\n]*&& break$"),
+    ("a fatal probe", r'^ *\[ "\$i" = 45 \] && \{ echo "::error ::chromium never rendered a headless page after the install"[^\n]*exit 1; \}$'),
 ]
 chromium_installs = 0
 ungated = []
-for step in re.split(r"\n(?= *- name: )", text):
-    if not CHROMIUM_INSTALL.search(step):
+for step in re.split(r"\n(?= {6}- )", text):
+    body = re.sub(r"\\\n *", " ", step)
+    body = "\n".join(line for line in body.split("\n") if not line.lstrip().startswith("#"))
+    if not CHROMIUM_INSTALL.search(body):
         continue
     chromium_installs += 1
-    missing = [label for label, pattern in CHROMIUM_GATE if not pattern.search(step)]
-    if missing:
+    missing = [label for label, pattern in CHROMIUM_GATE if not re.search(pattern, body, re.M)]
+    problems = ["lacks " + ", ".join(missing)] if missing else []
+    if re.search(r"^ *continue-on-error:", body, re.M):
+        problems.append("has continue-on-error")
+    if re.search(r"^ *done *\|\|", body, re.M):
+        problems.append("lets a loop fail quietly (done ||)")
+    if problems:
         name = re.search(r"- name: ([^\n]+)", step)
         line = text[:text.index(step)].count("\n") + 1
-        ungated.append(f"line {line} ({name.group(1) if name else 'unnamed step'}) lacks {', '.join(missing)}")
+        ungated.append(f"line {line} ({name.group(1) if name else 'unnamed step'}) {', '.join(problems)}")
 if chromium_installs < 3 or ungated:
     fail(f"chromium GPU slot waits out of step: {chromium_installs} installs, {ungated}")
 else:
