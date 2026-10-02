@@ -94,7 +94,8 @@ abstract ChannelGroup(Int) from Int to Int {
      * check. So does one whose connection FMOD moves onto another DSP. A
      * handle from addGroupConnection follows the group's new head or tail
      * and keeps working. A DSP that another channel or group still holds in
-     * its chain fails with FMOD_ERR_DSP_INUSE until it is removed there.
+     * its chain fails with FMOD_ERR_DSP_INUSE until it is removed there. A
+     * DSP the game did not create fails with that code in any other chain.
      */
     public inline function addDsp(index:Int, dsp:Dsp):FmodResult {
         return NativeStudio.cg_add_dsp(this, index, dsp);

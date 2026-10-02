@@ -255,6 +255,39 @@ function testBusBridge() {
     check('bus_group_remove_dsp', jaxe.fmod_cg_remove_dsp(group, lowpass) === jaxe.FMOD.OK);
     jaxe.fmod_dsp_release(lowpass);
 
+    // A Studio effect that the game removes from its bus group still dies
+    // with that group. So another chain refuses it. Its own group takes it
+    // back. Reached first by a DSP walk, it moves inside its own chain.
+    {
+        const OK = jaxe.FMOD.OK;
+        const fxBus = jaxe.fmod_sys_get_bus('bus:/Reverb');
+        const fxLock = jaxe.fmod_bus_lock_channel_group(fxBus);
+        const fxGroup = jaxe.fmod_bus_get_channel_group(fxBus);
+        const fxOther = jaxe.fmod_cg_create('fx-other');
+        const fxWalk = jaxe.fmod_dsp_get_input_dsp(jaxe.fmod_cg_get_dsp(fxGroup, -1 /* DSP_HEAD */), 0);
+        const fxWalkAt = jaxe.fmod_cg_get_dsp_index(fxGroup, fxWalk);
+        const fxWalkMove = jaxe.fmod_cg_add_dsp(fxGroup, fxWalkAt, fxWalk);
+        const fxWalkIndex = jaxe.fmod_cg_get_dsp_index(fxGroup, fxWalk);
+        let fx = 0;
+        for (let i = 0; i < jaxe.fmod_cg_get_num_dsps(fxGroup); i++) {
+            const candidate = jaxe.fmod_cg_get_dsp(fxGroup, i);
+            if (jaxe.fmod_dsp_get_type(candidate) === 17 /* SFXREVERB */) fx = candidate;
+        }
+        const fxIndex = jaxe.fmod_cg_get_dsp_index(fxGroup, fx);
+        const fxRemove = jaxe.fmod_cg_remove_dsp(fxGroup, fx);
+        const fxAdd = jaxe.fmod_cg_add_dsp(fxOther, 0, fx);
+        if (fxAdd === OK) jaxe.fmod_cg_remove_dsp(fxOther, fx);
+        const fxBack = jaxe.fmod_cg_add_dsp(fxGroup, fxIndex, fx);
+        const fxBackIndex = jaxe.fmod_cg_get_dsp_index(fxGroup, fx);
+        check('cg_add_dsp_studio_effect_moved_inuse', fxLock === OK && fx !== 0 && fxRemove === OK
+            && fxAdd === jaxe.FMOD.ERR_DSP_INUSE && fxBack === OK && fxBackIndex === fxIndex
+            && fxWalkAt >= 0 && fxWalkMove === OK && fxWalkIndex === fxWalkAt,
+            `lock=${fxLock} fx=${fx}/${fxIndex} remove=${fxRemove} add=${fxAdd} back=${fxBack}/${fxBackIndex}`
+            + ` walk=${fxWalk}/${fxWalkAt}/${fxWalkMove}/${fxWalkIndex}`);
+        jaxe.fmod_cg_release(fxOther);
+        jaxe.fmod_bus_unlock_channel_group(fxBus);
+    }
+
     // The bus owns its channel group: FMOD frees it under Studio. The shim
     // refuses the release before the call and keeps the handle and its
     // channel callback mapping.

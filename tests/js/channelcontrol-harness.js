@@ -675,23 +675,32 @@ async function main() {
 
     // A group's own fader reached through a DSP walk has no recorded
     // chain. FMOD accepts it in a second chain and reads freed memory
-    // after the group's release. So the second chain refuses it.
+    // after the group's release. So another group refuses it. A channel
+    // refuses it too.
     {
         const OK = jaxe.FMOD.OK;
         const walkGroupH = jaxe.fmod_cg_create('cc-walk-group');
         const walkOtherH = jaxe.fmod_cg_create('cc-walk-other');
         const walkDsp = jaxe.fmod_dsp_create_by_type(3);
+        const walkStream = jaxe.fmod_core_pcm_create(48000, 1, 8000);
+        const walkChannel = jaxe.fmod_core_pcm_play(walkStream, walkOtherH, false);
         const first = jaxe.fmod_cg_add_dsp(walkGroupH, 0, walkDsp);
         const fader = jaxe.fmod_dsp_get_input_dsp(walkDsp, 0);
         const faderIndex = jaxe.fmod_cg_get_dsp_index(walkGroupH, fader);
         const add = jaxe.fmod_cg_add_dsp(walkOtherH, 0, fader);
         const listed = jaxe.fmod_cg_get_dsp_index(walkOtherH, fader);
         if (add === OK) jaxe.fmod_cg_remove_dsp(walkOtherH, fader);
+        const channelAdd = jaxe.fmod_chan_add_dsp(walkChannel, 0, fader);
+        if (channelAdd === OK) jaxe.fmod_chan_remove_dsp(walkChannel, fader);
         const remove = jaxe.fmod_cg_remove_dsp(walkGroupH, walkDsp);
         const release = jaxe.fmod_dsp_release(walkDsp);
         check('cg_add_dsp_walked_fader_inuse', first === OK && fader !== 0 && faderIndex === 1
-            && add === jaxe.FMOD.ERR_DSP_INUSE && listed === -1 && remove === OK && release === OK,
-            `first=${first} fader=${fader}/${faderIndex} add=${add} listed=${listed} remove=${remove} release=${release}`);
+            && add === jaxe.FMOD.ERR_DSP_INUSE && listed === -1 && channelAdd === jaxe.FMOD.ERR_DSP_INUSE
+            && remove === OK && release === OK,
+            `first=${first} fader=${fader}/${faderIndex} add=${add} listed=${listed} channel=${channelAdd}`
+            + ` remove=${remove} release=${release}`);
+        jaxe.fmod_chan_stop(walkChannel);
+        jaxe.fmod_core_pcm_release(walkStream);
         jaxe.fmod_cg_release(walkOtherH);
         jaxe.fmod_cg_release(walkGroupH);
     }

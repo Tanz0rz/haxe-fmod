@@ -3818,21 +3818,22 @@ class jaxe {
     // then lists the DSP in both chains. A removal from either chain, or
     // the end of a channel, lets the DSP release free the DSP while the
     // other chain still names it. FMOD's text for ERR_DSP_INUSE says a DSP
-    // must be removed before it is reinserted. So an add into another
-    // chain is refused with that code while the recorded chain still
-    // lists the DSP. A DSP the game did not create and whose chain the
-    // table does not know is refused too, unless the target chain lists
-    // it. A group's own fader reached through a DSP walk is such a DSP.
-    // Mirrors hlaxe_dsp_in_other_chain.
+    // must be removed before it is reinserted. So an add is refused with
+    // that code in two cases. A DSP the game created is refused while
+    // another recorded chain still lists it. A DSP the game did not create
+    // goes only into the chain it came from or a chain that already lists
+    // it. FMOD or Studio frees such a DSP with its owner, also after the
+    // game removed it from that chain. A Studio effect and a group's own
+    // fader are such DSPs. Mirrors hlaxe_dsp_in_other_chain.
     static dspInOtherChain(dspHandle, dsp, target) {
         var owner = jaxe.dspChain(dspHandle);
         var out = {};
         if (owner == target) return false;
-        if (!owner) {
-            if (!jaxe.isOwned(dspHandle)) return false;
+        if (jaxe.isOwned(dspHandle)) {
             var self = jaxe.handleResolve(target, jaxe.TYPE_CHAN) || jaxe.handleResolve(target, jaxe.TYPE_CHANGROUP);
             return !self || self.getDSPIndex(dsp, out) != jaxe.FMOD.OK;
         }
+        if (!owner) return false;
         var other = jaxe.handleResolve(owner, jaxe.TYPE_CHAN) || jaxe.handleResolve(owner, jaxe.TYPE_CHANGROUP);
         return !!other && other.getDSPIndex(dsp, out) == jaxe.FMOD.OK;
     }

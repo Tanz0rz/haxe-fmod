@@ -601,25 +601,64 @@ class ProbeChannelControl {
 
         // A group's own fader reached through a DSP walk has no recorded
         // chain. FMOD accepts it in a second chain and reads freed memory
-        // after the group's release. So the second chain refuses it.
+        // after the group's release. So another group refuses it. A
+        // channel refuses it too.
         var walkGroup = ChannelGroup.create("probe-cc-walk-group");
         var walkOther = ChannelGroup.create("probe-cc-walk-other");
         var walkDsp = Dsp.create(DspType.LOWPASS);
+        var walkStream = PcmStream.create(48000, 1);
+        var walkChannel = walkStream.play(false, walkOther);
         var walkFirst:FmodResult = walkGroup.addDsp(0, walkDsp);
         var walkFader = walkDsp.getInput(0);
         var walkFaderIndex = walkGroup.getDspIndex(walkFader);
         var walkAdd:FmodResult = walkOther.addDsp(0, walkFader);
         var walkListed = walkOther.getDspIndex(walkFader);
         if (walkAdd.isOk()) walkOther.removeDsp(walkFader);
+        var walkChannelAdd:FmodResult = walkChannel.addDsp(0, walkFader);
+        if (walkChannelAdd.isOk()) walkChannel.removeDsp(walkFader);
         var walkRemove:FmodResult = walkGroup.removeDsp(walkDsp);
         var walkRelease:FmodResult = walkDsp.release();
         @:privateAccess state.check("cg_add_dsp_walked_fader_inuse", walkFirst.isOk() && !walkFader.isNull()
             && walkFaderIndex == 1 && walkAdd == FmodResult.FMOD_ERR_DSP_INUSE && walkListed == -1
-            && walkRemove.isOk() && walkRelease.isOk(),
+            && walkChannelAdd == FmodResult.FMOD_ERR_DSP_INUSE && walkRemove.isOk() && walkRelease.isOk(),
             'first=${walkFirst.toString()} fader=${(walkFader : Int)}/$walkFaderIndex add=${walkAdd.toString()}'
-            + ' listed=$walkListed remove=${walkRemove.toString()} release=${walkRelease.toString()}');
+            + ' listed=$walkListed channel=${walkChannelAdd.toString()} remove=${walkRemove.toString()}'
+            + ' release=${walkRelease.toString()}');
+        walkChannel.stop();
+        walkStream.release();
         walkOther.release();
         walkGroup.release();
+
+        // A Studio effect that the game removes from its bus group still
+        // dies with that group. So another chain refuses it. Its own group
+        // takes it back. Reached first by a DSP walk, it moves inside its
+        // own chain.
+        var fxBus = StudioSystem.getBus("bus:/Reverb");
+        var fxLock:FmodResult = fxBus.lockChannelGroup();
+        var fxGroup = fxBus.getChannelGroup();
+        var fxOther = ChannelGroup.create("probe-cc-fx-other");
+        var fxWalk = fxGroup.getDsp(ChannelGroup.DSP_HEAD).getInput(0);
+        var fxWalkAt = fxGroup.getDspIndex(fxWalk);
+        var fxWalkMove:FmodResult = fxGroup.addDsp(fxWalkAt, fxWalk);
+        var fxWalkIndex = fxGroup.getDspIndex(fxWalk);
+        var fx = Dsp.NULL;
+        for (i in 0...fxGroup.getNumDSPs()) {
+            var candidate = fxGroup.getDsp(i);
+            if (candidate.getType() == DspType.SFXREVERB) fx = candidate;
+        }
+        var fxIndex = fxGroup.getDspIndex(fx);
+        var fxRemove:FmodResult = fxGroup.removeDsp(fx);
+        var fxAdd:FmodResult = fxOther.addDsp(0, fx);
+        if (fxAdd.isOk()) fxOther.removeDsp(fx);
+        var fxBack:FmodResult = fxGroup.addDsp(fxIndex, fx);
+        var fxBackIndex = fxGroup.getDspIndex(fx);
+        @:privateAccess state.check("cg_add_dsp_studio_effect_moved_inuse", fxLock.isOk() && !fx.isNull()
+            && fxRemove.isOk() && fxAdd == FmodResult.FMOD_ERR_DSP_INUSE && fxBack.isOk() && fxBackIndex == fxIndex
+            && fxWalkAt >= 0 && fxWalkMove.isOk() && fxWalkIndex == fxWalkAt,
+            'lock=${fxLock.toString()} fx=${(fx : Int)}/$fxIndex remove=${fxRemove.toString()} add=${fxAdd.toString()}'
+            + ' back=${fxBack.toString()}/$fxBackIndex walk=${(fxWalk : Int)}/$fxWalkAt/${fxWalkMove.toString()}/$fxWalkIndex');
+        fxOther.release();
+        fxBus.unlockChannelGroup();
         bystanderOut.release();
         bystanderIn.release();
 
