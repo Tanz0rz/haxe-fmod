@@ -506,6 +506,36 @@ if not plain or len(sanitized) < 2 or not local_plain or not local_sanitized or 
 else:
     ok(f"{len(plain) + len(local_plain)} plain loops name the {len(PLAIN_TESTS)} header tests, {len(sanitized) + len(local_sanitized)} sanitizer loops name all {len(NATIVE_TESTS)}")
 
+# The tests that need the SDK headers are also built one by one against
+# each SDK and compiler. A test left out of one of those steps loses
+# that compiler or that header set. dspparams names 2.03 parameters, so
+# the 2.02.33 step leaves it out. Every shared header is in the package
+# file list.
+def sdk_tests_built(pattern):
+    built = set()
+    for step in re.split(r"\n(?= {6}- )", text):
+        name = re.search(r"- name: ([^\n]+)", step)
+        if name and re.search(pattern, name.group(1)):
+            lines = "\n".join(line for line in step.split("\n") if not line.lstrip().startswith("#"))
+            built |= set(re.findall(r"tests[/\\]native[/\\]test_faxe_(\w+)\.c", lines))
+    return built
+per_sdk_missing = []
+for label, pattern, exempt in (("the gcc steps against this SDK's headers", r"against this SDK's headers$", set()),
+                               ("the Apple clang step", r"^Test native headers with Apple clang", set()),
+                               ("the MSVC step", r"^Test native headers with MSVC", set()),
+                               ("the 2.02.33 headers step", r"against the 2\.02\.33 headers$", {"dspparams"})):
+    missing = sorted(SDK_TESTS - exempt - sdk_tests_built(pattern))
+    if missing:
+        per_sdk_missing.append(f"{label} lacks {missing}")
+shared_headers = sorted(name for name in os.listdir(os.path.join(ROOT, "native", "shared")) if name.endswith(".h"))
+unlisted = [name for name in shared_headers if f'"native/shared/{name}"' not in text]
+if unlisted:
+    per_sdk_missing.append(f"the package file list lacks {unlisted}")
+if per_sdk_missing or len(SDK_TESTS) < 5:
+    fail(f"SDK header tests not built everywhere: {per_sdk_missing} ({len(SDK_TESTS)} SDK tests)")
+else:
+    ok(f"{len(SDK_TESTS)} SDK header tests build with gcc, Apple clang, MSVC and the 2.02.33 headers, {len(shared_headers)} shared headers are packaged")
+
 # 5. linux-html5-chromium requires a FAILING build against a doctored web SDK,
 # with pipefail, and verifies the version-mismatch banner. The check is
 # paired to the job, so a copy of the block elsewhere cannot mask its removal.
@@ -784,6 +814,17 @@ else:
         rest = re.sub(pattern.replace("{B}", base), "", rest, flags=re.M)
     if re.search(r"^" + base + r"(?:if|while|until|case|select|function|trap|exit|return)\b|^" + base + r"[({]|^" + base + r"(?=\S)[^\n]*(?:;|&&|\|\|)\s*exit\b|<<|^ *\w+\(\) *\{", rest, re.M):
         glibc_problems.append("wraps or leaves around the gate at its own indentation")
+    # A line that continues into the next one, a loop, an exec or a trap
+    # anywhere, a reassigned gate variable, or a shell other than the default
+    # each lets the step end clean around the gate
+    if re.search(r"^" + base + r"[^\n]*(?:&&|\|\||\||\\)[ \t]*$", body, re.M):
+        glibc_problems.append("continues a line into the next one")
+    if re.search(r"\b(?:for|exec|trap|alias|shopt)\b", rest):
+        glibc_problems.append("loops, execs, traps or aliases around the gate")
+    if re.search(r"^ *(?:export +)?(?:NEEDS|NEWEST|NAMED|PATH)=", rest, re.M):
+        glibc_problems.append("sets a gate variable or PATH outside the gate lines")
+    if re.search(r"^ +shell:", body, re.M) or re.search(r"^ +defaults:", hl_build, re.M) or re.search(r"^defaults:", text, re.M):
+        glibc_problems.append("runs under a shell other than the default")
     if not re.search(r"^    runs-on: ubuntu-24\.04$", hl_build, re.M):
         glibc_problems.append("does not build on the pinned ubuntu-24.04 image")
 if glibc_problems:

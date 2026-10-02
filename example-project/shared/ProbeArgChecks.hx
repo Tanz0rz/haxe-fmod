@@ -76,6 +76,19 @@ class ProbeArgChecks {
             && refused(Sound.create("", false, false, ChannelMode.OPENUSER | ChannelMode.CREATESTREAM, -1, decode)),
             'rate=$slowOk result=${StudioSystem.lastResult().toString()}');
 
+        // A 32 channel float stream wraps its decode buffer from 0x7FFFF8
+        // frames. The limit sits at half that for every channel count.
+        var decodeLast = user(4000);
+        decodeLast.decodeBufferSize = 0x3FFFFF;
+        var decodeLimit = user(4000);
+        decodeLimit.decodeBufferSize = 0x400000;
+        var lastStream = Sound.create("", false, false, ChannelMode.OPENUSER | ChannelMode.CREATESTREAM, -1, decodeLast);
+        var lastResult = StudioSystem.lastResult();
+        lastStream.release();
+        @:privateAccess state.check("argcheck_exinfo_decode_limit", !lastStream.isNull()
+            && refused(Sound.create("", false, false, ChannelMode.OPENUSER | ChannelMode.CREATESTREAM, -1, decodeLimit)),
+            'last=${lastResult.toString()} result=${StudioSystem.lastResult().toString()}');
+
         // FMOD's buffer size wraps on a length near 4 GB
         @:privateAccess state.check("argcheck_exinfo_user_length",
             refused(Sound.create("", false, false, ChannelMode.OPENUSER, -1, user(0xFFFFFFF0))),
@@ -198,8 +211,8 @@ class ProbeArgChecks {
     }
 
     /**
-     * Two bank unloads in one drain: Extras raises its record first, then
-     * releaseAllInstances destroys an instance of another bank's event.
+     * Extras raises a bank unload record. releaseAllInstances then
+     * destroys an instance of another bank's event in the same drain.
      * The Destroyed handler runs behind the unload record and reads the
      * instance's user data.
      */

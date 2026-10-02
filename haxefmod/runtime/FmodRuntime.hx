@@ -416,6 +416,9 @@ class FmodRuntime {
                 ready = false;
                 continue;
             }
+            // A default bank the game unloaded while it was loading is
+            // not waited for
+            if (!banks.isRegistered(path)) continue;
             // The registry's own warning stays quiet: the runtime reports
             // a default bank itself
             if (banks.loadingState(path, true) == FmodLoadingState.ERROR) {

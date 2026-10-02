@@ -594,6 +594,8 @@ class ApiProbeScenario implements TestScenario {
                 replayBank = StudioSystem.getBank(bankPath);
                 rounds++;
                 if (!replayBank.isNull()) break;
+                // A replay that reached its end has unloaded the bank
+                if (replay.getPlaybackState() == FmodPlaybackState.STOPPED) break;
                 #if sys
                 if (haxe.Timer.stamp() > deadline) break;
                 Sys.sleep(0.01);
@@ -2467,7 +2469,7 @@ class ApiProbeScenario implements TestScenario {
                 && haxefmod.studio.native.NativeStudio.debug_handle_is_live(gameHead), 'dsp=${(gameHead : Int)} inputs=$walkedAgain');
         }
         gameGroup.release();
-        check("dsp_dies_with_game_group", !haxefmod.studio.native.NativeStudio.debug_handle_is_live(gameHead)
+        check("dsp_dies_with_game_group", !gameHead.isNull() && !haxefmod.studio.native.NativeStudio.debug_handle_is_live(gameHead)
             && gameHead.getUserData() == null, 'dsp=${(gameHead : Int)}');
 
         root.unlockChannelGroup();

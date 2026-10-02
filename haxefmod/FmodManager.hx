@@ -25,6 +25,8 @@ class FmodManager {
     static var songInstance:EventInstance = EventInstance.NULL;
     static var CurrentSong:String = "";
     static var NextSong:String;
+    // Bumped by every song handler registration and every new song instance
+    @:allow(haxefmod.flixel.FmodFlxUtilities) static var songHandlerSerial:Int = 0;
 
     static var debug:Bool = false;
     static var initialized:Bool = false;
@@ -453,6 +455,7 @@ class FmodManager {
         instance.start();
         songInstance = instance;
         CurrentSong = songPath;
+        songHandlerSerial++;
     }
 
     /**
@@ -482,6 +485,7 @@ class FmodManager {
 
         log('PlaySongTransition $songPath');
         NextSong = songPath;
+        songHandlerSerial++;
         // The handler arms before the stop. A song already fading could
         // otherwise deliver its Stopped in the gap and never hand off.
         // The background update thread processes stops between any two
@@ -598,6 +602,7 @@ class FmodManager {
         ensureInitialized();
         // The new handler replaces a transition's own, so the pending song goes
         NextSong = null;
+        songHandlerSerial++;
         if (!songInstance.isNull()) songInstance.setCallback(handler, mask);
     }
 
@@ -608,6 +613,7 @@ class FmodManager {
     public static function OnceSongEvent(handler:EventCallbackData->Void, ?mask:Int):Void {
         ensureInitialized();
         NextSong = null;
+        songHandlerSerial++;
         if (songInstance.isNull()) return;
         var instance = songInstance;
         instance.setCallback(data -> {

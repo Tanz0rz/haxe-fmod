@@ -126,7 +126,11 @@ runs:
           # The Windows launcher is cmd.exe, and a signal to it leaves the
           # game behind. The game is the only hl.exe on the runner.
           case "$EXE" in ./run.cmd) taskkill //F //T //IM hl.exe >/dev/null 2>&1 || true;; esac
-          wait $GAME_PID 2>/dev/null || true
+          # The status of a game that left on its own is kept. A crash
+          # after the state printed its last line shows only there.
+          GAME_STATUS=0
+          wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+          [ "$ALIVE" = 0 ] || GAME_STATUS=killed
           [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -q "$GATE:" "$LOG_FILE"
         }
         if run_game; then
@@ -152,5 +156,9 @@ runs:
         fi
         if grep -q "pass=false" "$LOG_FILE"; then
           fail "$GATE reported failing checks"
+        fi
+        echo "game exit status: $GAME_STATUS"
+        if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then
+          fail "the game exited with status $GAME_STATUS after $GATE completed"
         fi
         echo "$GATE passed"

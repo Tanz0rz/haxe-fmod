@@ -3906,7 +3906,8 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
         if (faxe_argcheck_dsp_buffer(dspBufferLength)) {
             gCoreSystem->setDSPBufferSize((unsigned int)dspBufferLength, dspNumBuffers > 0 ? dspNumBuffers : 2);
         }
-        if (softwareChannels > 0) gCoreSystem->setSoftwareChannels(softwareChannels);
+        // A count past the limit keeps FMOD's default, like a refused setter
+        if (faxe_argcheck_software_channels(softwareChannels)) gCoreSystem->setSoftwareChannels(softwareChannels);
         if (streamBufferSize > 0) {
             gCoreSystem->setStreamBufferSize((unsigned int)streamBufferSize, FMOD_TIMEUNIT_RAWBYTES);
         }

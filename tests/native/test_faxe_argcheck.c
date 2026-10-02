@@ -44,9 +44,18 @@ static void test_exinfo_counts(void) {
     exinfo.numsubsounds = 0x3FFFFFFF;
     assert(faxe_argcheck_exinfo(&exinfo, FMOD_OPENUSER, 0) == 0);
 
+    /* 32 channels of 4 byte samples wrap the decode buffer from 0x7FFFF8 frames */
     exinfo = base();
-    exinfo.decodebuffersize = 0x00FFFFFF;
+    exinfo.decodebuffersize = 4096;
+    assert(faxe_argcheck_exinfo(&exinfo, FMOD_OPENUSER | FMOD_CREATESTREAM, 0) == 1);
+    exinfo.decodebuffersize = 0x003FFFFF;
     assert(faxe_argcheck_exinfo(&exinfo, FMOD_CREATESTREAM, 0) == 1);
+    exinfo.decodebuffersize = 0x00400000;
+    assert(faxe_argcheck_exinfo(&exinfo, FMOD_CREATESTREAM, 0) == 0);
+    exinfo.decodebuffersize = 0x007FFFF8;
+    assert(faxe_argcheck_exinfo(&exinfo, FMOD_OPENUSER | FMOD_CREATESTREAM, 0) == 0);
+    exinfo.decodebuffersize = 0x00FFFFFF;
+    assert(faxe_argcheck_exinfo(&exinfo, FMOD_OPENUSER | FMOD_CREATESTREAM, 0) == 0);
     exinfo.decodebuffersize = 0x01000000;
     assert(faxe_argcheck_exinfo(&exinfo, FMOD_CREATESTREAM, 0) == 0);
     exinfo.decodebuffersize = 0x3FFFFFFF;
@@ -125,7 +134,7 @@ static void test_exinfo_frequency(void) {
 static void test_record_length(void) {
     assert(faxe_argcheck_record_length(48000, 2, 1) == 192000u);
     assert(faxe_argcheck_record_length(44100, 1, 10) == 882000u);
-    /* 3 hours wraps 32 bits */
+    /* 11185 seconds is the first whole second past the limit. 22370 seconds wraps 32 bits. */
     assert(faxe_argcheck_record_length(48000, 2, 11185) == 0);
     assert(faxe_argcheck_record_length(48000, 2, 22370) == 0);
     assert(faxe_argcheck_record_length(1073741820, 2, 1) == 0);
@@ -176,6 +185,21 @@ static void test_dsp_buffer(void) {
     assert(faxe_argcheck_dsp_buffer(0x7FFFFFFF) == 0);
 }
 
+static void test_software_channels(void) {
+    assert(faxe_argcheck_software_channels(0) == 0);
+    assert(faxe_argcheck_software_channels(-1) == 0);
+    assert(faxe_argcheck_software_channels(64) == 1);
+    assert(faxe_argcheck_software_channels(4096) == 1);
+    assert(faxe_argcheck_software_channels(0x00100000) == 1);
+    assert(faxe_argcheck_software_channels(0x00100001) == 0);
+    /* 2.02.33 crashes from here */
+    assert(faxe_argcheck_software_channels(10956550) == 0);
+    /* 2.03.12 crashes from here */
+    assert(faxe_argcheck_software_channels(0x20000000) == 0);
+    assert(faxe_argcheck_software_channels(0x7FFFFFFF) == 0);
+    assert(faxe_argcheck_software_channels((int)0x80000000u) == 0);
+}
+
 int main(void) {
     test_exinfo_counts();
     test_exinfo_file_buffer();
@@ -184,6 +208,7 @@ int main(void) {
     test_record_length();
     test_indexes();
     test_dsp_buffer();
+    test_software_channels();
     printf("faxe_argcheck: all tests passed\n");
     return 0;
 }

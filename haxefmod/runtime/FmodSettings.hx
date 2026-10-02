@@ -114,6 +114,7 @@ typedef FmodSettings = {
     /**
      * Real (audible) voices the mixer runs at once (System::setSoftwareChannels).
      * Voices past this cap go virtual. Default 0 (FMOD's default, 64).
+     * A count above 1048576 keeps FMOD's default.
      */
     @:optional var softwareChannels:Int;
 

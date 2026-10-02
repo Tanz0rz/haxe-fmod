@@ -4340,7 +4340,8 @@ HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMod
             FMOD_System_SetDSPBufferSize(gCoreSystem, (unsigned int)dspBufferLength,
                 dspNumBuffers > 0 ? dspNumBuffers : 2);
         }
-        if (softwareChannels > 0) FMOD_System_SetSoftwareChannels(gCoreSystem, softwareChannels);
+        /* A count past the limit keeps FMOD's default, like a refused setter */
+        if (faxe_argcheck_software_channels(softwareChannels)) FMOD_System_SetSoftwareChannels(gCoreSystem, softwareChannels);
         if (streamBufferSize > 0) {
             FMOD_System_SetStreamBufferSize(gCoreSystem, (unsigned int)streamBufferSize, FMOD_TIMEUNIT_RAWBYTES);
         }

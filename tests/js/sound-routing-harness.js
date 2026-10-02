@@ -133,6 +133,18 @@ async function main() {
         check('exinfo_user_stream_refused', refused(OPENUSER | CREATESTREAM, slowStream)
             && refused(OPENUSER | CREATESTREAM, wrappedRate) && refused(OPENUSER | CREATESTREAM, decode), '');
         check('exinfo_negative_rate_refused', refused(OPENUSER, negativeRate), '');
+        // A 32 channel float stream wraps its decode buffer from 0x7FFFF8
+        // frames. The limit sits at half that for every channel count.
+        const decodeAt = (frames, channels, format) => {
+            const ints = user(4000); ints[2] = channels; ints[4] = format; ints[5] = frames;
+            return ints;
+        };
+        const decodeLast = jaxe.fmod_core_create_sound_ex('', OPENUSER | CREATESTREAM, decodeAt(0x003FFFFF, 2, 2), '', '', '');
+        const decodeLastResult = jaxe.fmod_sys_last_result();
+        if (decodeLast > 0) jaxe.fmod_core_release_sound(decodeLast);
+        check('exinfo_decode_limit', decodeLast > 0
+            && refused(OPENUSER | CREATESTREAM, decodeAt(0x00400000, 2, 2))
+            && refused(OPENUSER | CREATESTREAM, decodeAt(0x00FFFFFF, 32, 5)), `last=${decodeLastResult}`);
         check('exinfo_user_length_refused', refused(OPENUSER, user(0xFFFFFFF0 | 0)) && refused(OPENUSER, user(0x7FFF0000)), '');
         const negativeMemory = jaxe.fmod_core_create_sound_memory_ex(wavForExinfo(), 64, 0, negativeSubs, '', '', '');
         check('exinfo_memory_refused', negativeMemory === 0 && jaxe.fmod_sys_last_result() === ERR_INVALID_PARAM,

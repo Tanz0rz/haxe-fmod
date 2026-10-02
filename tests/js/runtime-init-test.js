@@ -102,5 +102,6 @@ runMode('missing');
 runMode('provided');
 runMode('refused');
 runMode('staggered');
+runMode('unloadinit');
 console.log(fails === 0 ? 'RUNTIME_INIT_TEST: ALL MODES COMPLETE' : 'RUNTIME_INIT_TEST: FAILED');
 process.exit(fails === 0 ? 0 : 1);

@@ -1,8 +1,10 @@
 /**
  * Argument checks the haxefmod native shims run before FMOD sees a value
  * that FMOD does not check itself. FMOD crashes, or writes outside its
- * own memory, on every value these refuse. jaxe.js mirrors each check,
- * where a refused value traps the wasm module instead.
+ * own memory, on the values these refuse. The user length, decode
+ * buffer, mixer block, and software channel limits also refuse a margin
+ * below the crash. jaxe.js mirrors
+ * each check, where a refused value traps the wasm module instead.
  *
  * The limits were measured on FMOD 2.03.12 and 2.02.33. Both behave the
  * same on every value here.
@@ -15,10 +17,16 @@
 
 /* Both shims include the FMOD headers before this one. */
 
-/* FMOD sizes a subsound table and a decode buffer in 32 bits. A count
- * from this limit up can wrap that size, and FMOD then writes past the
- * allocation. */
+/* FMOD sizes a subsound table in 32 bits. A count from this limit up
+ * can wrap that size, and FMOD then writes past the allocation. */
 #define FAXE_ARGCHECK_COUNT_LIMIT 0x01000000u
+
+/* FMOD sizes the decode buffer of a user stream as about four blocks of
+ * decodebuffersize sample frames in 32 bits. With 32 channels of 4 byte
+ * samples that size wraps from 0x7FFFF8 frames up, and FMOD then writes
+ * past the allocation. The limit is half that, which holds for every
+ * channel count and format FMOD takes. */
+#define FAXE_ARGCHECK_DECODE_LIMIT 0x00400000u
 
 /* FMOD adds its own header to the byte length of a user sample. A length
  * from 0x7FFFFFB0 up overflows that sum and crashes the create, and one
@@ -34,6 +42,12 @@
  * initialize crashes. */
 #define FAXE_ARGCHECK_DSP_BUFFER_LIMIT 0x01000000u
 
+/* The largest software channel count the shims hand FMOD. FMOD sizes its
+ * channel pool in 32 bits, and the initialize crashes from 0x20000000
+ * channels up on 2.03.12 and from 10956550 up on 2.02.33. The limit
+ * keeps a wide margin. */
+#define FAXE_ARGCHECK_SOFTWARE_CHANNELS_LIMIT 0x00100000u
+
 /* The FMOD_CREATESOUNDEXINFO fields a create hands FMOD. mode is the full
  * create mode. decodeMs is the core system's defaultDecodeBufferSize, 0
  * for FMOD's default. A user stream with no decode buffer of its own
@@ -43,7 +57,7 @@ static int faxe_argcheck_exinfo(const FMOD_CREATESOUNDEXINFO* exinfo, FMOD_MODE 
     /* A negative subsound count reads as a huge one here */
     if ((unsigned int)exinfo->numsubsounds >= FAXE_ARGCHECK_COUNT_LIMIT) return 0;
     if (exinfo->filebuffersize < -1) return 0;
-    if (exinfo->decodebuffersize >= FAXE_ARGCHECK_COUNT_LIMIT) return 0;
+    if (exinfo->decodebuffersize >= FAXE_ARGCHECK_DECODE_LIMIT) return 0;
     if (exinfo->defaultfrequency < 0) return 0;
     if (!(mode & FMOD_OPENUSER)) return 1;
     if (!(mode & FMOD_CREATESTREAM)) return exinfo->length < FAXE_ARGCHECK_USER_LENGTH_LIMIT;
@@ -93,6 +107,12 @@ static int faxe_argcheck_thread_type(int type) {
  * and is no request. */
 static int faxe_argcheck_dsp_buffer(int length) {
     return length > 0 && (unsigned int)length <= FAXE_ARGCHECK_DSP_BUFFER_LIMIT;
+}
+
+/* A software channel count the initialize can take. 0 keeps FMOD's
+ * default and is no request. */
+static int faxe_argcheck_software_channels(int count) {
+    return count > 0 && (unsigned int)count <= FAXE_ARGCHECK_SOFTWARE_CHANNELS_LIMIT;
 }
 
 #endif /* FAXE_ARGCHECK_H */

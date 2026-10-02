@@ -200,6 +200,14 @@ class TestSongMachine {
 		NativeStudioStub.testReleasedHandles.push(handleC);
 		FmodManager.Update();
 		assert("a song handler set during the fade cancels the pending song", FmodManager.GetCurrentSongPath() != "event:/D");
+
+		var handleE = playSong("event:/E");
+		NativeStudioStub.testPlaybackStateQueue = [0, 4];
+		FmodManager.PlaySongTransition("event:/F");
+		FmodManager.OnceSongEvent(function(_) {});
+		NativeStudioStub.testReleasedHandles.push(handleE);
+		FmodManager.Update();
+		assert("a once song handler set during the fade cancels the pending song", FmodManager.GetCurrentSongPath() != "event:/F");
 	}
 
 	static function testTransitionDirectHandoff() {

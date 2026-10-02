@@ -1454,7 +1454,7 @@ typedef FmodCreateSoundExInfo = {
     @:optional var defaultFrequency:Int;
     /** Sample format of raw PCM (ChannelMode.OPENRAW). */
     @:optional var format:FmodSoundFormat;
-    /** Decode buffer size in samples for a stream. */
+    /** Decode buffer size in samples for a stream. A size of 0x400000 samples or more is a bad argument. */
     @:optional var decodeBufferSize:Int;
     /** The subsound an FSB or multi-stream file starts on. */
     @:optional var initialSubsound:Int;

@@ -94,7 +94,7 @@
 - `setDelay` on `Channel` and `ChannelGroup` defaults `stopChannels` to `true`, matching FMOD. Pass `false` to keep the earlier pause-at-end behavior.
 - `CommandReplay.seekToTime` takes seconds as a `Float`, the unit FMOD uses and the one `getLength` and `getCurrentCommand` already report. Code that passed milliseconds now seeks a thousand times too far. `seekToTimeMs` keeps the millisecond form as a deprecated alias.
 - Event callbacks deliver FMOD's structs instead of loose arguments: `TimelineMarker(properties)`, `TimelineBeat(properties)`, and `NestedTimelineBeat(properties)` each carry the typedef of the FMOD struct (`FmodTimelineMarkerProperties`, `FmodTimelineBeatProperties`, `FmodTimelineNestedBeatProperties`). `PluginCreated`, `PluginDestroyed`, `ProgrammerSoundCreated`, and `ProgrammerSoundDestroyed` replace the `Other(type)` delivery for their types. A `case TimelineBeat(bar, beat, _, _, _, _)` pattern becomes `case TimelineBeat(beat)` reading `beat.bar` and `beat.beat`, `positionMs` is `position`, and `timeSigUpper` and `timeSigLower` are `timeSignatureUpper` and `timeSignatureLower`.
-- `Dsp.getMetering` and `getInputMetering` return `FmodDspMeteringInfo`, whose fields are FMOD's `numSamples`, `peakLevel`, `rmsLevel`, and `numChannels`.
+- `Dsp.getMetering` returns `FmodDspMeteringInfo`, whose fields are FMOD's `numSamples`, `peakLevel`, `rmsLevel`, and `numChannels`.
 - `EventDescription.getUserProperty` takes the property name, as FMOD's does. The index form is `getUserPropertyByIndex(index)`, and `getUserPropertyByName` stays as the same lookup by name.
 - `setLoopPoints` and `getLoopPoints` on `Sound` and `Channel` take a unit per point, `loopStartType` then `loopEndType`. A missing `loopEndType` follows `loopStartType`. The result fields are `loopStart` and `loopEnd` in place of `startMs` and `endMs`.
 - `Sound.addSyncPoint` returns the new `FmodSyncPoint` (`FmodSyncPoint.NULL` on failure, with the result in `StudioSystem.lastResult`) in place of an `FmodResult`. `Sound.deleteSyncPoint` takes a `FmodSyncPoint`, and an `Int` index still converts. `getSyncPointName` and `getSyncPointOffset` are deprecated in favor of `getSyncPointInfo`.
@@ -114,10 +114,10 @@
 ### Removed
 - `EventCallbackType.PLAYBACK_ALL`, a haxefmod-only member that FMOD's enum does not have. Pass `EventCallbackType.ALL` or an explicit mask.
 - `FmodManager.SetWindowFocused` and `IsWindowFocused`. They are `FmodRuntime.setWindowFocused` and `isWindowFocused` now. Reporting focus is engine plumbing, which the setup calls for HaxeFlixel, Heaps, and Kha already do at the runtime layer. `FmodManager.SetMuteWhenUnfocused`, the game-facing choice, stays.
-- The `peak` and `rms` fields of the `Dsp.getMetering` and `getInputMetering` result. Read `peakLevel` and `rmsLevel` on `FmodDspMeteringInfo`.
+- The `peak` and `rms` fields of the `Dsp.getMetering` result. Read `peakLevel` and `rmsLevel` on `FmodDspMeteringInfo`.
 
 ### Fixed
-- `FmodFlxUpdater.init` and `FmodFlxSetup.init` add their signal handlers without a remove first. A component created inside a flixel callback dropped the update hook for the rest of the session. `FmodHeapsUpdater` keeps one browser loop after `removeHook` and `init` inside a frame.
+- `FmodFlxUpdater.init` and `FmodFlxSetup.init` add their signal handlers without a remove first. A component created inside a flixel callback dropped the update hook for the rest of the session.
 - The HTML5 shim deletes an embind wrapper when its handle is freed and drops the out parameter it never keeps. The wasm heap no longer grows with every lookup.
 - A programmer sound instance tracks one shim-created sound per live instrument. Overlapping instruments on one instance leaked sounds and their handle slots before.
 - `unloadAll` reclaims bank handle slots, so a stale bank handle cannot resolve onto a reloaded bank at the same address.
@@ -139,7 +139,6 @@
 - An HTML5 bank load with no free handle slot unloads the bank again, like the C shims.
 - A bank loaded under two spellings of its path shares one registry entry. An unload of one spelling no longer pulls the bank from under the other.
 - Two default banks with one file name in different folders are provided apart. The provided bytes are keyed by bank path.
-- `FmodKhaUpdater` runs `FmodManager.Update` once per frame when it is reinstalled from inside its own tick.
 - `FmodFlxPreloader` shows the failure text once the stage has a size. The failure clock runs either way, so the game starts.
 - A bank loader created after FMOD refused to initialize runs `onError` once. It never called back before.
 - A registry entry shared by two spellings of a path is replaced in place when its bank died. Every spelling follows the reload.
@@ -150,14 +149,10 @@
 - `IsSnapshotActive` ignores an instance that stopped and awaits its release.
 - The focus mute records the mute only when FMOD accepted it, so a refused mute is retried.
 - An HTML5 list getter drops the wrapper of an entry the full handle table refused, and reports `FMOD_ERR_MEMORY`.
-- The Heaps position of an object without drawable extent is its scene position. It was the local position before.
-- The Heaps scene listener sits under the viewport center, with the viewport size, anchor, scale, and rotation applied.
 - The flixel camera listener skips a destroyed camera instead of faulting on its null scroll.
 - Every HTML5 path that cannot seat a handle drops the wrapper it holds.
 - The focus mute retries on every update. A mute refused during a late init lands once the master group exists.
 - `FmodGuid.data1` wraps to the Int range on HTML5 like the native targets.
-- The Kha blob name of a bank path with backslashes is its file name.
-- `setTarget(null)` on the Heaps and Kha listeners, and `setScene(null)` on the Heaps one, leave the listener idle.
 - A direct `FlxG.sound.muted` assignment reaches the FMOD master bus on the next frame. Only the signal path did before.
 - A dead HTML5 instance found by the list lookup takes its cached channel group handle along.
 - A `Channel` handle whose channel ended on its own is reclaimed. The end callback, the next channel play, or a pool lookup frees it. It held its slot for the process before.
@@ -172,16 +167,12 @@
 - A plugin instrument's handle is freed when FMOD destroys the effect, whatever mask the game set before or after. A destroy record the queue dropped on overflow still frees its handle, before the next drain reads a record. On C++ and HashLink an instance records up to 64 live plugin instruments.
 - `Sound.release` on a library-created programmer sound and `Dsp.release` on a plugin instrument's effect are refused with `FMOD_ERR_INVALID_PARAM`. Both released an object FMOD still owned before.
 - A refused core release keeps the handle's user data, and a refused `ChannelGroup.release` keeps its callback. The entry went before the native call before.
-- A subsound taken from a library-created programmer sound is owned like its parent and its handle dies with it. It resolved a later sound at the same address before. `Sound.release` on an owned sound returns before it mints subsound handles, through the `core_sound_is_owned` binding.
 - A subsound handle taken from a sound whose destroy record the queue dropped is freed with its parent. The subsound walk reaches a subsound of a subsound. A release FMOD answers with `FMOD_ERR_INVALID_HANDLE` frees the handle slot on every object kind. `Bank.unload` and `CommandReplay.release` drop their entries once FMOD accepted the call.
-- A programmer sound the library releases with its instance has its custom rolloff detached first. That covers the sound and its subsounds. The points were freed under FMOD before.
 - A `PcmStream` release FMOD answers with `FMOD_ERR_INVALID_HANDLE` frees the stream and its slot, like the other releases.
 - `haxelib run haxefmod verify-native` holds the C++ header to the manifest as well. A definition without its declaration compiled the shim and failed the game link. A definition or declaration inside a comment counts for nothing, in every shim.
 - The HTML5 handle lookup that recycles a dead instance slot forgets that instance's callback state, like the dead-lookup sweep.
 - `StudioSystem.unloadAll` drops the user data and the handlers once FMOD accepted the unload. A refused call, before the system is up, wiped them while every bank stayed.
-- `Sound.lock` on a sound the library owns is refused, since the library releases that sound on its own.
 - The library releases a programmer sound it created on the game thread, as the destroy record drains. The subsound handles and the sound's own handle go with it. The sound therefore lives until the next `FmodManager.Update`. The callback released it on FMOD's thread before, while the handle still resolved for up to a frame.
-- `Sound.release` collects the subsound handles of any count. A list of 1024 left the rest of a larger FSB resolving freed sounds.
 - The HTML5 `unloadAll`, `Bank.unload`, and `releaseAllInstances` put every callback back when FMOD refuses the call. The sweep runs first, so the instances FMOD took anyway are out before any callback goes back. An HTML5 `ChannelGroup.release` FMOD refuses keeps the group's channel callback mapping.
 - A `PcmStream` read callback removed last takes the frame hook with it.
 - Only a channel group made with `create` can be released. The master group, a bus's group, and an instance's group refuse with `FMOD_ERR_INVALID_PARAM` and keep their handle. So does a group first reached through a walk. FMOD answers `FMOD_ERR_INVALID_HANDLE` for the master and keeps it, and frees a bus's or an instance's group under Studio. The channel group's slot, its rolloff array, and its callback went while the group lived. The master sound group refuses the same way.
@@ -193,17 +184,15 @@
 - Every bulk destroy drops the handler and user data of each channel group that died with it. That covers a bank unload, a release of every instance, and `unloadAll`. The DESTROYED record drops them for an instance FMOD tore down on its own. The native shims clear the bank path stash whenever the studio mask loses the unload bit.
 - A Kha macOS link has no header room for one more load command. The stage command rewrites the SDK search path the link wrote as `@executable_path`, and never a path the game needs. `package.sh` refuses a release whose hdlls are behind the tree.
 - A handle slot at its last generation retires, so a retained stale handle never resolves again. `EventInstance.release` drops the handler and user data of the group the instance handed out. A refused release keeps every entry. `Bus.unlockChannelGroup` reads which group handles still resolve through a new `debug_handle_is_live` binding. No handle is minted and the last result stays. The HTML5 bank path cache walks every loaded bank.
-- `Sound.fromMemory` ignores `NONBLOCKING` on the native targets and loads inside the call. FMOD read the caller's buffer from its loader thread after the call returned. `Sound.create` with `exinfo.fsbGuid` ignores the flag too. FMOD wrote the GUID into a stack frame that was gone.
 - `StudioSystem.unloadAll` keeps the system userdata. FMOD keeps its own value across the call.
-- `Sound.fromMemory` with `ChannelMode.CREATESTREAM` or `ChannelMode.OPENONLY` reads from a copy the library keeps. FMOD streamed from the game's buffer after the call returned. The buffer is free after the call in every mode.
 - A handle reached through another handle dies with that handle. That covers an instance's group, a walked channel group, a group's or channel's DSP, a channel's sound, and a DSP graph walk. `release` refuses it. An instance's group handle dies at the instance's `release()`. A walked group handle outlived its event instance before, and answered for a new group at the same address.
 - `Sound.getSubSoundParent` on an event's sound returns a borrowed handle. A sound the game created keeps returning its own parent handle. A walk or a `getChannelGroup` call from another instance or bus replaces a walked group handle. That call gets a fresh handle with no user data. A short-lived borrowed DSP, sound, or group takes the lifetime of a longer-lived handle that reaches it later.
-- `extension/package.py --unpacked` copies every file the manifest names.
 - `Dsp.getFftSpectrum` and `getFftSpectrumInfo` read another unit's data parameter as a spectrum and could crash. They now return null for a unit without an FFT spectrum.
-- A data parameter write crashed inside FMOD or let FMOD read past the payload. Three cases now return `FMOD_ERR_INVALID_PARAM`. The first is a unit with no parameters, such as a mixer. The second is a convolution reverb's impulse response with a channel count of 0 or above 32. The third is a sidechain or finite length payload under 4 bytes. The typed data writers (`setParameterSidechain`, `setParameterFiniteLength`, `setParameterAttenuationRange`, `setParameter3DAttributes`, `setParameter3DAttributesMulti`) refuse a parameter of another data type the same way.
+- A `Dsp.setParameterData` write crashed inside FMOD or let FMOD read past the payload. Three cases now return `FMOD_ERR_INVALID_PARAM`. The first is a unit with no parameters, such as a mixer. The second is a convolution reverb's impulse response with a channel count of 0 or above 32. The third is a sidechain or finite length payload under 4 bytes.
 - `FmodManager.PlaySongTransition` starts the next song when the fading song's bank unloads during the fade. `FmodFlxUtilities.TransitionToStateAndStopMusic` switches state in the same case. FMOD sends no stop event for a song that a bank unload destroys, and both waited for one.
 - A negative label index in `getParameterLabel` and an index below -3 in `Channel.getDsp` crashed inside FMOD. Both now return `FMOD_ERR_INVALID_PARAM`.
-- A command replay unloads the banks it loaded when it stops or ends. The handles into those banks die at the update that delivers the unload. Their user data and callbacks go with them. A bus channel group handle read freed memory before.
+- HTML5 initialization finishes when the game unloads a default bank that is still downloading. It waited for that bank forever before.
+- A command replay unloads the banks it loaded when it stops or ends. The handles into those banks die at the update that delivers the unload. Their callbacks go with them. A bus channel group handle read freed memory before.
 - `FmodManager.Todo` with `-D haxefmod_todo_beep` plays its beep only once FMOD is initialized. It initialized FMOD with default settings before, and a later `Initialize(settings)` lost its settings.
 - `StudioSystem.loadBankFile` passes `DECOMPRESS_SAMPLES` and `UNENCRYPTED` to FMOD. It kept `NONBLOCKING` alone.
 - `FmodFlxListener` measures its automatic cut distance in world units. A zoomed camera read a jump of one view width as movement. That movement gave a doppler spike.
@@ -216,7 +205,6 @@
 - The dead channel sweep reclaims a channel that ended and reports not playing. The slot waited for FMOD to reuse the voice before.
 - An event instance's channel group lookup frees another instance's dead slot at the same address before minting.
 - The C++ and HashLink shims sweep their dead lookup slots after a refused `unloadAll` too. The refused call can have unloaded some banks. A stale slot at a reused address aliased a new bus, VCA, event, or bank before. The HTML5 shim drops the MEMFS copy of every bank that died in a refused `unloadAll`.
-- A `Sound.release` or `ChannelGroup.release` FMOD refuses leaves the lock, the custom rolloff, and the subsound handles as they were. They were torn down before the call.
 - The build, the doctor, and the build check fail on an install whose native manifest has no readable ABI header. They skipped the hdll gate without a word before.
 - `ChannelGroup.getParentGroup` on the master group and `Channel.getCurrentSound` on a channel from `playDSP` report no object on HTML5. They minted a handle around a null pointer before.
 - The HTML5 shim drops the wrappers it reads for their pointers only. That covers a bank unload, the callback uninstall, the sub sound parent lookups, and a released `PcmStream`.
@@ -224,16 +212,11 @@
 - `EventDescription.createInstance` on HashLink reports `FMOD_ERR_MEMORY` when the instance context cannot attach, like the C++ backend.
 - `haxelib run haxefmod generate` reports a strings bank with LIST chunks nested deeper than 32 levels as corrupt instead of overflowing the stack.
 - The launcher scripts `run.sh` and `run.cmd` are rewritten when their content changed. A fix to them reaches an existing build directory.
-- The Heaps browser loop keeps running after a ticker threw. The error still reaches the console.
 - The C++ and HTML5 FFT spectrum readers clamp to the list maximum like the HashLink one.
 - The C++ auto-update thread resets its flag when the thread cannot start, so `update()` ticks FMOD from the game thread.
-- The docs extension and the userscript run on the FMOD 2.03 API reference only. They mark HTML5 support per method instead of per page. They find a function heading past any number of siblings, and touch only the containers they read. `extension/package.py` derives its file list from the manifest and has a `--check` mode.
 - The FMOD Studio export script reports a missing model class, an empty project, and an unwritable folder. Its dialog takes the same package name as `generate --package`.
 - The HTML5 autoplay gate resumes the mixer after the system is initialized. `StudioSystem.setParameter`, `getParameter`, `getParameterFinal`, and `setParameterWithLabel` take the generated `parameter:/` paths too. `FmodRuntime.setDebugLevel` reaches native FMOD at once on native targets.
-- `docs/coverage.md` ends with the functions the library leaves out and the reason for each.
-- `FmodKhaUpdater` runs its frame task at priority 100, after the game's own tasks. Kha runs frame tasks in ascending priority order, so the earlier priority 0 sampled positions a frame late.
 - The Heaps and Kha emitters and `PlayOneShotAttached` sample the target before the first push. An event no longer starts at the world origin for its first mix block.
-- `FmodKhaSetup.init` rewires the application state listeners with remove-then-add, like the Flixel and Heaps setups.
 - The HTML5 autoplay gate listens for `click`, `keydown`, `pointerdown`, and `touchstart` in the capture phase from script load. A gesture made during the loading screen now counts, and audio resumes once the module is ready. Before, only a click after initialization did.
 - `autoUpdate: false` works on HTML5. `FmodRuntime.update` ticks FMOD there in manual mode, so a game that drives FMOD from its own loop is serviced.
 - A bank whose load ends in error is traced once, naming the path and where the browser fetches it from. `FmodManager.AnyBankFailed()` reports the same state, and a default bank failure reaches `FmodManager.InitializeFailed()`.
@@ -241,14 +224,12 @@
 - `BuildCheck.verify` runs for every hl, cpp, and js build that invokes the macro. Before, a plain haxe build without a lime, heaps, or kha define skipped the check. It shipped a game with no audio.
 - The build check, the postbuild error messages, and `build-hdll` read the expected FMOD version from the library. A literal held it before. The web SDK gate compares versions as numbers. The postbuild error names the symptom of the target being built. `todos` rejects an unknown option or a missing directory instead of scanning the working directory.
 - The native shims release the programmer sound they created when `clearProgrammerSound` runs before the instance ends. Before, the clear unsubscribed the callback that released it.
-- `BankUnload` carries paths of 64 bytes and more on native targets (the stash held 63). `unloadAll` reports every bank instead of the first 32.
-- The HTML5 shim returns 0.0 instead of an error code from the parameter getters given a non-string name. It rejects a null or oversized buffer in `loadBankMemory` and bounds the inclusion list it hands FMOD. It reports `FMOD_ERR_MEMORY` when the handle table is full and truncates callback strings at the native limits. It resolves the instance of a core `Error` callback and uninstalls a callback it no longer needs. Bank paths are cached for `BankUnload` only while a system callback subscribes to it.
+- The HTML5 shim returns 0.0 instead of an error code from the parameter getters given a non-string name. It rejects a null or oversized buffer in `loadBankMemory` and bounds the inclusion list it hands FMOD. It reports `FMOD_ERR_MEMORY` when the handle table is full and truncates callback strings at the native limits. It resolves the instance of a core `Error` callback and uninstalls a callback it no longer needs.
 - The bank, bus, VCA, and instance list getters skip a handle that could not be minted on HashLink and HTML5. The C++ backend already did, so a list never carries a zero handle.
 - The record window size in the PCM shims is computed in unsigned arithmetic. `dsp_get_param_typed` clears its scratch slots on failure, and `dsp_get_metering` clamps to 32 channels. The custom rolloff setters report `FMOD_ERR_MEMORY` on every backend.
 - `faxe_dspdata.h` compiles on its own. Three duplicated function bodies inside its include guards are gone.
 - `Bank.unload` drops the userdata and the description-level callbacks of the bank's event descriptions, and `StudioSystem.unloadAll` drops the instance callbacks too. Before, a dead level's handler stayed registered under a handle int a later bank reused.
 - A channel that ends by itself drops its userdata entry. A channel callback that throws no longer stops the rest of the frame's queue.
-- `Sound.release` drops the userdata of the subsounds that die with the parent.
 - `StudioSystem.lookupID` returns `FmodGuid.NULL` on failure, the value `FmodGuid` documents, instead of an empty string.
 - `FmodManager.SetAutoUpdate(false)` after init left FMOD unserviced. The runtime kept skipping its manual `update()` call because the resolved setting still said auto. The setting now follows the call.
 - A `.haxefmod/hlaxe_fmod.version` marker with no `hlaxe_fmod.hdll` next to it made PostBuild and `check` report a matching custom hdll. They then shipped the pre-built hdll for another FMOD version. The marker now counts only with the hdll present.
@@ -262,7 +243,6 @@
 - `haxelib run haxefmod todos` no longer swallows a method chained after a regex literal while skipping the regex flags.
 - Pointing `FMOD_SDK` at the HTML5 FMOD Engine package (or `FMOD_SDK_WEB` at a desktop one) now fails the build. The message names the swapped packages. Previously a native build got as far as copying libraries and died with an uncaught exception on macOS and Windows. Both packages ship the same `api/core/inc` headers, so the check is the platform's own core library rather than a header.
 - A desktop FMOD SDK missing the libraries for the platform being built now reports the missing file with setup instructions. Before, that was an uncaught exception. Linux already did this, and macOS and Windows now match.
-- **Docs extension**: lone example blocks on pages with a language selector no longer get an added tab strip. The site's own tabs already govern every language-classed block on the page. The Haxe translation now joins that toggle and shows when Haxe is picked at the top. Previously each lone block grew its own strip. An example repeated once per language showed orphaned strips over hidden code, and picking Haxe stacked identical snippets. Added strips remain only on guide and platform pages, which have no selector to extend. Example translations were also re-reviewed against the site's own snippets. Invented file names, values, and setup lines are gone, and each fence mirrors the snippet's data and shape.
 
 ## 2.0.0 (2026-08-27)
 

@@ -3063,15 +3063,21 @@ class jaxe {
         return exinfo;
     }
 
-    // Mirrors faxe_argcheck.h. FMOD sizes a subsound table and a decode
-    // buffer in 32 bits, and a count from this limit up can wrap them.
+    // Mirrors faxe_argcheck.h. FMOD sizes a subsound table in 32 bits,
+    // and a count from this limit up can wrap it.
     static ARGCHECK_COUNT_LIMIT = 0x01000000;
+    // A user stream decode buffer of 32 channels of 4 byte samples wraps
+    // its 32 bit size from 0x7FFFF8 frames up. The limit is half that.
+    static ARGCHECK_DECODE_LIMIT = 0x00400000;
     // A user sample length from here up overflows FMOD's buffer size
     static ARGCHECK_USER_LENGTH_LIMIT = 0x7FFF0000;
     // FMOD's defaultDecodeBufferSize when the settings leave it at 0, in ms
     static ARGCHECK_DEFAULT_DECODE_MS = 400;
     // The largest mixer block FMOD initializes with
     static ARGCHECK_DSP_BUFFER_LIMIT = 0x01000000;
+    // The largest software channel count the native shims hand FMOD. The
+    // web build takes the same range.
+    static ARGCHECK_SOFTWARE_CHANNELS_LIMIT = 0x00100000;
     // FMOD_CHANNELCONTROL_DSP_TAIL, the lowest DSP chain index FMOD takes
     static ARGCHECK_DSP_TAIL = -3;
     // FMOD_SPEAKER_MAX
@@ -3079,7 +3085,8 @@ class jaxe {
 
     // Mirrors faxe_argcheck_exinfo on the packed int slots. length is the
     // byte count the create hands FMOD. FMOD traps the wasm module on
-    // every value refused here.
+    // the values refused here, apart from the margins below the user
+    // length and decode buffer limits.
     static exInfoOk(ibuf, length, mode) {
         // A negative subsound count reads as a huge one here
         var numSubsounds = ibuf[7] >>> 0;
@@ -3087,7 +3094,7 @@ class jaxe {
         var defaultFrequency = ibuf[3] | 0;
         if (numSubsounds >= jaxe.ARGCHECK_COUNT_LIMIT) return false;
         if ((ibuf[12] | 0) < -1) return false;
-        if (decodeBufferSize >= jaxe.ARGCHECK_COUNT_LIMIT) return false;
+        if (decodeBufferSize >= jaxe.ARGCHECK_DECODE_LIMIT) return false;
         if (defaultFrequency < 0) return false;
         if ((mode & 0x00000400 /* OPENUSER */) == 0) return true;
         if ((mode & 0x00000080 /* CREATESTREAM */) == 0) return (length >>> 0) < jaxe.ARGCHECK_USER_LENGTH_LIMIT;
@@ -6394,7 +6401,10 @@ class jaxe {
     // default in place. The harnesses call this against their own core.
     static applyPendingCoreSettings(core, init) {
         if (!init) return;
-        if (init.softwareChannels > 0) core.setSoftwareChannels(init.softwareChannels);
+        // A count past the limit keeps the default, as on native
+        if (init.softwareChannels > 0 && init.softwareChannels <= jaxe.ARGCHECK_SOFTWARE_CHANNELS_LIMIT) {
+            core.setSoftwareChannels(init.softwareChannels);
+        }
         if (init.streamBufferSize > 0) core.setStreamBufferSize(init.streamBufferSize, jaxe.FMOD.TIMEUNIT_RAWBYTES);
     }
 
@@ -6499,7 +6509,7 @@ class jaxe {
         if (init && init.outputType > 0) jaxe.gSystemCore.setOutput(init.outputType);
 
         // 2048x2 unless the settings ask for another mixer block. A block
-        // past the limit traps the wasm module and keeps the default.
+        // past the limit would trap the wasm module. It keeps the default.
         if (init && init.dspBufferLength > 0 && init.dspBufferLength <= jaxe.ARGCHECK_DSP_BUFFER_LIMIT) {
             jaxe.gSystemCore.setDSPBufferSize(init.dspBufferLength, init.dspNumBuffers > 0 ? init.dspNumBuffers : 2);
         } else {

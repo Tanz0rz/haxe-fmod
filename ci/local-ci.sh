@@ -359,6 +359,7 @@ job_unit_tests() {
   step "Check binding coverage against the manifest" python3 ci/binding-coverage.py
   step "Test define-driven settings (haxefmod_* and -debug)" bash -eo pipefail -c '
     haxe tests/build-defines.hxml && haxe tests/build-debug-defaults.hxml && haxe tests/build-no-live-update.hxml'
+  step "Test the flixel helpers against stub flixel" haxe tests/build-flixel-helpers.hxml
   step "Check the generated bindings table and example translations" bash -eo pipefail -c '
     python3 ci/haxe-bindings.py --check && python3 ci/haxe-catalog.py --check'
   step "Test the default bank failure path" bash -eo pipefail -c '

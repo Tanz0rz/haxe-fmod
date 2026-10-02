@@ -37,9 +37,12 @@ class FmodFlxUtilities {
                         consumed = true;
                         FlxG.switchState(state);
                     }
+                // A same-song PlaySong during the fade cancels the switch
+                case Restarted: consumed = true;
                 default:
             }
         }, EventCallbackType.STOPPED | EventCallbackType.RESTARTED);
+        var serial = @:privateAccess FmodManager.songHandlerSerial;
 
         FmodManager.StopSong();
         // A fade already in flight can complete before the handler is
@@ -54,6 +57,7 @@ class FmodFlxUtilities {
         // Stopped for it. The poll switches once the song is gone.
         var poll:Void->Void = null;
         poll = () -> {
+            if (@:privateAccess FmodManager.songHandlerSerial != serial) consumed = true;
             if (!consumed && FmodManager.IsSongPlaying()) return;
             FlxG.signals.postUpdate.remove(poll);
             if (consumed) return;

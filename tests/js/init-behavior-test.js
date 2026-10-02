@@ -136,6 +136,21 @@ for (const [length, expected] of [[512, 512], [0x1000000, 0x1000000], [0x1000001
         && got.dspBuffer[2] === (expected === length ? 4 : 2), JSON.stringify(got.dspBuffer));
 }
 
+// A software channel count up to 0x100000 reaches FMOD. The native
+// initialize crashes on far larger ones, and the web build takes the
+// same range, so FMOD's default stands past it.
+for (const [count, expected] of [[64, 64], [0x100000, 0x100000], [0x100001, undefined], [0x20000000, undefined]]) {
+    calls.length = 0;
+    mockSystems();
+    jaxe.FmodIsInitialized = false;
+    jaxe.fmod_sys_set_auto_update(false);
+    jaxe.pendingInit = { numChannels: 32, sampleRate: 0, speakerMode: 0, studioFlags: 0, softwareChannels: count };
+    jaxe.onRuntimeInitialized();
+    got = initCalls();
+    check('software_channels_limit_' + count, (got.softwareChannels && got.softwareChannels[1]) === expected
+        && got.init !== undefined, JSON.stringify(got.softwareChannels));
+}
+
 // the pre-init settings and the init flags reach the core before initialize
 calls.length = 0;
 mockSystems();

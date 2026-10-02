@@ -69,6 +69,7 @@ class RuntimeInitTest {
 		}
 
 		var polls = 0;
+		var unloaded = false;
 		var timer:Dynamic = null;
 		timer = js.Syntax.code("setInterval({0}, 50)", function() {
 			polls++;
@@ -85,6 +86,18 @@ class RuntimeInitTest {
 				} else if (polls > 300) {
 					js.Syntax.code("clearInterval({0})", timer);
 					check("initialized_once_banks_usable", false, "timed out");
+					finish();
+				}
+			} else if (mode == "unloadinit") {
+				var path = FmodRuntime.bankPath("Master.strings.bank");
+				if (!unloaded && FmodRuntime.banks.isRegistered(path) && !FmodRuntime.banks.isLoaded(path)) {
+					unloaded = true;
+					FmodRuntime.banks.unload(path);
+					js.Syntax.code("console.log({0})", 'RUNTIME_INIT_TEST: unloaded a default bank mid-fetch at poll ' + polls);
+				}
+				if (FmodRuntime.initSettled() || polls > 200) {
+					js.Syntax.code("clearInterval({0})", timer);
+					check("unloadinit_settles", FmodRuntime.initSettled(), 'polls=$polls unloaded=$unloaded ready=$readyFired pairReady=$pairReady pairFailed=$pairFailed');
 					finish();
 				}
 			} else if (mode == "refused" || mode == "staggered") {
