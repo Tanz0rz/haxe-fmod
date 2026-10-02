@@ -703,7 +703,7 @@ class StudioSystem {
         SystemCallbacks.set(handler, coreMask, studioMask);
     }
 
-    /** Removes the system callback handler and both native callbacks. */
+    /** Removes the system callback handler. The game receives no system event after this. */
     public static function clearSystemCallback():Void {
         SystemCallbacks.clear();
     }

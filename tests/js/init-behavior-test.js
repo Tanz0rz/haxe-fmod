@@ -49,7 +49,7 @@ check('second_init_is_a_no_op', calls.length === 1, 'calls=' + calls.length);
 const DRIVER_RATE = 47999;
 function mockSystems() {
     const core = {
-        setDSPBufferSize: function () {},
+        setDSPBufferSize: function (length, count) { calls.push(['setDSPBufferSize', length, count]); },
         setSoftwareChannels: function (n) { calls.push(['setSoftwareChannels', n]); },
         setStreamBufferSize: function (n, unit) { calls.push(['setStreamBufferSize', n, unit]); },
         getDriverInfo: function (i, a, b, outval) { outval.val = DRIVER_RATE; },
@@ -80,6 +80,7 @@ function initCalls() {
         init: calls.filter(c => c[0] === 'initialize').pop(),
         softwareChannels: calls.filter(c => c[0] === 'setSoftwareChannels').pop(),
         streamBuffer: calls.filter(c => c[0] === 'setStreamBufferSize').pop(),
+        dspBuffer: calls.filter(c => c[0] === 'setDSPBufferSize').pop(),
     };
 }
 
@@ -120,6 +121,20 @@ check('explicit_rate_and_mode',
     JSON.stringify(got.format));
 check('zero_settings_leave_core_defaults', !got.softwareChannels && !got.streamBuffer
     && got.init && got.init[3] === 0, JSON.stringify(got.init));
+
+// A mixer block up to 0x1000000 samples reaches FMOD. A larger one
+// traps the wasm module inside initialize, so the web default stands.
+for (const [length, expected] of [[512, 512], [0x1000000, 0x1000000], [0x1000001, 2048], [0x4000000, 2048]]) {
+    calls.length = 0;
+    mockSystems();
+    jaxe.FmodIsInitialized = false;
+    jaxe.fmod_sys_set_auto_update(false);
+    jaxe.pendingInit = { numChannels: 32, sampleRate: 0, speakerMode: 0, studioFlags: 0, dspBufferLength: length, dspNumBuffers: 4 };
+    jaxe.onRuntimeInitialized();
+    got = initCalls();
+    check('dsp_buffer_size_limit_' + length, got.dspBuffer && got.dspBuffer[1] === expected
+        && got.dspBuffer[2] === (expected === length ? 4 : 2), JSON.stringify(got.dspBuffer));
+}
 
 // the pre-init settings and the init flags reach the core before initialize
 calls.length = 0;

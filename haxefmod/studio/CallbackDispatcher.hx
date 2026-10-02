@@ -41,6 +41,13 @@ class CallbackDispatcher {
     static var handlers:Map<Int, EventCallback> = new Map();
 
     /**
+     * Set when a drain delivered a BANK_UNLOAD record. A Destroyed record
+     * queued behind it still reads its instance's user data, so the drop
+     * runs once the drain is done.
+     */
+    static var bankUnloadDrained:Bool = false;
+
+    /**
      * Router consulted before event-instance dispatch. Queue records that
      * belong to other subsystems (core channel callbacks) are claimed here.
      * ChannelCallbacks installs itself when its first handler registers,
@@ -137,6 +144,10 @@ class CallbackDispatcher {
                 NativeStudio.cb_int(3), NativeStudio.cb_int(4),
                 NativeStudio.cb_float(), NativeStudio.cb_string(), NativeStudio.cb_string2());
         }
+        if (bankUnloadDrained) {
+            bankUnloadDrained = false;
+            dropAfterBankUnload();
+        }
         if (NativeStudio.cb_take_overflow()) {
             trace("Warn: FMOD - callback event queue overflowed. Oldest events were dropped.");
         }
@@ -170,7 +181,7 @@ class CallbackDispatcher {
         }
         // Same for system records
         if ((type & SYSTEM_TYPE_NAMESPACE) != 0) {
-            if (type == BANK_UNLOAD_TYPE) dropAfterBankUnload();
+            if (type == BANK_UNLOAD_TYPE) bankUnloadDrained = true;
             if (systemRouter != null) systemRouter(type, i1, i2, i3, str, str2);
             return;
         }

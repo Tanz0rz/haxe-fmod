@@ -48,7 +48,20 @@ class FmodFlxUtilities {
             consumed = true;
             FmodManager.OnSongEvent(null);
             FlxG.switchState(state);
+            return;
         }
+        // A bank unload destroys the fading song and FMOD raises no
+        // Stopped for it. The poll switches once the song is gone.
+        var poll:Void->Void = null;
+        poll = () -> {
+            if (!consumed && FmodManager.IsSongPlaying()) return;
+            FlxG.signals.postUpdate.remove(poll);
+            if (consumed) return;
+            consumed = true;
+            FmodManager.OnSongEvent(null);
+            FlxG.switchState(state);
+        };
+        FlxG.signals.postUpdate.add(poll);
     }
 
     /**

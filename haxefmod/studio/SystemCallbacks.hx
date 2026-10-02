@@ -104,7 +104,7 @@ class SystemCallbacks {
         NativeStudio.sys_set_studio_callback_mask(SystemCallbacks.studioMask);
     }
 
-    /** Removes the handler and both native callbacks. */
+    /** Removes the handler. The game receives no system event after this. */
     public static function clear():Void {
         if (handler == null) return;
         handler = null;

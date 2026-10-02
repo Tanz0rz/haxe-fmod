@@ -152,7 +152,9 @@ abstract Sound(Int) from Int to Int {
     /**
      * An empty PCM16 sound of the given length for StudioSystem.recordStart
      * to fill (unsupported in HTML5). Returns Sound.NULL there and on
-     * bad arguments. Release it like any other sound.
+     * bad arguments. Release it like any other sound. A buffer of
+     * 0x7FFF0000 bytes or more, about three hours of 48 kHz stereo, is a
+     * bad argument.
      */
     public static macro function createRecordBuffer(sampleRate:haxe.macro.Expr, channels:haxe.macro.Expr, seconds:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Sound.createRecordBuffer", "the web build has no microphone recording");
@@ -161,7 +163,9 @@ abstract Sound(Int) from Int to Int {
     /**
      * An empty PCM16 sound of the given length for StudioSystem.recordStart
      * to fill (unsupported in HTML5). Returns Sound.NULL there and on
-     * bad arguments. Release it like any other sound.
+     * bad arguments. Release it like any other sound. A buffer of
+     * 0x7FFF0000 bytes or more, about three hours of 48 kHz stereo, is a
+     * bad argument.
      */
     public static inline function createRecordBuffer(sampleRate:Int, channels:Int, seconds:Int):Sound {
         return NativeStudio.core_create_record_sound(sampleRate, channels, seconds);

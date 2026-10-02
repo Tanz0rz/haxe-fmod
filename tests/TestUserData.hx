@@ -566,8 +566,18 @@ class TestUserData {
 		desc.setCallback(function(_) {});
 		liveDesc.setCallback(function(_) {});
 		for (h in [(bank : Int), (desc : Int), (bus : Int), (vca : Int), (inst : Int)]) NativeStudioStub.testFree(h);
+		// A Destroyed record behind the unload record in the same drain
+		// still reads the instance's user data
+		var seen:Dynamic = null;
+		CallbackDispatcher.setCallback(inst, function(_) seen = inst.getUserData(), (EventCallbackType.DESTROYED : Int));
 		// No system handler installed: the record still drops the entries
 		CallbackDispatcher.deliver(0, CallbackDispatcher.BANK_UNLOAD_TYPE, 0, 0, 0, 0, 0, 0, "");
+		CallbackDispatcher.deliver(inst, (EventCallbackType.DESTROYED : Int), 0, 0, 0, 0, 0, 0, "");
+		assert("a Destroyed record behind a bank unload record still reads the instance's userdata", seen == "inst");
+		assert("bank unload record keeps the entries until the drain ends", bank.getUserData() == "bank");
+		// Destroyed dropped the instance entry. The drain end drops it too.
+		inst.setUserData("inst");
+		CallbackDispatcher.update();
 		assert("bank unload record drops a dead bank's userdata", bank.getUserData() == null);
 		assert("bank unload record drops a dead description's userdata", desc.getUserData() == null);
 		assert("bank unload record drops a dead bus's userdata", bus.getUserData() == null);

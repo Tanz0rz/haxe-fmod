@@ -93,6 +93,18 @@ async function main() {
     const channel = jaxe.fmod_core_pcm_play(stream, false);
     jaxe.fmod_chan_set_channel_group(channel, child);
     check('cg_is_playing_nested', jaxe.fmod_cg_is_playing(parent) === true && jaxe.fmod_cg_is_playing(child) === true, '');
+    // FMOD indexes before the chain below the tail marker. Both getters
+    // refuse that, and the markers themselves still answer.
+    const groupBelow = jaxe.fmod_cg_get_dsp(child, -4);
+    const groupBelowResult = jaxe.lastResult;
+    const channelBelow = jaxe.fmod_chan_get_dsp(channel, -4);
+    const channelBelowResult = jaxe.lastResult;
+    check('get_dsp_below_tail_refused', groupBelow === 0 && groupBelowResult === INVALID_PARAM
+        && channelBelow === 0 && channelBelowResult === INVALID_PARAM
+        && jaxe.fmod_cg_get_dsp(child, -100000) === 0 && jaxe.lastResult === INVALID_PARAM,
+        `group=${groupBelowResult} channel=${channelBelowResult}`);
+    check('get_dsp_markers_ok', jaxe.fmod_cg_get_dsp(child, -3) !== 0 && jaxe.fmod_chan_get_dsp(channel, -1) !== 0,
+        `result=${jaxe.lastResult}`);
     check('cg_is_playing_stale', jaxe.fmod_cg_is_playing(0x7fff0001) === false && jaxe.lastResult === INVALID_HANDLE, '');
     // FMOD 2.03.12 answers OK and leaves a group's lowpass gain and
     // occlusion at zero on every target, so only the result and range count

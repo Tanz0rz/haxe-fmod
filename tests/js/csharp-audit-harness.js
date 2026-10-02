@@ -82,6 +82,15 @@ async function main() {
     check('evd_label_by_index_stale', jaxe.fmod_evd_get_parameter_label_by_index(0, 0, 0) === ''
         && jaxe.fmod_sys_last_result() === 30, '');
 
+    // Studio reads a negative label index from before its label table.
+    // Every label getter refuses it before the glue sees it.
+    check('label_negative_index_refused', jaxe.fmod_evd_get_parameter_label_by_index(jump, 0, -1) === ''
+        && jaxe.fmod_sys_last_result() === 31
+        && jaxe.fmod_evd_get_parameter_label(jump, surface, -1) === '' && jaxe.fmod_sys_last_result() === 31
+        && jaxe.fmod_sys_get_parameter_label('Weather', -1) === '' && jaxe.fmod_sys_last_result() === 31,
+        `result=${jaxe.fmod_sys_last_result()}`);
+    check('label_global_ok', jaxe.fmod_sys_get_parameter_label('Weather', 0) !== '', `result=${jaxe.fmod_sys_last_result()}`);
+
     // A parameter batch on an instance, read back by id. The music event's
     // first parameter is local to the event (the jump event's is global).
     const local = jaxe.fmod_evd_get_parameter_description_by_index(music, 0, fbuf, ibuf);

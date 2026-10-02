@@ -198,6 +198,7 @@ class ApiProbeScenario implements TestScenario {
         ProbeStudioParity.run(this);
         ProbeCsharpAudit.run(this);
         ProbeCoreTypes.run(this);
+        ProbeArgChecks.run(this);
         if (skipAuthored()) {
             info("authored_surface", "skipped (HAXEFMOD_PROBE_SKIP_AUTHORED)");
         } else {
@@ -569,6 +570,7 @@ class ApiProbeScenario implements TestScenario {
         var baseline = StudioSystem.liveHandleCount();
 
         // The replay loads the bank again, and its stop unloads it
+        var replayLoads = 0;
         function replayRound(suffix:String):Void {
             var replay = StudioSystem.loadCommandReplay(capturePath);
             check("replay_bank_load" + suffix, !replay.isNull() && replay.start().isOk(), 'result=${StudioSystem.lastResult().toString()}');
@@ -591,8 +593,10 @@ class ApiProbeScenario implements TestScenario {
                 #end
             }
             var descriptions = replayBank.isNull() ? [] : replayBank.getEventList();
+            var command = replay.getCurrentCommand();
             check("replay_bank_loaded_by_replay" + suffix, !replayBank.isNull() && descriptions.length > 0,
-                'bank=${(replayBank : Int)} events=${descriptions.length} rounds=$rounds result=${StudioSystem.lastResult().toString()}');
+                'bank=${(replayBank : Int)} events=${descriptions.length} rounds=$rounds command=${command == null ? -1 : command.index}');
+            if (descriptions.length > 0) replayLoads++;
             replayBank.setUserData("replay bank");
             for (d in descriptions) d.setUserData("replay event");
             replay.stop();
@@ -611,7 +615,7 @@ class ApiProbeScenario implements TestScenario {
             var deadEvents = descriptions.filter(d -> !live(d));
             check("replay_bank_unload_sweeps_lookups" + suffix, StudioSystem.getBank(bankPath).isNull() && !bankLive && staleEvents == 0
                 && deadEvents.length > 0, 'bankLive=$bankLive staleEvents=$staleEvents deadEvents=${deadEvents.length} of ${descriptions.length}');
-            check("replay_bank_unload_drops_userdata" + suffix, replayBank.getUserData() == null
+            check("replay_bank_unload_drops_userdata" + suffix, descriptions.length > 0 && replayBank.getUserData() == null
                 && deadEvents.filter(d -> d.getUserData() != null).length == 0, "");
             for (d in descriptions) d.setUserData(null);
             replay.release();
@@ -620,7 +624,7 @@ class ApiProbeScenario implements TestScenario {
         StudioSystem.setSystemCallback(function(e) events.push(e), haxefmod.studio.SystemCallbacks.DEFAULT_CORE_MASK,
             haxefmod.studio.SystemCallbacks.STUDIO_LIVEUPDATE_CONNECTED);
         replayRound("_masked_handler");
-        check("syscb_bank_unload_masked_out", unloads() == 0, 'events=${events.length}');
+        check("syscb_bank_unload_masked_out", replayLoads == 2 && unloads() == 0, 'loads=$replayLoads events=${events.length}');
         StudioSystem.clearSystemCallback();
         #if sys
         try sys.FileSystem.deleteFile(capturePath) catch (e:Dynamic) {}

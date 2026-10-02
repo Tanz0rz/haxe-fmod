@@ -29,6 +29,8 @@ class FmodKhaUpdater {
     public static inline var PRIORITY:Int = 100;
 
     static var tickers:Array<IKhaTicker> = [];
+    // The same components, for the per-frame membership test
+    static var registered:haxe.ds.ObjectMap<IKhaTicker, Bool> = new haxe.ds.ObjectMap();
     static var lastStamp:Float = -1;
     static var taskId:Int = -1;
     // Scheduler.time() holds one value for the whole frame. A task added
@@ -68,12 +70,15 @@ class FmodKhaUpdater {
     /** Registers a component to be ticked every frame. Installs the frame task unless removeHook() took it out. **/
     public static function add(ticker:IKhaTicker):Void {
         if (!hookRemoved) init();
-        if (tickers.indexOf(ticker) == -1) tickers.push(ticker);
+        if (registered.exists(ticker)) return;
+        registered.set(ticker, true);
+        tickers.push(ticker);
     }
 
     /** Unregisters a component. The updater stops ticking it. **/
     public static function remove(ticker:IKhaTicker):Void {
         tickers.remove(ticker);
+        registered.remove(ticker);
     }
 
     /** How many components are registered. **/
@@ -98,7 +103,7 @@ class FmodKhaUpdater {
         // Copy first: a ticker can remove itself (a loader that just fired).
         // One that an earlier tick removed is skipped.
         for (ticker in tickers.copy()) {
-            if (tickers.indexOf(ticker) != -1) ticker.tick(dt);
+            if (registered.exists(ticker)) ticker.tick(dt);
         }
         FmodManager.Update();
     }

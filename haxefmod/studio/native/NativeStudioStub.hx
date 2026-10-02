@@ -656,7 +656,8 @@ class NativeStudioStub {
     public static function chan_get_index(handle:Int):Int return -1;
     public static function chan_get_3d_cone_orientation(handle:Int):Int return ERR_UNSUPPORTED;
     public static function chan_get_num_dsps(handle:Int):Int return 0;
-    public static function chan_get_dsp(handle:Int, index:Int):Int return testBorrow(handle);
+    // The shims refuse an index below DSP_TAIL before FMOD sees it
+    public static function chan_get_dsp(handle:Int, index:Int):Int return index < -3 ? 0 : testBorrow(handle);
 
     // Sound name, group getter, and loop count
     public static function sound_get_name(handle:Int):String return "";
@@ -945,7 +946,7 @@ class NativeStudioStub {
 
 
     public static function cg_get_num_dsps(handle:Int):Int return 0;
-    public static function cg_get_dsp(handle:Int, index:Int):Int return testBorrow(handle);
+    public static function cg_get_dsp(handle:Int, index:Int):Int return index < -3 ? 0 : testBorrow(handle);
 
     //// Init settings and system info
     /** When set, the output type is refused the way a backend refuses one it lacks. */
@@ -960,6 +961,8 @@ class NativeStudioStub {
     }
     public static function sys_thread_set_attributes(type:Int, priority:Int, stackSize:Int, affinity:Int):Int {
         testPreInitCalls.push('thread:$type,$priority,$stackSize,$affinity');
+        // The shims refuse a type outside FMOD_THREAD_TYPE before FMOD sees it
+        if (type < 0 || type >= (haxefmod.studio.Types.FmodThreadType.MAX : Int)) return ERR_INVALID_PARAM;
         return ERR_UNSUPPORTED;
     }
     public static function sys_debug_initialize(flags:Int, mode:Int, filename:String):Int {

@@ -1500,6 +1500,8 @@ class jaxe {
     static fmod_sys_get_parameter_label(name, labelIndex) {
         if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ''; }
         if (!jaxe.sysReady()) return "";
+        // Studio reads a negative label index from before its label table
+        if ((labelIndex | 0) < 0) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ""; }
         var outval = {};
         // (name, labelindex, label, size, retrieved)
         jaxe.lastResult = jaxe.gSystem.getParameterLabelByName(name, labelIndex, outval, 512, null);
@@ -2462,6 +2464,7 @@ class jaxe {
         if (typeof name !== "string") { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ''; }
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        if ((labelIndex | 0) < 0) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ""; }
         var outval = {};
         jaxe.lastResult = evd.getParameterLabelByName(name, labelIndex, outval, 512, null);
         if (jaxe.lastResult != jaxe.FMOD.OK) return "";
@@ -3060,6 +3063,42 @@ class jaxe {
         return exinfo;
     }
 
+    // Mirrors faxe_argcheck.h. FMOD sizes a subsound table and a decode
+    // buffer in 32 bits, and a count from this limit up can wrap them.
+    static ARGCHECK_COUNT_LIMIT = 0x01000000;
+    // A user sample length from here up overflows FMOD's buffer size
+    static ARGCHECK_USER_LENGTH_LIMIT = 0x7FFF0000;
+    // FMOD's defaultDecodeBufferSize when the settings leave it at 0, in ms
+    static ARGCHECK_DEFAULT_DECODE_MS = 400;
+    // The largest mixer block FMOD initializes with
+    static ARGCHECK_DSP_BUFFER_LIMIT = 0x01000000;
+    // FMOD_CHANNELCONTROL_DSP_TAIL, the lowest DSP chain index FMOD takes
+    static ARGCHECK_DSP_TAIL = -3;
+    // FMOD_SPEAKER_MAX
+    static ARGCHECK_SPEAKER_MAX = 12;
+
+    // Mirrors faxe_argcheck_exinfo on the packed int slots. length is the
+    // byte count the create hands FMOD. FMOD traps the wasm module on
+    // every value refused here.
+    static exInfoOk(ibuf, length, mode) {
+        // A negative subsound count reads as a huge one here
+        var numSubsounds = ibuf[7] >>> 0;
+        var decodeBufferSize = ibuf[5] >>> 0;
+        var defaultFrequency = ibuf[3] | 0;
+        if (numSubsounds >= jaxe.ARGCHECK_COUNT_LIMIT) return false;
+        if ((ibuf[12] | 0) < -1) return false;
+        if (decodeBufferSize >= jaxe.ARGCHECK_COUNT_LIMIT) return false;
+        if (defaultFrequency < 0) return false;
+        if ((mode & 0x00000400 /* OPENUSER */) == 0) return true;
+        if ((mode & 0x00000080 /* CREATESTREAM */) == 0) return (length >>> 0) < jaxe.ARGCHECK_USER_LENGTH_LIMIT;
+        if (decodeBufferSize == 0) {
+            var init = jaxe.pendingInit;
+            var ms = init && init.defaultDecodeBufferSize > 0 ? init.defaultDecodeBufferSize : jaxe.ARGCHECK_DEFAULT_DECODE_MS;
+            if (Math.floor((Math.imul(ms, defaultFrequency) >>> 0) / 1000) == 0) return false;
+        }
+        return true;
+    }
+
     // Sound.create with a full FMOD_CREATESOUNDEXINFO. NONBLOCKING is
     // dropped as in fmod_core_create_sound.
     static fmod_core_create_sound_ex(path, mode, ibuf, dls, key, guidText) {
@@ -3068,6 +3107,7 @@ class jaxe {
             return 0;
         }
         if (!jaxe.FmodIsInitialized) { jaxe.lastResult = jaxe.ERR_STUDIO_UNINITIALIZED; return 0; }
+        if (!jaxe.exInfoOk(ibuf, ibuf[0], mode)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var exinfo = jaxe.fillExInfo(ibuf, dls, key, guidText);
         if (!exinfo) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var soundOut = {};
@@ -3091,6 +3131,7 @@ class jaxe {
             jaxe.lastResult = jaxe.ERR_INVALID_PARAM;
             return 0;
         }
+        if (!jaxe.exInfoOk(ibuf, len, mode)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var exinfo = jaxe.fillExInfo(ibuf, dls, key, guidText);
         if (!exinfo) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var bytes = new Uint8Array(len);
@@ -5374,6 +5415,8 @@ class jaxe {
     static fmod_chan_get_dsp(handle, index) {
         var ch = jaxe.resolveChan(handle);
         if (!ch) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        // FMOD indexes before the chain below the tail marker
+        if ((index | 0) < jaxe.ARGCHECK_DSP_TAIL) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var out = {};
         jaxe.lastResult = ch.getDSP(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
@@ -6455,8 +6498,9 @@ class jaxe {
 
         if (init && init.outputType > 0) jaxe.gSystemCore.setOutput(init.outputType);
 
-        // 2048x2 unless the settings ask for another mixer block
-        if (init && init.dspBufferLength > 0) {
+        // 2048x2 unless the settings ask for another mixer block. A block
+        // past the limit traps the wasm module and keeps the default.
+        if (init && init.dspBufferLength > 0 && init.dspBufferLength <= jaxe.ARGCHECK_DSP_BUFFER_LIMIT) {
             jaxe.gSystemCore.setDSPBufferSize(init.dspBufferLength, init.dspNumBuffers > 0 ? init.dspNumBuffers : 2);
         } else {
             jaxe.gSystemCore.setDSPBufferSize(2048, 2);
@@ -6657,8 +6701,15 @@ class jaxe {
         return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : -1;
     }
 
+    // FMOD checks only the upper bound and indexes before its speaker
+    // table on a negative one, FMOD_SPEAKER_NONE included
+    static speakerOk(speaker) {
+        return (speaker | 0) >= 0 && (speaker | 0) < jaxe.ARGCHECK_SPEAKER_MAX;
+    }
+
     static fmod_sys_set_speaker_position(speaker, x, y, active) {
         if (!jaxe.sysReady()) return jaxe.lastResult;
+        if (!jaxe.speakerOk(speaker)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return jaxe.lastResult; }
         jaxe.lastResult = jaxe.gSystemCore.setSpeakerPosition(speaker | 0, x, y, !!active);
         return jaxe.lastResult;
     }
@@ -6668,7 +6719,9 @@ class jaxe {
         var x = {};
         var y = {};
         var active = {};
-        jaxe.lastResult = jaxe.gSystemCore.getSpeakerPosition(speaker | 0, x, y, active);
+        jaxe.lastResult = jaxe.speakerOk(speaker)
+            ? jaxe.gSystemCore.getSpeakerPosition(speaker | 0, x, y, active)
+            : jaxe.ERR_INVALID_PARAM;
         fbuf[0] = x.val || 0;
         fbuf[1] = y.val || 0;
         fbuf[2] = active.val ? 1.0 : 0.0;
@@ -7161,6 +7214,8 @@ class jaxe {
     static fmod_cg_get_dsp(handle, index) {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        // FMOD indexes before the chain below the tail marker
+        if ((index | 0) < jaxe.ARGCHECK_DSP_TAIL) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var out = {};
         jaxe.lastResult = group.getDSP(index, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
@@ -7282,6 +7337,7 @@ class jaxe {
     static fmod_evd_get_parameter_label_by_index(handle, index, labelIndex) {
         var evd = jaxe.handleResolve(handle, jaxe.TYPE_EVD);
         if (!evd) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return ""; }
+        if ((labelIndex | 0) < 0) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return ""; }
         var outval = {};
         jaxe.lastResult = evd.getParameterLabelByIndex(index, labelIndex, outval, 512, null);
         if (jaxe.lastResult != jaxe.FMOD.OK) return "";

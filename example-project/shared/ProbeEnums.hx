@@ -48,12 +48,12 @@ class ProbeEnums {
             && Math.abs(moved.x + 0.5) < 0.001 && Math.abs(moved.y - 0.5) < 0.001,
             'result=${set.toString()}' + (moved == null ? "" : ' x=${moved.x} y=${moved.y}'));
         if (before != null) CoreSystem.setSpeakerPosition(FmodSpeaker.FRONT_LEFT, before.x, before.y, before.active);
-        // FMOD takes NONE without complaint on this backend, so the check
-        // is that the call returns a result and leaves the real speaker alone
+        // NONE names no speaker. The shims refuse it and leave the real
+        // speakers alone.
         var noneResult = CoreSystem.setSpeakerPosition(FmodSpeaker.NONE, 0, 0, true);
         var stillThere = CoreSystem.getSpeakerPosition(FmodSpeaker.FRONT_LEFT);
-        @:privateAccess state.check("enums_speaker_none_handled", stillThere != null,
-            'result=${noneResult.toString()}');
+        @:privateAccess state.check("enums_speaker_none_handled", stillThere != null
+            && noneResult == FmodResult.FMOD_ERR_INVALID_PARAM, 'result=${noneResult.toString()}');
 
         // A memory sound is ready as soon as fromPcm returns. Its open
         // state is READY, and its format is the mono 16-bit PCM handed in

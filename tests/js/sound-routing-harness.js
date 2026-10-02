@@ -56,6 +56,11 @@ function check(label, cond, detail) {
 const OK = 0, ERR_FILE_NOTFOUND = 18, ERR_FORMAT = 19, ERR_INVALID_HANDLE = 30, ERR_INVALID_PARAM = 31, ERR_UNSUPPORTED = 68;
 const MODE_3D = 0x10, CREATESTREAM = 0x80, CREATECOMPRESSEDSAMPLE = 0x200, NONBLOCKING = 0x10000, LOOP_NORMAL = 0x2;
 
+// A buffer for the memory create, refused before the glue reads it
+function wavForExinfo() {
+    return new Uint8Array(64).buffer;
+}
+
 async function main() {
     jaxe.FMOD['preRun'] = jaxe.preRun;
     jaxe.FMOD['onRuntimeInitialized'] = jaxe.onRuntimeInitialized;
@@ -99,6 +104,44 @@ async function main() {
             && memoryEx === 0 && memoryExResult === ERR_INVALID_PARAM && pointEx === 0 && pointExResult === ERR_INVALID_PARAM,
             `plain=${memoryPath}/${memoryResult} ex=${memoryEx}/${memoryExResult} point=${pointEx}/${pointExResult}`);
         for (const h of [memoryPath, memoryEx, pointEx]) if (h > 0) jaxe.fmod_core_release_sound(h);
+    }
+
+    // The exinfo values FMOD traps the wasm module on are refused before
+    // the glue sees them. The user sample and stream a game makes pass.
+    {
+        const OPENUSER = 0x400;
+        const user = (length) => {
+            const ints = new Array(1024).fill(0);
+            ints[0] = length; ints[2] = 2; ints[3] = 48000; ints[4] = 2;
+            return ints;
+        };
+        const refused = (mode, ints) => {
+            const h = jaxe.fmod_core_create_sound_ex('', mode, ints, '', '', '');
+            if (h > 0) jaxe.fmod_core_release_sound(h);
+            return h === 0 && jaxe.fmod_sys_last_result() === ERR_INVALID_PARAM;
+        };
+        const negativeSubs = new Array(1024).fill(0);
+        negativeSubs[7] = -1;
+        const hugeSubs = user(4000); hugeSubs[7] = 0x3FFFFFFF;
+        const fileBuffer = user(4000); fileBuffer[12] = -2;
+        const slowStream = user(4000); slowStream[3] = 1;
+        const wrappedRate = user(4000); wrappedRate[3] = 0x10000000;
+        const decode = user(4000); decode[5] = 0x3FFFFFFF;
+        const negativeRate = user(4000); negativeRate[3] = -1;
+        check('exinfo_subsounds_refused', refused(0, negativeSubs) && refused(OPENUSER, hugeSubs), '');
+        check('exinfo_file_buffer_refused', refused(OPENUSER, fileBuffer), '');
+        check('exinfo_user_stream_refused', refused(OPENUSER | CREATESTREAM, slowStream)
+            && refused(OPENUSER | CREATESTREAM, wrappedRate) && refused(OPENUSER | CREATESTREAM, decode), '');
+        check('exinfo_negative_rate_refused', refused(OPENUSER, negativeRate), '');
+        check('exinfo_user_length_refused', refused(OPENUSER, user(0xFFFFFFF0 | 0)) && refused(OPENUSER, user(0x7FFF0000)), '');
+        const negativeMemory = jaxe.fmod_core_create_sound_memory_ex(wavForExinfo(), 64, 0, negativeSubs, '', '', '');
+        check('exinfo_memory_refused', negativeMemory === 0 && jaxe.fmod_sys_last_result() === ERR_INVALID_PARAM,
+            `last=${jaxe.fmod_sys_last_result()}`);
+        const sample = jaxe.fmod_core_create_sound_ex('', OPENUSER, user(4000), '', '', '');
+        check('exinfo_user_sample_ok', sample > 0, `last=${jaxe.fmod_sys_last_result()}`);
+        const stream = jaxe.fmod_core_create_sound_ex('', OPENUSER | CREATESTREAM, user(4000), '', '', '');
+        check('exinfo_user_stream_ok', stream > 0, `last=${jaxe.fmod_sys_last_result()}`);
+        for (const h of [sample, stream]) if (h > 0) jaxe.fmod_core_release_sound(h);
     }
 
     // --- create_sound_memory ---

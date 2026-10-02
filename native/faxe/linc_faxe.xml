@@ -19,6 +19,7 @@
 			<depend name="${LINC_FAXE_PATH}/native/shared/faxe_guid.h" />
 			<depend name="${LINC_FAXE_PATH}/native/shared/faxe_instctx.h" />
 			<depend name="${LINC_FAXE_PATH}/native/shared/faxe_dspdata.h" />
+			<depend name="${LINC_FAXE_PATH}/native/shared/faxe_argcheck.h" />
 		</file>
 	</files>
 

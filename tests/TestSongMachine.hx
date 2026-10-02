@@ -33,6 +33,7 @@ class TestSongMachine {
 			testSameSongRestartSemantics();
 			testTransitionCallbackHandoff();
 			testTransitionDirectHandoff();
+			testTransitionSongDiesWithBank();
 			testStopCancelsTransition();
 			testStopAllCancelsTransition();
 			testSameSongTransitionSupersedes();
@@ -180,6 +181,25 @@ class TestSongMachine {
 		assert("callback handoff played the next song",
 			FmodManager.GetCurrentSongPath() == "event:/B");
 		assert("old song handler cleaned up", !CallbackDispatcher.hasHandler(handleA));
+	}
+
+	static function testTransitionSongDiesWithBank() {
+		var handleA = playSong("event:/A");
+		NativeStudioStub.testPlaybackStateQueue = [0, 4];
+		FmodManager.PlaySongTransition("event:/B");
+		// A bank unload destroys the fading song. FMOD raises no Stopped for it.
+		NativeStudioStub.testReleasedHandles.push(handleA);
+		FmodManager.Update();
+		assert("a song that died with its bank during the fade hands off", FmodManager.GetCurrentSongPath() == "event:/B");
+
+		// A handler set during the fade cancels the transition for good
+		var handleC = playSong("event:/C");
+		NativeStudioStub.testPlaybackStateQueue = [0, 4];
+		FmodManager.PlaySongTransition("event:/D");
+		FmodManager.OnSongEvent(null);
+		NativeStudioStub.testReleasedHandles.push(handleC);
+		FmodManager.Update();
+		assert("a song handler set during the fade cancels the pending song", FmodManager.GetCurrentSongPath() != "event:/D");
 	}
 
 	static function testTransitionDirectHandoff() {

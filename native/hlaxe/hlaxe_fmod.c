@@ -26,6 +26,7 @@ static void hlaxe_reclaim_dead_channels(void);
 static void hlaxe_channel_detach_rolloff(void* ptr, int handle);
 #include "../shared/faxe_instctx.h"
 #include "../shared/faxe_dspdata.h"
+#include "../shared/faxe_argcheck.h"
 
 // F_CALLBACK was removed in newer FMOD SDKs
 #ifndef F_CALLBACK
@@ -661,6 +662,15 @@ static int hlaxe_fill_exinfo(FMOD_CREATESOUNDEXINFO* exinfo, const int* ints, co
  * exinfo that passed one, braced. Empty after any other create. */
 static char gFsbGuidOut[40];
 
+/* Whether FMOD may see exinfo under mode (faxe_argcheck.h) */
+static int hlaxe_exinfo_ok(const FMOD_CREATESOUNDEXINFO* exinfo, FMOD_MODE mode) {
+    FMOD_ADVANCEDSETTINGS adv;
+    memset(&adv, 0, sizeof(adv));
+    adv.cbSize = sizeof(adv);
+    if (FMOD_System_GetAdvancedSettings(gCoreSystem, &adv) != FMOD_OK) adv.defaultDecodeBufferSize = 0;
+    return faxe_argcheck_exinfo(exinfo, mode, adv.defaultDecodeBufferSize);
+}
+
 // Sound.create with a full FMOD_CREATESOUNDEXINFO. ints is the Scratch
 // int buffer packed by the Haxe side, the strings are empty when unset.
 HL_PRIM int HL_NAME(core_create_sound_ex)(vbyte* path, int mode, vbyte* ints, vbyte* dls, vbyte* key, vbyte* guidText) {
@@ -672,7 +682,8 @@ HL_PRIM int HL_NAME(core_create_sound_ex)(vbyte* path, int mode, vbyte* ints, vb
     gFsbGuidOut[0] = '\0';
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return 0; }
     if (!path || !ints || !hlaxe_path_mode_ok(mode)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
-    if (!hlaxe_fill_exinfo(&exinfo, (const int*)ints, (const char*)dls, (const char*)key, (const char*)guidText, &guid)) {
+    if (!hlaxe_fill_exinfo(&exinfo, (const int*)ints, (const char*)dls, (const char*)key, (const char*)guidText, &guid)
+            || !hlaxe_exinfo_ok(&exinfo, openMode)) {
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return 0;
     }
@@ -707,6 +718,7 @@ HL_PRIM int HL_NAME(core_create_sound_memory_ex)(vbyte* data, int len, int mode,
         return 0;
     }
     exinfo.length = (unsigned int)len;
+    if (!hlaxe_exinfo_ok(&exinfo, (FMOD_MODE)mode)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     handle = hlaxe_create_from_image(data, len, (FMOD_MODE)mode, &exinfo);
     if (handle && exinfo.fsbguid) faxe_guid_format(&guid, gFsbGuidOut, sizeof(gFsbGuidOut));
     return handle;
@@ -3426,6 +3438,7 @@ HL_PRIM int HL_NAME(chan_get_dsp)(int h, int index) {
     FMOD_CHANNEL* channel = resolve_channel(h);
     FMOD_DSP* dsp = NULL;
     if (!channel) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    if (!faxe_argcheck_dsp_index(index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_Channel_GetDSP(channel, index, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
     return hlaxe_mint_borrowed(dsp, FAXE_TYPE_DSP, h, 0);
@@ -4322,7 +4335,8 @@ HL_PRIM int HL_NAME(sys_init_ex)(int numChannels, int sampleRate, int speakerMod
 
     if (dspBufferLength > 0 || softwareChannels > 0 || streamBufferSize > 0) {
         FMOD_Studio_System_GetCoreSystem(gStudioSystem, &gCoreSystem);
-        if (dspBufferLength > 0) {
+        /* A block past the limit keeps FMOD's default, like a refused setter */
+        if (faxe_argcheck_dsp_buffer(dspBufferLength)) {
             FMOD_System_SetDSPBufferSize(gCoreSystem, (unsigned int)dspBufferLength,
                 dspNumBuffers > 0 ? dspNumBuffers : 2);
         }
@@ -4655,6 +4669,7 @@ HL_PRIM vbyte* HL_NAME(sys_get_parameter_label)(vbyte* name, int labelIndex) {
     int retrieved = 0;
     gStringBuf[0] = '\0';
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (vbyte*)gStringBuf; }
+    if (!faxe_argcheck_label_index(labelIndex)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (vbyte*)gStringBuf; }
     gLastResult = FMOD_Studio_System_GetParameterLabelByName(gStudioSystem, (const char*)name,
         labelIndex, gStringBuf, sizeof(gStringBuf), &retrieved);
     if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
@@ -5703,6 +5718,7 @@ HL_PRIM vbyte* HL_NAME(evd_get_parameter_label)(int h, vbyte* name, int labelInd
     int retrieved = 0;
     gStringBuf[0] = '\0';
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    if (!faxe_argcheck_label_index(labelIndex)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (vbyte*)gStringBuf; }
     gLastResult = FMOD_Studio_EventDescription_GetParameterLabelByName(desc, (const char*)name,
         labelIndex, gStringBuf, sizeof(gStringBuf), &retrieved);
     if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
@@ -6311,7 +6327,8 @@ HL_PRIM int HL_NAME(core_create_record_sound)(int sampleRate, int channels, int 
     exinfo.numchannels = channels;
     exinfo.defaultfrequency = sampleRate;
     exinfo.format = FMOD_SOUND_FORMAT_PCM16;
-    exinfo.length = (unsigned int)sampleRate * (unsigned int)channels * 2u * (unsigned int)seconds;
+    exinfo.length = faxe_argcheck_record_length(sampleRate, channels, seconds);
+    if (exinfo.length == 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_System_CreateSound(gCoreSystem, NULL, FMOD_OPENUSER | FMOD_LOOP_NORMAL, &exinfo, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
     handle = faxe_handle_alloc(sound, FAXE_TYPE_SOUND);
@@ -7365,6 +7382,7 @@ DEFINE_PRIM(_I32, sys_get_network_timeout, _NO_ARG);
 
 HL_PRIM int HL_NAME(sys_set_speaker_position)(int speaker, double x, double y, bool active) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (!faxe_argcheck_speaker(speaker)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     gLastResult = FMOD_System_SetSpeakerPosition(gCoreSystem, (FMOD_SPEAKER)speaker, (float)x, (float)y, active ? 1 : 0);
     return (int)gLastResult;
 }
@@ -7376,6 +7394,13 @@ HL_PRIM int HL_NAME(sys_get_speaker_position)(int speaker, vbyte* fbuf) {
     FMOD_BOOL active = 0;
     double* outFloats = (double*)fbuf;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (!faxe_argcheck_speaker(speaker)) {
+        outFloats[0] = 0.0;
+        outFloats[1] = 0.0;
+        outFloats[2] = 0.0;
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return (int)gLastResult;
+    }
     gLastResult = FMOD_System_GetSpeakerPosition(gCoreSystem, (FMOD_SPEAKER)speaker, &x, &y, &active);
     outFloats[0] = (double)x;
     outFloats[1] = (double)y;
@@ -7840,6 +7865,7 @@ HL_PRIM int HL_NAME(cg_get_dsp)(int h, int index) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     FMOD_DSP* dsp = NULL;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    if (!faxe_argcheck_dsp_index(index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_ChannelGroup_GetDSP(group, index, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
     /* The chain lives as long as the group, a volatile group's included */
@@ -8033,6 +8059,8 @@ HL_PRIM int HL_NAME(sys_thread_set_attributes)(int type, int priority, int stack
     FMOD_THREAD_AFFINITY mask = affinity < 0
         ? (FMOD_THREAD_AFFINITY)FMOD_THREAD_AFFINITY_GROUP_DEFAULT
         : (FMOD_THREAD_AFFINITY)(unsigned int)affinity;
+    /* The type goes first, so a bad one reads the same before and after init */
+    if (!faxe_argcheck_thread_type(type)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     if (gStudioSystem != NULL) { gLastResult = FMOD_ERR_INITIALIZED; return (int)gLastResult; }
     gLastResult = FMOD_Thread_SetAttributes((FMOD_THREAD_TYPE)type, mask,
         (FMOD_THREAD_PRIORITY)priority, (FMOD_THREAD_STACK_SIZE)stackSize);
@@ -8137,6 +8165,7 @@ HL_PRIM vbyte* HL_NAME(evd_get_parameter_label_by_index)(int h, int index, int l
     int retrieved = 0;
     gStringBuf[0] = '\0';
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (vbyte*)gStringBuf; }
+    if (!faxe_argcheck_label_index(labelIndex)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (vbyte*)gStringBuf; }
     gLastResult = FMOD_Studio_EventDescription_GetParameterLabelByIndex(desc, index,
         labelIndex, gStringBuf, sizeof(gStringBuf), &retrieved);
     if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';

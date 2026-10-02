@@ -23,6 +23,7 @@
 #include "../shared/faxe_guid.h"
 #include "../shared/faxe_instctx.h"
 #include "../shared/faxe_dspdata.h"
+#include "../shared/faxe_argcheck.h"
 #include <thread>
 #include <atomic>
 #include <chrono>
@@ -588,6 +589,15 @@ static bool lincFillExInfo(FMOD_CREATESOUNDEXINFO* exinfo, ::Array<int> ibuf, co
 // exinfo that passed one, braced. Empty after any other create.
 static char gFsbGuidOut[40];
 
+// Whether FMOD may see exinfo under mode (faxe_argcheck.h)
+static bool lincExInfoOk(const FMOD_CREATESOUNDEXINFO* exinfo, FMOD_MODE mode) {
+    FMOD_ADVANCEDSETTINGS adv;
+    memset(&adv, 0, sizeof(adv));
+    adv.cbSize = sizeof(adv);
+    if (gCoreSystem->getAdvancedSettings(&adv) != FMOD_OK) adv.defaultDecodeBufferSize = 0;
+    return faxe_argcheck_exinfo(exinfo, mode, adv.defaultDecodeBufferSize) != 0;
+}
+
 // Sound.create with a full FMOD_CREATESOUNDEXINFO. ibuf is the Scratch
 // int buffer packed by the Haxe side, the strings are empty when unset.
 int fmod_core_create_sound_ex(const ::String& path, int mode, ::Array<int> ibuf, const ::String& dls, const ::String& key, const ::String& guidText) {
@@ -597,7 +607,8 @@ int fmod_core_create_sound_ex(const ::String& path, int mode, ::Array<int> ibuf,
     FMOD::Sound* sound = NULL;
     FMOD_CREATESOUNDEXINFO exinfo;
     FMOD_GUID guid;
-    if (!lincFillExInfo(&exinfo, ibuf, dls.c_str(), key.c_str(), guidText.c_str(), &guid)) {
+    if (!lincFillExInfo(&exinfo, ibuf, dls.c_str(), key.c_str(), guidText.c_str(), &guid)
+            || !lincExInfoOk(&exinfo, (FMOD_MODE)mode)) {
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return 0;
     }
@@ -634,6 +645,7 @@ int fmod_core_create_sound_memory_ex(::Array<unsigned char> data, int len, int m
         return 0;
     }
     exinfo.length = (unsigned int)len;
+    if (!lincExInfoOk(&exinfo, (FMOD_MODE)mode)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     int handle = lincCreateFromImage(&data[0], len, (FMOD_MODE)mode, &exinfo);
     if (handle && exinfo.fsbguid) faxe_guid_format(&guid, gFsbGuidOut, sizeof(gFsbGuidOut));
     return handle;
@@ -3075,6 +3087,7 @@ int fmod_chan_get_dsp(int h, int index) {
     FMOD::Channel* ch = resolveChannel(h);
     if (!ch) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     FMOD::DSP* dsp = NULL;
+    if (!faxe_argcheck_dsp_index(index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = ch->getDSP(index, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
     return lincMintBorrowed(dsp, FAXE_TYPE_DSP, h, false);
@@ -3889,7 +3902,8 @@ int fmod_sys_init_ex(int numChannels, int sampleRate, int speakerMode, int studi
 
     if (dspBufferLength > 0 || softwareChannels > 0 || streamBufferSize > 0) {
         gStudioSystem->getCoreSystem(&gCoreSystem);
-        if (dspBufferLength > 0) {
+        // A block past the limit keeps FMOD's default, like a refused setter
+        if (faxe_argcheck_dsp_buffer(dspBufferLength)) {
             gCoreSystem->setDSPBufferSize((unsigned int)dspBufferLength, dspNumBuffers > 0 ? dspNumBuffers : 2);
         }
         if (softwareChannels > 0) gCoreSystem->setSoftwareChannels(softwareChannels);
@@ -4180,6 +4194,7 @@ const char* fmod_sys_get_parameter_description_by_name(const ::String& name, ::A
 const char* fmod_sys_get_parameter_label(const ::String& name, int labelIndex) {
     gStringBuf[0] = '\0';
     if (!gStudioSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return gStringBuf; }
+    if (!faxe_argcheck_label_index(labelIndex)) { gLastResult = FMOD_ERR_INVALID_PARAM; return gStringBuf; }
     int retrieved = 0;
     gLastResult = gStudioSystem->getParameterLabelByName(name.c_str(), labelIndex, gStringBuf, sizeof(gStringBuf), &retrieved);
     if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
@@ -5104,6 +5119,7 @@ const char* fmod_evd_get_parameter_label(int h, const ::String& name, int labelI
     gStringBuf[0] = '\0';
     FMOD::Studio::EventDescription* desc = resolveDescription(h);
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    if (!faxe_argcheck_label_index(labelIndex)) { gLastResult = FMOD_ERR_INVALID_PARAM; return gStringBuf; }
     int retrieved = 0;
     gLastResult = desc->getParameterLabelByName(name.c_str(), labelIndex, gStringBuf, sizeof(gStringBuf), &retrieved);
     if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';
@@ -5628,7 +5644,8 @@ int fmod_core_create_record_sound(int sampleRate, int channels, int seconds) {
     exinfo.numchannels = channels;
     exinfo.defaultfrequency = sampleRate;
     exinfo.format = FMOD_SOUND_FORMAT_PCM16;
-    exinfo.length = (unsigned int)sampleRate * (unsigned int)channels * 2u * (unsigned int)seconds;
+    exinfo.length = faxe_argcheck_record_length(sampleRate, channels, seconds);
+    if (exinfo.length == 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     FMOD::Sound* sound = NULL;
     gLastResult = gCoreSystem->createSound(NULL, FMOD_OPENUSER | FMOD_LOOP_NORMAL, &exinfo, &sound);
     if (gLastResult != FMOD_OK || !sound) return 0;
@@ -6735,6 +6752,7 @@ int fmod_sys_get_network_timeout() {
 
 int fmod_sys_set_speaker_position(int speaker, float x, float y, bool active) {
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (!faxe_argcheck_speaker(speaker)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     gLastResult = gCoreSystem->setSpeakerPosition((FMOD_SPEAKER)speaker, x, y, active);
     return (int)gLastResult;
 }
@@ -6744,7 +6762,9 @@ int fmod_sys_get_speaker_position(int speaker, ::Array<Float> fbuf) {
     float y = 0.0f;
     bool active = false;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
-    gLastResult = gCoreSystem->getSpeakerPosition((FMOD_SPEAKER)speaker, &x, &y, &active);
+    gLastResult = faxe_argcheck_speaker(speaker)
+        ? gCoreSystem->getSpeakerPosition((FMOD_SPEAKER)speaker, &x, &y, &active)
+        : FMOD_ERR_INVALID_PARAM;
     fbuf[0] = (Float)x;
     fbuf[1] = (Float)y;
     fbuf[2] = active ? 1.0 : 0.0;
@@ -6983,6 +7003,7 @@ int fmod_cg_get_dsp(int h, int index) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     FMOD::DSP* dsp = NULL;
+    if (!faxe_argcheck_dsp_index(index)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = group->getDSP(index, &dsp);
     if (gLastResult != FMOD_OK || !dsp) return 0;
     // The chain lives as long as the group, a volatile group's included
@@ -7179,6 +7200,8 @@ int fmod_sys_thread_set_attributes(int type, int priority, int stackSize, int af
     FMOD_THREAD_AFFINITY mask = affinity < 0
         ? (FMOD_THREAD_AFFINITY)FMOD_THREAD_AFFINITY_GROUP_DEFAULT
         : (FMOD_THREAD_AFFINITY)(unsigned int)affinity;
+    // The type goes first, so a bad one reads the same before and after init
+    if (!faxe_argcheck_thread_type(type)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
     if (gStudioSystem != NULL) { gLastResult = FMOD_ERR_INITIALIZED; return (int)gLastResult; }
     gLastResult = FMOD::Thread_SetAttributes((FMOD_THREAD_TYPE)type, mask,
         (FMOD_THREAD_PRIORITY)priority, (FMOD_THREAD_STACK_SIZE)stackSize);
@@ -7271,6 +7294,7 @@ const char* fmod_evd_get_parameter_label_by_index(int h, int index, int labelInd
     gStringBuf[0] = '\0';
     FMOD::Studio::EventDescription* desc = resolveDescription(h);
     if (!desc) { gLastResult = FMOD_ERR_INVALID_HANDLE; return gStringBuf; }
+    if (!faxe_argcheck_label_index(labelIndex)) { gLastResult = FMOD_ERR_INVALID_PARAM; return gStringBuf; }
     int retrieved = 0;
     gLastResult = desc->getParameterLabelByIndex(index, labelIndex, gStringBuf, sizeof(gStringBuf), &retrieved);
     if (gLastResult != FMOD_OK) gStringBuf[0] = '\0';

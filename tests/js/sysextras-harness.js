@@ -164,6 +164,14 @@ async function main() {
     check('sys_speaker_position_restored', jaxe.fmod_sys_get_speaker_position(0, fbuf) === 0
         && Math.abs(fbuf[0] - before[0]) < 0.001 && Math.abs(fbuf[1] - before[1]) < 0.001, '');
 
+    // FMOD indexes before its speaker table on a negative speaker and
+    // reports success. The shim refuses NONE and every other negative.
+    fbuf[0] = 7; fbuf[1] = 7; fbuf[2] = 7;
+    check('sys_speaker_position_negative_refused', jaxe.fmod_sys_set_speaker_position(-1, 0.25, 0.75, true) === 31
+        && jaxe.fmod_sys_get_speaker_position(-1, fbuf) === 31 && fbuf[0] === 0 && fbuf[1] === 0 && fbuf[2] === 0
+        && jaxe.fmod_sys_set_speaker_position(-65536, 0.25, 0.75, true) === 31
+        && jaxe.fmod_sys_set_speaker_position(12, 0.25, 0.75, true) === 31, `x=${fbuf[0]}`);
+
     check('no_handle_leaks_sysextras', jaxe.fmod_debug_live_handle_count() === baseline,
         `baseline=${baseline} now=${jaxe.fmod_debug_live_handle_count()}`);
 

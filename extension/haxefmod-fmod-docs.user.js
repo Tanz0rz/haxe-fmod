@@ -10474,7 +10474,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": false,
-     "doc": "Removes the system callback handler and both native callbacks.",
+     "doc": "Removes the system callback handler.",
      "name": "clearSystemCallback",
      "signature": "clearSystemCallback():Void",
      "static": true,
@@ -10490,7 +10490,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes the handler and both native callbacks.",
+     "doc": "Removes the handler.",
      "gated": false,
      "name": "clear",
      "signature": "clear():Void",
@@ -12077,7 +12077,7 @@ const HAXEFMOD_BINDINGS = {
    "haxe": [
     {
      "direct": false,
-     "doc": "Removes the system callback handler and both native callbacks.",
+     "doc": "Removes the system callback handler.",
      "name": "clearSystemCallback",
      "signature": "clearSystemCallback():Void",
      "static": true,
@@ -12093,7 +12093,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "Removes the handler and both native callbacks.",
+     "doc": "Removes the handler.",
      "gated": false,
      "name": "clear",
      "signature": "clear():Void",

@@ -28,6 +28,8 @@ class FmodHeapsUpdater {
     public static var installCount(default, null):Int = 0;
 
     static var tickers:Array<IHeapsTicker> = [];
+    // The same components, for the per-frame membership test
+    static var registered:haxe.ds.ObjectMap<IHeapsTicker, Bool> = new haxe.ds.ObjectMap();
     static var lastStamp:Float = -1;
     static var installed:Bool = false;
     // Set by removeHook() and cleared by init(). While set, add() leaves
@@ -110,12 +112,15 @@ class FmodHeapsUpdater {
     /** Registers a component to be ticked every frame. Installs the frame hook unless removeHook() took it out. **/
     public static function add(ticker:IHeapsTicker):Void {
         if (!hookRemoved) init();
-        if (tickers.indexOf(ticker) == -1) tickers.push(ticker);
+        if (registered.exists(ticker)) return;
+        registered.set(ticker, true);
+        tickers.push(ticker);
     }
 
     /** Unregisters a component. The updater stops ticking it. **/
     public static function remove(ticker:IHeapsTicker):Void {
         tickers.remove(ticker);
+        registered.remove(ticker);
     }
 
     /** How many components are registered. **/
@@ -137,7 +142,7 @@ class FmodHeapsUpdater {
         // Copy first: a ticker can remove itself (a loader that just fired).
         // One that an earlier tick removed is skipped.
         for (ticker in tickers.copy()) {
-            if (tickers.indexOf(ticker) != -1) ticker.tick(dt);
+            if (registered.exists(ticker)) ticker.tick(dt);
         }
         FmodManager.Update();
     }
