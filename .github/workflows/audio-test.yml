@@ -198,9 +198,12 @@ jobs:
           haxe tests/build-no-live-update.hxml
 
       # The flixel helpers run against stand-ins for the engine's signals
-      # and state switch, since flixel itself does not run under --interp
+      # and state switch, since flixel itself does not run under --interp.
+      # The preloader suite owns its own process for its one init.
       - name: Test the flixel helpers against stub flixel
-        run: haxe tests/build-flixel-helpers.hxml
+        run: |
+          haxe tests/build-flixel-helpers.hxml
+          haxe tests/build-flixel-preloader.hxml
 
       # One init per process: the failure paths get their own suites
       - name: Test the default bank failure path

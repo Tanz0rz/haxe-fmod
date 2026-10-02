@@ -27,6 +27,9 @@ leans on:
      SDK header, and the sanitizer loops name every native test. Both
      sets are read from tests/native and its includes, in the workflow
      and in ci/local-ci.sh, so a test reaches every pass.
+     Each test that needs the SDK headers is built and run on its own
+     line with gcc, Apple clang, MSVC, and the 2.02.33 headers. Every
+     shared header is in the package file list.
   9. The HashLink commit is named once, in HASHLINK_COMMIT, and every
      checkout and cache key reads it there.
   10. HAXELIB_PINS names every pinned haxelib install and every haxelib
@@ -59,6 +62,12 @@ leans on:
   19. The Linux hdll build fails when the hdll requires a glibc version
      newer than 2.34 or a named glibc requirement. The job runs on a
      pinned image.
+  20. The shim drop-point host test builds the HashLink shim with two
+     FMOD calls wrapped and runs it, in the workflow and in
+     ci/local-ci.sh.
+  21. The run-test-state action, every generated run_game function,
+     and stress-test.yml keep the game's exit status and fail on a
+     nonzero one.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -520,7 +529,7 @@ def sdk_tests_built(pattern):
         if name and re.search(pattern, name.group(1)):
             lines = re.sub(r"\\\n *", " ", step)
             lines = [line.strip() for line in lines.split("\n") if not line.lstrip().startswith("#")]
-            lines = [line for line in lines if not re.search(r"\|\|\s*true\s*$", line)]
+            lines = [line for line in lines if not re.search(r"\|\|\s*(?:true|:)\s*$", line)]
             for line in lines:
                 for test in re.findall(r"tests[/\\]native[/\\]test_faxe_(\w+)\.c", line):
                     out = re.search(r"(?:-o |/Fe:)(\S+)", line)
@@ -833,13 +842,13 @@ else:
     # Quoted text and trailing comments name a keyword without running it
     bare = re.sub(r"\"[^\"\n]*\"|'[^'\n]*'", "", rest)
     bare = re.sub(r"[ \t]#[^\n]*", "", bare)
-    if re.search(r"(?:^|[;&|(])\s*(?:for|exec|trap|alias|shopt)\b", bare, re.M):
+    if re.search(r"\b(?:for|exec|trap|alias|shopt)\b", bare):
         glibc_problems.append("loops, execs, traps or aliases around the gate")
     if re.search(r"^ *(?:export +)?(?:NEEDS|NEWEST|NAMED|PATH)=", rest, re.M):
         glibc_problems.append("sets a gate variable or PATH outside the gate lines")
-    top_defaults = re.search(r"^defaults:\n(?:[ \t]+[^\n]*\n)+", text, re.M)
-    job_defaults = re.search(r"^    defaults:\n(?: {5,}[^\n]*\n)+", hl_build, re.M)
-    if re.search(r"^ +shell:", body, re.M) or any(found and re.search(r"^ +shell:", found.group(0), re.M) for found in (top_defaults, job_defaults)):
+    top_defaults = re.search(r"^defaults:[^\n]*\n(?:[ \t]+[^\n]*\n)*", text, re.M)
+    job_defaults = re.search(r"^    defaults:[^\n]*\n(?: {5,}[^\n]*\n)*", hl_build, re.M)
+    if re.search(r"^ +shell:", body, re.M) or any(found and re.search(r"\bshell\s*:", found.group(0)) for found in (top_defaults, job_defaults)):
         glibc_problems.append("runs under a shell other than the default")
     if not re.search(r"^    runs-on: ubuntu-24\.04$", hl_build, re.M):
         glibc_problems.append("does not build on the pinned ubuntu-24.04 image")
@@ -855,7 +864,7 @@ host_missing = []
 for where, body in (("workflow", commands_only(text)), ("ci/local-ci.sh", commands_only(local_runner))):
     for label, pattern in (("the wrapped build", r"gcc [^\n]*--wrap=FMOD_Sound_Release[^\n]*--wrap=FMOD_System_RecordStop[^\n]*native/hlaxe/hlaxe_fmod\.c tests/native/hlaxe_test_wraps\.c"),
                            ("the program build", r"haxe -cp \. -main tests\.ShimDropPoints -hl "),
-                           ("the run", r"tests\.ShimDropPoints -hl [\s\S]{0,400}?\bhl \"?\S*main\.hl")):
+                           ("the run", r"(?m)tests\.ShimDropPoints -hl [\s\S]{0,400}?LD_LIBRARY_PATH=\S+ hl \"?\S*main\.hl\"?'?(?: _ [^\n]*)?$")):
         if not re.search(pattern, body):
             host_missing.append(f"{where}: {label}")
 if host_missing:
@@ -868,17 +877,17 @@ else:
 # the status and fail on it.
 status_missing = []
 KEEP = r"wait \$GAME_PID 2>/dev/null \|\| GAME_STATUS=\$\?"
-FAILS = r'\[ "\$GAME_STATUS" != 0 \] && \[ "\$GAME_STATUS" != killed \]'
+FAILS = r'^ *if \[ "\$GAME_STATUS" != 0 \] && \[ "\$GAME_STATUS" != killed \]; then(?: [^\n]*; exit 1; fi$|\n *fail "|(?:\n[^\n]*)?\n *exit 1$)'
 with open(os.path.join(ROOT, ".github", "actions", "run-test-state", "action.yml")) as fh:
     state_action = fh.read()
 with open(os.path.join(os.path.dirname(PATH), "stress-test.yml")) as fh:
     stress_workflow = fh.read()
 for where, body in (("run-test-state action", state_action), ("stress-test.yml", stress_workflow)):
-    if not re.search(KEEP, commands_only(body)) or not re.search(FAILS, commands_only(body)):
+    if not re.search(KEEP, commands_only(body)) or not re.search(FAILS, commands_only(body), re.M):
         status_missing.append(where)
 run_functions = len(re.findall(r"^ +run_game\(\) \{$", text, re.M))
 kept = len(re.findall(KEEP, commands_only(text)))
-failing = len(re.findall(FAILS, commands_only(text)))
+failing = len(re.findall(FAILS, commands_only(text), re.M))
 if run_functions == 0 or kept != run_functions or failing != run_functions:
     status_missing.append(f"audio-test.yml: {run_functions} run_game functions, {kept} keep the status, {failing} fail on it")
 if status_missing:
