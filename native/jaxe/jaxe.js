@@ -3825,8 +3825,8 @@ class jaxe {
     // it. FMOD frees a group's DSP with the group, also after the game
     // moved it to another chain. Studio frees a Studio effect with its
     // owner while its own chain still lists it. One moved to another chain
-    // outlives its owner, and FMOD crashes when the game later removes it
-    // there. FMOD hands a channel's own DSP to a later channel that plays.
+    // outlives its owner. A later removal there can crash FMOD. FMOD hands
+    // a channel's own DSP to a later channel that plays.
     // Mirrors hlaxe_dsp_in_other_chain.
     static dspInOtherChain(dspHandle, dsp, target) {
         var owner = jaxe.dspChain(dspHandle);

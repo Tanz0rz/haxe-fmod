@@ -1535,9 +1535,9 @@ bool fmod_cg_get_paused(int h) {
 // from or a chain that already lists it. FMOD frees a group's DSP with
 // the group, also after the game moved it to another chain. Studio frees
 // a Studio effect with its owner while its own chain still lists it. One
-// moved to another chain outlives its owner, and FMOD crashes when the
-// game later removes it there. FMOD hands a channel's own DSP to a later
-// channel that plays.
+// moved to another chain outlives its owner. A later removal there can
+// crash FMOD. FMOD hands a channel's own DSP to a later channel that
+// plays.
 static bool lincDspInOtherChain(int dspHandle, FMOD::DSP* dsp, int target) {
     int owner = faxe_dsp_chain(dspHandle);
     int index = -1;

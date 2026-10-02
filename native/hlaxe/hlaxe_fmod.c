@@ -1705,9 +1705,9 @@ DEFINE_PRIM(_BOOL, cg_get_paused, _I32);
    from or a chain that already lists it. FMOD frees a group's DSP with
    the group, also after the game moved it to another chain. Studio
    frees a Studio effect with its owner while its own chain still lists
-   it. One moved to another chain outlives its owner, and FMOD crashes
-   when the game later removes it there. FMOD hands a channel's own DSP
-   to a later channel that plays. */
+   it. One moved to another chain outlives its owner. A later removal
+   there can crash FMOD. FMOD hands a channel's own DSP to a later
+   channel that plays. */
 static int hlaxe_dsp_in_other_chain(int dspHandle, FMOD_DSP* dsp, int target) {
     int owner = faxe_dsp_chain(dspHandle);
     int index = -1;
