@@ -1711,7 +1711,7 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: audio-linux-html5-firefox
+          name: logs-linux-html5-firefox
           path: |
             /tmp/api-probe-firefox.log
             /tmp/cb-test-firefox.log
@@ -4193,7 +4193,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-linux-cpp-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-linux-cpp' || format('logs-linux-cpp-{0}', matrix.state) }}
           path: |
             /tmp/*-linux-cpp.wav
             /tmp/*-linux-cpp.log
@@ -4404,7 +4406,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-linux-hl-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-linux-hl' || format('logs-linux-hl-{0}', matrix.state) }}
           path: |
             /tmp/*-linux-hl.wav
             /tmp/*-linux-hl.log
@@ -4693,7 +4697,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-linux-html5-chromium-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-linux-html5-chromium' || format('logs-linux-html5-chromium-{0}', matrix.state) }}
           path: |
             /tmp/*-linux-html5-chromium.wav
             /tmp/*-linux-html5-chromium.log
@@ -4929,7 +4935,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-mac-cpp-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-mac-cpp' || format('logs-mac-cpp-{0}', matrix.state) }}
           path: |
             /tmp/*-mac-cpp.wav
             /tmp/*-mac-cpp.log
@@ -5166,7 +5174,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-mac-hl-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-mac-hl' || format('logs-mac-hl-{0}', matrix.state) }}
           path: |
             /tmp/*-mac-hl.wav
             /tmp/*-mac-hl.log
@@ -5356,7 +5366,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-windows-cpp-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-windows-cpp' || format('logs-windows-cpp-{0}', matrix.state) }}
           path: |
             ${{ github.workspace }}/*-windows-cpp.wav
             ${{ github.workspace }}/*-windows-cpp.log
@@ -5545,7 +5557,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-windows-hl-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-windows-hl' || format('logs-windows-hl-{0}', matrix.state) }}
           path: |
             ${{ github.workspace }}/*-windows-hl.wav
             ${{ github.workspace }}/*-windows-hl.log
@@ -5810,7 +5824,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-heaps-hl-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-heaps-hl' || format('logs-heaps-hl-{0}', matrix.state) }}
           path: |
             /tmp/*-heaps-hl.wav
             /tmp/*-heaps-hl.log
@@ -6099,7 +6115,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-heaps-html5-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-heaps-html5' || format('logs-heaps-html5-{0}', matrix.state) }}
           path: |
             /tmp/*-heaps-html5.wav
             /tmp/*-heaps-html5.log
@@ -6335,7 +6353,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-heaps-mac-hl-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-heaps-mac-hl' || format('logs-heaps-mac-hl-{0}', matrix.state) }}
           path: |
             /tmp/*-heaps-mac-hl.wav
             /tmp/*-heaps-mac-hl.log
@@ -6525,7 +6545,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-heaps-windows-hl-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-heaps-windows-hl' || format('logs-heaps-windows-hl-{0}', matrix.state) }}
           path: |
             ${{ github.workspace }}/*-heaps-windows-hl.wav
             ${{ github.workspace }}/*-heaps-windows-hl.log
@@ -6756,7 +6778,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-kha-linux-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-kha-linux' || format('logs-kha-linux-{0}', matrix.state) }}
           path: |
             /tmp/*-kha-linux.wav
             /tmp/*-kha-linux.log
@@ -6967,7 +6991,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-kha-hl-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-kha-hl' || format('logs-kha-hl-{0}', matrix.state) }}
           path: |
             /tmp/*-kha-hl.wav
             /tmp/*-kha-hl.log
@@ -7256,7 +7282,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-kha-html5-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-kha-html5' || format('logs-kha-html5-{0}', matrix.state) }}
           path: |
             /tmp/*-kha-html5.wav
             /tmp/*-kha-html5.log
@@ -7492,7 +7520,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-kha-mac-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-kha-mac' || format('logs-kha-mac-{0}', matrix.state) }}
           path: |
             /tmp/*-kha-mac.wav
             /tmp/*-kha-mac.log
@@ -7729,7 +7759,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-kha-mac-hl-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-kha-mac-hl' || format('logs-kha-mac-hl-{0}', matrix.state) }}
           path: |
             /tmp/*-kha-mac-hl.wav
             /tmp/*-kha-mac-hl.log
@@ -7919,7 +7951,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-kha-windows-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-kha-windows' || format('logs-kha-windows-{0}', matrix.state) }}
           path: |
             ${{ github.workspace }}/*-kha-windows.wav
             ${{ github.workspace }}/*-kha-windows.log
@@ -8108,7 +8142,9 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-kha-windows-hl-${{ matrix.state }}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{ matrix.state == 'game-audio' && 'audio-kha-windows-hl' || format('logs-kha-windows-hl-{0}', matrix.state) }}
           path: |
             ${{ github.workspace }}/*-kha-windows-hl.wav
             ${{ github.workspace }}/*-kha-windows-hl.log

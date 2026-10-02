@@ -671,7 +671,9 @@ def run_job(j, text):
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: logs-{j.name}-${{{{ matrix.state }}}}
+          # The game recording is the artifact a listener opens, so it
+          # carries the audio prefix like the compat recordings
+          name: ${{{{ matrix.state == 'game-audio' && 'audio-{j.name}' || format('logs-{j.name}-{{0}}', matrix.state) }}}}
           path: |
             {j.tmpx(f"*-{j.name}.wav")}
             {j.tmpx(f"*-{j.name}.log")}
