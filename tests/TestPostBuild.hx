@@ -733,6 +733,12 @@ class TestPostBuild {
 		check("postbuild reads a relative FMOD_SDK_WEB from the project",
 			r.code == 0 && sys.FileSystem.exists('$relProject/export/html5/bin/lib/fmodstudio.wasm'));
 
+		var relNative = '$base/relative-native';
+		fakeDesktopSdk('$relNative/sdk', expected, true);
+		r = runTool(["stage", platform, "cpp", '$base/out-relative-native'], relNative, ["FMOD_SDK" => "sdk"]);
+		check("stage reads a relative FMOD_SDK from the project",
+			r.code == 0 && sys.FileSystem.exists('$base/out-relative-native/' + (platform == "mac" ? "libfmod.dylib" : "libfmod.so")));
+
 		// lime ignores the postbuild exit code, so the compile refuses a
 		// desktop package without the studio library the postbuild copies
 		var noStudio = fakeDesktopSdk('$base/no-studio', expected, true);
@@ -765,6 +771,12 @@ class TestPostBuild {
 		check("a custom hdll without a marker gets the same verdict from the compile and the stage",
 			r.code == 0 && compileCode == 0 && sys.FileSystem.exists('$base/out-unmarked/hlaxe_fmod.hdll'));
 		Sys.putEnv("FMOD_SDK", savedSdk);
+
+		var orphan = '$base/orphan-marker';
+		writeFile('$orphan/.haxefmod/hlaxe_fmod.version', "0x00010101");
+		r = runTool(["stage", platform, "hl", '$base/out-orphan'], orphan, ["FMOD_SDK" => oldSdkLibs]);
+		check("stage ignores a version marker without its hdll",
+			r.code == 1 && r.out.indexOf("ERROR: FMOD SDK version mismatch") != -1 && !sys.FileSystem.exists('$base/out-orphan/hlaxe_fmod.hdll'));
 
 		r = runTool(["no-such-command"], plain, []);
 		check("an unknown command exits nonzero", r.code == 1 && r.out.indexOf("Unknown command") != -1);
