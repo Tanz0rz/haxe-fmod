@@ -121,7 +121,7 @@ class ProbeGroupPark {
             if (g == (ga : Int)) iga = i;
             if (g == (gb : Int)) igb = i;
         }
-        var channels = ia < 0 || ib < 0 ? "missing" : (ia < ib ? "ab" : "ba");
+        var channels = ia < 0 || ib < 0 ? 'missing(a=$ia,b=$ib)' : (ia < ib ? "ab" : "ba");
         var groups = iga < 0 || igb < 0 ? "missing" : (iga < igb ? "ab" : "ba");
         return 'channels=$channels groups=$groups';
     }
@@ -204,6 +204,8 @@ class ProbeGroupPark {
         // the geometry thread when the release comes
         _group.set3DAttributes(5.02, 0, 0);
         StudioSystem.flushCommands();
+        // The order check needs both channels to play at the release
+        var playingBefore = '${_channel.isPlaying()},${_channel2.isPlaying()}';
         _releasedAt = haxe.Timer.stamp();
         var released:FmodResult = _group.release();
         var inputs = _parentHead.getNumInputs();
@@ -224,10 +226,13 @@ class ProbeGroupPark {
             'childParent=${(childParent : Int)} channelGroup=${(channelGroup : Int)} master=${(master : Int)}');
         // The move keeps the order the immediate release gave. That release
         // ran at once, which the empty input list of its parent shows.
+        @:privateAccess state.check("cg_park_order_channels_playing", playingBefore == "true,true",
+            'before=$playingBefore');
         var parkedOrder = moveOrder(_channel, _channel2, _child, _child2);
+        var playingAfter = '${_channel.isPlaying()},${_channel2.isPlaying()}';
         @:privateAccess state.check("cg_park_keeps_release_order", _immediateInputs == 0
             && _immediateOrder == "channels=ab groups=ab" && parkedOrder == _immediateOrder,
-            'immediate=[$_immediateOrder] immediateInputs=$_immediateInputs parked=[$parkedOrder]');
+            'immediate=[$_immediateOrder] immediateInputs=$_immediateInputs parked=[$parkedOrder] playing=$playingAfter');
         // An index past the shown children is out of range, whatever its size
         var past = _parent.getGroup(0x7fffffff);
         var pastResult = StudioSystem.lastResult();
