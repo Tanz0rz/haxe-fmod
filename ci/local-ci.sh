@@ -364,7 +364,7 @@ job_unit_tests() {
   step "Test the default bank failure path" bash -eo pipefail -c '
     haxe tests/build-preload-failure.hxml && haxe tests/build-init-refused.hxml && haxe tests/build-default-bank-failure.hxml && haxe tests/build-default-bank-failure-provided.hxml'
   step "Run native tests under AddressSanitizer and UBSan" bash -eo pipefail -c '
-    for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums; do
+    for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums argcheck; do
       gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
         -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" -o "$1/asan_$t" tests/native/test_faxe_$t.c
       "$1/asan_$t"

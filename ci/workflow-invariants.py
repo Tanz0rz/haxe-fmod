@@ -57,7 +57,8 @@ leans on:
   18. Every tests/build*.hxml suite runs in the workflow and in
      ci/local-ci.sh.
   19. The Linux hdll build fails when the hdll requires a glibc version
-     newer than 2.34 or a named glibc requirement.
+     newer than 2.34 or a named glibc requirement. The job runs on a
+     pinned image.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -778,6 +779,13 @@ else:
         glibc_problems.append("has continue-on-error")
     if re.search(r"^ *exit 0\b|\bset \+e\b", body, re.M):
         glibc_problems.append("can leave before the gate or ignore its failure")
+    rest = body
+    for label, pattern in GLIBC_GATE:
+        rest = re.sub(pattern.replace("{B}", base), "", rest, flags=re.M)
+    if re.search(r"^" + base + r"(?:if|while|until|case|select|function|trap|exit|return)\b|^" + base + r"[({]|^" + base + r"(?=\S)[^\n]*(?:;|&&|\|\|)\s*exit\b|<<|^ *\w+\(\) *\{", rest, re.M):
+        glibc_problems.append("wraps or leaves around the gate at its own indentation")
+    if not re.search(r"^    runs-on: ubuntu-24\.04$", hl_build, re.M):
+        glibc_problems.append("does not build on the pinned ubuntu-24.04 image")
 if glibc_problems:
     fail(f"the glibc floor gate in linux-hl-build: {glibc_problems}")
 else:

@@ -206,7 +206,7 @@ jobs:
         run: |
           # The SDK-dependent tests join, since a fixture read past its
           # arrays there stays hidden in a plain build
-          for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums; do
+          for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums argcheck; do
             gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
               -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" -o /tmp/asan_$t tests/native/test_faxe_$t.c
             /tmp/asan_$t
@@ -607,6 +607,9 @@ jobs:
           gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
             -o /tmp/test_dspdata tests/native/test_faxe_dspdata.c
           /tmp/test_dspdata
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_argcheck tests/native/test_faxe_argcheck.c
+          /tmp/test_argcheck
 
       - name: Test the DSP parameter indices against this SDK's headers
         run: |
@@ -693,6 +696,7 @@ jobs:
             "native/manifest/studio_api.txt" \
             "native/shared/faxe_handles.h" \
             "native/shared/faxe_cbqueue.h" \
+            "native/shared/faxe_argcheck.h" \
             "native/shared/faxe_dspdata.h" \
             "native/shared/faxe_dsptype.h" \
             "native/shared/faxe_guid.h" \
@@ -1169,7 +1173,9 @@ jobs:
 
   linux-hl-build:
     name: Flixel / Linux HashLink / build
-    runs-on: ubuntu-latest
+    # The shipped Linux hdll comes from this job. A fixed image keeps its
+    # glibc floor from moving with the runner label.
+    runs-on: ubuntu-24.04
     if: ${{ startsWith(github.ref, 'refs/tags/') || (!contains(github.event.head_commit.message, '[skip-build]') && (contains(github.event.head_commit.message, '[linux-hl]') || (!contains(github.event.head_commit.message, '[linux-cpp]') && !contains(github.event.head_commit.message, '[linux-hl]') && !contains(github.event.head_commit.message, '[linux-html5-chromium]') && !contains(github.event.head_commit.message, '[linux-html5-firefox]') && !contains(github.event.head_commit.message, '[mac-cpp]') && !contains(github.event.head_commit.message, '[mac-hl]') && !contains(github.event.head_commit.message, '[windows-cpp]') && !contains(github.event.head_commit.message, '[windows-hl]') && !contains(github.event.head_commit.message, '[linux-hl-compat]') && !contains(github.event.head_commit.message, '[mac-hl-compat]') && !contains(github.event.head_commit.message, '[windows-hl-compat]') && !contains(github.event.head_commit.message, '[heaps-hl]') && !contains(github.event.head_commit.message, '[heaps-html5]') && !contains(github.event.head_commit.message, '[kha-linux]') && !contains(github.event.head_commit.message, '[kha-hl]') && !contains(github.event.head_commit.message, '[kha-html5]') && !contains(github.event.head_commit.message, '[heaps-mac-hl]') && !contains(github.event.head_commit.message, '[heaps-windows-hl]') && !contains(github.event.head_commit.message, '[kha-mac]') && !contains(github.event.head_commit.message, '[kha-mac-hl]') && !contains(github.event.head_commit.message, '[kha-windows]') && !contains(github.event.head_commit.message, '[kha-windows-hl]')))) }}
     timeout-minutes: 30
     steps:
@@ -1779,7 +1785,7 @@ jobs:
       - name: Test native headers with Apple clang (sanitizers)
         if: ${{ !cancelled() }}
         run: |
-          for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums; do
+          for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums argcheck; do
             clang -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
               -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" -o /tmp/asan_$t tests/native/test_faxe_$t.c
             /tmp/asan_$t
@@ -1795,6 +1801,9 @@ jobs:
           clang -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
             -o /tmp/test_dspdata tests/native/test_faxe_dspdata.c
           /tmp/test_dspdata
+          clang -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_argcheck tests/native/test_faxe_argcheck.c
+          /tmp/test_argcheck
           clang -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
             -o /tmp/test_dspparams tests/native/test_faxe_dspparams.c
           /tmp/test_dspparams
@@ -2045,6 +2054,8 @@ jobs:
           %TEMP%\msvc_dsptype.exe || exit /b 1
           cl /nologo /W3 /WX /D_CRT_SECURE_NO_WARNINGS /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dspdata.exe tests\native\test_faxe_dspdata.c || exit /b 1
           %TEMP%\msvc_dspdata.exe || exit /b 1
+          cl /nologo /W3 /WX /D_CRT_SECURE_NO_WARNINGS /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_argcheck.exe tests\native\test_faxe_argcheck.c || exit /b 1
+          %TEMP%\msvc_argcheck.exe || exit /b 1
           cl /nologo /W3 /WX /D_CRT_SECURE_NO_WARNINGS /std:c11 /TC /I "%FMOD_SDK%\api\core\inc" /Fe:%TEMP%\msvc_dspparams.exe tests\native\test_faxe_dspparams.c || exit /b 1
           %TEMP%\msvc_dspparams.exe || exit /b 1
           python ci\haxe-enum-values.py --check || exit /b 1
@@ -2305,6 +2316,9 @@ jobs:
           gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
             -o /tmp/test_dspdata tests/native/test_faxe_dspdata.c
           /tmp/test_dspdata
+          gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" \
+            -o /tmp/test_argcheck tests/native/test_faxe_argcheck.c
+          /tmp/test_argcheck
           python3 ci/haxe-enum-values.py --check
           gcc -std=c99 -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" \
             -o /tmp/test_enums tests/native/test_faxe_enums.c
