@@ -24,12 +24,12 @@ env:
 
 jobs:
   release-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       # The checkout provides the example project and ci scripts only. The
       # library under test comes from lib.haxe.org
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -100,7 +100,7 @@ jobs:
           # tee returns its own status, so a failed make needs pipefail
           set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
-          # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
+          # ubuntu-24.04 has no libsdl3-dev, so newer hashlink master does not build.
           bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"

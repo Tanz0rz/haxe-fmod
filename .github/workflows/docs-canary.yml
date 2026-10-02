@@ -17,13 +17,13 @@ on:
 
 jobs:
   catalog:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
 
@@ -44,13 +44,13 @@ jobs:
         run: node extension/test/catalog-site.js --check
 
   notify-failure:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [catalog]
     if: ${{ !cancelled() && needs.catalog.result == 'failure' }}
     timeout-minutes: 5
     steps:
       # The retry wrapper lives in the repo
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Send failure email
         env:

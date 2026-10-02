@@ -30,10 +30,10 @@ jobs:
   # Latest Haxe libraries (unpinned lime/openfl/flixel/hxcpp)
   # ===========================================================================
   latest-deps:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -77,18 +77,18 @@ jobs:
   # HashLink master (unpinned)
   # Tracks HashLink master so breakage against haxefmod surfaces weekly.
   # HashLink master needs SDL3 since the SDL3 port (hashlink #830), and
-  # ubuntu-latest has no libsdl3-dev package yet. SDL3 is built from
+  # ubuntu-24.04 has no libsdl3-dev package yet. SDL3 is built from
   # source (cached) whenever apt cannot provide it. The apt check emits the
   # signal for the pre-SDL3 HashLink pin in audio-test.yml. A notice means
   # the pin can be dropped, a warning means keep it.
   # ===========================================================================
   hashlink-master:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       SDL3_VERSION: 3.4.14
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -128,10 +128,10 @@ jobs:
           if apt-cache policy libsdl3-dev | grep -q "Candidate: [0-9]"; then
             bash ci/apt.sh install -y libsdl3-dev
             echo "available=true" >> "$GITHUB_OUTPUT"
-            echo "::notice ::libsdl3-dev is now available on ubuntu-latest. The pre-SDL3 HashLink pin in audio-test.yml can be dropped."
+            echo "::notice ::libsdl3-dev is now available on ubuntu-24.04. The pre-SDL3 HashLink pin in audio-test.yml can be dropped."
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning ::libsdl3-dev is still unavailable on ubuntu-latest. SDL3 will be built from source. Keep the pre-SDL3 HashLink pin in audio-test.yml."
+            echo "::warning ::libsdl3-dev is still unavailable on ubuntu-24.04. SDL3 will be built from source. Keep the pre-SDL3 HashLink pin in audio-test.yml."
           fi
 
       - name: Name the runner image for the cache key
@@ -251,12 +251,12 @@ jobs:
   # those fails the run stops early instead of spending 30 minutes here.
   # ===========================================================================
   fmod-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [latest-deps, hashlink-master]
     if: ${{ github.event_name == 'workflow_dispatch' }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -293,7 +293,7 @@ jobs:
           # tee returns its own status, so a failed make needs pipefail
           set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
-          # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
+          # ubuntu-24.04 has no libsdl3-dev, so newer hashlink master does not build.
           bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
@@ -420,13 +420,13 @@ jobs:
   # cleanly. The alert never turns a canary run red on its own.
   # ===========================================================================
   notify-failure:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [latest-deps, hashlink-master, fmod-version]
     if: ${{ !cancelled() && contains(needs.*.result, 'failure') }}
     timeout-minutes: 5
     steps:
       # The retry wrapper lives in the repo
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Send failure email
         env:

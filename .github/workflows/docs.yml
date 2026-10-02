@@ -39,7 +39,7 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Haxe
         uses: ./.github/actions/setup-haxe
@@ -147,7 +147,7 @@ jobs:
         # The redirect is static, and the Pages environment allows
         # branches only, so a tag run skips it
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ci/pages-redirect
 
@@ -158,7 +158,7 @@ jobs:
     permissions:
       pages: write
       id-token: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment:
       name: github-pages
@@ -166,4 +166,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

@@ -28,10 +28,10 @@ env:
 
 jobs:
   stress-linux-hl:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -67,7 +67,7 @@ jobs:
           # tee returns its own status, so a failed make needs pipefail
           set -o pipefail
           # Pinned to the commit before the SDL3 port (hashlink #830, 2026-06-17).
-          # ubuntu-latest has no libsdl3-dev, so newer hashlink master does not build.
+          # ubuntu-24.04 has no libsdl3-dev, so newer hashlink master does not build.
           bash ci/retry.sh --clean /tmp/hashlink-src git clone https://github.com/HaxeFoundation/hashlink.git /tmp/hashlink-src
           cd /tmp/hashlink-src
           git checkout "$HASHLINK_COMMIT"
@@ -164,7 +164,7 @@ jobs:
           echo "Stress test passed"
 
       - name: Upload log
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: stress-test-log
@@ -179,10 +179,10 @@ jobs:
   # fail the run. Leak checking stays off (the game exits via Sys.exit
   # without teardown by design, so exit-time leak reports are all noise).
   valgrind-linux-cpp:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Download FMOD SDK
         uses: ./.github/actions/fmod-sdk
@@ -317,7 +317,7 @@ jobs:
           echo "Probe suite ran clean under valgrind memcheck"
 
       - name: Upload valgrind log
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: valgrind-log

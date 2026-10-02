@@ -29,12 +29,21 @@ STATES = [("api-probe", "API_PROBE"), ("synth-test", "SYNTH_TEST"), ("cb-test", 
           ("ps-test", "PS_TEST"), ("bank-test", "BANK_TEST"), ("pan-test", "PAN_TEST")]
 
 
+def artifact_slug(title):
+    t = title.lower().replace(" / ", "-").replace(" ", "-")
+    t = t.replace("c++", "cpp").replace("hl/c", "hlc")
+    return t.replace("-chromium", "-linux-html5-chromium")
+
+
 class Job:
     def __init__(self, name, title, os_, runner, download, launch, bindir=None, browser=False,
                  manual=None, hashlink=False, brew=""):
         self.name = name
         # Display name, "Engine / Platform" like the build jobs carry
         self.title = title
+        # The artifact name a person opens spells out engine, platform
+        # and target, like flixel-linux-hashlink or heaps-macos-hlc
+        self.slug = artifact_slug(title)
         self.os = os_
         self.runner = runner
         # Where the build artifact lands, and the directory the game runs in
@@ -76,9 +85,9 @@ MAC_APP = "EZPlatformerTestEdition.app"
 
 JOBS = [
     # flixel
-    Job("linux-cpp", "Flixel / Linux C++", "linux", "ubuntu-latest", f"{EZ}/linux/bin", "./run.sh", manual=f"{EZ}/linux/bin"),
-    Job("linux-hl", "Flixel / Linux HashLink", "linux", "ubuntu-latest", f"{EZ}/hl/bin", 'env LD_LIBRARY_PATH="$(pwd)" ./EZPlatformerTestEdition'),
-    Job("linux-html5-chromium", "Flixel / Chromium", "linux", "ubuntu-latest", f"{EZ}/html5/bin", "", browser=True),
+    Job("linux-cpp", "Flixel / Linux C++", "linux", "ubuntu-24.04", f"{EZ}/linux/bin", "./run.sh", manual=f"{EZ}/linux/bin"),
+    Job("linux-hl", "Flixel / Linux HashLink", "linux", "ubuntu-24.04", f"{EZ}/hl/bin", 'env LD_LIBRARY_PATH="$(pwd)" ./EZPlatformerTestEdition'),
+    Job("linux-html5-chromium", "Flixel / Chromium", "linux", "ubuntu-24.04", f"{EZ}/html5/bin", "", browser=True),
     Job("mac-cpp", "Flixel / macOS C++", "mac", "macos-14", f"{EZ}/macos/bin/{MAC_APP}", "./EZPlatformerTestEdition",
         bindir=f"{EZ}/macos/bin/{MAC_APP}/Contents/MacOS"),
     Job("mac-hl", "Flixel / macOS HashLink", "mac", "macos-14", f"{EZ}/hl/bin/{MAC_APP}", "./EZPlatformerTestEdition",
@@ -86,15 +95,15 @@ JOBS = [
     Job("windows-cpp", "Flixel / Windows C++", "windows", "windows-latest", f"{EZ}/windows/bin", "./EZPlatformerTestEdition.exe"),
     Job("windows-hl", "Flixel / Windows HashLink", "windows", "windows-latest", f"{EZ}/hl/bin", "./EZPlatformerTestEdition.exe"),
     # Heaps
-    Job("heaps-hl", "Heaps / Linux HashLink", "linux", "ubuntu-latest", f"{HEAPS}/build/hl", "./run.sh", manual=f"{HEAPS}/build-manual/hl", hashlink=True),
-    Job("heaps-html5", "Heaps / Chromium", "linux", "ubuntu-latest", f"{HEAPS}/build/html5", "", browser=True),
+    Job("heaps-hl", "Heaps / Linux HashLink", "linux", "ubuntu-24.04", f"{HEAPS}/build/hl", "./run.sh", manual=f"{HEAPS}/build-manual/hl", hashlink=True),
+    Job("heaps-html5", "Heaps / Chromium", "linux", "ubuntu-24.04", f"{HEAPS}/build/html5", "", browser=True),
     # HL/C links Homebrew's libhl and hdlls
     Job("heaps-mac-hl", "Heaps / macOS HL/C", "mac", "macos-14", f"{HEAPS}/build/hl", "./game", brew="hashlink libuv"),
     Job("heaps-windows-hl", "Heaps / Windows HashLink", "windows", "windows-latest", f"{HEAPS}/build/hl", "./HeapsPlatformer.exe"),
     # Kha
-    Job("kha-linux", "Kha / Linux C++", "linux", "ubuntu-latest", f"{KHA}/build/linux", "./run.sh", manual=f"{KHA}/build-manual/linux"),
-    Job("kha-hl", "Kha / Linux HL/C", "linux", "ubuntu-latest", f"{KHA}/build/linux-hl", "./run.sh"),
-    Job("kha-html5", "Kha / Chromium", "linux", "ubuntu-latest", f"{KHA}/build/html5", "", browser=True),
+    Job("kha-linux", "Kha / Linux C++", "linux", "ubuntu-24.04", f"{KHA}/build/linux", "./run.sh", manual=f"{KHA}/build-manual/linux"),
+    Job("kha-hl", "Kha / Linux HL/C", "linux", "ubuntu-24.04", f"{KHA}/build/linux-hl", "./run.sh"),
+    Job("kha-html5", "Kha / Chromium", "linux", "ubuntu-24.04", f"{KHA}/build/html5", "", browser=True),
     Job("kha-mac", "Kha / macOS C++", "mac", "macos-14", f"{KHA}/build/osx", "./KhaPlatformer"),
     Job("kha-mac-hl", "Kha / macOS HL/C", "mac", "macos-14", f"{KHA}/build/osx-hl", "./KhaPlatformer"),
     Job("kha-windows", "Kha / Windows C++", "windows", "windows-2022", f"{KHA}/build/windows", "./KhaPlatformer.exe"),
@@ -599,7 +608,7 @@ def run_job(j, text):
     manual_download = f"""
       - name: Download manual-update build
         if: matrix.state == 'api-probe-manual'
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: build-{j.name}-manual
           path: {j.manual}
@@ -656,10 +665,10 @@ def run_job(j, text):
         include:
 {include}
 {defaults}    steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Download build
-{download_if}        uses: actions/download-artifact@v6
+{download_if}        uses: actions/download-artifact@v8
         with:
           name: build-{j.name}
           # A single-path upload drops the directory prefix
@@ -668,12 +677,12 @@ def run_job(j, text):
 {setup_steps(j)}
 {steps}{crash}
       - name: Upload logs
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           # The game recording is the artifact a listener opens, so it
           # carries the audio prefix like the compat recordings
-          name: ${{{{ matrix.state == 'game-audio' && 'audio-{j.name}' || format('logs-{j.name}-{{0}}', matrix.state) }}}}
+          name: ${{{{ matrix.state == 'game-audio' && 'audio-{j.slug}' || format('logs-{j.slug}-{{0}}', matrix.state) }}}}
           path: |
             {j.tmpx(f"*-{j.name}.wav")}
             {j.tmpx(f"*-{j.name}.log")}
