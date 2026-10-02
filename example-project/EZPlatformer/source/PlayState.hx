@@ -19,7 +19,6 @@ class PlayState extends FlxState {
     var _started:Bool = false;
     var _startDelay:Float = 0;
     var _winTimer:Float = -1;
-    var _fadedOut:Bool = false;
 
     override public function onFocus() {
         super.onFocus();
@@ -87,13 +86,11 @@ class PlayState extends FlxState {
             }
         }
 
-        // After coin collected, fade arp out then switch to level 2
+        // After the coin the arp drifts back out on its own. The Studio
+        // parameter has a velocity of -0.16 a second, so the arp fades
+        // over about six seconds and the song carries on into level 2
         if (_winTimer >= 0) {
             _winTimer += elapsed;
-            if (_winTimer >= 3.0 && !_fadedOut) {
-                _fadedOut = true;
-                FmodManager.SetSongParameter("FadeArpIn", 0);
-            }
             if (_winTimer >= 6.0) {
                 FlxG.switchState(PlayState2.new);
             }

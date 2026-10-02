@@ -17,7 +17,6 @@ class PlayScene implements GameScene {
     var started:Bool = false;
     var startDelay:Float = 0;
     var winTimer:Float = -1;
-    var fadedOut:Bool = false;
 
     public function new() {}
 
@@ -63,13 +62,11 @@ class PlayScene implements GameScene {
             }
         }
 
-        // After coin collected, fade arp out then switch to level 2
+        // After the coin the arp drifts back out on its own. The Studio
+        // parameter has a velocity of -0.16 a second, so the arp fades
+        // over about six seconds and the song carries on into level 2
         if (winTimer >= 0) {
             winTimer += dt;
-            if (winTimer >= 3.0 && !fadedOut) {
-                fadedOut = true;
-                FmodManager.SetSongParameter("FadeArpIn", 0);
-            }
             if (winTimer >= 6.0) {
                 Main.instance.switchScene(new PlayScene2());
                 return;
