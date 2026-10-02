@@ -629,22 +629,23 @@ class ProbeChannelControl {
         walkOther.release();
         walkGroup.release();
 
-        // A Studio effect that the game removes from its bus group still
-        // dies with that group. So another chain refuses it. Its own group
-        // takes it back. Reached first by a DSP walk, it moves inside its
-        // own chain.
-        var fxBus = StudioSystem.getBus("bus:/Reverb");
-        var fxLock:FmodResult = fxBus.lockChannelGroup();
-        var fxGroup = fxBus.getChannelGroup();
+        // A Studio effect that the game removes from its event's group
+        // still dies with that group. So another chain refuses it. Its own
+        // group takes it back. Reached first by a DSP walk, it moves inside
+        // its own chain.
+        var fxInstance = StudioSystem.getEvent(FmodEvents.MusicMainLevel).createInstance();
+        var fxStart:FmodResult = fxInstance.start();
+        StudioSystem.flushCommands();
+        var fxGroup = fxInstance.getChannelGroup();
         var fxOther = ChannelGroup.create("probe-cc-fx-other");
-        var fxWalk = fxGroup.getDsp(ChannelGroup.DSP_HEAD).getInput(0);
+        var fxWalk = fxGroup.getDsp(ChannelGroup.DSP_TAIL).getOutput(0);
         var fxWalkAt = fxGroup.getDspIndex(fxWalk);
         var fxWalkMove:FmodResult = fxGroup.addDsp(fxWalkAt, fxWalk);
         var fxWalkIndex = fxGroup.getDspIndex(fxWalk);
         var fx = Dsp.NULL;
         for (i in 0...fxGroup.getNumDSPs()) {
             var candidate = fxGroup.getDsp(i);
-            if (candidate.getType() == DspType.SFXREVERB) fx = candidate;
+            if (candidate.getType() == DspType.THREE_EQ) fx = candidate;
         }
         var fxIndex = fxGroup.getDspIndex(fx);
         var fxRemove:FmodResult = fxGroup.removeDsp(fx);
@@ -652,13 +653,14 @@ class ProbeChannelControl {
         if (fxAdd.isOk()) fxOther.removeDsp(fx);
         var fxBack:FmodResult = fxGroup.addDsp(fxIndex, fx);
         var fxBackIndex = fxGroup.getDspIndex(fx);
-        @:privateAccess state.check("cg_add_dsp_studio_effect_moved_inuse", fxLock.isOk() && !fx.isNull()
+        @:privateAccess state.check("cg_add_dsp_studio_effect_moved_inuse", fxStart.isOk() && !fx.isNull()
             && fxRemove.isOk() && fxAdd == FmodResult.FMOD_ERR_DSP_INUSE && fxBack.isOk() && fxBackIndex == fxIndex
             && fxWalkAt >= 0 && fxWalkMove.isOk() && fxWalkIndex == fxWalkAt,
-            'lock=${fxLock.toString()} fx=${(fx : Int)}/$fxIndex remove=${fxRemove.toString()} add=${fxAdd.toString()}'
+            'start=${fxStart.toString()} fx=${(fx : Int)}/$fxIndex remove=${fxRemove.toString()} add=${fxAdd.toString()}'
             + ' back=${fxBack.toString()}/$fxBackIndex walk=${(fxWalk : Int)}/$fxWalkAt/${fxWalkMove.toString()}/$fxWalkIndex');
         fxOther.release();
-        fxBus.unlockChannelGroup();
+        fxInstance.stop(haxefmod.studio.Types.FmodStopMode.IMMEDIATE);
+        fxInstance.release();
         bystanderOut.release();
         bystanderIn.release();
 
