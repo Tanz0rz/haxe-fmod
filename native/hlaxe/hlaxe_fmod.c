@@ -2092,12 +2092,15 @@ DEFINE_PRIM(_I32, dspconn_get_type, _I32);
 
 //// Core channel group nesting
 
-// Returns the connection handle, 0 on failure with the reason in gLastResult
+// Returns the connection handle, 0 on failure with the reason in gLastResult.
+// A child that is the group itself or a group above it fails with
+// FMOD_ERR_INVALID_PARAM (faxe_argcheck_group_above).
 HL_PRIM int HL_NAME(cg_add_group)(int h, int childHandle, bool propagateDspClock) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     FMOD_CHANNELGROUP* child = resolve_changroup(childHandle);
     FMOD_DSPCONNECTION* conn = NULL;
     if (!group || !child) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    if (faxe_argcheck_group_above(group, child)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_ChannelGroup_AddGroup(group, child, propagateDspClock ? 1 : 0, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
     return hlaxe_handle_or_memory(conn, FAXE_TYPE_DSPCONN);

@@ -33,12 +33,13 @@ abstract PcmStream(Int) from Int to Int {
      * how much audio can be buffered between the game and the mixer. The
      * default holds half a second: bigger rides out frame spikes without
      * underruns, smaller lets generated audio react faster.
+     * The ring rounds down to whole frames (2 bytes per channel).
      * Returns PcmStream.NULL on failure (see StudioSystem.lastResult).
      */
     public static inline function create(sampleRate:Int, channels:Int, ringBytes:Int = 0):PcmStream {
         // The default ring holds 0.5s of 16-bit PCM (2 bytes per sample)
         return NativeStudio.core_pcm_create(sampleRate, channels,
-            ringBytes > 0 ? ringBytes : sampleRate * channels);
+            wholeFrames(ringBytes > 0 ? ringBytes : sampleRate * channels, channels));
     }
 
     /**
@@ -47,7 +48,18 @@ abstract PcmStream(Int) from Int to Int {
      */
     public static inline function create3d(sampleRate:Int, channels:Int, ringBytes:Int = 0):PcmStream {
         return NativeStudio.core_pcm_create_3d(sampleRate, channels,
-            ringBytes > 0 ? ringBytes : sampleRate * channels);
+            wholeFrames(ringBytes > 0 ? ringBytes : sampleRate * channels, channels));
+    }
+
+    /**
+     * A ring size rounded down to whole frames. The mixer reads whole
+     * frames, and a ring of whole frames keeps every read, every write
+     * that space() allows, and every read callback length on a frame
+     * boundary. A part frame would shift every later sample. A count the
+     * native create refuses stays as it is.
+     */
+    static inline function wholeFrames(bytes:Int, channels:Int):Int {
+        return channels == 1 || channels == 2 ? bytes - bytes % (2 * channels) : bytes;
     }
 
     /** True if this is the invalid handle (create failed). */

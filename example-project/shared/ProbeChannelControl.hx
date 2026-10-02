@@ -66,6 +66,25 @@ class ProbeChannelControl {
         var stale:ChannelGroup = cast 0x7fff0001;
         @:privateAccess state.check("cg_add_group_stale", parent.addGroup(stale) == FmodResult.FMOD_ERR_INVALID_HANDLE
             && stale.addGroupConnection(child).isNull(), 'lastResult=${StudioSystem.lastResult().toString()}');
+        // A group added below itself makes FMOD recurse without end. The
+        // binding refuses the group itself, its parent, and the master.
+        var selfAdd:FmodResult = child.addGroup(child);
+        var parentAdd:FmodResult = child.addGroup(parent);
+        var masterAdd:FmodResult = child.addGroup(master);
+        var masterConn = parent.addGroupConnection(master);
+        @:privateAccess state.check("cg_add_group_ancestor_refused", selfAdd == FmodResult.FMOD_ERR_INVALID_PARAM
+            && parentAdd == FmodResult.FMOD_ERR_INVALID_PARAM && masterAdd == FmodResult.FMOD_ERR_INVALID_PARAM
+            && masterConn.isNull() && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_PARAM
+            && parent.getGroupCount() == 2 && (child.getParentGroup() : Int) == (parent : Int),
+            'self=${selfAdd.toString()} parent=${parentAdd.toString()} master=${masterAdd.toString()}'
+            + ' groups=${parent.getGroupCount()}');
+        // A move down a branch and back up to the grandparent stays open
+        var down:FmodResult = child.addGroup(other);
+        var downParent:Int = other.getParentGroup();
+        var up:FmodResult = parent.addGroup(other);
+        @:privateAccess state.check("cg_add_group_reparent", down.isOk() && downParent == (child : Int) && up.isOk()
+            && (other.getParentGroup() : Int) == (parent : Int) && parent.getGroupCount() == 2,
+            'down=${down.toString()} up=${up.toString()} groups=${parent.getGroupCount()}');
 
         // isPlaying follows the channels routed into the group
         @:privateAccess state.check("cg_is_playing_empty", !parent.isPlaying() && StudioSystem.lastResult().isOk(),

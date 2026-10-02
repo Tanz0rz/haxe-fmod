@@ -217,9 +217,9 @@ class TestEngineAdapters {
 			'kha: dispose releases the loader banks and unregisters it (refs=${FmodRuntime.banks.refCount(path)})');
 	}
 
-	// khamake's fixName (Tools/khamake/out/main.js): dashes, at signs,
-	// spaces, dots and slashes become underscores, and a leading digit
-	// gets an underscore in front
+	// khamake's fixName in Tools/khamake/out/main.js turns dashes, at
+	// signs, spaces, dots and slashes into underscores. It puts an
+	// underscore in front of a leading digit.
 	static function testKhaBlobName():Void {
 		assert(FmodKhaSetup.blobName("Master.strings.bank") == "Master_strings_bank", "kha: a bank blob name replaces the dots");
 		var name = FmodKhaSetup.blobName("banks/2-Level Music@x.bank");

@@ -4123,11 +4123,34 @@ class jaxe {
 
     //// Core channel group nesting
 
-    // Returns the connection handle, 0 on failure with the reason in lastResult
+    // Whether child is group itself or a group above it, such as the
+    // master. FMOD recurses without end on such an addGroup and overflows
+    // the stack. The walk reads FMOD's parent links and drops each wrapper
+    // it makes. The depth bound keeps it finite.
+    static groupAbove(group, child) {
+        var target = jaxe.rawPtr(child);
+        var node = group;
+        var found = false;
+        for (var depth = 0; node && depth < 4096; depth++) {
+            if (jaxe.rawPtr(node) == target) { found = true; break; }
+            var out = {};
+            var ok = node.getParentGroup(out) == jaxe.FMOD.OK && out.val && jaxe.rawPtr(out.val) != 0;
+            if (node !== group) jaxe.dropWrapper(node);
+            if (!ok && out.val) jaxe.dropWrapper(out.val);
+            node = ok ? out.val : null;
+        }
+        if (node && node !== group) jaxe.dropWrapper(node);
+        return found;
+    }
+
+    // Returns the connection handle, 0 on failure with the reason in
+    // lastResult. A child that is the group itself or a group above it fails
+    // with ERR_INVALID_PARAM (groupAbove).
     static fmod_cg_add_group(handle, childHandle, propagateDspClock) {
         var group = jaxe.resolveCg(handle);
         var child = jaxe.resolveCg(childHandle);
         if (!group || !child) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
+        if (jaxe.groupAbove(group, child)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var out = {};
         jaxe.lastResult = group.addGroup(child, !!propagateDspClock, out);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;

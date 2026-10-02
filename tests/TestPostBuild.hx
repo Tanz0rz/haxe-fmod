@@ -478,9 +478,9 @@ class TestPostBuild {
 		rmTree(base);
 	}
 
-	// A CLI command in a child process, the way haxelib runs it: the
-	// caller's directory is the last argument, and Sys.exit ends only
-	// the child. The env entries hold for the child's lifetime.
+	// Runs a CLI command in a child process the way haxelib runs it. The
+	// caller's directory is the last argument. Sys.exit ends only the
+	// child. The env entries hold for the child's lifetime.
 	static function runTool(args:Array<String>, cwd:String, env:Map<String, String>):{code:Int, out:String} {
 		var saved = new Map<String, Null<String>>();
 		for (key in env.keys()) {

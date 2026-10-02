@@ -57,7 +57,7 @@ var HaxefmodConstants = {
 
     // Mirrors Generate.identifiersFor: numeric suffixes on collision
     identifiersFor: function (paths, prefix) {
-        var used = {};
+        var used = {Dynamic: true};
         var out = [];
         for (var i = 0; i < paths.length; i++) {
             var base = this.mangle(paths[i], prefix);

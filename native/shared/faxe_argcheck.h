@@ -115,6 +115,20 @@ static int faxe_argcheck_software_channels(int count) {
     return count > 0 && (unsigned int)count <= FAXE_ARGCHECK_SOFTWARE_CHANNELS_LIMIT;
 }
 
+/* Whether child is group itself or a group above it, such as the master.
+ * FMOD recurses without end on such an addGroup and overflows the stack.
+ * The walk reads FMOD's parent links. The depth bound keeps it finite. */
+static inline int faxe_argcheck_group_above(FMOD_CHANNELGROUP* group, FMOD_CHANNELGROUP* child) {
+    int depth;
+    for (depth = 0; group && depth < 4096; depth++) {
+        FMOD_CHANNELGROUP* parent = NULL;
+        if (group == child) return 1;
+        if (FMOD_ChannelGroup_GetParentGroup(group, &parent) != FMOD_OK) break;
+        group = parent;
+    }
+    return 0;
+}
+
 /* The top sound of a subsound tree. The subsounds of a stream share its
  * decoder. */
 static inline FMOD_SOUND* faxe_argcheck_sound_root(FMOD_SOUND* sound) {

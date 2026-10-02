@@ -6,7 +6,8 @@ class Assets {
 	public static var files:Map<String, haxe.io.Bytes> = new Map();
 
 	public static function exists(path:String):Bool {
-		return files.exists(path);
+		// Lime finds no asset before the library is registered
+		return lime.utils.Assets.libraryRegistered && files.exists(path);
 	}
 
 	public static function getBytes(path:String):haxe.io.Bytes {

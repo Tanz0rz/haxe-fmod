@@ -475,6 +475,23 @@ class TestStudioSurface {
 		var stream3d = PcmStream.create3d(48000, 1);
 		assert(stream3d.isNull(), "pcm stream 3d null");
 
+		// The ring rounds down to whole frames. A part frame shifts every
+		// later sample the mixer reads.
+		PcmStream.create(48000, 1);
+		assert(stub.testLastPcmRingBytes == 48000, "pcm ring default whole frames kept");
+		PcmStream.create(11025, 1);
+		assert(stub.testLastPcmRingBytes == 11024, "pcm ring default mono odd rate whole frames");
+		PcmStream.create(11025, 2);
+		assert(stub.testLastPcmRingBytes == 22048, "pcm ring default stereo odd rate whole frames");
+		PcmStream.create(48000, 2, 1001);
+		assert(stub.testLastPcmRingBytes == 1000, "pcm ring custom size whole frames");
+		PcmStream.create3d(11025, 1);
+		assert(stub.testLastPcmRingBytes == 11024, "pcm ring 3d whole frames");
+		PcmStream.create3d(48000, 2, 4098);
+		assert(stub.testLastPcmRingBytes == 4096, "pcm ring 3d custom size whole frames");
+		PcmStream.create(48000, 2, 3);
+		assert(stub.testLastPcmRingBytes == 0, "pcm ring below one frame reaches the native refusal");
+
 		var dsp = Dsp.create(DspType.LOWPASS_SIMPLE);
 		assert(dsp.isNull(), "dsp null");
 		assert(dsp.play().isNull(), "dsp play null");

@@ -1887,12 +1887,18 @@ int fmod_dspconn_get_type(int h) {
 
 //// Core channel group nesting
 
-// Returns the connection handle, 0 on failure with the reason in gLastResult
+// Returns the connection handle, 0 on failure with the reason in gLastResult.
+// A child that is the group itself or a group above it fails with
+// FMOD_ERR_INVALID_PARAM (faxe_argcheck_group_above).
 int fmod_cg_add_group(int h, int childHandle, bool propagateDspClock) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     FMOD::ChannelGroup* child = resolveChanGroup(childHandle);
     FMOD::DSPConnection* conn = NULL;
     if (!group || !child) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
+    if (faxe_argcheck_group_above((FMOD_CHANNELGROUP*)group, (FMOD_CHANNELGROUP*)child)) {
+        gLastResult = FMOD_ERR_INVALID_PARAM;
+        return 0;
+    }
     gLastResult = group->addGroup(child, propagateDspClock, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
     return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);

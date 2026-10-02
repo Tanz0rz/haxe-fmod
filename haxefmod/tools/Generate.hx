@@ -246,7 +246,9 @@ class Generate {
 	/** Assigns unique identifiers for a list of paths. Collisions get
 		numeric suffixes. */
 	public static function identifiersFor(paths:Array<String>, prefix:String):Array<String> {
-		var used = new Map<String, Bool>();
+		// hxcpp declares Dynamic in every class header, and g++ refuses a
+		// field of that name
+		var used = ["Dynamic" => true];
 		var out = new Array<String>();
 		for (p in paths) {
 			var base = mangle(p, prefix);

@@ -370,7 +370,12 @@ class NativeStudioStub {
     public static function core_get_sound_length(handle:Int, unit:Int):Int return -1;
 
     // Core PCM streams
-    public static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int return 0;
+    // The ring size the wrapper hands the native create. -1 before the first create.
+    public static var testLastPcmRingBytes:Int = -1;
+    public static function core_pcm_create(sampleRate:Int, channels:Int, ringBytes:Int):Int {
+        testLastPcmRingBytes = ringBytes;
+        return 0;
+    }
     public static var testPcmSpace:Int = 0;
     public static var testLastPcmWriteLen:Int = -1;
     public static function core_pcm_write(handle:Int, data:haxe.io.Bytes, len:Int):Int {
@@ -477,7 +482,10 @@ class NativeStudioStub {
     }
     public static function sys_set_reverb_properties(instance:Int):Int return ERR_UNSUPPORTED;
     public static function sys_get_reverb_properties(instance:Int):Int return ERR_UNSUPPORTED;
-    public static function core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int return 0;
+    public static function core_pcm_create_3d(sampleRate:Int, channels:Int, ringBytes:Int):Int {
+        testLastPcmRingBytes = ringBytes;
+        return 0;
+    }
 
     // Core parity tail (slice 3)
     public static function dsp_add_input(handle:Int, inputHandle:Int, type:Int):Int return 0;

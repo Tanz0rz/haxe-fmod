@@ -3102,6 +3102,15 @@ class ApiProbeScenario implements TestScenario {
         var stream = PcmStream.create(48000, 1);
         check("core_pcm_create", !stream.isNull(), 'handle=${(stream : Int)}');
 
+        // The ring holds whole frames. A part frame shifts every later
+        // sample the mixer reads.
+        var oddMono = PcmStream.create(11025, 1);
+        var oddStereo = PcmStream.create3d(11025, 2);
+        check("core_pcm_ring_whole_frames", oddMono.space() == 11024 && oddStereo.space() == 22048,
+            'mono=${oddMono.space()} stereo=${oddStereo.space()}');
+        oddMono.release();
+        oddStereo.release();
+
         // A quarter second of a 440Hz sine (16-bit mono, little-endian)
         var samples = Std.int(48000 * 0.25);
         var data = haxe.io.Bytes.alloc(samples * 2);

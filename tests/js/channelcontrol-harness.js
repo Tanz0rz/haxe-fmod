@@ -86,6 +86,25 @@ async function main() {
         `result=${jaxe.lastResult}`);
     check('cg_add_group_stale', jaxe.fmod_cg_add_group(parent, 0x7fff0001, true) === 0 && jaxe.lastResult === INVALID_HANDLE,
         `result=${jaxe.lastResult}`);
+    // A group added below itself makes FMOD recurse until the stack runs
+    // out. The binding refuses the group itself, its parent, and the master.
+    const selfAdd = jaxe.fmod_cg_add_group(child, child, true);
+    const selfResult = jaxe.lastResult;
+    const parentAdd = jaxe.fmod_cg_add_group(child, parent, true);
+    const parentResult = jaxe.lastResult;
+    const masterAdd = jaxe.fmod_cg_add_group(child, jaxe.fmod_cg_get_master(), true);
+    const masterResult = jaxe.lastResult;
+    check('cg_add_group_ancestor_refused', selfAdd === 0 && selfResult === INVALID_PARAM && parentAdd === 0
+        && parentResult === INVALID_PARAM && masterAdd === 0 && masterResult === INVALID_PARAM
+        && jaxe.fmod_cg_get_num_groups(parent) === 2,
+        `self=${selfResult} parent=${parentResult} master=${masterResult} groups=${jaxe.fmod_cg_get_num_groups(parent)}`);
+    // A move down a branch and back up to the grandparent stays open
+    const down = jaxe.fmod_cg_add_group(child, other, true);
+    const downCount = jaxe.fmod_cg_get_num_groups(child);
+    const up = jaxe.fmod_cg_add_group(parent, other, true);
+    check('cg_add_group_reparent', down !== 0 && downCount === 1 && up !== 0
+        && jaxe.fmod_cg_get_num_groups(child) === 0 && jaxe.fmod_cg_get_num_groups(parent) === 2,
+        `down=${down} up=${up} groups=${jaxe.fmod_cg_get_num_groups(parent)}`);
 
     // The group readers
     check('cg_is_playing_empty', jaxe.fmod_cg_is_playing(parent) === false && jaxe.lastResult === OK, `result=${jaxe.lastResult}`);

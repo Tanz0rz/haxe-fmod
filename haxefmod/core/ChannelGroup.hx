@@ -107,6 +107,8 @@ abstract ChannelGroup(Int) from Int to Int {
      * propagateDspClock keeps the child's mixer clock in step with this
      * group's, which sample-accurate scheduling across the tree needs.
      * addGroupConnection does the same and hands back the connection.
+     * A child that is this group or a group above it, such as the master,
+     * fails with FMOD_ERR_INVALID_PARAM.
      */
     public function addGroup(child:ChannelGroup, propagateDspClock:Bool = true):FmodResult {
         NativeStudio.cg_add_group(this, child, propagateDspClock);

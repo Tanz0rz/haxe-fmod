@@ -41,12 +41,18 @@ class TestFlixelPreloader {
 		lime.utils.Assets.remote.set(stringsPath, fetch);
 
 		var preloader = new ShortFailurePreloader();
+		openfl.Lib.current.stage.stageWidth = 0;
 		@:privateAccess preloader.create();
-		assert("the visuals draw once the stage has a size", preloader.visualsDrawn == 1);
+		assert("the visuals wait for a sized stage", preloader.visualsDrawn == 0);
+		openfl.Lib.current.stage.stageWidth = 640;
 		preloader.frame();
+		assert("the visuals draw once the stage has a size", preloader.visualsDrawn == 1);
 		assert("nothing initializes before the assets are in", stub.testLastInit == null);
 
+		// On native targets lime registers the library a frame or two
+		// after onLoaded
 		preloader.onLoaded();
+		preloader.frame();
 		lime.utils.Assets.libraryRegistered = true;
 		preloader.frame();
 		assert("initialization waits for a bank the preloader fetches", stub.testLastInit == null && !preloader.finished);

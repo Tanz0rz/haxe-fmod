@@ -223,6 +223,8 @@ class TestStringsBankParser {
 	static function testCollisionSuffixes() {
 		var names = Generate.identifiersFor(["event:/A B", "event:/A/B", "event:/AB"], "event:/");
 		assert("collisions get numeric suffixes", names.join(",") == "AB,AB2,AB3");
+		// hxcpp cannot compile a field named Dynamic
+		assert("Dynamic gets a suffix", Generate.identifiersFor(["event:/Dynamic"], "event:/")[0] == "Dynamic2");
 		var guidLike = Generate.identifiersFor(["event:/Coin", "event:/Coin Guid"], "event:/");
 		assert("Guid-suffixed paths stay distinct", guidLike.join(",") == "Coin,CoinGuid");
 	}
