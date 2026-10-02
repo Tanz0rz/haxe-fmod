@@ -6964,6 +6964,8 @@ class jaxe {
         return jaxe.lastResult == jaxe.FMOD.OK ? (out.val | 0) : 0;
     }
 
+    // The web build refuses every handle with FMOD_ERR_INITIALIZED once
+    // running. The type check of the native shims has nothing to guard here.
     static fmod_sys_set_output_by_plugin(handle) {
         if (!jaxe.sysReady()) return jaxe.lastResult;
         jaxe.lastResult = jaxe.gSystemCore.setOutputByPlugin(handle | 0);

@@ -133,6 +133,12 @@ async function main() {
     check('sys_set_output_by_plugin_after_init', jaxe.fmod_sys_set_output_by_plugin(outputPlugin) === 27, '');
     check('sys_set_output_by_plugin_leaves_output', jaxe.fmod_sys_get_output() === outputBefore,
         `before=${outputBefore} now=${jaxe.fmod_sys_get_output()}`);
+    // A codec or DSP handle crashes a native system on its next update.
+    // The web build refuses it like any other handle and keeps mixing.
+    const foreign = [7, 22, 0x7FFFFFFF, 0].map(h => jaxe.fmod_sys_set_output_by_plugin(h));
+    for (let i = 0; i < 20; i++) jaxe.fmod_sys_update();
+    check('sys_set_output_by_plugin_foreign_handles', foreign.every(r => r === 27)
+        && jaxe.fmod_sys_get_output() === outputBefore, `results=${foreign.join(',')}`);
 
     // The replay cursor on a capture that has never been started
     check('capture_start', jaxe.fmod_sys_start_command_capture('/lastseven.cmd.txt') === 0, '');

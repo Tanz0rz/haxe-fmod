@@ -79,6 +79,21 @@ class TestComponentCores {
 		x = 5110;
 		provider.sample(0);
 		assert(provider.fmodVelocityX() == 0, "zero elapsed reports zero velocity");
+
+		// The teleport distance is the straight-line distance. A jump of
+		// exactly that much is still movement.
+		var bx = 0.0;
+		var by = 0.0;
+		var edge = new DerivedVelocityProvider(() -> bx, () -> by, 100);
+		edge.sample(0.5);
+		bx = 60;
+		by = 80;
+		edge.sample(0.5);
+		assert(approx(edge.fmodVelocityX(), 120) && approx(edge.fmodVelocityY(), 160), "a jump of exactly teleportDistance is movement");
+		bx = 120;
+		by = 160.001;
+		edge.sample(0.5);
+		assert(edge.fmodVelocityX() == 0 && edge.fmodVelocityY() == 0, "a jump just past teleportDistance is a cut");
 	}
 
 	static function testZoneTrigger():Void {

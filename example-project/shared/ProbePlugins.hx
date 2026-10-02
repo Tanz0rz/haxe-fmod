@@ -140,12 +140,14 @@ class ProbePlugins {
                 haxefmod.studio.native.NativeStudio.sys_update();
                 Sys.sleep(0.02);
                 shortLived = streamChannel.getCurrentSound();
+                shortLived.setUserData("plugin");
                 unload = StudioSystem.unloadPlugin(handle);
                 tries++;
             }
             @:privateAccess state.check("sys_unload_plugin", unload.isOk(), 'result=${unload.toString()} tries=$tries');
             @:privateAccess state.check("short_lived_dies_at_plugin_unload", !shortLived.isNull()
-                && !haxefmod.studio.native.NativeStudio.debug_handle_is_live(shortLived), 'sound=${(shortLived : Int)}');
+                && !haxefmod.studio.native.NativeStudio.debug_handle_is_live(shortLived)
+                && shortLived.getUserData() == null, 'sound=${(shortLived : Int)}');
             streamChannel.stop();
             stream.release();
         } else {

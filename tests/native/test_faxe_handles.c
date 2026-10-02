@@ -206,6 +206,24 @@ int main(void) {
         assert(faxe_live_handle_count() == 0);
     }
 
+    /* a taken aux block leaves the slot and survives its free */
+    {
+        int ha = faxe_handle_alloc(&dummy3, FAXE_TYPE_CHANGROUP);
+        int idx = ha & 0xFFFF;
+        unsigned char* block = (unsigned char*)malloc(16);
+        assert(faxe_handle_take_aux(ha) == NULL);  /* nothing to take on a fresh slot */
+        memset(block, 0x5A, 16);
+        faxe_handle_set_aux(ha, block);
+        assert(faxe_handle_take_aux(ha) == block);
+        assert(gFaxeSlots[idx].aux == NULL);
+        assert(faxe_handle_get_aux(ha) == NULL);
+        faxe_handle_free(ha);
+        /* the caller owns the block, which the free left alone */
+        assert(block[0] == 0x5A && block[15] == 0x5A);
+        free(block);
+        assert(faxe_live_handle_count() == 0);
+    }
+
     /* the owned mark lives with the slot: clear on alloc, gone on free */
     {
         int ho = faxe_handle_alloc(&dummy3, FAXE_TYPE_SOUND);

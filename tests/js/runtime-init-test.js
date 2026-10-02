@@ -41,6 +41,9 @@ function runMode(mode) {
         // The bank a provided-mode run hands over as real bytes
         const strings = fs.readFileSync(path.join(${JSON.stringify(BANKS)}, 'Master.strings.bank'));
         global.RUNTIME_TEST_STRINGS_BANK = strings.buffer.slice(strings.byteOffset, strings.byteOffset + strings.byteLength);
+        // The second bank an unloadprovided run hands over
+        const master = fs.readFileSync(path.join(${JSON.stringify(BANKS)}, 'Master.bank'));
+        global.RUNTIME_TEST_MASTER_BANK = master.buffer.slice(master.byteOffset, master.byteOffset + master.byteLength);
         global.FMODModule = require(${JSON.stringify(path.join(SDK, 'fmodstudio.js'))});
         // Serve bank fetches from the local example project. Requests for
         // the 'missing/banks' folder 404 like a bad deploy would.
@@ -103,5 +106,6 @@ runMode('provided');
 runMode('refused');
 runMode('staggered');
 runMode('unloadinit');
+runMode('unloadprovided');
 console.log(fails === 0 ? 'RUNTIME_INIT_TEST: ALL MODES COMPLETE' : 'RUNTIME_INIT_TEST: FAILED');
 process.exit(fails === 0 ? 0 : 1);

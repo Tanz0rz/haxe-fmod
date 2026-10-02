@@ -1868,6 +1868,7 @@ class ApiProbeScenario implements TestScenario {
     var _waitingForChannelEvents:Bool = false;
     var _oneShotFrames:Int = 0;
     var _waitingForOcclusion:Bool = false;
+    var _waitingForGroupPark:Bool = false;
     var _waitingForOneShot:Bool = false;
     var _oneShotBaseline:Int = 0;
     var _oneShotAttachedBaseline:Int = 0;
@@ -3999,6 +4000,15 @@ class ApiProbeScenario implements TestScenario {
             ProbeChannelControl.tick(this);
             if (!ProbeChannelControl.pending()) {
                 _waitingForOcclusion = false;
+                _waitingForGroupPark = true;
+            }
+        }
+        // The parked group release counts its handles against a baseline
+        // too, so it runs as a phase of its own after the occlusion one
+        if (_waitingForGroupPark) {
+            ProbeGroupPark.tick(this);
+            if (!ProbeGroupPark.pending()) {
+                _waitingForGroupPark = false;
                 probeSongTransition();
             }
         }

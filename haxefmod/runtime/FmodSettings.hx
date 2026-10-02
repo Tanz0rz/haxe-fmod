@@ -57,7 +57,7 @@ typedef FmodSettings = {
      * Mixer block size in samples (System::setDSPBufferSize). Smaller
      * buffers cut latency and cost CPU. Default 0, which leaves FMOD's
      * default of 1024 on desktop. The web build then sets 2048, the size
-     * FMOD recommends there.
+     * FMOD recommends there. A size above 16777216 keeps the default.
      */
     @:optional var dspBufferSize:Int;
 
@@ -91,7 +91,9 @@ typedef FmodSettings = {
      * (FMOD_Thread_SetAttributes before the system is created). One entry
      * per thread type. Later entries for the same type win. An unset field
      * keeps FMOD's default for that thread. Default []. Not available on
-     * HTML5, where the web build has no threads to place.
+     * HTML5, where the web build has no threads to place. An entry whose
+     * type lies outside MIXER to MAX - 1 is refused. The runtime traces
+     * the refusal and skips that entry.
      */
     @:optional var threadAttributes:Array<FmodThreadAttributes>;
 

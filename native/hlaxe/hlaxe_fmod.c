@@ -27,6 +27,7 @@ static void hlaxe_channel_detach_rolloff(void* ptr, int handle);
 #include "../shared/faxe_instctx.h"
 #include "../shared/faxe_dspdata.h"
 #include "../shared/faxe_argcheck.h"
+#include "../shared/faxe_parking.h"
 
 // F_CALLBACK was removed in newer FMOD SDKs
 #ifndef F_CALLBACK
@@ -38,6 +39,7 @@ static void hlaxe_channel_detach_rolloff(void* ptr, int handle);
 #else
 #include <pthread.h>
 #include <unistd.h>
+#include <time.h>
 #endif
 
 // Global state (must be native - these are C pointers)
@@ -89,6 +91,8 @@ static FMOD_STUDIO_EVENTINSTANCE* resolve_instance(int h) {
 }
 
 static FMOD_CHANNELGROUP* resolve_changroup(int h);
+/* Declared early: the update and the drain release parked groups */
+static void hlaxe_release_parked_groups(void);
 
 // The channel group a play call routes into. Handle 0 means the master
 // group (FMOD's NULL). A stale handle fails the call instead of falling
@@ -367,6 +371,7 @@ HL_PRIM void HL_NAME(sys_update)() {
     if (!gStudioSystem) return;
     FMOD_Studio_System_Update(gStudioSystem);
     faxe_handles_free_volatile();
+    hlaxe_release_parked_groups();
 }
 DEFINE_PRIM(_VOID, sys_update, _NO_ARG);
 
@@ -1475,6 +1480,109 @@ HL_PRIM int HL_NAME(cg_create)(vbyte* name) {
 }
 DEFINE_PRIM(_I32, cg_create, _BYTES);
 
+/* Milliseconds on a monotonic clock, for the parked group waits */
+static double hlaxe_now_ms(void) {
+#ifdef _WIN32
+    LARGE_INTEGER freq;
+    LARGE_INTEGER count;
+    QueryPerformanceFrequency(&freq);
+    QueryPerformanceCounter(&count);
+    return (double)count.QuadPart * 1000.0 / (double)freq.QuadPart;
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1000000.0;
+#endif
+}
+
+/* Blocks the game thread for ms milliseconds */
+static void hlaxe_sleep_ms(double ms) {
+    if (ms <= 0.0) return;
+#ifdef _WIN32
+    Sleep((DWORD)(ms + 1.0));
+#else
+    usleep((useconds_t)(ms * 1000.0) + 1000);
+#endif
+}
+
+/* Runs the FMOD release of every parked group whose wait is over (see
+ * faxe_parking.h). A refused release keeps the group parked, and the next
+ * drop point tries again. */
+static void hlaxe_release_parked_groups(void) {
+    FaxeParked due[FAXE_PARK_MAX];
+    int n;
+    int i;
+    int released = 0;
+    if (faxe_park_count() == 0) return;
+    n = faxe_park_take_due(hlaxe_now_ms(), due, FAXE_PARK_MAX);
+    for (i = 0; i < n; i++) {
+        FMOD_RESULT result = FMOD_ChannelGroup_Release((FMOD_CHANNELGROUP*)due[i].ptr);
+        if (result == FMOD_OK || result == FMOD_ERR_INVALID_HANDLE) {
+            /* FMOD read the rolloff points until here */
+            free(due[i].aux);
+            released = 1;
+        } else {
+            faxe_park_add(due[i].ptr, due[i].aux, due[i].at);
+        }
+    }
+    if (released) {
+        /* The release took the group's DSPs out of the graph */
+        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+        faxe_handles_free_volatile();
+    }
+}
+
+/* Parks a group whose occlusion request a geometry can have queued. The
+ * group stops asking for occlusion. Its channels and child groups move
+ * to the master, as the FMOD release would move them, so the wait does
+ * not show to the game. Returns 0 when the group cannot park. The caller
+ * then releases it at once. */
+static int hlaxe_park_group(FMOD_CHANNELGROUP* group, int h) {
+    FMOD_CHANNELGROUP* master = NULL;
+    FMOD_MODE mode = 0;
+    int count = 0;
+    int i;
+    double now;
+    if (FMOD_ChannelGroup_GetMode(group, &mode) != FMOD_OK) return 0;
+    if (FMOD_System_GetMasterChannelGroup(gCoreSystem, &master) != FMOD_OK || !master) return 0;
+    if (FMOD_ChannelGroup_SetMode(group, mode | FMOD_3D_IGNOREGEOMETRY) != FMOD_OK) return 0;
+    if (FMOD_ChannelGroup_GetNumChannels(group, &count) == FMOD_OK) {
+        for (i = count - 1; i >= 0; i--) {
+            FMOD_CHANNEL* ch = NULL;
+            if (FMOD_ChannelGroup_GetChannel(group, i, &ch) == FMOD_OK && ch) FMOD_Channel_SetChannelGroup(ch, master);
+        }
+    }
+    count = 0;
+    if (FMOD_ChannelGroup_GetNumGroups(group, &count) == FMOD_OK) {
+        for (i = count - 1; i >= 0; i--) {
+            FMOD_CHANNELGROUP* child = NULL;
+            if (FMOD_ChannelGroup_GetGroup(group, i, &child) == FMOD_OK && child) FMOD_ChannelGroup_AddGroup(master, child, 1, NULL);
+        }
+    }
+    /* A full list waits for its oldest entry to go */
+    now = hlaxe_now_ms();
+    if (faxe_park_count() >= FAXE_PARK_MAX) {
+        hlaxe_sleep_ms(faxe_park_wait_ms(now));
+        hlaxe_release_parked_groups();
+        now = hlaxe_now_ms();
+    }
+    if (!faxe_park_add(group, faxe_handle_get_aux(h), now)) {
+        /* Every entry refused its release. This group waits out the
+         * geometry thread here, and the caller releases it. */
+        hlaxe_sleep_ms(FAXE_PARK_DELAY_MS);
+        return 0;
+    }
+    /* The parked entry owns the rolloff points from here */
+    faxe_handle_take_aux(h);
+    return 1;
+}
+
+/* A group a walk must not show: the game released it, and its FMOD
+ * release waits on the parked list */
+static int hlaxe_group_hidden(FMOD_CHANNELGROUP* group) {
+    return faxe_park_count() > 0 && faxe_park_contains(group);
+}
+
 HL_PRIM int HL_NAME(cg_release)(int h) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     void* userData = NULL;
@@ -1483,6 +1591,7 @@ HL_PRIM int HL_NAME(cg_release)(int h) {
      * FMOD answers INVALID_HANDLE for the master and keeps it, and frees
      * the other two under Studio, so the refusal comes before the call. */
     if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    hlaxe_release_parked_groups();
     /* The shim's callback reads the group's user data on FMOD's thread,
      * so it comes off before the group can go. The user data is the
      * handle and is set only with the callback, so it marks one installed. */
@@ -1490,6 +1599,17 @@ HL_PRIM int HL_NAME(cg_release)(int h) {
     if (userData) {
         FMOD_ChannelGroup_SetCallback(group, NULL);
         FMOD_ChannelGroup_SetUserData(group, NULL);
+    }
+    /* FMOD frees a group with its occlusion request still queued for the
+     * geometry thread, which then reads freed memory. While a geometry can
+     * have queued one, the FMOD release waits on the parked list. The
+     * handle and what hangs off it go at once. */
+    if (faxe_park_needed(hlaxe_now_ms()) && hlaxe_park_group(group, h)) {
+        gLastResult = FMOD_OK;
+        faxe_handle_free(h);
+        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+        faxe_handles_free_volatile();
+        return (int)gLastResult;
     }
     /* A refused release keeps the group and its rolloff points. A group
      * FMOD freed reads them no more, so they go with the slot below. */
@@ -1975,20 +2095,46 @@ HL_PRIM int HL_NAME(cg_add_group)(int h, int childHandle, bool propagateDspClock
 }
 DEFINE_PRIM(_I32, cg_add_group, _I32 _I32 _BOOL);
 
+/* A parked group stays a child of its parent until its FMOD release.
+ * The game released it, so the walks below skip it. */
 HL_PRIM int HL_NAME(cg_get_num_groups)(int h) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     int count = 0;
+    int shown = 0;
+    int i;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetNumGroups(group, &count);
-    return count;
+    if (gLastResult != FMOD_OK || faxe_park_count() == 0) return count;
+    for (i = 0; i < count; i++) {
+        FMOD_CHANNELGROUP* child = NULL;
+        if (FMOD_ChannelGroup_GetGroup(group, i, &child) == FMOD_OK && !hlaxe_group_hidden(child)) shown++;
+    }
+    return shown;
 }
 DEFINE_PRIM(_I32, cg_get_num_groups, _I32);
+
+/* The index FMOD knows for the index a walk shows. An index past the
+ * shown groups maps past FMOD's own, so FMOD reports the error. */
+static int hlaxe_shown_group_index(FMOD_CHANNELGROUP* group, int index) {
+    int count = 0;
+    int shown = 0;
+    int i;
+    if (index < 0 || faxe_park_count() == 0 || FMOD_ChannelGroup_GetNumGroups(group, &count) != FMOD_OK) return index;
+    for (i = 0; i < count; i++) {
+        FMOD_CHANNELGROUP* child = NULL;
+        if (FMOD_ChannelGroup_GetGroup(group, i, &child) != FMOD_OK) return index;
+        if (hlaxe_group_hidden(child)) continue;
+        if (shown == index) return i;
+        shown++;
+    }
+    return count + (index - shown);
+}
 
 HL_PRIM int HL_NAME(cg_get_group)(int h, int index) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     FMOD_CHANNELGROUP* child = NULL;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    gLastResult = FMOD_ChannelGroup_GetGroup(group, index, &child);
+    gLastResult = FMOD_ChannelGroup_GetGroup(group, hlaxe_shown_group_index(group, index), &child);
     if (gLastResult != FMOD_OK || !child) return 0;
     return hlaxe_mint_walked_group(child, h, 1);
 }
@@ -4083,6 +4229,7 @@ HL_PRIM bool HL_NAME(cb_next)() {
     if (!gCbDrainOpen) {
         gCbDrainOpen = 1;
         faxe_handles_free_volatile();
+        hlaxe_release_parked_groups();
     }
     /* What destroy records the overflow dropped left goes first. That is
      * a plugin handle whose DSP died with the callback, or a shim sound
@@ -6247,21 +6394,27 @@ DEFINE_PRIM(_BYTES, sys_get_version, _NO_ARG);
 // Returns the bytes read, or the negated FMOD error. A short read at the
 // end of the file still returns the count and leaves FMOD_ERR_FILE_EOF in
 // gLastResult. The buffer length is trusted, the Haxe wrapper clamps it.
+// A sound that an unpaused channel plays fails with FMOD_ERR_NOTREADY
+// (faxe_argcheck_sound_idle).
 HL_PRIM int HL_NAME(core_sound_read_data)(int h, vbyte* data, int len) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     unsigned int read = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -(int)gLastResult; }
     if (!data || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
+    if (!faxe_argcheck_sound_idle(gCoreSystem, sound)) { gLastResult = FMOD_ERR_NOTREADY; return -(int)gLastResult; }
     gLastResult = FMOD_Sound_ReadData(sound, data, (unsigned int)len, &read);
     if (gLastResult != FMOD_OK && gLastResult != FMOD_ERR_FILE_EOF) return -(int)gLastResult;
     return (int)read;
 }
 DEFINE_PRIM(_I32, core_sound_read_data, _I32 _BYTES _I32);
 
+/* A sound that an unpaused channel plays fails with FMOD_ERR_NOTREADY, as
+ * in core_sound_read_data. */
 HL_PRIM int HL_NAME(core_sound_seek_data)(int h, int pcm) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     if (pcm < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!faxe_argcheck_sound_idle(gCoreSystem, sound)) { gLastResult = FMOD_ERR_NOTREADY; return (int)gLastResult; }
     gLastResult = FMOD_Sound_SeekData(sound, (unsigned int)pcm);
     return (int)gLastResult;
 }
@@ -6496,7 +6649,10 @@ static int geometry_handle(FMOD_GEOMETRY* geometry) {
     if (handle == 0) {
         gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         FMOD_Geometry_Release(geometry);
+        return 0;
     }
+    /* A live geometry makes a group release park (faxe_parking.h) */
+    faxe_park_geometry_made();
     return handle;
 }
 
@@ -6590,6 +6746,7 @@ HL_PRIM int HL_NAME(geo_release)(int h) {
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
         faxe_handles_free_volatile();
+        faxe_park_geometry_gone(hlaxe_now_ms());
     }
     return (int)gLastResult;
 }
@@ -7829,8 +7986,18 @@ HL_PRIM int HL_NAME(sys_get_output_by_plugin)() {
 }
 DEFINE_PRIM(_I32, sys_get_output_by_plugin, _NO_ARG);
 
+/* A running system drops its output before FMOD checks the type of the
+ * handle. A codec or DSP handle leaves no output, and the next update
+ * crashes. Only an output plugin reaches FMOD. Any other handle fails with
+ * FMOD_ERR_PLUGIN_MISSING, the result FMOD gives for it. */
 HL_PRIM int HL_NAME(sys_set_output_by_plugin)(int handle) {
+    FMOD_PLUGINTYPE type = FMOD_PLUGINTYPE_MAX;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (FMOD_System_GetPluginInfo(gCoreSystem, (unsigned int)handle, &type, NULL, 0, NULL) != FMOD_OK
+            || type != FMOD_PLUGINTYPE_OUTPUT) {
+        gLastResult = FMOD_ERR_PLUGIN_MISSING;
+        return (int)gLastResult;
+    }
     gLastResult = FMOD_System_SetOutputByPlugin(gCoreSystem, (unsigned int)handle);
     return (int)gLastResult;
 }

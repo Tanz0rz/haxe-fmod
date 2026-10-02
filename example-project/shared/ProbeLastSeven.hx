@@ -124,6 +124,23 @@ class ProbeLastSeven {
         @:privateAccess state.check("sys_set_output_by_plugin_leaves_output", CoreSystem.getOutput() == outputBefore,
             'before=$outputBefore now=${CoreSystem.getOutput()}');
 
+        // A codec or DSP handle makes a running native system drop its
+        // output, and the next update crashes. The binding refuses such a
+        // handle before FMOD sees it. Updates run for a second by the clock
+        // so a lost output would crash this probe.
+        #if !js
+        var dspPlugin = StudioSystem.getPluginHandle(haxefmod.studio.Types.FmodPluginType.DSP, 0);
+        var wrongType:FmodResult = CoreSystem.setOutputByPlugin(dspPlugin);
+        var deadline = haxe.Timer.stamp() + 1.0;
+        while (haxe.Timer.stamp() < deadline) {
+            haxefmod.studio.native.NativeStudio.sys_update();
+            Sys.sleep(0.016);
+        }
+        @:privateAccess state.check("sys_set_output_by_plugin_wrong_type", dspPlugin != 0
+            && wrongType == FmodResult.FMOD_ERR_PLUGIN_MISSING && CoreSystem.getOutput() == outputBefore,
+            'handle=$dspPlugin result=${wrongType.toString()} before=$outputBefore now=${CoreSystem.getOutput()}');
+        #end
+
         // The replay cursor on a short capture that has never been started
         var capturePath = "probe-lastseven.cmd.txt";
         @:privateAccess state.check("lastseven_capture_start", StudioSystem.startCommandCapture(capturePath).isOk(), "");

@@ -1444,21 +1444,21 @@ class FmodVersion {
  * feeds generated audio from the game thread instead.
  */
 typedef FmodCreateSoundExInfo = {
-    /** Bytes to read from a memory image or a file, 0 for the whole thing. fromMemory sets it to the buffer length when left out. */
+    /** Bytes to read from a memory image or a file, 0 for the whole thing. fromMemory sets it to the buffer length when left out. With OPENUSER and no CREATESTREAM, a length of 0x7FFF0000 bytes or more fails with FMOD_ERR_INVALID_PARAM. */
     @:optional var length:Int;
     /** Byte offset to start reading a file at. */
     @:optional var fileOffset:Int;
     /** Channel count of raw PCM (ChannelMode.OPENRAW). */
     @:optional var numChannels:Int;
-    /** Sample rate of raw PCM (ChannelMode.OPENRAW). */
+    /** Sample rate of raw PCM (ChannelMode.OPENRAW). A negative rate fails with FMOD_ERR_INVALID_PARAM. So does an OPENUSER stream with no decodeBufferSize whose rate fills less than one sample of the default decode buffer. */
     @:optional var defaultFrequency:Int;
     /** Sample format of raw PCM (ChannelMode.OPENRAW). */
     @:optional var format:FmodSoundFormat;
-    /** Decode buffer size in samples for a stream. A size of 0x400000 samples or more is a bad argument. */
+    /** Decode buffer size in samples for a stream. A size of 0x400000 samples or more, or a negative one, fails with FMOD_ERR_INVALID_PARAM. */
     @:optional var decodeBufferSize:Int;
     /** The subsound an FSB or multi-stream file starts on. */
     @:optional var initialSubsound:Int;
-    /** Subsound count for a user-created container sound. */
+    /** Subsound count for a user-created container sound. A count of 0x1000000 or more, or a negative one, fails with FMOD_ERR_INVALID_PARAM. */
     @:optional var numSubsounds:Int;
     /** Subsound indices to load, the rest stay unloaded. */
     @:optional var inclusionList:Array<Int>;
@@ -1470,7 +1470,7 @@ typedef FmodCreateSoundExInfo = {
     @:optional var maxPolyphony:Int;
     /** The codec to try first, skipping FMOD's format sniffing. */
     @:optional var suggestedSoundType:FmodSoundType;
-    /** Buffer size in bytes for the file reader of a stream. */
+    /** Buffer size in bytes for the file reader of a stream. A size below -1 fails with FMOD_ERR_INVALID_PARAM. */
     @:optional var fileBufferSize:Int;
     /** Speaker order of the source data. */
     @:optional var channelOrder:FmodChannelOrder;

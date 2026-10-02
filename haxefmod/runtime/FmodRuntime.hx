@@ -413,6 +413,9 @@ class FmodRuntime {
             if (resolved.banksProvided && !banks.isRegistered(path)) {
                 // Waiting for the engine's loader to provide it
                 if (providedBanks.exists(name) && loadProvidedBank(fileName)) continue;
+                // A provided bank the game unloaded after it loaded is not
+                // waited for
+                if (providedNames.exists(name) && !providedBanks.exists(name)) continue;
                 ready = false;
                 continue;
             }

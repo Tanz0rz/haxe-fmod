@@ -16,6 +16,7 @@ class TestPostBuild {
 		testRunShContent();
 		testCustomHdllMarkerCheck();
 		testScanHdllSource();
+		testProjectHdllSourceWarning();
 		testSourceHashParity();
 		testClearExecstack();
 		testSdkPackageDetection();
@@ -125,6 +126,18 @@ class TestPostBuild {
 		var bare = haxe.io.Path.join([dir, "bare.hdll"]);
 		sys.io.File.saveContent(bare, "junk with no marker");
 		assert(PostBuild.scanHdllSource(bare) == null, "an hdll with no source marker reads as none");
+	}
+
+	static function testProjectHdllSourceWarning():Void {
+		var warn = "was built from other shim sources";
+		function run(marker:String):String {
+			var p = new sys.io.Process("haxe", ["-cp", ".", "-cp", "tests", "--run", "PostBuildHdllWarn", "tests/.tmp/hdll-warn-" + marker, marker]);
+			var out = p.stdout.readAll().toString();
+			p.close();
+			return out;
+		}
+		assert(run("deadbeef").indexOf(warn) != -1, "a project hdll built from other shim sources warns");
+		assert(run("current").indexOf(warn) == -1, "a project hdll built from these shim sources does not warn");
 	}
 
 	static function testSourceHashParity():Void {

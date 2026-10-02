@@ -3,11 +3,11 @@
  * that FMOD does not check itself. FMOD crashes, or writes outside its
  * own memory, on the values these refuse. The user length, decode
  * buffer, mixer block, and software channel limits also refuse a margin
- * below the crash. jaxe.js mirrors
- * each check, where a refused value traps the wasm module instead.
+ * below the crash. jaxe.js mirrors each check, where a refused value
+ * traps the wasm module instead.
  *
- * The limits were measured on FMOD 2.03.12 and 2.02.33. Both behave the
- * same on every value here.
+ * The limits were measured on FMOD 2.03.12 and 2.02.33. Every limit holds
+ * on both.
  *
  * The MIT License (MIT)
  * Copyright (c) 2020 Tanner Moore
@@ -113,6 +113,65 @@ static int faxe_argcheck_dsp_buffer(int length) {
  * default and is no request. */
 static int faxe_argcheck_software_channels(int count) {
     return count > 0 && (unsigned int)count <= FAXE_ARGCHECK_SOFTWARE_CHANNELS_LIMIT;
+}
+
+/* The top sound of a subsound tree. The subsounds of a stream share its
+ * decoder. */
+static inline FMOD_SOUND* faxe_argcheck_sound_root(FMOD_SOUND* sound) {
+    int depth;
+    for (depth = 0; depth < 16; depth++) {
+        FMOD_SOUND* parent = NULL;
+        if (FMOD_Sound_GetSubSoundParent(sound, &parent) != FMOD_OK || !parent) break;
+        sound = parent;
+    }
+    return sound;
+}
+
+/* Whether the channel or one of the groups above it is paused. A paused
+ * channel does not drive the decoder. */
+static inline int faxe_argcheck_channel_paused(FMOD_CHANNEL* channel) {
+    FMOD_BOOL paused = 0;
+    FMOD_CHANNELGROUP* group = NULL;
+    int depth;
+    if (FMOD_Channel_GetPaused(channel, &paused) == FMOD_OK && paused) return 1;
+    if (FMOD_Channel_GetChannelGroup(channel, &group) != FMOD_OK) return 0;
+    for (depth = 0; group && depth < 64; depth++) {
+        FMOD_CHANNELGROUP* parent = NULL;
+        if (FMOD_ChannelGroup_GetPaused(group, &paused) == FMOD_OK && paused) return 1;
+        if (FMOD_ChannelGroup_GetParentGroup(group, &parent) != FMOD_OK) break;
+        group = parent;
+    }
+    return 0;
+}
+
+/* Whether readData and seekData may run on the sound. This check reads
+ * FMOD's channel pool instead of a value. FMOD decodes a playing sound on
+ * its mixer and stream threads. A readData or seekData on a sound of the
+ * same subsound tree races that decoder and crashes FMOD. Returns 0 while
+ * an unpaused channel plays a sound of the tree. A virtual channel counts
+ * as playing. Studio plays a programmer sound on a pool channel. The scan
+ * sees that channel too. The scan covers every pool channel. It costs
+ * about 4 microseconds at 128 channels and 270 at 4095. The game thread
+ * makes the check and the read. That thread also starts and unpauses
+ * every channel the game plays. Studio starts and unpauses event channels
+ * on its own update thread. A programmer sound can start between the
+ * check and the read. jaxe.js has no counterpart. The web build reports
+ * readData and seekData unsupported. */
+static inline int faxe_argcheck_sound_idle(FMOD_SYSTEM* system, FMOD_SOUND* sound) {
+    FMOD_SOUND* root;
+    FMOD_CHANNEL* channel = NULL;
+    int i;
+    if (!system) return 1;
+    root = faxe_argcheck_sound_root(sound);
+    for (i = 0; FMOD_System_GetChannel(system, i, &channel) == FMOD_OK; i++) {
+        FMOD_BOOL playing = 0;
+        FMOD_SOUND* current = NULL;
+        if (FMOD_Channel_IsPlaying(channel, &playing) != FMOD_OK || !playing) continue;
+        if (FMOD_Channel_GetCurrentSound(channel, &current) != FMOD_OK || !current) continue;
+        if (faxe_argcheck_sound_root(current) != root) continue;
+        if (!faxe_argcheck_channel_paused(channel)) return 0;
+    }
+    return 1;
 }
 
 #endif /* FAXE_ARGCHECK_H */

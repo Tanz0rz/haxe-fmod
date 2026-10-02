@@ -97,7 +97,7 @@ class FmodKhaSetup {
     }
     #end
 
-    /** The Kha asset name of a bank file: khamake turns dots, dashes, spaces, and slashes into underscores. **/
+    /** The Kha asset name of a bank file, the way khamake names assets. The name drops the folder part. Dots, dashes, at signs, and spaces become underscores. A name that starts with a digit gets a leading underscore. **/
     public static function blobName(fileName:String):String {
         var slash = fileName.lastIndexOf("/");
         var back = fileName.lastIndexOf("\\");

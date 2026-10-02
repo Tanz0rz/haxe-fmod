@@ -574,7 +574,9 @@ abstract ChannelGroup(Int) from Int to Int {
      * Frees a group made with create() and invalidates this handle. Every
      * other group refuses with `FMOD_ERR_INVALID_PARAM` and keeps its
      * handle: the master, a bus's, an instance's, or one first reached
-     * through a walk.
+     * through a walk. While a Geometry exists, and for 60 ms after the
+     * last one goes, FMOD frees the group at the first update after 60 ms.
+     * The handle dies at once either way.
      */
     public inline function release():FmodResult {
         // The native release takes the callback off the group before FMOD

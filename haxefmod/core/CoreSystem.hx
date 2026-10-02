@@ -236,13 +236,15 @@ class CoreSystem {
 
     /**
      * Where one output speaker sits for panning, and whether it is fed at
-     * all. x runs from left -1 to right 1, y from back -1 to front 1.
+     * all. x runs from left -1 to right 1, y from back -1 to front 1. A
+     * speaker outside FRONT_LEFT to TOP_BACK_RIGHT, NONE included, fails
+     * with FMOD_ERR_INVALID_PARAM.
      */
     public static inline function setSpeakerPosition(speaker:FmodSpeaker, x:Float, y:Float, active:Bool):FmodResult {
         return NativeStudio.sys_set_speaker_position(speaker, x, y, active);
     }
 
-    /** The position set for one speaker (see setSpeakerPosition), or null on failure. */
+    /** The position set for one speaker (see setSpeakerPosition), or null on failure. A speaker outside FRONT_LEFT to TOP_BACK_RIGHT, NONE included, fails with FMOD_ERR_INVALID_PARAM. */
     public static function getSpeakerPosition(speaker:FmodSpeaker):Null<FmodSpeakerPosition> {
         var result:FmodResult = NativeStudio.sys_get_speaker_position(speaker);
         if (!result.isOk()) return null;
@@ -284,8 +286,10 @@ class CoreSystem {
      * Selects the output mode by plugin handle. FMOD's contract is a call
      * before initialization, which the library owns. On a running native
      * system the current handle reports OK and leaves the output alone,
-     * while another handle re-selects the output device on the spot. The
-     * web build reports FMOD_ERR_INITIALIZED once running.
+     * while another handle re-selects the output device on the spot. A
+     * handle that names no output plugin fails with
+     * FMOD_ERR_PLUGIN_MISSING and leaves the output alone. The web build
+     * reports FMOD_ERR_INITIALIZED once running.
      */
     public static inline function setOutputByPlugin(handle:Int):FmodResult {
         return NativeStudio.sys_set_output_by_plugin(handle);

@@ -31,8 +31,10 @@ class Signal {
 	public function dispatch() {
 		dispatching = true;
 		var i = 0;
+		// Flixel still runs a listener removed during the dispatch. The
+		// removal lands when the dispatch ends.
 		while (i < handlers.length) {
-			if (!Lambda.exists(pendingRemove, p -> Reflect.compareMethods(p, handlers[i]))) handlers[i]();
+			handlers[i]();
 			i++;
 		}
 		dispatching = false;
@@ -51,6 +53,8 @@ class Signals {
 class FlxG {
 	public static var signals = new Signals();
 	public static var switches:Array<String> = [];
+	public static var state:String = "Start";
+	public static var camera:FlxCamera = null;
 
 	public static function switchState(s:String) {
 		switches.push(s);

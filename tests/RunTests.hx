@@ -21,6 +21,7 @@ class RunTests {
 		totalFailed += TestVersionParsing.run();
 		// After TestRuntime: FmodManager.Update initializes the runtime
 		totalFailed += TestEngineUpdaters.run();
+		totalFailed += TestEngineComponents.run();
 
 		Sys.println("");
 		if (totalFailed > 0) {

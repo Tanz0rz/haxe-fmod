@@ -27,6 +27,7 @@ class TestEngineUpdaters {
 		haxefmod.studio.CallbackDispatcher.frameHook = () -> updates++;
 		testHeapsUpdater();
 		testKhaUpdater();
+		testUpdaterDeltas();
 		haxefmod.studio.CallbackDispatcher.frameHook = savedHook;
 		stub.testInitialized = savedInit;
 		Sys.println('  $passed passed, $failed failed');
@@ -104,6 +105,43 @@ class TestEngineUpdaters {
 		assert(FmodHeapsUpdater.count() == 0, "heaps: remove unregisters the components");
 	}
 
+	static function testUpdaterDeltas():Void {
+		// The earlier cases end with manual updates. A removeHook of an
+		// installed hook forgets the last frame time.
+		FmodHeapsUpdater.init();
+		FmodHeapsUpdater.removeHook();
+		var heaps = new HeapsTicker();
+		FmodHeapsUpdater.init();
+		FmodHeapsUpdater.add(heaps);
+		pumpHeaps(2);
+		assert(heaps.dts.length == 2 && heaps.dts[0] == 0 && heaps.dts[1] > 0 && heaps.dts[1] < 1,
+			'heaps: the first frame passes 0 seconds and the next the time between them (dts=${heaps.dts})');
+		FmodHeapsUpdater.removeHook();
+		Sys.sleep(0.05);
+		FmodHeapsUpdater.init();
+		pumpHeaps(1);
+		assert(heaps.dts.length == 3 && heaps.dts[2] == 0, 'heaps: the first frame after a reinstall passes 0 seconds (dts=${heaps.dts})');
+		FmodHeapsUpdater.removeHook();
+		FmodHeapsUpdater.remove(heaps);
+
+		FmodKhaUpdater.init();
+		FmodKhaUpdater.removeHook();
+		var khaTicker = new KhaTicker();
+		FmodKhaUpdater.init();
+		FmodKhaUpdater.add(khaTicker);
+		kha.Scheduler.runFrame();
+		kha.Scheduler.runFrame();
+		assert(khaTicker.dts.length == 2 && khaTicker.dts[0] == 0 && Math.abs(khaTicker.dts[1] - 1 / 60) < 1e-9,
+			'kha: the first frame passes 0 seconds and the next one frame of real time (dts=${khaTicker.dts})');
+		FmodKhaUpdater.removeHook();
+		kha.Scheduler.runFrame();
+		FmodKhaUpdater.init();
+		kha.Scheduler.runFrame();
+		assert(khaTicker.dts.length == 3 && khaTicker.dts[2] == 0, 'kha: the first frame after a reinstall passes 0 seconds (dts=${khaTicker.dts})');
+		FmodKhaUpdater.removeHook();
+		FmodKhaUpdater.remove(khaTicker);
+	}
+
 	static function testKhaUpdater():Void {
 		var ticker = new KhaTicker();
 		FmodKhaUpdater.add(ticker);
@@ -170,24 +208,28 @@ class TestEngineUpdaters {
 
 private class HeapsTicker implements FmodHeapsUpdater.IHeapsTicker {
 	public var ticks:Int = 0;
+	public var dts:Array<Float> = [];
 	public var onTick:Void->Void = null;
 
 	public function new() {}
 
 	public function tick(dt:Float):Void {
 		ticks++;
+		dts.push(dt);
 		if (onTick != null) onTick();
 	}
 }
 
 private class KhaTicker implements FmodKhaUpdater.IKhaTicker {
 	public var ticks:Int = 0;
+	public var dts:Array<Float> = [];
 	public var onTick:Void->Void = null;
 
 	public function new() {}
 
 	public function tick(dt:Float):Void {
 		ticks++;
+		dts.push(dt);
 		if (onTick != null) onTick();
 	}
 }

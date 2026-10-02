@@ -13,7 +13,10 @@ class FmodFlxUtilities {
         Sends the "stop" command to the FMOD API and waits for the
         current song to stop before triggering a state transition.
 
-        Switches immediately when no song is playing. Requires
+        Switches immediately when no song is playing. A PlaySong,
+        PlaySongTransition, OnSongEvent, or OnceSongEvent call during the
+        fade cancels the switch. A switch to another state during the fade
+        cancels the switch too. Requires
         FmodManager.Update() every frame to deliver the stop event.
         @param state The state to load after the music stops. Pass a
         constructor like PlayState.new or a FlxState instance.
@@ -30,12 +33,14 @@ class FmodFlxUtilities {
         // direct PlaySong of the same song during the fade then consumes
         // the registration instead of leaving it armed.
         var consumed = false;
+        // A switch the game makes by another route ends the request
+        var stateOnCall = FlxG.state;
         FmodManager.OnceSongEvent(data -> {
             switch (data) {
                 case Stopped:
                     if (!consumed) {
                         consumed = true;
-                        FlxG.switchState(state);
+                        if (FlxG.state == stateOnCall) FlxG.switchState(state);
                     }
                 // A same-song PlaySong during the fade cancels the switch
                 case Restarted: consumed = true;
@@ -57,7 +62,7 @@ class FmodFlxUtilities {
         // Stopped for it. The poll switches once the song is gone.
         var poll:Void->Void = null;
         poll = () -> {
-            if (@:privateAccess FmodManager.songHandlerSerial != serial) consumed = true;
+            if (@:privateAccess FmodManager.songHandlerSerial != serial || FlxG.state != stateOnCall) consumed = true;
             if (!consumed && FmodManager.IsSongPlaying()) return;
             FlxG.signals.postUpdate.remove(poll);
             if (consumed) return;

@@ -517,6 +517,16 @@ static void* faxe_handle_get_aux(int handle) {
     return gFaxeSlots[handle & 0xFFFF].aux;
 }
 
+/* Takes the slot's owned memory out without freeing it, so the caller
+ * owns the block. NULL when none is parked. The handle must resolve
+ * (callers check first). */
+static void* faxe_handle_take_aux(int handle) {
+    FaxeSlot* s = &gFaxeSlots[handle & 0xFFFF];
+    void* aux = s->aux;
+    s->aux = NULL;
+    return aux;
+}
+
 /* The lock record parked on a handle, NULL when no lock is open. The
  * handle must resolve (callers check first). */
 static void* faxe_handle_get_lock(int handle) {

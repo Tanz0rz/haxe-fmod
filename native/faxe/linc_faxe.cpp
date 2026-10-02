@@ -24,6 +24,7 @@
 #include "../shared/faxe_instctx.h"
 #include "../shared/faxe_dspdata.h"
 #include "../shared/faxe_argcheck.h"
+#include "../shared/faxe_parking.h"
 #include <thread>
 #include <atomic>
 #include <chrono>
@@ -42,6 +43,8 @@ namespace faxe {
 // Declared early: the channel play paths above the sweep call it
 static void lincReclaimDeadChannels();
 static void lincChannelDetachRolloff(void* ptr, int handle);
+// Declared early: the update and the drain release parked groups
+static void lincReleaseParkedGroups();
 
 // Global state
 static FMOD::Studio::System* gStudioSystem = NULL;
@@ -322,6 +325,7 @@ void fmod_sys_update() {
     if (!gStudioSystem) return;
     gStudioSystem->update();
     faxe_handles_free_volatile();
+    lincReleaseParkedGroups();
 }
 
 void fmod_sys_set_auto_update(bool enabled) {
@@ -1341,6 +1345,85 @@ int fmod_cg_create(const ::String& name) {
     return handle;
 }
 
+// Milliseconds on a monotonic clock, for the parked group waits
+static double lincNowMs() {
+    return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
+// Runs the FMOD release of every parked group whose wait is over (see
+// faxe_parking.h). A refused release keeps the group parked, and the next
+// drop point tries again.
+static void lincReleaseParkedGroups() {
+    if (faxe_park_count() == 0) return;
+    FaxeParked due[FAXE_PARK_MAX];
+    int n = faxe_park_take_due(lincNowMs(), due, FAXE_PARK_MAX);
+    bool released = false;
+    for (int i = 0; i < n; i++) {
+        FMOD_RESULT result = ((FMOD::ChannelGroup*)due[i].ptr)->release();
+        if (result == FMOD_OK || result == FMOD_ERR_INVALID_HANDLE) {
+            // FMOD read the rolloff points until here
+            free(due[i].aux);
+            released = true;
+        } else {
+            faxe_park_add(due[i].ptr, due[i].aux, due[i].at);
+        }
+    }
+    if (released) {
+        // The release took the group's DSPs out of the graph
+        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+        faxe_handles_free_volatile();
+    }
+}
+
+// Parks a group whose occlusion request a geometry can have queued. The
+// group stops asking for occlusion. Its channels and child groups move
+// to the master, as the FMOD release would move them, so the wait does
+// not show to the game. Returns false when the group cannot park. The
+// caller then releases it at once.
+static bool lincParkGroup(FMOD::ChannelGroup* group, int h) {
+    FMOD::ChannelGroup* master = NULL;
+    FMOD_MODE mode = 0;
+    if (group->getMode(&mode) != FMOD_OK) return false;
+    if (gCoreSystem->getMasterChannelGroup(&master) != FMOD_OK || !master) return false;
+    if (group->setMode(mode | FMOD_3D_IGNOREGEOMETRY) != FMOD_OK) return false;
+    int count = 0;
+    if (group->getNumChannels(&count) == FMOD_OK) {
+        for (int i = count - 1; i >= 0; i--) {
+            FMOD::Channel* ch = NULL;
+            if (group->getChannel(i, &ch) == FMOD_OK && ch) ch->setChannelGroup(master);
+        }
+    }
+    count = 0;
+    if (group->getNumGroups(&count) == FMOD_OK) {
+        for (int i = count - 1; i >= 0; i--) {
+            FMOD::ChannelGroup* child = NULL;
+            if (group->getGroup(i, &child) == FMOD_OK && child) master->addGroup(child, true, NULL);
+        }
+    }
+    // A full list waits for its oldest entry to go
+    double now = lincNowMs();
+    if (faxe_park_count() >= FAXE_PARK_MAX) {
+        std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(faxe_park_wait_ms(now)));
+        lincReleaseParkedGroups();
+        now = lincNowMs();
+    }
+    if (!faxe_park_add(group, faxe_handle_get_aux(h), now)) {
+        // Every entry refused its release. This group waits out the
+        // geometry thread here, and the caller releases it.
+        std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(FAXE_PARK_DELAY_MS));
+        return false;
+    }
+    // The parked entry owns the rolloff points from here
+    faxe_handle_take_aux(h);
+    return true;
+}
+
+// A group a walk must not show: the game released it, and its FMOD
+// release waits on the parked list
+static inline bool lincGroupHidden(FMOD::ChannelGroup* group) {
+    return faxe_park_count() > 0 && faxe_park_contains(group);
+}
+
 int fmod_cg_release(int h) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     void* userData = NULL;
@@ -1349,6 +1432,7 @@ int fmod_cg_release(int h) {
     // FMOD answers INVALID_HANDLE for the master and keeps it, and frees
     // the other two under Studio, so the refusal comes before the call.
     if (faxe_handle_is_owned(h)) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    lincReleaseParkedGroups();
     // The shim's callback reads the group's user data on FMOD's thread,
     // so it comes off before the group can go. The user data is the
     // handle and is set only with the callback, so it marks one installed.
@@ -1356,6 +1440,17 @@ int fmod_cg_release(int h) {
     if (userData) {
         group->setCallback(NULL);
         group->setUserData(NULL);
+    }
+    // FMOD frees a group with its occlusion request still queued for the
+    // geometry thread, which then reads freed memory. While a geometry can
+    // have queued one, the FMOD release waits on the parked list. The
+    // handle and what hangs off it go at once.
+    if (faxe_park_needed(lincNowMs()) && lincParkGroup(group, h)) {
+        gLastResult = FMOD_OK;
+        faxe_handle_free(h);
+        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+        faxe_handles_free_volatile();
+        return (int)gLastResult;
     }
     // A refused release keeps the group and its rolloff points. A group
     // FMOD freed reads them no more, so they go with the slot below.
@@ -1796,19 +1891,43 @@ int fmod_cg_add_group(int h, int childHandle, bool propagateDspClock) {
     return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
 }
 
+// A parked group stays a child of its parent until its FMOD release.
+// The game released it, so the walks below skip it.
 int fmod_cg_get_num_groups(int h) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     int count = 0;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = group->getNumGroups(&count);
-    return count;
+    if (gLastResult != FMOD_OK || faxe_park_count() == 0) return count;
+    int shown = 0;
+    for (int i = 0; i < count; i++) {
+        FMOD::ChannelGroup* child = NULL;
+        if (group->getGroup(i, &child) == FMOD_OK && !lincGroupHidden(child)) shown++;
+    }
+    return shown;
+}
+
+// The index FMOD knows for the index a walk shows. An index past the
+// shown groups maps past FMOD's own, so FMOD reports the error.
+static int lincShownGroupIndex(FMOD::ChannelGroup* group, int index) {
+    int count = 0;
+    int shown = 0;
+    if (index < 0 || faxe_park_count() == 0 || group->getNumGroups(&count) != FMOD_OK) return index;
+    for (int i = 0; i < count; i++) {
+        FMOD::ChannelGroup* child = NULL;
+        if (group->getGroup(i, &child) != FMOD_OK) return index;
+        if (lincGroupHidden(child)) continue;
+        if (shown == index) return i;
+        shown++;
+    }
+    return count + (index - shown);
 }
 
 int fmod_cg_get_group(int h, int index) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     FMOD::ChannelGroup* child = NULL;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
-    gLastResult = group->getGroup(index, &child);
+    gLastResult = group->getGroup(lincShownGroupIndex(group, index), &child);
     if (gLastResult != FMOD_OK || !child) return 0;
     return lincMintWalkedGroup(child, h, true);
 }
@@ -3660,6 +3779,7 @@ bool fmod_cb_next() {
     if (!gCbDrainOpen) {
         gCbDrainOpen = true;
         faxe_handles_free_volatile();
+        lincReleaseParkedGroups();
     }
     // What destroy records the overflow dropped left goes first. That is
     // a plugin handle whose DSP died with the callback, or a shim sound
@@ -5571,22 +5691,27 @@ const char* fmod_sys_get_version() {
 
 // Returns the bytes read, or the negated FMOD error. A short read at the
 // end of the file still returns the count and leaves FMOD_ERR_FILE_EOF in
-// gLastResult.
+// gLastResult. A sound that an unpaused channel plays fails with
+// FMOD_ERR_NOTREADY (faxe_argcheck_sound_idle).
 int fmod_core_sound_read_data(int h, ::Array<unsigned char> data, int len) {
     FMOD::Sound* sound = resolveSound(h);
     unsigned int read = 0;
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return -(int)gLastResult; }
     if (data == null() || len <= 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return -(int)gLastResult; }
     if (len > data->length) len = data->length;
+    if (!faxe_argcheck_sound_idle((FMOD_SYSTEM*)gCoreSystem, (FMOD_SOUND*)sound)) { gLastResult = FMOD_ERR_NOTREADY; return -(int)gLastResult; }
     gLastResult = sound->readData(&data[0], (unsigned int)len, &read);
     if (gLastResult != FMOD_OK && gLastResult != FMOD_ERR_FILE_EOF) return -(int)gLastResult;
     return (int)read;
 }
 
+// A sound that an unpaused channel plays fails with FMOD_ERR_NOTREADY, as
+// in fmod_core_sound_read_data.
 int fmod_core_sound_seek_data(int h, int pcm) {
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     if (pcm < 0) { gLastResult = FMOD_ERR_INVALID_PARAM; return (int)gLastResult; }
+    if (!faxe_argcheck_sound_idle((FMOD_SYSTEM*)gCoreSystem, (FMOD_SOUND*)sound)) { gLastResult = FMOD_ERR_NOTREADY; return (int)gLastResult; }
     gLastResult = sound->seekData((unsigned int)pcm);
     return (int)gLastResult;
 }
@@ -5808,7 +5933,10 @@ static int geometryHandle(FMOD::Geometry* geometry) {
     if (handle == 0) {
         gLastResult = FMOD_ERR_MEMORY; /* handle table exhausted */
         geometry->release();
+        return 0;
     }
+    // A live geometry makes a group release park (faxe_parking.h)
+    faxe_park_geometry_made();
     return handle;
 }
 
@@ -5895,6 +6023,7 @@ int fmod_geo_release(int h) {
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
         faxe_handles_free_volatile();
+        faxe_park_geometry_gone(lincNowMs());
     }
     return (int)gLastResult;
 }
@@ -6971,8 +7100,18 @@ int fmod_sys_get_output_by_plugin() {
     return gLastResult == FMOD_OK ? (int)handle : 0;
 }
 
+// A running system drops its output before FMOD checks the type of the
+// handle. A codec or DSP handle leaves no output, and the next update
+// crashes. Only an output plugin reaches FMOD. Any other handle fails with
+// FMOD_ERR_PLUGIN_MISSING, the result FMOD gives for it.
 int fmod_sys_set_output_by_plugin(int handle) {
+    FMOD_PLUGINTYPE type = FMOD_PLUGINTYPE_MAX;
     if (!gCoreSystem) { gLastResult = FMOD_ERR_STUDIO_UNINITIALIZED; return (int)gLastResult; }
+    if (gCoreSystem->getPluginInfo((unsigned int)handle, &type, NULL, 0, NULL) != FMOD_OK
+            || type != FMOD_PLUGINTYPE_OUTPUT) {
+        gLastResult = FMOD_ERR_PLUGIN_MISSING;
+        return (int)gLastResult;
+    }
     gLastResult = gCoreSystem->setOutputByPlugin((unsigned int)handle);
     return (int)gLastResult;
 }

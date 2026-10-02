@@ -100,6 +100,54 @@ class ProbeSoundLock {
             if (streamRange != null) stream.unlock(streamRange);
             stream.release();
         }
+
+        // FMOD decodes a playing stream on its own threads. readData and
+        // seekData on it from the game thread crash FMOD. The binding
+        // refuses both while an unpaused channel plays the sound. A paused
+        // channel, a paused group, and a stopped channel leave both open.
+        var playing = Sound.create(wavPath, true, false, haxefmod.core.ChannelMode.CREATESTREAM);
+        if (!playing.isNull()) {
+            var readBuffer = haxe.io.Bytes.alloc(1024);
+            var group = haxefmod.core.ChannelGroup.create("probe-read-data");
+            var channel = playing.play(false, group);
+            var whilePlaying = playing.readData(readBuffer);
+            var seekWhilePlaying:FmodResult = playing.seekData(0);
+            @:privateAccess state.check("core_sound_read_data_refused_while_playing",
+                whilePlaying == -(FmodResult.FMOD_ERR_NOTREADY : Int) && seekWhilePlaying == FmodResult.FMOD_ERR_NOTREADY,
+                'read=$whilePlaying seek=${seekWhilePlaying.toString()}');
+            channel.setPaused(true);
+            var whilePaused = playing.readData(readBuffer);
+            channel.setPaused(false);
+            group.setPaused(true);
+            var whileGroupPaused = playing.readData(readBuffer);
+            group.setPaused(false);
+            channel.stop();
+            var seekStopped:FmodResult = playing.seekData(0);
+            var afterStop = playing.readData(readBuffer);
+            @:privateAccess state.check("core_sound_read_data_open_when_paused_or_stopped",
+                whilePaused > 0 && whileGroupPaused > 0 && seekStopped.isOk() && afterStop > 0,
+                'paused=$whilePaused groupPaused=$whileGroupPaused seek=${seekStopped.toString()} stopped=$afterStop');
+            playing.release();
+            group.release();
+        }
+
+        // The subsounds of a stream share its decoder. A playing subsound
+        // closes readData on the parent and on every sibling.
+        var fsb = @:privateAccess ApiProbeScenario.probeFsbImage();
+        var tree = fsb == null ? Sound.NULL : Sound.fromMemory(fsb, haxefmod.core.ChannelMode.CREATESTREAM);
+        if (!tree.isNull() && tree.getNumSubSounds() >= 2) {
+            var treeBuffer = haxe.io.Bytes.alloc(256);
+            var first = tree.getSubSound(0);
+            var sibling = tree.getSubSound(1);
+            var treeChannel = first.play();
+            var parentRead = tree.readData(treeBuffer);
+            var siblingRead = sibling.readData(treeBuffer);
+            treeChannel.stop();
+            @:privateAccess state.check("core_sound_read_data_refused_for_subsound_tree",
+                parentRead == -(FmodResult.FMOD_ERR_NOTREADY : Int) && siblingRead == -(FmodResult.FMOD_ERR_NOTREADY : Int),
+                'parent=$parentRead sibling=$siblingRead');
+        }
+        if (!tree.isNull()) tree.release();
         try sys.FileSystem.deleteFile(wavPath) catch (e:Dynamic) {}
         #end
 

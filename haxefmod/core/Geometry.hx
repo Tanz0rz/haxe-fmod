@@ -43,7 +43,9 @@ abstract Geometry(Int) from Int to Int {
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
      * Rebuilds a geometry from the bytes save() produced (unsupported in
-     * HTML5). Returns Geometry.NULL on failure.
+     * HTML5). Returns Geometry.NULL on failure. Bytes that hold a polygon
+     * or vertex limit of 0x1000000 or more fail with
+     * FMOD_ERR_INVALID_PARAM.
      */
     public static macro function load(data:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Geometry.load", "the web build has no geometry occlusion");
@@ -51,7 +53,9 @@ abstract Geometry(Int) from Int to Int {
     #else
     /**
      * Rebuilds a geometry from the bytes save() produced (unsupported in
-     * HTML5). Returns Geometry.NULL on failure.
+     * HTML5). Returns Geometry.NULL on failure. Bytes that hold a polygon
+     * or vertex limit of 0x1000000 or more fail with
+     * FMOD_ERR_INVALID_PARAM.
      */
     public static function load(data:haxe.io.Bytes):Geometry {
         if (data == null || data.length == 0) return NULL;

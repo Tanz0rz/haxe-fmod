@@ -10,7 +10,7 @@ import haxefmod.studio.Types;
  * wasm. The tests/js harnesses talk to jaxe.js directly, so they cannot
  * see this layer.
  *
- * RUNTIME_TEST_MODE selects one of three modes before the script loads.
+ * RUNTIME_TEST_MODE selects the mode before the script loads.
  *
  * Mode ok: autoLoadBanks resolve. isInitialized() flips true only once
  * the banks are usable, and onceReady fires.
@@ -25,6 +25,10 @@ import haxefmod.studio.Types;
  * the order an engine preloader uses in the browser. One bank is an
  * HTML error page, the answer a server gives for a missing file.
  * Initialization settles as failed and the onFailed side runs once.
+ *
+ * Mode unloadprovided: banksProvided is set. The game unloads a provided
+ * default bank after it loads, and the other bank arrives later.
+ * Initialization still settles.
  *
  * Compiled and run by tests/js/runtime-init-test.js.
  */
@@ -59,7 +63,7 @@ class RuntimeInitTest {
 		FmodRuntime.init({
 			bankFolder: folder,
 			autoLoadBanks: ["Master.bank", "Master.strings.bank"],
-			banksProvided: mode == "provided",
+			banksProvided: mode == "provided" || mode == "unloadprovided",
 		});
 		check("init_not_ready_synchronously", !FmodRuntime.isInitialized(), "");
 		if (mode == "provided") {
@@ -68,6 +72,9 @@ class RuntimeInitTest {
 			FmodRuntime.provideBank("Master.strings.bank", real);
 		}
 
+		if (mode == "unloadprovided") {
+			FmodRuntime.provideBank("Master.strings.bank", haxe.io.Bytes.ofData(js.Syntax.code("globalThis.RUNTIME_TEST_STRINGS_BANK")));
+		}
 		var polls = 0;
 		var unloaded = false;
 		var timer:Dynamic = null;
@@ -86,6 +93,21 @@ class RuntimeInitTest {
 				} else if (polls > 300) {
 					js.Syntax.code("clearInterval({0})", timer);
 					check("initialized_once_banks_usable", false, "timed out");
+					finish();
+				}
+			} else if (mode == "unloadprovided") {
+				// Regression: initialization waited forever for a provided
+				// default bank the game unloaded after it loaded
+				var path = FmodRuntime.bankPath("Master.strings.bank");
+				if (!unloaded && FmodRuntime.banks.isLoaded(path)) {
+					unloaded = true;
+					FmodRuntime.banks.unload(path);
+					js.Syntax.code("console.log({0})", 'RUNTIME_INIT_TEST: unloaded a provided default bank before init settled, poll ' + polls);
+				}
+				if (unloaded && polls == 20) FmodRuntime.provideBank("Master.bank", haxe.io.Bytes.ofData(js.Syntax.code("globalThis.RUNTIME_TEST_MASTER_BANK")));
+				if (FmodRuntime.initSettled() || polls > 200) {
+					js.Syntax.code("clearInterval({0})", timer);
+					check("unloadprovided_settles", FmodRuntime.initSettled(), 'polls=$polls unloaded=$unloaded masterLoaded=${FmodRuntime.banks.isLoaded(FmodRuntime.bankPath("Master.bank"))}');
 					finish();
 				}
 			} else if (mode == "unloadinit") {

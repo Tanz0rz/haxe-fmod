@@ -295,8 +295,9 @@ abstract Dsp(Int) from Int to Int {
      * Uploads a data parameter payload, with the byte layout per the
      * effect's contract. A convolution impulse response, for example, is
      * 16-bit samples with the channel count as the first value.
-     * FMOD_ERR_INVALID_PARAM comes back for an impulse response with 0 or
-     * more than 32 channels and for a sidechain payload under 4 bytes.
+     * FMOD_ERR_INVALID_PARAM comes back for an index that is not a data
+     * parameter, for an impulse response with 0 or more than 32 channels,
+     * and for a sidechain or finite length payload under 4 bytes.
      */
     public inline function setParameterData(index:Int, data:haxe.io.Bytes):FmodResult {
         return NativeStudio.dsp_set_param_data(this, index, data, data == null ? 0 : data.length);
@@ -650,7 +651,8 @@ abstract Dsp(Int) from Int to Int {
      * (FMOD_DSP_PARAMETER_3DATTRIBUTES). absolute is the emitter in world
      * space, relative the emitter in the listener's space. relative
      * defaults to absolute, which holds while the listener sits at the
-     * origin facing along its forward vector. The shim packs the struct.
+     * origin facing along its forward vector. The shim packs the struct. A parameter of another data type fails with
+     * FMOD_ERR_INVALID_PARAM.
      */
     public function setParameter3DAttributes(index:Int, absolute:Fmod3DAttributes, ?relative:Fmod3DAttributes):FmodResult {
         if (absolute == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
@@ -667,7 +669,8 @@ abstract Dsp(Int) from Int to Int {
      * emitter in each listener's space, one entry per listener (1 to
      * MAX_LISTENERS). weights holds the per listener blend (1 each when
      * omitted), absolute the emitter in world space. The shim packs the
-     * struct. FMOD_ERR_INVALID_PARAM for an empty or oversized list.
+     * struct. FMOD_ERR_INVALID_PARAM for an empty or oversized list. A parameter of another data type fails with
+     * FMOD_ERR_INVALID_PARAM.
      */
     public function setParameter3DAttributesMulti(index:Int, absolute:Fmod3DAttributes, relative:Array<Fmod3DAttributes>, ?weights:Array<Float>):FmodResult {
         if (absolute == null || relative == null || relative.length < 1 || relative.length > MAX_LISTENERS) {
@@ -694,7 +697,9 @@ abstract Dsp(Int) from Int to Int {
     /**
      * Sets a data parameter of type FmodDspParameterDataType.SIDECHAIN
      * (FMOD_DSP_PARAMETER_SIDECHAIN), for example
-     * DspCompressor.USESIDECHAIN. The shim packs the struct.
+     * DspCompressor.USESIDECHAIN. The shim packs the struct. A parameter
+     * that is neither a sidechain nor a finite length one fails with
+     * FMOD_ERR_INVALID_PARAM.
      */
     public function setParameterSidechain(index:Int, props:FmodDspParameterSidechain):FmodResult {
         if (props == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
@@ -711,7 +716,9 @@ abstract Dsp(Int) from Int to Int {
 
     /**
      * Sets a data parameter of type FmodDspParameterDataType.FINITE_LENGTH
-     * (FMOD_DSP_PARAMETER_FINITE_LENGTH). The shim packs the struct.
+     * (FMOD_DSP_PARAMETER_FINITE_LENGTH). The shim packs the struct. A
+     * parameter that is neither a sidechain nor a finite length one fails
+     * with FMOD_ERR_INVALID_PARAM.
      */
     public function setParameterFiniteLength(index:Int, props:FmodDspParameterFiniteLength):FmodResult {
         if (props == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
@@ -730,7 +737,8 @@ abstract Dsp(Int) from Int to Int {
      * Sets a data parameter of type
      * FmodDspParameterDataType.ATTENUATION_RANGE
      * (FMOD_DSP_PARAMETER_ATTENUATION_RANGE), the distance range of a
-     * pan or object pan unit. The shim packs the struct.
+     * pan or object pan unit. The shim packs the struct. A parameter of another data type fails with
+     * FMOD_ERR_INVALID_PARAM.
      */
     public function setParameterAttenuationRange(index:Int, props:FmodDspParameterAttenuationRange):FmodResult {
         if (props == null) return FmodResult.FMOD_ERR_INVALID_PARAM;
