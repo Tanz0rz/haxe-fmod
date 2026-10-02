@@ -24,6 +24,7 @@ class TestPostBuild {
 		testToolExits();
 		testBuildCheckOldWebSdk();
 		testRpathToRewrite();
+		testProjectPath();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -247,6 +248,13 @@ class TestPostBuild {
 			failed++;
 			Sys.println('  FAIL: $name');
 		}
+	}
+
+	static function testProjectPath():Void {
+		assert(PostBuild.projectPath("/home/me/game", "sdk") == "/home/me/game/sdk", "a relative SDK path resolves from the project");
+		assert(PostBuild.projectPath("/home/me/game", "/opt/sdk") == "/opt/sdk", "an absolute SDK path stays as it is");
+		assert(PostBuild.projectPath("C:\\game", "D:\\fmod") == "D:\\fmod", "a drive path stays as it is");
+		assert(PostBuild.projectPath("C:\\game", "\\fmod\\sdk") == "\\fmod\\sdk", "a Windows path from the drive root stays as it is");
 	}
 
 	static function testRpathToRewrite():Void {
@@ -686,6 +694,12 @@ class TestPostBuild {
 		r = runTool(["postbuild", "html5", "html5", "x"], limeExport, ["FMOD_SDK_WEB" => goodWeb]);
 		check("postbuild replaces the placeholders in a lime build under Export",
 			sys.FileSystem.exists('$limeExport/Export/html5/bin/lib/fmodstudio.wasm'));
+
+		var limeDefault = '$base/lime-default';
+		sys.FileSystem.createDirectory('$limeDefault/bin/html5/bin');
+		r = runTool(["postbuild", "html5", "html5", "x"], limeDefault, ["FMOD_SDK_WEB" => goodWeb]);
+		check("postbuild replaces the placeholders in a lime build under lime's default bin",
+			sys.FileSystem.exists('$limeDefault/bin/html5/bin/lib/fmodstudio.wasm'));
 
 		// The compile check reads an SDK path relative to the project, so the
 		// postbuild and the stage read it from there too

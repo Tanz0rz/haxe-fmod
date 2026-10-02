@@ -22,6 +22,8 @@ class PostBuild {
 		var exportDir = Path.join([projectDir, "export"]);
 		// lime's and openfl's project templates name it Export
 		if (!FileSystem.exists(exportDir)) exportDir = Path.join([projectDir, "Export"]);
+		// lime's default when the project names no output folder
+		if (!FileSystem.exists(exportDir)) exportDir = Path.join([projectDir, "bin"]);
 		var dest = findLimeOutputDir(platform, target, exportDir);
 		if (dest == null) {
 			if (platform == "mac") {
@@ -148,6 +150,12 @@ class PostBuild {
 			case "windows": ["api", "core", "lib", "x64", "fmod.dll"];
 			default: ["api", "core", "lib", "x86_64", "libfmod.so"];
 		};
+	}
+
+	/** A relative path resolved from the project directory. A Windows path that starts at the drive root stays as it is. */
+	public static function projectPath(projectDir:String, value:String):String {
+		if (Path.isAbsolute(value) || StringTools.startsWith(value, "\\")) return value;
+		return Path.join([projectDir, value]);
 	}
 
 	/** The studio library every native build copies, relative to the SDK root. */

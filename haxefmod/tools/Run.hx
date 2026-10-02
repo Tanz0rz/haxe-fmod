@@ -20,7 +20,7 @@ class Run {
 		// reads a relative SDK path from the project, so this tool does too.
 		for (name in ["FMOD_SDK", "FMOD_SDK_WEB"]) {
 			var value = Sys.getEnv(name);
-			if (value != null && value != "" && !haxe.io.Path.isAbsolute(value)) Sys.putEnv(name, haxe.io.Path.join([cwd, value]));
+			if (value != null && value != "") Sys.putEnv(name, PostBuild.projectPath(cwd, value));
 		}
 
 		// Resolve the haxelib root (parent of the directory haxelib passes as last arg).
