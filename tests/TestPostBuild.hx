@@ -22,6 +22,7 @@ class TestPostBuild {
 		testSdkPackageDetection();
 		testStage();
 		testToolExits();
+		testBuildCheckOldWebSdk();
 		testRpathToRewrite();
 
 		Sys.println('  $passed passed, $failed failed');
@@ -519,6 +520,25 @@ class TestPostBuild {
 	 * unknown command. A refusal that exits 0 ships a build that fails
 	 * at startup, and a doctor that passes a broken setup hides it.
 	 */
+	// An HTML5 package of another FMOD version keeps fmodstudio.js outside
+	// lib/wasm. The build check named it a desktop package.
+	static function testBuildCheckOldWebSdk():Void {
+		var dir = "tests/.tmp/buildcheck-web";
+		writeFile('$dir/sdk/api/core/inc/fmod_common.h', "#define FMOD_VERSION 0x00020233\n");
+		writeFile('$dir/sdk/api/studio/lib/upstream/wasm/fmodstudio.js', "");
+		writeFile('$dir/Main.hx', "class Main { static function main() {} }\n");
+		var saved = Sys.getEnv("FMOD_SDK_WEB");
+		Sys.putEnv("FMOD_SDK_WEB", sys.FileSystem.fullPath('$dir/sdk'));
+		var p = new sys.io.Process("haxe", ["-cp", ".", "-cp", dir, "-main", "Main", "-js", '$dir/out.js', "--no-output",
+			"--macro", "haxefmod.tools.BuildCheck.verify()"]);
+		var out = p.stdout.readAll().toString() + p.stderr.readAll().toString();
+		var code = p.exitCode();
+		p.close();
+		Sys.putEnv("FMOD_SDK_WEB", saved);
+		assert(code != 0 && out.indexOf("version mismatch") != -1 && out.indexOf("does not point at the HTML5") == -1,
+			"an HTML5 package of another FMOD version reports the version");
+	}
+
 	static function testToolExits():Void {
 		if (Sys.systemName() == "Windows") return;
 		var base = sys.FileSystem.absolutePath("tests/.tmp/tools");

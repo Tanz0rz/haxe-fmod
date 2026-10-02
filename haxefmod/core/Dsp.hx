@@ -200,7 +200,11 @@ abstract Dsp(Int) from Int to Int {
     /**
      * Wires another DSP's output into this one, building custom mixer
      * topologies. Returns the connection (DspConnection.NULL on failure).
-     * Any later graph change invalidates all connection handles.
+     * The handle is long-lived when both DSPs are ones the game created or
+     * DSPs of a channel group the game created or of the master. It is
+     * short-lived when either DSP is one the game reached through a
+     * channel, an event, a bus, or a walk. DspConnection lists the calls
+     * that end a connection handle.
      */
     public inline function addInput(input:Dsp, connectionType:DspConnectionType = DspConnectionType.STANDARD):DspConnection {
         return NativeStudio.dsp_add_input(this, input, connectionType);
@@ -210,8 +214,7 @@ abstract Dsp(Int) from Int to Int {
      * Removes the link from `input` into this unit. With no connection
      * given, every connection between the two goes. A connection narrows
      * it to that one link, and a stale connection handle reports
-     * FMOD_ERR_INVALID_HANDLE. Any graph change invalidates every
-     * connection handle.
+     * FMOD_ERR_INVALID_HANDLE. A disconnect ends every connection handle.
      */
     public inline function disconnectFrom(input:Dsp, connection:DspConnection = DspConnection.NULL):FmodResult {
         return NativeStudio.dsp_disconnect_from(this, input, connection);
@@ -534,7 +537,8 @@ abstract Dsp(Int) from Int to Int {
      * (DspConnection.NULL on failure). FMOD only accepts a connection it
      * reserved itself, so with the connections this library can hand over
      * it reports FMOD_ERR_INVALID_PARAM. A NULL or stale connection
-     * reports FMOD_ERR_INVALID_HANDLE without reaching FMOD.
+     * reports FMOD_ERR_INVALID_HANDLE without reaching FMOD. The returned
+     * handle lives the way an addInput handle does.
      */
     public macro function addInputPreallocated(self:haxe.macro.Expr, input:haxe.macro.Expr, connection:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Dsp.addInputPreallocated", "the web build has no addInputPreallocated");
@@ -548,7 +552,8 @@ abstract Dsp(Int) from Int to Int {
      * (DspConnection.NULL on failure). FMOD only accepts a connection it
      * reserved itself, so with the connections this library can hand over
      * it reports FMOD_ERR_INVALID_PARAM. A NULL or stale connection
-     * reports FMOD_ERR_INVALID_HANDLE without reaching FMOD.
+     * reports FMOD_ERR_INVALID_HANDLE without reaching FMOD. The returned
+     * handle lives the way an addInput handle does.
      */
     public inline function addInputPreallocated(input:Dsp, connection:DspConnection):DspConnection {
         return NativeStudio.dsp_add_input_preallocated(this, input, connection);

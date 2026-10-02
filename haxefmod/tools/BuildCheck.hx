@@ -56,6 +56,10 @@ class BuildCheck {
         // The postbuild guards also catch it, but lime can bury their exit
         // code. The compile-time check is the reliable block.
         if (Context.defined("html5") || Context.defined("js")) {
+            // The version comes first. An HTML5 package of another FMOD
+            // version keeps its files elsewhere and would read as the
+            // wrong package.
+            verifyWebSdkVersionGate();
             requirePackage("FMOD_SDK_WEB", true);
             requireSdkFile("FMOD_SDK_WEB", ["api", "studio", "lib", "wasm", "fmodstudio.js"]);
         } else if (Context.defined("hl") || Context.defined("cpp")) {
@@ -71,9 +75,6 @@ class BuildCheck {
         // executable, so no hdll is ever loaded there.
         if (Context.defined("hl") && !Context.defined("kha")) {
             verifyHlHdllGate();
-        }
-        if (Context.defined("html5") || Context.defined("js")) {
-            verifyWebSdkVersionGate();
         }
     }
 

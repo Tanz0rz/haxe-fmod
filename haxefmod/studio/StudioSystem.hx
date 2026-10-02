@@ -335,7 +335,7 @@ class StudioSystem {
 
     /**
      * Label text for a labeled global parameter identified by ID. Returns "" on failure, with the reason in
-     * StudioSystem.lastResult().
+     * StudioSystem.lastResult(). An ID that no parameter carries also returns "", with lastResult() at FMOD_OK.
      */
     public static function getParameterLabelByID(id:FmodParameterId, labelIndex:Int):String {
         var desc = getParameterDescriptionByID(id);

@@ -129,6 +129,22 @@ static inline int faxe_argcheck_group_above(FMOD_CHANNELGROUP* group, FMOD_CHANN
     return 0;
 }
 
+/* The connection that joins a unit's head DSP to the tail of its parent
+ * group, NULL when there is none. A move to another parent destroys this
+ * connection and leaves the head's other connections alone. */
+static inline FMOD_DSPCONNECTION* faxe_parent_connection(FMOD_DSP* head, FMOD_CHANNELGROUP* parent) {
+    FMOD_DSP* tail = NULL;
+    int count = 0, i;
+    if (!head || !parent || FMOD_ChannelGroup_GetDSP(parent, FMOD_CHANNELCONTROL_DSP_TAIL, &tail) != FMOD_OK) return NULL;
+    if (FMOD_DSP_GetNumOutputs(head, &count) != FMOD_OK) return NULL;
+    for (i = 0; i < count; i++) {
+        FMOD_DSP* output = NULL;
+        FMOD_DSPCONNECTION* conn = NULL;
+        if (FMOD_DSP_GetOutput(head, i, &output, &conn) == FMOD_OK && output == tail) return conn;
+    }
+    return NULL;
+}
+
 /* The top sound of a subsound tree. The subsounds of a stream share its
  * decoder. */
 static inline FMOD_SOUND* faxe_argcheck_sound_root(FMOD_SOUND* sound) {

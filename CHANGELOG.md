@@ -172,8 +172,10 @@
 - `haxelib run haxefmod generate` and the FMOD Studio export script name a constant `Dynamic2` when its path mangles to `Dynamic`. A field named `Dynamic` failed the C++ build. A few C macro names such as `NAN` and `INFINITY` get the same suffix. The two tools also order non-ASCII paths the same way.
 - `PcmStream.create` and `create3d` round the ring down to whole frames. An odd sample rate such as 11025 Hz played mono as noise and stereo with left and right swapped. A `ringBytes` that is not a whole number of frames did the same.
 - `ChannelGroup.addGroup` refuses the group itself, a group above it, or the master with `FMOD_ERR_INVALID_PARAM`. FMOD crashed on such a call.
-- A connection that `Dsp.getInputConnection` or `getOutputConnection` reaches is short-lived when the game did not make it. Its handle read freed memory after Studio freed an event.
-- An accepted `ChannelGroup.addGroup` or `Channel.setChannelGroup` ends every connection handle. A stale handle could control an unrelated connection at the same address.
+- A connection that `Dsp.getInputConnection` or `getOutputConnection` reaches gets a short-lived handle unless the connection already has a live handle. Its handle read freed memory after Studio freed an event.
+- A connection that `Dsp.addInput` makes to a channel's DSP, or to a DSP of an event or a bus, gets a short-lived handle. When the channel ended on its own, the handle read and wrote freed memory or controlled another channel's send.
+- A `ChannelGroup.addGroup` or `Channel.setChannelGroup` that moves a group or channel to another parent ends the handle of the connection to the old parent. That stale handle could control an unrelated connection at the same address.
+- A js build against an HTML5 FMOD package of another version reports the version mismatch. It said the package was not an HTML5 one.
 - A command replay unloads the banks it loaded when it stops or ends. The handles into those banks die at the update that delivers the unload. Their callbacks go with them. A bus channel group handle read freed memory before.
 - `FmodManager.Todo` with `-D haxefmod_todo_beep` plays its beep only once FMOD is initialized. It initialized FMOD with default settings before, and a later `Initialize(settings)` lost its settings.
 - `StudioSystem.loadBankFile` passes `DECOMPRESS_SAMPLES` and `UNENCRYPTED` to FMOD. It kept `NONBLOCKING` alone.

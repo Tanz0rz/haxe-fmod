@@ -49,4 +49,6 @@ The generator derives an identifier from a path in four steps:
 3. Uppercase the first letter of each piece.
 4. Concatenate the pieces.
 
-`Vehicles/Ride-on Mower` becomes `VehiclesRideOnMower`. The bus root becomes `Root`. A leading digit gets an underscore prefix. Duplicates get numeric suffixes. The identifier `Dynamic` becomes `Dynamic2`. A C++ build cannot compile a field with that name. A few C macro names such as `NAN` get the same suffix. The generator drops non-ASCII characters.
+`Vehicles/Ride-on Mower` becomes `VehiclesRideOnMower`. The bus root becomes `Root`. A leading digit gets an underscore prefix. Duplicates get numeric suffixes. The generator drops non-ASCII characters.
+
+The identifier `Dynamic` becomes `Dynamic2`. A C++ build cannot compile a field with that name. A few C macro names such as `NAN` get the same suffix.

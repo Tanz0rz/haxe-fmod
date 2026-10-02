@@ -264,7 +264,7 @@ abstract EventDescription(Int) from Int to Int {
 
     /**
      * Label text for a labeled parameter identified by ID. Returns "" on failure, with the reason in
-     * StudioSystem.lastResult().
+     * StudioSystem.lastResult(). An ID that no parameter carries also returns "", with lastResult() at FMOD_OK.
      */
     public function getParameterLabelByID(id:FmodParameterId, labelIndex:Int):String {
         var desc = getParameterDescriptionByID(id);

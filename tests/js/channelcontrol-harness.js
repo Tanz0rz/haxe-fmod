@@ -105,21 +105,22 @@ async function main() {
     check('cg_add_group_reparent', down !== 0 && downCount === 1 && up !== 0
         && jaxe.fmod_cg_get_num_groups(child) === 0 && jaxe.fmod_cg_get_num_groups(parent) === 2,
         `down=${down} up=${up} groups=${jaxe.fmod_cg_get_num_groups(parent)}`);
-    // A connection a walk reaches is short-lived, like the DSPs a walk
-    // reaches. A stop ends it.
-    const walkedHead = jaxe.fmod_cg_get_dsp(parent, -1);
-    const walkedConn = jaxe.fmod_dsp_get_output_connection(walkedHead, 0);
-    const walkedIn = jaxe.fmod_dsp_get_input_connection(walkedHead, 0);
-    const walkedLive = walkedConn !== 0 && jaxe.fmod_dspconn_get_mix(walkedConn) > 0
-        && walkedIn !== 0 && jaxe.fmod_dspconn_get_mix(walkedIn) > 0;
+    // A walk returns the live handle of a connection the game made. A
+    // connection the game did not make gets a short-lived handle, and a
+    // stop ends it.
+    const walkedConn = jaxe.fmod_dsp_get_output_connection(jaxe.fmod_cg_get_dsp(parent, -1), 0);
+    const walkedLive = walkedConn !== 0 && jaxe.fmod_dspconn_get_mix(walkedConn) > 0;
+    const reached = jaxe.fmod_dsp_get_output_connection(jaxe.fmod_cg_get_dsp(child, -1), 0);
     jaxe.fmod_cg_stop(parent);
     jaxe.fmod_dspconn_get_mix(walkedConn);
-    const walkedOutResult = jaxe.lastResult;
-    jaxe.fmod_dspconn_get_mix(walkedIn);
-    check('dsp_walk_connection_short_lived', walkedLive && walkedOutResult === INVALID_HANDLE
-        && jaxe.lastResult === INVALID_HANDLE, `live=${walkedLive} out=${walkedOutResult} in=${jaxe.lastResult}`);
-    // A move ends the connection the old parent made. A refused move keeps
-    // it. A child already in the group gets no connection.
+    const walkedResult = jaxe.lastResult;
+    const connMix = jaxe.fmod_dspconn_get_mix(conn);
+    check('dsp_walk_connection_short_lived', walkedLive && walkedResult === INVALID_HANDLE && reached === conn
+        && connMix > 0 && jaxe.lastResult === OK,
+        `live=${walkedLive} walked=${walkedResult} reached=${reached} conn=${conn} connMix=${connMix}`);
+    // A move ends the handle of the connection to the old parent and no
+    // other. A refused move keeps it, and so does a move into the parent
+    // the child already has. That move gets no connection.
     const moved = jaxe.fmod_cg_add_group(child, other, true);
     const movedLive = moved !== 0 && jaxe.fmod_dspconn_get_mix(moved) > 0;
     const refusedMove = jaxe.fmod_cg_add_group(other, parent, true);
@@ -127,29 +128,45 @@ async function main() {
     const keptMix = jaxe.fmod_dspconn_get_mix(moved);
     const sameParent = jaxe.fmod_cg_add_group(child, other, true);
     const sameParentResult = jaxe.lastResult;
+    const sameMix = jaxe.fmod_dspconn_get_mix(moved);
+    check('cg_add_group_same_parent_keeps_connection', sameParent === 0 && sameParentResult === OK && sameMix > 0
+        && jaxe.lastResult === OK, `same=${sameParent} result=${sameParentResult} mix=${sameMix}`);
     const moveBack = jaxe.fmod_cg_add_group(parent, other, true);
     const movedMix = jaxe.fmod_dspconn_get_mix(moved);
-    check('cg_add_group_move_ends_connection', movedLive && sameParent === 0 && sameParentResult === OK
-        && refusedMove === 0 && refusedResult === INVALID_PARAM && keptMix > 0 && moveBack !== 0
-        && movedMix === 0 && jaxe.lastResult === INVALID_HANDLE,
-        `live=${movedLive} same=${sameParent} refused=${refusedResult} kept=${keptMix} back=${moveBack} mix=${movedMix}`);
+    const movedResult = jaxe.lastResult;
+    const unrelatedMix = jaxe.fmod_dspconn_get_mix(conn);
+    check('cg_add_group_move_ends_connection', movedLive && refusedMove === 0 && refusedResult === INVALID_PARAM
+        && keptMix > 0 && moveBack !== 0 && movedMix === 0 && movedResult === INVALID_HANDLE
+        && unrelatedMix > 0 && jaxe.lastResult === OK,
+        `live=${movedLive} refused=${refusedResult} kept=${keptMix} back=${moveBack} mix=${movedMix} unrelated=${unrelatedMix}`);
 
     // The group readers
     check('cg_is_playing_empty', jaxe.fmod_cg_is_playing(parent) === false && jaxe.lastResult === OK, `result=${jaxe.lastResult}`);
     const stream = jaxe.fmod_core_pcm_create(48000, 2, 4096);
     const channel = jaxe.fmod_core_pcm_play(stream, false);
-    // A channel move ends every connection handle. A refused move keeps them.
+    // A channel move ends the handle of the connection to the old group
+    // and no other. A refused move keeps it, and so does a move into the
+    // group the channel is in.
     const sendOsc = jaxe.fmod_dsp_create_by_type(2);
     const sendFft = jaxe.fmod_dsp_create_by_type(26);
     const send = jaxe.fmod_dsp_add_input(sendFft, sendOsc, 0);
     const sendLive = send !== 0 && jaxe.fmod_dspconn_get_mix(send) > 0;
+    const toMaster = jaxe.fmod_dsp_get_output_connection(jaxe.fmod_chan_get_dsp(channel, -1), 0);
+    const toMasterLive = toMaster !== 0 && jaxe.fmod_dspconn_get_mix(toMaster) > 0;
     const refusedRoute = jaxe.fmod_chan_set_channel_group(channel, 0x7fff0001);
-    const sendKept = jaxe.fmod_dspconn_get_mix(send);
+    const routeKept = jaxe.fmod_dspconn_get_mix(toMaster);
+    const sameRoute = jaxe.fmod_chan_set_channel_group(channel, jaxe.fmod_cg_get_master());
+    const sameRouteMix = jaxe.fmod_dspconn_get_mix(toMaster);
+    check('chan_set_channel_group_same_group_keeps_connection', toMasterLive && refusedRoute === INVALID_HANDLE
+        && routeKept > 0 && sameRoute === OK && sameRouteMix > 0 && jaxe.lastResult === OK,
+        `live=${toMasterLive} refused=${refusedRoute} kept=${routeKept} same=${sameRoute} mix=${sameRouteMix}`);
     const route = jaxe.fmod_chan_set_channel_group(channel, child);
+    const routedMix = jaxe.fmod_dspconn_get_mix(toMaster);
+    const routedResult = jaxe.lastResult;
     const sendMix = jaxe.fmod_dspconn_get_mix(send);
-    check('chan_set_channel_group_ends_connection', sendLive && refusedRoute === INVALID_HANDLE && sendKept > 0
-        && route === OK && sendMix === 0 && jaxe.lastResult === INVALID_HANDLE,
-        `live=${sendLive} refused=${refusedRoute} kept=${sendKept} route=${route} mix=${sendMix}`);
+    check('chan_set_channel_group_ends_connection', sendLive && route === OK && routedMix === 0
+        && routedResult === INVALID_HANDLE && sendMix > 0 && jaxe.lastResult === OK,
+        `route=${route} moved=${routedResult} send=${sendMix}`);
     jaxe.fmod_dsp_release(sendFft);
     jaxe.fmod_dsp_release(sendOsc);
     check('cg_is_playing_nested', jaxe.fmod_cg_is_playing(parent) === true && jaxe.fmod_cg_is_playing(child) === true, '');
@@ -303,6 +320,39 @@ async function main() {
         check('handle_retirement_leaks_nothing',
             jaxe.fmod_debug_live_handle_count() === liveBefore,
             `live=${jaxe.fmod_debug_live_handle_count()} before=${liveBefore}`);
+    }
+
+    // A send from a channel's head ends with the channel. A send between
+    // two DSPs the game created outlives the updates. The wait is on the
+    // clock.
+    {
+        const pcm = new ArrayBuffer(4800 * 2);
+        const shortSound = jaxe.fmod_core_create_sound_pcm(pcm, pcm.byteLength, 48000, 1);
+        const shot = jaxe.fmod_core_play_sound(shortSound, 0, false);
+        const sink = jaxe.fmod_dsp_create_by_type(26);
+        const source = jaxe.fmod_dsp_create_by_type(2);
+        const headSend = jaxe.fmod_dsp_add_input(sink, jaxe.fmod_chan_get_dsp(shot, -1), 0);
+        const headLive = headSend !== 0 && jaxe.fmod_dspconn_get_mix(headSend) > 0;
+        const pairSend = jaxe.fmod_dsp_add_input(sink, source, 0);
+        const started = Date.now();
+        while (jaxe.fmod_chan_is_playing(shot) && Date.now() - started < 5000) {
+            jaxe.fmod_sys_update();
+            await new Promise(r => setTimeout(r, 10));
+        }
+        jaxe.fmod_sys_update();
+        const ended = !jaxe.fmod_chan_is_playing(shot);
+        jaxe.fmod_dspconn_get_mix(headSend);
+        const headResult = jaxe.lastResult;
+        const pairMix = jaxe.fmod_dspconn_get_mix(pairSend);
+        check('dsp_add_input_channel_send_short_lived', headLive && ended && headResult === INVALID_HANDLE,
+            `live=${headLive} ended=${ended} result=${headResult}`);
+        check('dsp_add_input_game_send_long_lived', pairSend !== 0 && pairMix > 0 && jaxe.lastResult === OK,
+            `mix=${pairMix} result=${jaxe.lastResult}`);
+        // The ended channel keeps its slot until a stop or the next play
+        jaxe.fmod_chan_stop(shot);
+        jaxe.fmod_dsp_release(sink);
+        jaxe.fmod_dsp_release(source);
+        jaxe.fmod_core_release_sound(shortSound);
     }
 
     jaxe.fmod_cg_release(other);

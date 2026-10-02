@@ -1609,13 +1609,25 @@ int fmod_chan_set_position(int h, int position, int unit) {
     return (int)gLastResult;
 }
 
+// The connection that moving unit into the group to destroys. from is the
+// unit's parent. The connection joins the unit's head to the tail of from.
+// NULL for a move into from, since FMOD then changes nothing.
+static FMOD_DSPCONNECTION* lincMovedConnection(FMOD::ChannelControl* unit, FMOD::ChannelGroup* from, FMOD::ChannelGroup* to) {
+    FMOD::DSP* head = NULL;
+    if (!from || from == to || unit->getDSP(FMOD_CHANNELCONTROL_DSP_HEAD, &head) != FMOD_OK) return NULL;
+    return faxe_parent_connection((FMOD_DSP*)head, (FMOD_CHANNELGROUP*)from);
+}
+
 int fmod_chan_set_channel_group(int h, int groupHandle) {
     FMOD::Channel* ch = resolveChannel(h);
     FMOD::ChannelGroup* group = resolveChanGroup(groupHandle);
     if (!ch || !group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    FMOD::ChannelGroup* from = NULL;
+    if (ch->getChannelGroup(&from) != FMOD_OK) from = NULL;
+    FMOD_DSPCONNECTION* old = lincMovedConnection(ch, from, group);
     gLastResult = ch->setChannelGroup(group);
-    // A move destroys the connection to the old group
-    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+    // A move destroys the connection to the old group and no other
+    if (gLastResult == FMOD_OK && old) faxe_handle_free(faxe_handle_find(old, FAXE_TYPE_DSPCONN));
     return (int)gLastResult;
 }
 
@@ -1792,6 +1804,24 @@ static inline FMOD::Reverb3D* resolveReverb3d(int h) {
     return (FMOD::Reverb3D*)faxe_handle_resolve(h, FAXE_TYPE_REVERB3D);
 }
 
+// True for a DSP the game reached through a channel, an event, a bus, or
+// a DSP walk. FMOD or Studio can free such a DSP with no call the shim
+// sees. A DSP the game created and the chain of a channel group the game
+// created or of the master live until a call the shim sees.
+static bool lincDspShortLived(int h) {
+    return faxe_handle_is_owned(h) && (faxe_handle_get_borrowed(h) == FAXE_BORROWED_VOLATILE
+        || faxe_handle_get_type(faxe_handle_root(h)) != FAXE_TYPE_CHANGROUP);
+}
+
+// The handle of a connection the game made between two DSPs. FMOD frees
+// the connection on its own when a short-lived DSP at either end goes, so
+// the handle is short-lived too. Any other one is long-lived.
+static int lincMintMadeConnection(FMOD::DSPConnection* conn, int output, int input) {
+    if (lincDspShortLived(input)) return lincMintBorrowed(conn, FAXE_TYPE_DSPCONN, input, true);
+    if (lincDspShortLived(output)) return lincMintBorrowed(conn, FAXE_TYPE_DSPCONN, output, true);
+    return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
+}
+
 int fmod_dsp_add_input(int h, int inputHandle, int type) {
     FMOD::DSP* dsp = resolveDsp(h);
     FMOD::DSP* input = resolveDsp(inputHandle);
@@ -1799,7 +1829,7 @@ int fmod_dsp_add_input(int h, int inputHandle, int type) {
     if (!dsp || !input) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = dsp->addInput(input, &conn, (FMOD_DSPCONNECTION_TYPE)type);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
+    return lincMintMadeConnection(conn, h, inputHandle);
 }
 
 // connHandle 0 means any connection between the two units
@@ -1902,9 +1932,12 @@ int fmod_cg_add_group(int h, int childHandle, bool propagateDspClock) {
         gLastResult = FMOD_ERR_INVALID_PARAM;
         return 0;
     }
+    FMOD::ChannelGroup* from = NULL;
+    if (child->getParentGroup(&from) != FMOD_OK) from = NULL;
+    FMOD_DSPCONNECTION* old = lincMovedConnection(child, from, group);
     gLastResult = group->addGroup(child, propagateDspClock, &conn);
-    // A move destroys the connection to the old parent
-    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+    // A move destroys the connection to the old parent and no other
+    if (gLastResult == FMOD_OK && old) faxe_handle_free(faxe_handle_find(old, FAXE_TYPE_DSPCONN));
     if (gLastResult != FMOD_OK || !conn) return 0;
     return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
 }
@@ -7036,7 +7069,7 @@ int fmod_dsp_add_input_preallocated(int h, int inputHandle, int connHandle) {
     gLastResult = FMOD_ERR_UNSUPPORTED;
 #endif
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
+    return lincMintMadeConnection(conn, h, inputHandle);
 }
 
 // fbuf = one gain per input channel, count of them

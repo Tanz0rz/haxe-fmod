@@ -3861,9 +3861,12 @@ class jaxe {
         var ch = jaxe.resolveChan(handle);
         var group = jaxe.resolveCg(groupHandle);
         if (!ch || !group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var from = {};
+        if (ch.getChannelGroup(from) != jaxe.FMOD.OK) from.val = null;
+        var old = jaxe.movedConnection(ch, from.val, group);
         jaxe.lastResult = ch.setChannelGroup(group);
-        // A move destroys the connection to the old group
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
+        // A move destroys the connection to the old group and no other
+        if (jaxe.lastResult == jaxe.FMOD.OK && old) jaxe.handleFree(old);
         return jaxe.lastResult;
     }
 
@@ -4028,6 +4031,27 @@ class jaxe {
         return jaxe.handleResolve(handle, jaxe.TYPE_DSPCONN);
     }
 
+    // True for a DSP the game reached through a channel, an event, a bus,
+    // or a DSP walk. FMOD can free such a DSP with no call the shim sees. A
+    // DSP the game created and the chain of a channel group the game
+    // created or of the master live until a call the shim sees. Mirrors
+    // hlaxe_dsp_short_lived.
+    static dspShortLived(handle) {
+        var s = jaxe.slotOf(handle);
+        if (!s || !s.owned) return false;
+        var root = jaxe.slotOf(jaxe.handleRoot(handle));
+        return s.borrowed == jaxe.BORROWED_VOLATILE || !root || root.type != jaxe.TYPE_CHANGROUP;
+    }
+
+    // The handle of a connection the game made between two DSPs. FMOD
+    // frees the connection on its own when a short-lived DSP at either end
+    // goes, so the handle is short-lived too. Any other one is long-lived.
+    static mintMadeConnection(conn, output, input) {
+        if (jaxe.dspShortLived(input)) return jaxe.mintBorrowed(conn, jaxe.TYPE_DSPCONN, input, true);
+        if (jaxe.dspShortLived(output)) return jaxe.mintBorrowed(conn, jaxe.TYPE_DSPCONN, output, true);
+        return jaxe.handleOrMemory(conn, jaxe.TYPE_DSPCONN);
+    }
+
     static fmod_dsp_add_input(handle, inputHandle, type) {
         var dsp = jaxe.resolveDsp(handle);
         var input = jaxe.resolveDsp(inputHandle);
@@ -4035,7 +4059,7 @@ class jaxe {
         var out = {};
         jaxe.lastResult = dsp.addInput(input, out, type);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
-        return jaxe.handleOrMemory(out.val, jaxe.TYPE_DSPCONN);
+        return jaxe.mintMadeConnection(out.val, handle, inputHandle);
     }
 
     // connHandle 0 means any connection between the two units
@@ -4146,6 +4170,35 @@ class jaxe {
         return found;
     }
 
+    // The handle of the connection that moving unit into the group to
+    // destroys, 0 when the table has none. from is the unit's parent. The
+    // connection joins the unit's head to the tail of from. A move into
+    // from changes nothing. Drops the from wrapper. Mirrors
+    // hlaxe_moved_connection.
+    static movedConnection(unit, from, to) {
+        var found = 0;
+        if (!from) return 0;
+        if (jaxe.rawPtr(from) === jaxe.rawPtr(to)) { jaxe.dropWrapper(from); return 0; }
+        var headOut = {}, tailOut = {}, countOut = {};
+        if (unit.getDSP(jaxe.FMOD.CHANNELCONTROL_DSP_HEAD, headOut) == jaxe.FMOD.OK && headOut.val
+            && from.getDSP(jaxe.FMOD.CHANNELCONTROL_DSP_TAIL, tailOut) == jaxe.FMOD.OK && tailOut.val
+            && headOut.val.getNumOutputs(countOut) == jaxe.FMOD.OK) {
+            var tail = jaxe.rawPtr(tailOut.val);
+            for (var i = 0; i < countOut.val && !found; i++) {
+                var output = {}, conn = {};
+                if (headOut.val.getOutput(i, output, conn) == jaxe.FMOD.OK && jaxe.rawPtr(output.val) === tail) {
+                    found = jaxe.handleFind(conn.val, jaxe.TYPE_DSPCONN);
+                }
+                jaxe.dropWrapper(output.val);
+                jaxe.dropWrapper(conn.val);
+            }
+        }
+        jaxe.dropWrapper(tailOut.val);
+        jaxe.dropWrapper(headOut.val);
+        jaxe.dropWrapper(from);
+        return found;
+    }
+
     // Returns the connection handle, 0 on failure with the reason in
     // lastResult. A child that is the group itself or a group above it fails
     // with ERR_INVALID_PARAM (groupAbove).
@@ -4154,10 +4207,12 @@ class jaxe {
         var child = jaxe.resolveCg(childHandle);
         if (!group || !child) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return 0; }
         if (jaxe.groupAbove(group, child)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
-        var out = {};
+        var out = {}, from = {};
+        if (child.getParentGroup(from) != jaxe.FMOD.OK) from.val = null;
+        var old = jaxe.movedConnection(child, from.val, group);
         jaxe.lastResult = group.addGroup(child, !!propagateDspClock, out);
-        // A move destroys the connection to the old parent
-        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
+        // A move destroys the connection to the old parent and no other
+        if (jaxe.lastResult == jaxe.FMOD.OK && old) jaxe.handleFree(old);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         // A child already in this group gets no new connection. The glue
         // hands back a wrapper around a null pointer for it.

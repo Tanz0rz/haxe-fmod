@@ -9,19 +9,29 @@ import haxefmod.studio.native.NativeStudio;
 /**
  * A handle to a connection between two DSPs in the mixing graph.
  *
- * Obtain from Dsp.addInput or Dsp.getInputConnection. The mix level scales
+ * Obtain from Dsp.addInput, ChannelGroup.addGroupConnection, or a walk
+ * with Dsp.getInputConnection or getOutputConnection. The mix level scales
  * the signal flowing through this specific connection, which is how send
  * and sidechain style routings balance their inputs.
  *
- * Any graph change invalidates every connection handle, matching FMOD's
- * own rule that graph changes invalidate connections. The calls that end
- * every connection handle are a disconnect, a DSP removal or release, a
- * channel stop, a group release, and an accepted ChannelGroup.addGroup
- * or Channel.setChannelGroup. A connection that a walk reaches and the
- * game did not make with addInput or addGroupConnection is short-lived.
- * It dies at the next update or at the next call that stops, releases,
- * or unloads anything. Re-query through Dsp.getInputConnection after
- * changing the graph.
+ * A connection from addGroupConnection has a long-lived handle. So does a
+ * connection from Dsp.addInput between DSPs the game created or DSPs of a
+ * channel group the game created or of the master. A connection from
+ * addInput to a DSP the game reached through a channel, an event, a bus,
+ * or a walk has a short-lived handle. FMOD frees such a connection on its
+ * own, for example when the channel ends.
+ *
+ * A disconnect, a DSP removal or release, a channel stop, and a channel
+ * group release end every connection handle. A ChannelGroup.addGroup or
+ * Channel.setChannelGroup that changes the parent ends the handle of the
+ * connection to the old parent and no other.
+ *
+ * A walk returns the existing handle of a connection while that handle
+ * lives. Any other connection it reaches gets a short-lived handle. This
+ * includes a connection the game made whose handle one of the calls above
+ * ended. A short-lived handle dies at the next update or at the next call
+ * that stops, releases, or unloads anything. So a re-query after one of the
+ * calls above is good for the current frame only.
  */
 abstract DspConnection(Int) from Int to Int {
     public static inline var NULL:DspConnection = cast 0;

@@ -1864,6 +1864,10 @@ class ApiProbeScenario implements TestScenario {
     var _chanEventChannel:Channel = Channel.NULL;
     var _chanEventBaseline:Int = 0;
     var _chanEventFrames:Int = 0;
+    var _chanEventSink:Dsp = Dsp.NULL;
+    var _chanEventSource:Dsp = Dsp.NULL;
+    var _chanEventHeadSend:DspConnection = DspConnection.NULL;
+    var _chanEventPairSend:DspConnection = DspConnection.NULL;
     var _waitingForDspData:Bool = false;
     var _waitingForChannelEvents:Bool = false;
     var _oneShotFrames:Int = 0;
@@ -1902,6 +1906,15 @@ class ApiProbeScenario implements TestScenario {
         _chanEventChannel = _chanEventSound.play(false);
         check("chanev_play", !_chanEventChannel.isNull(), 'handle=${(_chanEventChannel : Int)}');
         _chanEventChannel.setCallback(function(e) _chanEvents.push(e));
+        // A send from the channel's head ends with the channel. A send
+        // between two DSPs the game created outlives the updates of the wait.
+        _chanEventSink = Dsp.create(DspType.FFT);
+        _chanEventSource = Dsp.create(DspType.OSCILLATOR);
+        _chanEventHeadSend = _chanEventSink.addInput(_chanEventChannel.getDsp(Channel.DSP_HEAD));
+        var headLive = !_chanEventHeadSend.isNull() && _chanEventHeadSend.getMix() > 0;
+        _chanEventPairSend = _chanEventSink.addInput(_chanEventSource);
+        check("chanev_sends_made", headLive && !_chanEventPairSend.isNull() && _chanEventPairSend.getMix() > 0,
+            'head=${(_chanEventHeadSend : Int)} pair=${(_chanEventPairSend : Int)} result=${StudioSystem.lastResult().toString()}');
         _waitingForChannelEvents = true;
     }
 
@@ -1917,6 +1930,15 @@ class ApiProbeScenario implements TestScenario {
         }
         check("chanev_syncpoint_delivered", sawSync, 'events=${_chanEvents.length} frames=$_chanEventFrames');
         check("chanev_end_delivered", sawEnd, 'events=${_chanEvents.length} frames=$_chanEventFrames');
+        var headMix = _chanEventHeadSend.getMix();
+        var headResult = StudioSystem.lastResult();
+        var pairMix = _chanEventPairSend.getMix();
+        check("dsp_add_input_channel_send_short_lived", sawEnd && headMix == 0
+            && headResult == FmodResult.FMOD_ERR_INVALID_HANDLE, 'end=$sawEnd result=${headResult.toString()}');
+        check("dsp_add_input_game_send_long_lived", pairMix > 0 && StudioSystem.lastResult().isOk(),
+            'mix=$pairMix result=${StudioSystem.lastResult().toString()}');
+        _chanEventSink.release();
+        _chanEventSource.release();
         _chanEventChannel.stop();
         _chanEventSound.release();
         check("no_handle_leaks_chanev", StudioSystem.liveHandleCount() == _chanEventBaseline,
