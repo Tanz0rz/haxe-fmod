@@ -134,6 +134,8 @@ class ProgrammerSoundScenario implements TestScenario {
     var _atStopped:Bool = false;
     var _atMaxPeak:Float = 0;
     var _atPlayStamp:Float = 0;
+    var _atStartStamp:Float = 0;
+    var _atFirstPoll:Float = -1;
     var _atReadyFrame:Int = -1;
     var _atCreateFrame:Int = -1;
     var _atFirstAudibleFrame:Int = -1;
@@ -293,6 +295,7 @@ class ProgrammerSoundScenario implements TestScenario {
             default:
                 check("at_assign_key", _atInstance.assignProgrammerSound(key).isOk(), 'key=$key');
         }
+        _atStartStamp = haxe.Timer.stamp();
         check("at_start", _atInstance.start().isOk(), 'key=$key mode=$_atMode');
         StudioSystem.flushCommands();
         _atGroup = _atInstance.getChannelGroup();
@@ -303,6 +306,7 @@ class ProgrammerSoundScenario implements TestScenario {
         _atReadyFrame = -1;
         _atCreateFrame = -1;
         _atFirstAudibleFrame = -1;
+        _atFirstPoll = -1;
         _phase = "at-play";
     }
 
@@ -335,10 +339,12 @@ class ProgrammerSoundScenario implements TestScenario {
         info("at_timeline", '$tag create_frame=$_atCreateFrame ready_frame=$_atReadyFrame first_audible_frame=$_atFirstAudibleFrame stopped_frame=$_atFrames');
         var elapsed = haxe.Timer.stamp() - _atPlayStamp;
         var pollsPerSecond = elapsed > 0 ? _atFrames / elapsed : 0;
-        if (pollsPerSecond >= 20) {
+        // A line that played out before the first poll leaves nothing to
+        // read, so a late first poll is unsampled too
+        if (pollsPerSecond >= 20 && _atFirstPoll < 0.25) {
             check("at_key_resolved_audibly", _atMaxPeak > 0.01, '$tag peak=$_atMaxPeak polls_per_second=${Math.round(pollsPerSecond)}');
         } else {
-            info("at_key_resolved_audibly", 'unsampled $tag peak=$_atMaxPeak polls_per_second=${Math.round(pollsPerSecond)}');
+            info("at_key_resolved_audibly", 'unsampled $tag peak=$_atMaxPeak polls_per_second=${Math.round(pollsPerSecond)} first_poll_ms=${Math.round(_atFirstPoll * 1000)}');
         }
         check("at_create_carries_instrument_name", _atNameSeen && _atName != null, '$tag name=$_atName');
         // The create record delivers the sound the instrument plays as a
@@ -508,6 +514,7 @@ class ProgrammerSoundScenario implements TestScenario {
         }
         if (_phase == "at-play") {
             _atFrames++;
+            if (_atFirstPoll < 0) _atFirstPoll = haxe.Timer.stamp() - _atStartStamp;
             var metering = _atMeter.getMetering();
             if (metering != null) {
                 for (p in metering.peakLevel) {
