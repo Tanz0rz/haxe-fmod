@@ -65,8 +65,14 @@ runs:
         # GUI executables on Windows have no stdout, so there the examples
         # mirror their traces into the log file. Elsewhere stdout is
         # redirected into it, and a second writer would overwrite lines
+        # A console executable's stdout then goes to a sidecar file, a
+        # second writer on the log would overwrite lines
+        OUT_FILE="$LOG_FILE"
         case "$(uname -s)" in
-          MINGW*|MSYS*|CYGWIN*) export HAXEFMOD_LOG_FILE="$LOG_FILE" ;;
+          MINGW*|MSYS*|CYGWIN*)
+            export HAXEFMOD_LOG_FILE="$LOG_FILE"
+            OUT_FILE="$(dirname "$LOG_FILE")/stdout-$(basename "$LOG_FILE")"
+            ;;
         esac
         if [ "${{ inputs.use-wavwriter }}" = "true" ]; then
           export FMOD_WAVWRITER="${RUNNER_TEMP}/state-${{ inputs.state }}.wav"
@@ -110,7 +116,7 @@ runs:
         # game died on its own within five seconds with no state output.
         # That is a crash at startup rather than a test result.
         run_game() {
-          "$EXE" > "$LOG_FILE" 2>&1 &
+          "$EXE" > "$OUT_FILE" 2>&1 &
           GAME_PID=$!
           STARTED=$(date +%s)
           for i in $(seq "${{ inputs.timeout }}"); do
@@ -142,6 +148,7 @@ runs:
           # separates that from a real failure.
           echo "The game exited within five seconds with no state output. Launching once more."
           cp "$LOG_FILE" "$(dirname "$LOG_FILE")/first-attempt-$(basename "$LOG_FILE")"
+          [ "$OUT_FILE" = "$LOG_FILE" ] || cp "$OUT_FILE" "$(dirname "$OUT_FILE")/first-attempt-$(basename "$OUT_FILE")" || true
           run_game || true
         fi
         cd - > /dev/null
@@ -151,6 +158,10 @@ runs:
           echo "$1"
           echo "=== Full game log ==="
           cat "$LOG_FILE" || true
+          if [ "$OUT_FILE" != "$LOG_FILE" ] && [ -s "$OUT_FILE" ]; then
+            echo "=== Game stdout ==="
+            cat "$OUT_FILE" || true
+          fi
           exit 1
         }
         grep -q "$GATE: COMPLETE" "$LOG_FILE" || fail "$GATE never reached COMPLETE"

@@ -308,11 +308,14 @@ def run_for(j, seconds, log, wav_env):
           wait $RECORD_PID || true
 """
     if j.windows:
+        # The trace mirror writes the log. A console executable's stdout
+        # goes to a sidecar, a second writer on the log would overwrite
+        # lines, and a GUI executable has no stdout at all
         return f"""          export FMOD_WAVWRITER="{wav_env}"
           export HAXEFMOD_LOG_FILE="{log}"
           cd {j.bindir}
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
-          timeout -k 10 {seconds} {j.launch} > "{log}" 2>&1 || true
+          timeout -k 10 {seconds} {j.launch} > "{stdout_sidecar(log)}" 2>&1 || true
           cd -
 """
     return f"""          export FMOD_WAVWRITER={wav_env}
@@ -329,14 +332,21 @@ def run_for(j, seconds, log, wav_env):
 """
 
 
-def run_game_function(seconds, log):
+def stdout_sidecar(log):
+    """The file a Windows job's stdout goes to while the trace mirror
+    writes the log itself, named so the upload glob still matches."""
+    return f"$(dirname {log})/stdout-$(basename {log})"
+
+
+def run_game_function(seconds, log, out=None):
     """A shell function that runs the game to its exit or the timeout.
     It returns 0 when the game died on its own within five seconds with
     no state output, a crash at startup rather than a result. The window
     can come up with no size on a fresh runner and the preloader faults
     before the state starts. The caller launches once more then."""
+    out = out or log
     return f"""          run_game() {{
-            {{launch}} > {log} 2>&1 &
+            {{launch}} > {out} 2>&1 &
             GAME_PID=$!
             STARTED=$(date +%s)
             for i in $(seq {seconds}); do
@@ -434,7 +444,7 @@ def native_steps(j):
           export FMOD_WAVWRITER="${{RUNNER_TEMP}}/stress-smoke.wav"
           LOG={L(f"stress-smoke-{j.name}.log")}
 {mirror}          cd {j.bindir}
-{run_game_function(90, '"$LOG"').replace('{launch}', j.launch)}
+{run_game_function(90, '"$LOG"', '"' + stdout_sidecar('"$LOG"') + '"' if j.windows else None).replace('{launch}', j.launch)}
           if run_game; then
             echo "The game exited within five seconds with no state output. Launching once more."
             cp "$LOG" "$(dirname "$LOG")/first-attempt-$(basename "$LOG")"

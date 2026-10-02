@@ -908,11 +908,21 @@ for body in jobs_text:
     title = body.split("\n", 1)[0]
     if "HAXEFMOD_LOG_FILE" in body and not re.search(r"runs-on: windows", body):
         mirror_wrong.append(title)
-mirror_action = re.findall(r"^ *(?:MINGW\*\|MSYS\*\|CYGWIN\*\)\s*)?export HAXEFMOD_LOG_FILE=", state_action, re.M)
-if mirror_wrong or len(mirror_action) != 1 or not mirror_action[0].strip().startswith("MINGW"):
-    fail(f"trace mirror outside Windows: jobs {mirror_wrong}, action exports {mirror_action}")
+# On Windows the mirror owns the log, so stdout goes to a sidecar there.
+# A redirect into the mirrored file is the same two-writer fault.
+for body in jobs_text:
+    title = body.split("\n", 1)[0]
+    for m in re.finditer(r'export HAXEFMOD_LOG_FILE="?([^"\n]+)"?', body):
+        target = m.group(1)
+        if re.search(r"> \"?" + re.escape(target) + r"\"? 2>&1", body):
+            mirror_wrong.append(f"{title} redirects stdout into {target}")
+mirror_action = re.findall(r"^ *export HAXEFMOD_LOG_FILE=", state_action, re.M)
+action_case = re.search(r"MINGW\*\|MSYS\*\|CYGWIN\*\)\n\s*export HAXEFMOD_LOG_FILE=\"\$LOG_FILE\"\n\s*OUT_FILE=", state_action)
+action_redirect = '"$EXE" > "$OUT_FILE" 2>&1' in state_action and '"$EXE" > "$LOG_FILE"' not in state_action
+if mirror_wrong or len(mirror_action) != 1 or not action_case or not action_redirect:
+    fail(f"trace mirror and stdout share a file: {mirror_wrong}, action exports {len(mirror_action)}, windows case {bool(action_case)}, sidecar redirect {action_redirect}")
 else:
-    ok("the trace mirror into the log file is Windows-only in the workflow and the state action")
+    ok("the trace mirror is Windows-only and never shares its log file with the stdout redirect")
 
 print()
 if failures:

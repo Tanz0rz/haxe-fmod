@@ -5245,7 +5245,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-windows-cpp.log"
           cd example-project/EZPlatformer/export/windows/bin
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
-          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/game-windows-cpp.log" 2>&1 || true
+          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$(dirname $GITHUB_WORKSPACE/game-windows-cpp.log)/stdout-$(basename $GITHUB_WORKSPACE/game-windows-cpp.log)" 2>&1 || true
           cd -
           echo "=== Game log ==="
           cat $GITHUB_WORKSPACE/game-windows-cpp.log || true
@@ -5259,7 +5259,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-windows-cpp.log"
           cd example-project/EZPlatformer/export/windows/bin
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
-          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/volume-test-windows-cpp.log" 2>&1 || true
+          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$(dirname $GITHUB_WORKSPACE/volume-test-windows-cpp.log)/stdout-$(basename $GITHUB_WORKSPACE/volume-test-windows-cpp.log)" 2>&1 || true
           cd -
 
       - name: Fix WAV headers
@@ -5314,7 +5314,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/EZPlatformer/export/windows/bin
           run_game() {
-            ./EZPlatformerTestEdition.exe > "$LOG" 2>&1 &
+            ./EZPlatformerTestEdition.exe > "$(dirname "$LOG")/stdout-$(basename "$LOG")" 2>&1 &
             GAME_PID=$!
             STARTED=$(date +%s)
             for i in $(seq 90); do
@@ -5436,7 +5436,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-windows-hl.log"
           cd example-project/EZPlatformer/export/hl/bin
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
-          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/game-windows-hl.log" 2>&1 || true
+          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$(dirname $GITHUB_WORKSPACE/game-windows-hl.log)/stdout-$(basename $GITHUB_WORKSPACE/game-windows-hl.log)" 2>&1 || true
           cd -
           echo "=== Game log ==="
           cat $GITHUB_WORKSPACE/game-windows-hl.log || true
@@ -5450,7 +5450,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-windows-hl.log"
           cd example-project/EZPlatformer/export/hl/bin
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
-          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$GITHUB_WORKSPACE/volume-test-windows-hl.log" 2>&1 || true
+          timeout -k 10 60 ./EZPlatformerTestEdition.exe > "$(dirname $GITHUB_WORKSPACE/volume-test-windows-hl.log)/stdout-$(basename $GITHUB_WORKSPACE/volume-test-windows-hl.log)" 2>&1 || true
           cd -
 
       - name: Fix WAV headers
@@ -5505,7 +5505,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/EZPlatformer/export/hl/bin
           run_game() {
-            ./EZPlatformerTestEdition.exe > "$LOG" 2>&1 &
+            ./EZPlatformerTestEdition.exe > "$(dirname "$LOG")/stdout-$(basename "$LOG")" 2>&1 &
             GAME_PID=$!
             STARTED=$(date +%s)
             for i in $(seq 90); do
@@ -6418,7 +6418,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-heaps-windows-hl.log"
           cd example-project/HeapsPlatformer/build/hl
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
-          timeout -k 10 60 ./HeapsPlatformer.exe > "$GITHUB_WORKSPACE/game-heaps-windows-hl.log" 2>&1 || true
+          timeout -k 10 60 ./HeapsPlatformer.exe > "$(dirname $GITHUB_WORKSPACE/game-heaps-windows-hl.log)/stdout-$(basename $GITHUB_WORKSPACE/game-heaps-windows-hl.log)" 2>&1 || true
           cd -
           echo "=== Game log ==="
           cat $GITHUB_WORKSPACE/game-heaps-windows-hl.log || true
@@ -6432,7 +6432,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log"
           cd example-project/HeapsPlatformer/build/hl
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
-          timeout -k 10 60 ./HeapsPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log" 2>&1 || true
+          timeout -k 10 60 ./HeapsPlatformer.exe > "$(dirname $GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log)/stdout-$(basename $GITHUB_WORKSPACE/volume-test-heaps-windows-hl.log)" 2>&1 || true
           cd -
 
       - name: Fix WAV headers
@@ -6487,7 +6487,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/HeapsPlatformer/build/hl
           run_game() {
-            ./HeapsPlatformer.exe > "$LOG" 2>&1 &
+            ./HeapsPlatformer.exe > "$(dirname "$LOG")/stdout-$(basename "$LOG")" 2>&1 &
             GAME_PID=$!
             STARTED=$(date +%s)
             for i in $(seq 90); do
@@ -7812,7 +7812,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-kha-windows.log"
           cd example-project/KhaPlatformer/build/windows
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
-          timeout -k 10 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/game-kha-windows.log" 2>&1 || true
+          timeout -k 10 60 ./KhaPlatformer.exe > "$(dirname $GITHUB_WORKSPACE/game-kha-windows.log)/stdout-$(basename $GITHUB_WORKSPACE/game-kha-windows.log)" 2>&1 || true
           cd -
           echo "=== Game log ==="
           cat $GITHUB_WORKSPACE/game-kha-windows.log || true
@@ -7826,7 +7826,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-kha-windows.log"
           cd example-project/KhaPlatformer/build/windows
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
-          timeout -k 10 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows.log" 2>&1 || true
+          timeout -k 10 60 ./KhaPlatformer.exe > "$(dirname $GITHUB_WORKSPACE/volume-test-kha-windows.log)/stdout-$(basename $GITHUB_WORKSPACE/volume-test-kha-windows.log)" 2>&1 || true
           cd -
 
       - name: Fix WAV headers
@@ -7881,7 +7881,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build/windows
           run_game() {
-            ./KhaPlatformer.exe > "$LOG" 2>&1 &
+            ./KhaPlatformer.exe > "$(dirname "$LOG")/stdout-$(basename "$LOG")" 2>&1 &
             GAME_PID=$!
             STARTED=$(date +%s)
             for i in $(seq 90); do
@@ -8003,7 +8003,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/game-kha-windows-hl.log"
           cd example-project/KhaPlatformer/build/windows-hl
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
-          timeout -k 10 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/game-kha-windows-hl.log" 2>&1 || true
+          timeout -k 10 60 ./KhaPlatformer.exe > "$(dirname $GITHUB_WORKSPACE/game-kha-windows-hl.log)/stdout-$(basename $GITHUB_WORKSPACE/game-kha-windows-hl.log)" 2>&1 || true
           cd -
           echo "=== Game log ==="
           cat $GITHUB_WORKSPACE/game-kha-windows-hl.log || true
@@ -8017,7 +8017,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log"
           cd example-project/KhaPlatformer/build/windows-hl
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
-          timeout -k 10 60 ./KhaPlatformer.exe > "$GITHUB_WORKSPACE/volume-test-kha-windows-hl.log" 2>&1 || true
+          timeout -k 10 60 ./KhaPlatformer.exe > "$(dirname $GITHUB_WORKSPACE/volume-test-kha-windows-hl.log)/stdout-$(basename $GITHUB_WORKSPACE/volume-test-kha-windows-hl.log)" 2>&1 || true
           cd -
 
       - name: Fix WAV headers
@@ -8072,7 +8072,7 @@ jobs:
           export HAXEFMOD_LOG_FILE="$LOG"
           cd example-project/KhaPlatformer/build/windows-hl
           run_game() {
-            ./KhaPlatformer.exe > "$LOG" 2>&1 &
+            ./KhaPlatformer.exe > "$(dirname "$LOG")/stdout-$(basename "$LOG")" 2>&1 &
             GAME_PID=$!
             STARTED=$(date +%s)
             for i in $(seq 90); do
