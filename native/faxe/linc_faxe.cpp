@@ -1532,9 +1532,10 @@ bool fmod_cg_get_paused(int h) {
 // reinserted. So an add is refused with that code in two cases. A DSP
 // the game created is refused while another recorded chain still lists
 // it. A DSP the game did not create goes only into the chain it came
-// from or a chain that already lists it. FMOD or Studio frees such a DSP
-// with its owner, also after the game removed it from that chain. A
-// Studio effect and a group's own fader are such DSPs.
+// from or a chain that already lists it. FMOD or Studio frees a group's
+// DSP or a Studio effect with its owner, also after the game removed it
+// from that chain. FMOD hands a channel's own DSP to the next channel
+// that plays.
 static bool lincDspInOtherChain(int dspHandle, FMOD::DSP* dsp, int target) {
     int owner = faxe_dsp_chain(dspHandle);
     int index = -1;
