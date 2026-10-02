@@ -90,8 +90,11 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * Inserts an effect at index (0 = head of the chain, or a DSP_* position).
-     * A connection handle whose connection FMOD destroys or moves here fails
-     * its next check.
+     * A connection handle whose connection FMOD destroys here fails its next
+     * check. So does one whose connection FMOD moves onto another DSP. A
+     * handle from addGroupConnection follows the group's new head or tail
+     * and keeps working. A DSP that another channel or group still holds in
+     * its chain fails with FMOD_ERR_DSP_INUSE until it is removed there.
      */
     public inline function addDsp(index:Int, dsp:Dsp):FmodResult {
         return NativeStudio.cg_add_dsp(this, index, dsp);
@@ -491,8 +494,10 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * Moves an attached effect to another chain position (0 = head). A
-     * connection handle whose connection FMOD destroys or moves here fails
-     * its next check.
+     * connection handle whose connection FMOD destroys here fails its next
+     * check. So does one whose connection FMOD moves onto another DSP. A
+     * handle from addGroupConnection follows the group's new head or tail
+     * and keeps working.
      */
     public inline function setDspIndex(dsp:Dsp, index:Int):haxefmod.studio.FmodResult {
         return NativeStudio.cg_set_dsp_index(this, dsp, index);

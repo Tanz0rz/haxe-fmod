@@ -49,6 +49,10 @@ class ProbeGroupPark {
     static var _tone:Dsp = Dsp.NULL;
     static var _channel2:Channel = Channel.NULL;
     static var _parentHead:Dsp = Dsp.NULL;
+    static var _parkedFx:Dsp = Dsp.NULL;
+    static var _fxHolder:ChannelGroup = ChannelGroup.NULL;
+    static var _otherChain:ChannelGroup = ChannelGroup.NULL;
+    static var _parkedAdd:FmodResult = FmodResult.FMOD_OK;
 
     /** True until the parked release and its leak count have run (never on js). */
     public static function pending():Bool {
@@ -182,6 +186,10 @@ class ProbeGroupPark {
         _channel2 = _tone.play(false);
         _channel2.setChannelGroup(_group);
         _parentHead = _parent.getDsp(ChannelGroup.DSP_HEAD);
+        _parkedFx = Dsp.create(DspType.LOWPASS);
+        _fxHolder = ChannelGroup.create("probe-park-fx-holder");
+        _fxHolder.addDsp(0, _parkedFx);
+        _otherChain = ChannelGroup.create("probe-park-other-chain");
         @:privateAccess state.check("cg_park_setup", !_geometry.isNull() && !_group.isNull() && !_child.isNull()
             && !_channel.isNull() && _parentHead.getNumInputs() == 1 && _parent.getNumGroups() == 1,
             'geometry=${(_geometry : Int)} group=${(_group : Int)} channel=${(_channel : Int)} inputs=${_parentHead.getNumInputs()}');
@@ -229,6 +237,10 @@ class ProbeGroupPark {
         // The FMOD object waits on the parked list, so its DSPs still feed
         // the parent
         @:privateAccess state.check("cg_park_fmod_release_waits", inputs == 1, 'inputs=$inputs');
+        // A parked group still holds its effect, so another chain refuses
+        // it until the FMOD release
+        _fxHolder.release();
+        _parkedAdd = _otherChain.addDsp(0, _parkedFx);
         _waiting = true;
     }
 
@@ -237,6 +249,15 @@ class ProbeGroupPark {
         // The FMOD release runs at the first drop point after the wait
         @:privateAccess state.check("cg_park_fmod_release_runs", inputs == 0 && elapsed >= 0.05,
             'inputs=$inputs elapsed_ms=${Math.round(elapsed * 1000)}');
+        // FMOD keeps the released group's effect marked in use. An add to
+        // another chain and its removal make it releasable.
+        var fxAdd:FmodResult = _otherChain.addDsp(0, _parkedFx);
+        var fxRemove:FmodResult = _otherChain.removeDsp(_parkedFx);
+        var fxRelease:FmodResult = _parkedFx.release();
+        @:privateAccess state.check("cg_park_effect_held_until_release", _parkedAdd == FmodResult.FMOD_ERR_DSP_INUSE
+            && fxAdd.isOk() && fxRemove.isOk() && fxRelease.isOk(),
+            'parked=${_parkedAdd.toString()} add=${fxAdd.toString()} remove=${fxRemove.toString()} release=${fxRelease.toString()}');
+        _otherChain.release();
         _channel.stop();
         _channel2.stop();
         _tone.release();

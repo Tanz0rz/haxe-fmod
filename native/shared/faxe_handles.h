@@ -104,6 +104,10 @@ typedef struct {
     unsigned char conn_end;
     int end_in;
     int end_out;
+    /* A DSP slot records the channel or group handle of the last accepted
+     * addDsp. An accepted removeDsp from that owner clears it. Other
+     * slots keep it at 0, and a freed slot clears it. */
+    int chain;
     int next_free;        /* free-list link, -1 = end of list */
 } FaxeSlot;
 
@@ -300,6 +304,7 @@ static void faxe_handle_free_slot(int handle, int keepAux) {
     s->conn_end = 0;
     s->end_in = 0;
     s->end_out = 0;
+    s->chain = 0;
     if (s->type == FAXE_TYPE_DSPCONN) gFaxeConnCount--;
     s->ptr = NULL;
     if (s->aux && !keepAux) free(s->aux);
@@ -574,6 +579,32 @@ static void faxe_handle_set_image(int handle, void* image) {
     FaxeSlot* s = &gFaxeSlots[handle & 0xFFFF];
     if (s->image) free(s->image);
     s->image = image;
+}
+
+/* The channel or group handle whose chain holds the DSP of a live DSP
+ * handle, as far as the table knows. That is the owner of the last
+ * accepted addDsp. A borrowed DSP the game reached from a channel or a
+ * group has that channel or group. 0 when the table knows none. The
+ * owner handle can be dead, and the caller asks FMOD whether its chain
+ * still lists the DSP. */
+static int faxe_dsp_chain(int handle) {
+    FaxeSlot* s;
+    unsigned char parentType;
+    if (!faxe_handle_is_live(handle)) return 0;
+    s = &gFaxeSlots[handle & 0xFFFF];
+    if (s->chain) return s->chain;
+    parentType = faxe_handle_get_type(s->parent);
+    return parentType == FAXE_TYPE_CHAN || parentType == FAXE_TYPE_CHANGROUP ? s->parent : 0;
+}
+
+/* Records the channel or group a live DSP handle was added to */
+static void faxe_dsp_set_chain(int handle, int owner) {
+    if (faxe_handle_is_live(handle)) gFaxeSlots[handle & 0xFFFF].chain = owner;
+}
+
+/* Clears the record of a live DSP handle when owner holds it */
+static void faxe_dsp_clear_chain(int handle, int owner) {
+    if (faxe_handle_is_live(handle) && gFaxeSlots[handle & 0xFFFF].chain == owner) gFaxeSlots[handle & 0xFFFF].chain = 0;
 }
 
 static int faxe_live_handle_count(void) {

@@ -244,8 +244,8 @@ static void test_conn_checks(void) {
     assert(faxe_conn_check(h1, &gFakeOps) == &connA);
     assert(faxe_handle_resolve(h1, FAXE_TYPE_DSPCONN) == &connA);
 
-    /* Two connections between the same pair: the one FMOD drops fails,
-     * the other passes */
+    /* Two connections join the same pair. The one FMOD drops fails the
+     * check and the other passes. */
     fake_link(&a, &b, &connB);
     h2 = faxe_handle_alloc(&connB, FAXE_TYPE_DSPCONN);
     faxe_conn_set_ends(h2, ha, FAXE_END_DSP, hb, FAXE_END_DSP);
@@ -659,6 +659,45 @@ int main(void) {
     test_conn_checks();
 
     test_fuzz_against_model();
+
+    /* A DSP slot records the chain of its last accepted add. A removal by
+     * another owner keeps the record, and one by the owner clears it. A
+     * borrowed DSP reached from a channel or a group names that parent.
+     * One reached from a DSP names none. A new slot starts with no
+     * record. */
+    {
+        int dspObj = 1, grpObj = 2, chanObj = 3, fadObj = 4, walkObj = 5;
+        int d = faxe_handle_alloc(&dspObj, FAXE_TYPE_DSP);
+        int g = faxe_handle_alloc(&grpObj, FAXE_TYPE_CHANGROUP);
+        int c = faxe_handle_alloc(&chanObj, FAXE_TYPE_CHAN);
+        int fader = faxe_handle_alloc(&fadObj, FAXE_TYPE_DSP);
+        int walked = faxe_handle_alloc(&walkObj, FAXE_TYPE_DSP);
+        int d2;
+        assert(faxe_dsp_chain(d) == 0);
+        faxe_dsp_set_chain(d, g);
+        assert(faxe_dsp_chain(d) == g);
+        faxe_dsp_clear_chain(d, c);
+        assert(faxe_dsp_chain(d) == g);
+        faxe_dsp_clear_chain(d, g);
+        assert(faxe_dsp_chain(d) == 0);
+        faxe_dsp_set_chain(d, c);
+        faxe_handle_free(c);
+        assert(faxe_dsp_chain(d) == c); /* the caller finds the owner dead */
+        faxe_handle_free(d);
+        assert(faxe_dsp_chain(d) == 0);
+        d2 = faxe_handle_alloc(&dspObj, FAXE_TYPE_DSP);
+        assert((d2 & 0xFFFF) == (d & 0xFFFF) && faxe_dsp_chain(d2) == 0);
+        faxe_handle_set_owned(fader, 1);
+        faxe_handle_set_owner(fader, g);
+        assert(faxe_dsp_chain(fader) == g);
+        faxe_handle_set_owned(walked, 1);
+        faxe_handle_set_owner(walked, d2);
+        assert(faxe_dsp_chain(walked) == 0);
+        faxe_handle_free(walked);
+        faxe_handle_free(d2);
+        faxe_handle_free(g);
+        assert(!faxe_handle_is_live(fader));
+    }
 
     /* a typed sweep frees the rejected slots of that type only */
     {

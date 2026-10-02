@@ -365,7 +365,7 @@ function testConnectionGraph() {
     const inputConn = jaxe.fmod_dsp_get_input_connection(lp, 0);
     check('s3_input_conn_dedup', inputConn === conn, `conn=${inputConn} orig=${conn}`);
     check('s3_disconnect', jaxe.fmod_dsp_disconnect_from(lp, osc, 0) === jaxe.FMOD.OK);
-    // The sweep after disconnect reclaims the dead connection handle
+    // The disconnect removed the connection. The next call on its handle fails the check.
     check('s3_stale_conn', jaxe.fmod_dspconn_set_mix(conn, 1.0) === jaxe.ERR_INVALID_HANDLE);
     jaxe.fmod_dsp_release(lp);
     jaxe.fmod_dsp_release(osc);

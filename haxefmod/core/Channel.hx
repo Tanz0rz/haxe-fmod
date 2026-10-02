@@ -121,7 +121,8 @@ abstract Channel(Int) from Int to Int {
     /**
      * Inserts an effect on this channel (0 = head of the chain). A
      * connection handle whose connection FMOD destroys or moves here fails
-     * its next check.
+     * its next check. A DSP that another channel or group still holds in
+     * its chain fails with FMOD_ERR_DSP_INUSE until it is removed there.
      */
     public inline function addDsp(index:Int, dsp:Dsp):FmodResult {
         return NativeStudio.chan_add_dsp(this, index, dsp);

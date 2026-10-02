@@ -1524,11 +1524,35 @@ bool fmod_cg_get_paused(int h) {
     return paused;
 }
 
+// FMOD accepts an addDSP of a DSP that another chain still holds. It
+// then lists the DSP in both chains. A removal from either chain, or the
+// end of a channel, lets the DSP release free the DSP while the other
+// chain still names it. The mixer then reads freed memory. FMOD's text
+// for FMOD_ERR_DSP_INUSE says a DSP must be removed before it is
+// reinserted. So an add into another chain is refused with that code
+// while the recorded chain still lists the DSP.
+static bool lincDspInOtherChain(int dspHandle, FMOD::DSP* dsp, int target) {
+    int owner = faxe_dsp_chain(dspHandle);
+    int index = -1;
+    if (!owner || owner == target) return false;
+    FMOD::Channel* channel = resolveChannel(owner);
+    if (channel) return channel->getDSPIndex(dsp, &index) == FMOD_OK;
+    FMOD::ChannelGroup* group = resolveChanGroup(owner);
+    if (group) return group->getDSPIndex(dsp, &index) == FMOD_OK;
+    // A group the game released can wait parked with the DSP in its chain
+    for (int i = 0; i < gFaxeParkedCount; i++) {
+        if (((FMOD::ChannelGroup*)gFaxeParked[i].ptr)->getDSPIndex(dsp, &index) == FMOD_OK) return true;
+    }
+    return false;
+}
+
 int fmod_cg_add_dsp(int h, int index, int dspHandle) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (lincDspInOtherChain(dspHandle, dsp, h)) { gLastResult = FMOD_ERR_DSP_INUSE; return (int)gLastResult; }
     gLastResult = group->addDSP(index, dsp);
+    if (gLastResult == FMOD_OK) faxe_dsp_set_chain(dspHandle, h);
     return (int)gLastResult;
 }
 
@@ -1537,6 +1561,7 @@ int fmod_cg_remove_dsp(int h, int dspHandle) {
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = group->removeDSP(dsp);
+    if (gLastResult == FMOD_OK) faxe_dsp_clear_chain(dspHandle, h);
     return (int)gLastResult;
 }
 
@@ -1606,7 +1631,9 @@ int fmod_chan_add_dsp(int h, int index, int dspHandle) {
     FMOD::Channel* ch = resolveChannel(h);
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     if (!ch || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (lincDspInOtherChain(dspHandle, dsp, h)) { gLastResult = FMOD_ERR_DSP_INUSE; return (int)gLastResult; }
     gLastResult = ch->addDSP(index, dsp);
+    if (gLastResult == FMOD_OK) faxe_dsp_set_chain(dspHandle, h);
     return (int)gLastResult;
 }
 
@@ -1615,6 +1642,7 @@ int fmod_chan_remove_dsp(int h, int dspHandle) {
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     if (!ch || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = ch->removeDSP(dsp);
+    if (gLastResult == FMOD_OK) faxe_dsp_clear_chain(dspHandle, h);
     return (int)gLastResult;
 }
 

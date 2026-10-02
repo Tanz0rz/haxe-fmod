@@ -545,6 +545,20 @@ class TestPostBuild {
 		p.close();
 		Sys.putEnv("FMOD_SDK_WEB", saved);
 		assert(code != 0 && out.indexOf("fmod_common.h") != -1, "a web package without its headers stops the compile");
+
+		// The stage copies the wasm too, and lime ships the placeholder when it is missing
+		var noWasm = '$dir/no-wasm';
+		writeFile('$noWasm/api/core/inc/fmod_common.h',
+			"#define FMOD_VERSION " + StringTools.trim(sys.io.File.getContent("fmod_expected_version")) + "\n");
+		writeFile('$noWasm/api/studio/lib/wasm/fmodstudio.js', "");
+		Sys.putEnv("FMOD_SDK_WEB", sys.FileSystem.fullPath(noWasm));
+		p = new sys.io.Process("haxe", ["-cp", ".", "-cp", dir, "-main", "Main", "-js", '$dir/out.js', "--no-output",
+			"--macro", "haxefmod.tools.BuildCheck.verify()"]);
+		out = p.stdout.readAll().toString() + p.stderr.readAll().toString();
+		code = p.exitCode();
+		p.close();
+		Sys.putEnv("FMOD_SDK_WEB", saved);
+		assert(code != 0 && out.indexOf("fmodstudio.wasm") != -1, "a web package without its wasm stops the compile");
 	}
 
 	/**

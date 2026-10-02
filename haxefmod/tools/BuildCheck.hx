@@ -64,6 +64,7 @@ class BuildCheck {
             verifyWebSdkVersionGate();
             requirePackage("FMOD_SDK_WEB", true);
             requireSdkFile("FMOD_SDK_WEB", ["api", "studio", "lib", "wasm", "fmodstudio.js"]);
+            requireSdkFile("FMOD_SDK_WEB", ["api", "studio", "lib", "wasm", "fmodstudio.wasm"]);
         } else if (Context.defined("hl") || Context.defined("cpp")) {
             requirePackage("FMOD_SDK", false);
             requireSdkFile("FMOD_SDK", ["api", "core", "inc", "fmod_common.h"]);

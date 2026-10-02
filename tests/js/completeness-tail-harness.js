@@ -127,6 +127,7 @@ async function main() {
         `got=${jaxe.fmod_chan_get_channel_group(channel)} set=${group}`);
     check('chan_get_channel_group_bad_handle', jaxe.fmod_chan_get_channel_group(999999) === 0
         && jaxe.fmod_sys_last_result() === INVALID_HANDLE, '');
+    jaxe.fmod_chan_remove_dsp(channel, lowpass);
     jaxe.fmod_cg_add_dsp(group, 0, lowpass);
     check('cg_get_dsp_index', jaxe.fmod_cg_get_dsp_index(group, lowpass) === 0, `value=${jaxe.fmod_cg_get_dsp_index(group, lowpass)}`);
     check('cg_set_dsp_index', jaxe.fmod_cg_set_dsp_index(group, lowpass, 0) === 0, '');
@@ -196,6 +197,7 @@ async function main() {
     jaxe.fmod_dsp_release(osc);
     jaxe.fmod_dsp_release(fft);
     jaxe.fmod_dsp_release(echo);
+    jaxe.fmod_cg_remove_dsp(group, lowpass);
     jaxe.fmod_dsp_release(lowpass);
     jaxe.fmod_cg_release(group);
     jaxe.fmod_core_release_sound(sound);

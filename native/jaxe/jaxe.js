@@ -104,7 +104,7 @@ class jaxe {
             idx = jaxe.slots.length;
             if (idx >= 0x10000) return 0;
             jaxe.slots.push({ ptr: null, raw: 0, gen: 0, type: 0, alive: false, owned: false, parent: 0, kids: false, borrowed: 0,
-                endIn: 0, roleIn: 0, endOut: 0, roleOut: 0, connEnd: false });
+                endIn: 0, roleIn: 0, endOut: 0, roleOut: 0, connEnd: false, chain: 0 });
         }
         var s = jaxe.slots[idx];
         s.ptr = ptr;
@@ -120,6 +120,7 @@ class jaxe {
         s.endOut = 0;
         s.roleOut = jaxe.END_DSP;
         s.connEnd = false;
+        s.chain = 0;
         if (s.gen == 0) s.gen = 1; // first use of this slot
         if (type === jaxe.TYPE_DSPCONN) jaxe.connCount++;
         jaxe.liveCount++;
@@ -421,6 +422,7 @@ class jaxe {
         }
         if (s.type === jaxe.TYPE_DSPCONN) jaxe.connCount--;
         s.connEnd = false;
+        s.chain = 0;
         s.endIn = 0;
         s.roleIn = jaxe.END_DSP;
         s.endOut = 0;
@@ -3800,11 +3802,40 @@ class jaxe {
         return jaxe.lastResult == jaxe.FMOD.OK ? !!out.val : false;
     }
 
+    // The channel or group handle whose chain holds the DSP of a live DSP
+    // handle, as far as the table knows. That is the owner of the last
+    // accepted addDsp, or the channel or group a borrowed DSP came from.
+    // Mirrors faxe_dsp_chain.
+    static dspChain(dspHandle) {
+        var s = jaxe.slotOf(dspHandle);
+        if (!s) return 0;
+        if (s.chain) return s.chain;
+        var parent = jaxe.slotOf(s.parent);
+        return parent && (parent.type === jaxe.TYPE_CHAN || parent.type === jaxe.TYPE_CHANGROUP) ? s.parent : 0;
+    }
+
+    // FMOD accepts an addDSP of a DSP that another chain still holds. It
+    // then lists the DSP in both chains. A removal from either chain, or
+    // the end of a channel, lets the DSP release free the DSP while the
+    // other chain still names it. FMOD's text for ERR_DSP_INUSE says a DSP
+    // must be removed before it is reinserted. So an add into another
+    // chain is refused with that code while the recorded chain still
+    // lists the DSP. Mirrors hlaxe_dsp_in_other_chain.
+    static dspInOtherChain(dspHandle, dsp, target) {
+        var owner = jaxe.dspChain(dspHandle);
+        if (!owner || owner == target) return false;
+        var other = jaxe.handleResolve(owner, jaxe.TYPE_CHAN) || jaxe.handleResolve(owner, jaxe.TYPE_CHANGROUP);
+        var out = {};
+        return !!other && other.getDSPIndex(dsp, out) == jaxe.FMOD.OK;
+    }
+
     static fmod_cg_add_dsp(handle, index, dspHandle) {
         var group = jaxe.resolveCg(handle);
         var dsp = jaxe.resolveDsp(dspHandle);
         if (!group || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (jaxe.dspInOtherChain(dspHandle, dsp, handle)) { jaxe.lastResult = jaxe.FMOD.ERR_DSP_INUSE; return jaxe.lastResult; }
         jaxe.lastResult = group.addDSP(index, dsp);
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.slotOf(dspHandle).chain = handle;
         return jaxe.lastResult;
     }
 
@@ -3813,6 +3844,7 @@ class jaxe {
         var dsp = jaxe.resolveDsp(dspHandle);
         if (!group || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = group.removeDSP(dsp);
+        if (jaxe.lastResult == jaxe.FMOD.OK && jaxe.slotOf(dspHandle).chain == handle) jaxe.slotOf(dspHandle).chain = 0;
         return jaxe.lastResult;
     }
 
@@ -3882,7 +3914,9 @@ class jaxe {
         var ch = jaxe.resolveChan(handle);
         var dsp = jaxe.resolveDsp(dspHandle);
         if (!ch || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        if (jaxe.dspInOtherChain(dspHandle, dsp, handle)) { jaxe.lastResult = jaxe.FMOD.ERR_DSP_INUSE; return jaxe.lastResult; }
         jaxe.lastResult = ch.addDSP(index, dsp);
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.slotOf(dspHandle).chain = handle;
         return jaxe.lastResult;
     }
 
@@ -3891,6 +3925,7 @@ class jaxe {
         var dsp = jaxe.resolveDsp(dspHandle);
         if (!ch || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = ch.removeDSP(dsp);
+        if (jaxe.lastResult == jaxe.FMOD.OK && jaxe.slotOf(dspHandle).chain == handle) jaxe.slotOf(dspHandle).chain = 0;
         return jaxe.lastResult;
     }
 

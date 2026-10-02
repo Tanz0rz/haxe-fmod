@@ -626,6 +626,53 @@ async function main() {
         jaxe.fmod_dsp_release(bystanderIn);
     }
 
+    // FMOD lists a DSP that another chain holds in both chains, and a later
+    // release frees it while one chain still uses it. So a second chain
+    // refuses the DSP until the first one removes it. A channel's own DSP
+    // counts as held by that channel. An add after the removal, a re-add in
+    // the same chain, and a reuse after the holding channel stops or ends
+    // all work.
+    {
+        const INUSE = jaxe.FMOD.ERR_DSP_INUSE;
+        const inGroupH = jaxe.fmod_cg_create('cc-inuse-group');
+        const inOtherH = jaxe.fmod_cg_create('cc-inuse-other');
+        const inStream = jaxe.fmod_core_pcm_create(48000, 1, 4096);
+        const inChannel = jaxe.fmod_core_pcm_play(inStream, inGroupH, false);
+        const inDsp = jaxe.fmod_dsp_create_by_type(3);
+        const first = jaxe.fmod_chan_add_dsp(inChannel, 0, inDsp);
+        const group = jaxe.fmod_cg_add_dsp(inGroupH, 0, inDsp);
+        const other = jaxe.fmod_cg_add_dsp(inOtherH, 0, inDsp);
+        const fader = jaxe.fmod_cg_add_dsp(inOtherH, 0, jaxe.fmod_chan_get_dsp(inChannel, -2));
+        const remove = jaxe.fmod_chan_remove_dsp(inChannel, inDsp);
+        const afterRemove = jaxe.fmod_cg_add_dsp(inGroupH, 0, inDsp);
+        const same = jaxe.fmod_cg_add_dsp(inGroupH, 1, inDsp);
+        const sameIndex = jaxe.fmod_cg_get_dsp_index(inGroupH, inDsp);
+        const back = jaxe.fmod_chan_add_dsp(inChannel, 0, inDsp);
+        jaxe.fmod_cg_remove_dsp(inGroupH, inDsp);
+        const stopStream = jaxe.fmod_core_pcm_create(48000, 1, 4096);
+        const stopChannel = jaxe.fmod_core_pcm_play(stopStream, inOtherH, false);
+        const stopFirst = jaxe.fmod_chan_add_dsp(stopChannel, 0, inDsp);
+        jaxe.fmod_chan_stop(stopChannel);
+        const afterStop = jaxe.fmod_chan_add_dsp(inChannel, 0, inDsp);
+        // The group stop ends the channel with no call on its handle
+        jaxe.fmod_cg_stop(inGroupH);
+        const afterEnd = jaxe.fmod_cg_add_dsp(inOtherH, 0, inDsp);
+        const cleanup = jaxe.fmod_cg_remove_dsp(inOtherH, inDsp);
+        const release = jaxe.fmod_dsp_release(inDsp);
+        check('chan_add_dsp_held_elsewhere_inuse', first === OK && group === INUSE && other === INUSE && fader === INUSE
+            && remove === OK && afterRemove === OK && same === OK && sameIndex === 1 && back === INUSE
+            && stopFirst === OK && afterStop === OK && afterEnd === OK && cleanup === OK && release === OK,
+            `first=${first} group=${group} other=${other} fader=${fader} remove=${remove} afterRemove=${afterRemove}`
+            + ` same=${same}/${sameIndex} back=${back} stopFirst=${stopFirst} afterStop=${afterStop} afterEnd=${afterEnd}`
+            + ` cleanup=${cleanup} release=${release}`);
+        // The stop of an ended channel frees its slot
+        jaxe.fmod_chan_stop(inChannel);
+        jaxe.fmod_core_pcm_release(stopStream);
+        jaxe.fmod_core_pcm_release(inStream);
+        jaxe.fmod_cg_release(inOtherH);
+        jaxe.fmod_cg_release(inGroupH);
+    }
+
     jaxe.fmod_cg_release(other);
     jaxe.fmod_cg_release(parent);
     check('no_handle_leaks', jaxe.fmod_debug_live_handle_count() === baseline,

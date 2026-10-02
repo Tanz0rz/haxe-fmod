@@ -551,6 +551,53 @@ class ProbeChannelControl {
         refDsp.release();
         refChild.release();
         refParent.release();
+
+        // FMOD lists a DSP that another chain holds in both chains, and a
+        // later release frees it while one chain still uses it. So a second
+        // chain refuses the DSP until the first one removes it. A channel's
+        // own DSP counts as held by that channel. An add after the removal,
+        // a re-add in the same chain, and a reuse after the holding channel
+        // stops or ends all work.
+        var inuseGroup = ChannelGroup.create("probe-cc-inuse-group");
+        var inuseOther = ChannelGroup.create("probe-cc-inuse-other");
+        var inuseStream = PcmStream.create(48000, 1);
+        var inuseChannel = inuseStream.play(false, inuseGroup);
+        var inuseDsp = Dsp.create(DspType.LOWPASS);
+        var inFirst:FmodResult = inuseChannel.addDsp(0, inuseDsp);
+        var inGroup:FmodResult = inuseGroup.addDsp(0, inuseDsp);
+        var inOther:FmodResult = inuseOther.addDsp(0, inuseDsp);
+        var inFader:FmodResult = inuseOther.addDsp(0, inuseChannel.getDsp(Channel.DSP_FADER));
+        var inRemove:FmodResult = inuseChannel.removeDsp(inuseDsp);
+        var inAfterRemove:FmodResult = inuseGroup.addDsp(0, inuseDsp);
+        var inSame:FmodResult = inuseGroup.addDsp(1, inuseDsp);
+        var inSameIndex = inuseGroup.getDspIndex(inuseDsp);
+        var inBack:FmodResult = inuseChannel.addDsp(0, inuseDsp);
+        inuseGroup.removeDsp(inuseDsp);
+        var stopStream = PcmStream.create(48000, 1);
+        var stopChannel = stopStream.play(false, inuseOther);
+        var inStopFirst:FmodResult = stopChannel.addDsp(0, inuseDsp);
+        stopChannel.stop();
+        var inAfterStop:FmodResult = inuseChannel.addDsp(0, inuseDsp);
+        // The group stop ends the channel with no call on its handle
+        inuseGroup.stop();
+        var inAfterEnd:FmodResult = inuseOther.addDsp(0, inuseDsp);
+        var inCleanup:FmodResult = inuseOther.removeDsp(inuseDsp);
+        var inRelease:FmodResult = inuseDsp.release();
+        @:privateAccess state.check("chan_add_dsp_held_elsewhere_inuse", inFirst.isOk()
+            && inGroup == FmodResult.FMOD_ERR_DSP_INUSE && inOther == FmodResult.FMOD_ERR_DSP_INUSE
+            && inFader == FmodResult.FMOD_ERR_DSP_INUSE && inRemove.isOk() && inAfterRemove.isOk()
+            && inSame.isOk() && inSameIndex == 1 && inBack == FmodResult.FMOD_ERR_DSP_INUSE
+            && inStopFirst.isOk() && inAfterStop.isOk() && inAfterEnd.isOk() && inCleanup.isOk() && inRelease.isOk(),
+            'first=${inFirst.toString()} group=${inGroup.toString()} other=${inOther.toString()} fader=${inFader.toString()}'
+            + ' remove=${inRemove.toString()} afterRemove=${inAfterRemove.toString()} same=${inSame.toString()}/$inSameIndex'
+            + ' back=${inBack.toString()} stopFirst=${inStopFirst.toString()} afterStop=${inAfterStop.toString()}'
+            + ' afterEnd=${inAfterEnd.toString()} cleanup=${inCleanup.toString()} release=${inRelease.toString()}');
+        // The stop of an ended channel frees its handle
+        inuseChannel.stop();
+        stopStream.release();
+        inuseStream.release();
+        inuseOther.release();
+        inuseGroup.release();
         bystanderOut.release();
         bystanderIn.release();
 

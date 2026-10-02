@@ -415,16 +415,27 @@ class TestUserData {
 		assert("stop drops the borrowed sound's userdata", sound.getUserData() == null);
 		assert("stop drops the borrowed DSP's userdata", channelDsp.getUserData() == null);
 
-		// A connection handle dies at any graph change, and its entry goes
-		// with the other dead handles
+		// A connection handle can die natively with no call on it. Its entry
+		// goes with the other dead handles
 		var conn:haxefmod.core.DspConnection = ++NativeStudioStub.testNextHandle;
 		conn.setUserData("conn");
 		UserData.dropDeadBorrowed();
 		assert("a live connection keeps its userdata", conn.getUserData() == "conn");
 		NativeStudioStub.testDeadHandles.push(conn);
 		UserData.dropDeadBorrowed();
-		assert("a dead connection's userdata is dropped", conn.getUserData() == null);
+		assert("a dead connection's userdata is dropped", !UserData.has(UserDataKind.DspConnection, conn));
 		NativeStudioStub.testDeadHandles.remove(conn);
+		// The user data calls check the connection first. A handle that
+		// fails gives null and loses its entry before any sweep, and
+		// stores nothing
+		var failing:haxefmod.core.DspConnection = ++NativeStudioStub.testNextHandle;
+		failing.setUserData("conn");
+		NativeStudioStub.testDeadHandles.push(failing);
+		assert("a connection that fails its check gives no userdata", failing.getUserData() == null
+			&& !UserData.has(UserDataKind.DspConnection, failing));
+		failing.setUserData("again");
+		assert("a connection that fails its check stores no userdata", !UserData.has(UserDataKind.DspConnection, failing));
+		NativeStudioStub.testDeadHandles.remove(failing);
 
 		// An instance FMOD destroyed: the native drain freed what hangs off
 		// it, and the Haxe drain drops the entries once per update

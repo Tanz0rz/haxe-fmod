@@ -3621,7 +3621,7 @@ class ApiProbeScenario implements TestScenario {
         check("dsp_input_conn_dedup", (lowpass.getInputConnection(0) : Int) == (conn : Int), "");
         var disconnect = lowpass.disconnectFrom(osc);
         check("dsp_disconnect", disconnect.isOk(), 'result=${disconnect.toString()}');
-        // Graph changes invalidate every connection handle deterministically
+        // The disconnect removed the connection, so its handle fails the check
         var staleConn:FmodResult = conn.setMix(1.0);
         check("stale_conn_invalid_handle", staleConn == FmodResult.FMOD_ERR_INVALID_HANDLE,
             'result=${staleConn.toString()}');
@@ -3875,6 +3875,7 @@ class ApiProbeScenario implements TestScenario {
         channel.setChannelGroup(group);
         check("chan_get_channel_group", (channel.getChannelGroup() : Int) == (group : Int),
             'got=${(channel.getChannelGroup() : Int)} set=${(group : Int)}');
+        channel.removeDsp(lowpass);
         group.addDsp(0, lowpass);
         check("cg_dsp_index_readback", group.getDspIndex(lowpass) == 0, 'value=${group.getDspIndex(lowpass)}');
         var groupClocks = group.getDspClock();
@@ -3989,6 +3990,7 @@ class ApiProbeScenario implements TestScenario {
         osc.release();
         fft.release();
         echo.release();
+        group.removeDsp(lowpass);
         lowpass.release();
         group.release();
         sound.release();

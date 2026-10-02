@@ -19,20 +19,26 @@ import haxefmod.studio.native.NativeStudio;
  * channel group the game created, or the master and its DSPs. A connection
  * to a DSP or a group the game reached through a channel, an event, a bus,
  * or a walk has a short-lived handle. FMOD frees such a connection on its
- * own, for example when the channel or the event ends.
+ * own, for example when the channel or the event ends. A short-lived handle
+ * dies at the next update or at the next call that stops, releases, or
+ * unloads anything.
  *
- * A connection handle is valid while FMOD still has its connection
- * joining the two ends it joined when the handle was made. A group end is
- * the group's head or tail DSP at the time of the call. Every call on the
- * handle checks this first, user data included. A handle that fails the
- * check is freed, and the call reports FMOD_ERR_INVALID_HANDLE. FMOD
- * destroys a connection on a disconnect, a DSP removal or release, a
- * group release, or the end of the channel the connection belongs to.
- * When an effect chain changes, FMOD can move a connection onto another
- * DSP. The handle then fails, unless the moved end is a group end that
- * follows the group's new head or tail. A walk returns the existing
- * handle of a connection while that handle passes the check, and a new
- * short-lived handle otherwise.
+ * A connection handle is valid only while its connection still joins the
+ * ends it joined when the handle was made. The ends of a handle from
+ * addGroupConnection are the child's current head and the parent's current
+ * tail. Every call on the handle checks this first. The user data calls
+ * check it too. A handle that fails the check is freed. The call then
+ * reports FMOD_ERR_INVALID_HANDLE.
+ *
+ * FMOD destroys a connection on a disconnect, a DSP removal or release,
+ * and a group release. It also destroys the connections of a channel that
+ * ends. A change to an effect chain can move a connection onto another
+ * DSP. That move fails the handle. A handle from addGroupConnection
+ * follows the new head or tail and keeps working.
+ *
+ * A walk returns the existing handle of a connection while that handle
+ * passes the check. Otherwise the walk returns a new short-lived handle.
+ * After a failure, walk to a moved connection to reach it again.
  */
 abstract DspConnection(Int) from Int to Int {
     public static inline var NULL:DspConnection = cast 0;
