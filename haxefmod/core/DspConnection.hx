@@ -21,10 +21,11 @@ import haxefmod.studio.native.NativeStudio;
  * or a walk has a short-lived handle. FMOD frees such a connection on its
  * own, for example when the channel or the event ends.
  *
- * A disconnect, a DSP removal or release, a channel stop, and a channel
- * group release end every connection handle. A ChannelGroup.addGroup or
+ * A disconnect, a DSP removal or release, a setDspIndex, an addDsp of a
+ * DSP that already has outputs, a channel stop, and a channel group
+ * release end every connection handle. A ChannelGroup.addGroup or
  * Channel.setChannelGroup that changes the parent ends the handle of the
- * connection to the old parent and no other. When the moved unit's head
+ * connection to the old parent. When the moved unit's head
  * has a second connection to the old parent's tail, the move ends every
  * connection handle.
  *

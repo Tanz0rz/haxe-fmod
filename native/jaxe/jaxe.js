@@ -3788,7 +3788,13 @@ class jaxe {
         var group = jaxe.resolveCg(handle);
         var dsp = jaxe.resolveDsp(dspHandle);
         if (!group || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var outputs = {};
+        if (dsp.getNumOutputs(outputs) != jaxe.FMOD.OK) outputs.val = 0;
         jaxe.lastResult = group.addDSP(index, dsp);
+        // A DSP with outputs can be in a chain, which it leaves first. A
+        // group's tail that leaves destroys the connections of the group's
+        // children.
+        if (jaxe.lastResult == jaxe.FMOD.OK && outputs.val > 0) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
         return jaxe.lastResult;
     }
 
@@ -3874,7 +3880,12 @@ class jaxe {
         var ch = jaxe.resolveChan(handle);
         var dsp = jaxe.resolveDsp(dspHandle);
         if (!ch || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
+        var outputs = {};
+        if (dsp.getNumOutputs(outputs) != jaxe.FMOD.OK) outputs.val = 0;
         jaxe.lastResult = ch.addDSP(index, dsp);
+        // A DSP with outputs can be in a chain, which it leaves first. That
+        // can destroy connections there.
+        if (jaxe.lastResult == jaxe.FMOD.OK && outputs.val > 0) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
         return jaxe.lastResult;
     }
 
@@ -6282,6 +6293,9 @@ class jaxe {
         var dsp = jaxe.resolveDsp(dspHandle);
         if (!ch || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = ch.setDSPIndex(dsp, index);
+        // A reorder rebuilds links in the chain. Every connection handle
+        // ends, as on a group.
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
         return jaxe.lastResult;
     }
 
@@ -6326,6 +6340,8 @@ class jaxe {
         var dsp = jaxe.resolveDsp(dspHandle);
         if (!group || !dsp) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = group.setDSPIndex(dsp, index);
+        // Moving the group's tail destroys the connections of its children
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
         return jaxe.lastResult;
     }
 

@@ -150,7 +150,9 @@ class PostBuild {
 
 	/** True when the path holds the HTML5 FMOD Engine package. */
 	public static function looksLikeWebSdk(sdkPath:String):Bool {
-		return FileSystem.exists(Path.join([sdkPath, "api", "studio", "lib", "wasm", "fmodstudio.js"]));
+		// An HTML5 package of another FMOD version keeps it under upstream/
+		return FileSystem.exists(Path.join([sdkPath, "api", "studio", "lib", "wasm", "fmodstudio.js"]))
+			|| FileSystem.exists(Path.join([sdkPath, "api", "studio", "lib", "upstream", "wasm", "fmodstudio.js"]));
 	}
 
 	/** Stops the build when the two FMOD packages have been swapped. */

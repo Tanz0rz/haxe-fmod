@@ -335,6 +335,46 @@ class ProbeChannelControl {
         dupChild.release();
         dupParent.release();
 
+        // A DSP at a group's tail carries the connections of the group's
+        // children. FMOD frees them when that DSP moves, so the move ends
+        // every connection handle. A fresh DSP keeps them.
+        var tailParent = ChannelGroup.create("probe-cc-tail-parent");
+        var tailChild = ChannelGroup.create("probe-cc-tail-child");
+        var tailConn = tailParent.addGroupConnection(tailChild);
+        tailConn.setMix(0.6);
+        var tailDsp = Dsp.create(DspType.LOWPASS);
+        var tailAdd:FmodResult = tailParent.addDsp(tailParent.getNumDSPs(), tailDsp);
+        var tailKept = tailConn.getMix();
+        var tailKeptResult = StudioSystem.lastResult();
+        @:privateAccess state.check("cg_add_dsp_fresh_keeps_connection", tailAdd.isOk() && tailKeptResult.isOk()
+            && Math.abs(tailKept - 0.6) < 0.001, 'add=${tailAdd.toString()} result=${tailKeptResult.toString()} mix=$tailKept');
+        var tailMove:FmodResult = tailParent.setDspIndex(tailDsp, 0);
+        tailConn.getMix();
+        var tailMoveResult = StudioSystem.lastResult();
+        @:privateAccess state.check("cg_set_dsp_index_tail_ends_connection", tailMove.isOk()
+            && tailMoveResult == FmodResult.FMOD_ERR_INVALID_HANDLE, 'move=${tailMove.toString()} result=${tailMoveResult.toString()}');
+        var readdParent = ChannelGroup.create("probe-cc-readd-parent");
+        var readdChild = ChannelGroup.create("probe-cc-readd-child");
+        var readdConn = readdParent.addGroupConnection(readdChild);
+        var readdDsp = Dsp.create(DspType.HIGHPASS);
+        var readdFirst:FmodResult = readdParent.addDsp(readdParent.getNumDSPs(), readdDsp);
+        readdConn.getMix();
+        var readdLive = readdFirst.isOk() && StudioSystem.lastResult().isOk();
+        var readdAgain:FmodResult = readdParent.addDsp(0, readdDsp);
+        readdConn.getMix();
+        var readdResult = StudioSystem.lastResult();
+        @:privateAccess state.check("cg_add_dsp_tail_again_ends_connection", readdLive && readdAgain.isOk()
+            && readdResult == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'live=$readdLive again=${readdAgain.toString()} result=${readdResult.toString()}');
+        readdParent.removeDsp(readdDsp);
+        readdDsp.release();
+        readdChild.release();
+        readdParent.release();
+        tailParent.removeDsp(tailDsp);
+        tailDsp.release();
+        tailChild.release();
+        tailParent.release();
+
         channel.stop();
         stream.release();
         var released:FmodResult = child.release();

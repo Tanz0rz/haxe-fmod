@@ -117,7 +117,7 @@
 - The `peak` and `rms` fields of the `Dsp.getMetering` result. Read `peakLevel` and `rmsLevel` on `FmodDspMeteringInfo`.
 
 ### Fixed
-- `FmodFlxUpdater.init` and `FmodFlxSetup.init` add their signal handlers without a remove first. A component created inside a flixel callback dropped the update hook for the rest of the session.
+- `FmodFlxSetup.init` adds its signal handlers without a remove first. An `init` call inside a focus or volume signal dropped the library's handler on that signal.
 - The HTML5 shim deletes an embind wrapper when its handle is freed and drops the out parameter it never keeps. The wasm heap no longer grows with every lookup.
 - `unloadAll` reclaims bank handle slots, so a stale bank handle cannot resolve onto a reloaded bank at the same address.
 - `loadBankMemory(null)` and `setParameterData(index, null)` report `FMOD_ERR_INVALID_PARAM` instead of throwing.
@@ -173,9 +173,11 @@
 - `PcmStream.create` and `create3d` round the ring down to whole frames. An odd sample rate such as 11025 Hz played mono as noise and stereo with left and right swapped. A `ringBytes` that is not a whole number of frames did the same.
 - `ChannelGroup.addGroup` refuses the group itself, a group above it, or the master with `FMOD_ERR_INVALID_PARAM`. FMOD crashed on such a call.
 - A connection that `Dsp.getInputConnection` or `getOutputConnection` reaches gets a short-lived handle unless the connection already has a live handle. Its handle read freed memory after Studio freed an event.
-- A connection that `Dsp.addInput` makes to a channel's DSP, or to a DSP of an event or a bus, gets a short-lived handle. When the channel ended on its own, the handle read and wrote freed memory or controlled another channel's send.
-- A `ChannelGroup.addGroup` or `Channel.setChannelGroup` that moves a group or channel to another parent ends the handle of the connection to the old parent. That stale handle could control an unrelated connection at the same address.
-- A js build and the `stage` command report the version mismatch for an HTML5 FMOD package of another version. Both said the package was not an HTML5 one.
+- A connection that `Dsp.addInput` makes when either DSP came from a channel, an event, a bus, or a walk gets a short-lived handle. When the channel ended on its own, the handle read and wrote freed memory or controlled another channel's send.
+- A `ChannelGroup.addGroup` or `Channel.setChannelGroup` that moves a group or channel to another parent ends the handle of the connection to the old parent. That stale handle could control an unrelated connection at the same address. When the moved unit has a second connection to the old parent's tail, the move ends every connection handle.
+- A js build reports the version mismatch for an HTML5 FMOD package of another version. It said the package did not look like an FMOD Engine SDK.
+- `haxelib run haxefmod check` fails an HTML5 FMOD package of another version. It passed a setup that the build then refused.
+- An `addDsp` of a DSP that already has outputs ends every connection handle. A handle to a connection into a group's tail DSP could control an unrelated connection after that DSP moved.
 - A command replay unloads the banks it loaded when it stops or ends. The handles into those banks die at the update that delivers the unload. Their callbacks go with them. A bus channel group handle read freed memory before.
 - `FmodManager.Todo` with `-D haxefmod_todo_beep` plays its beep only once FMOD is initialized. It initialized FMOD with default settings before, and a later `Initialize(settings)` lost its settings.
 - `StudioSystem.loadBankFile` passes `DECOMPRESS_SAMPLES` and `UNENCRYPTED` to FMOD. It kept `NONBLOCKING` alone.
@@ -202,7 +204,6 @@
 - `autoUpdate: false` works on HTML5. `FmodRuntime.update` ticks FMOD there in manual mode, so a game that drives FMOD from its own loop is serviced.
 - A bank whose load ends in error is traced once, naming the path and where the browser fetches it from.
 - `FmodManager.EnableDebugMessages()` works before initialization completes on HTML5. The log level applies once the module is ready.
-- `BuildCheck.verify` runs for every hl, cpp, and js build that invokes the macro. Before, a plain haxe build without a lime, heaps, or kha define skipped the check. It shipped a game with no audio.
 - The build check, the postbuild error messages, and `build-hdll` read the expected FMOD version from the library. A literal held it before. The web SDK gate compares versions as numbers. The postbuild error names the symptom of the target being built. `todos` rejects an unknown option or a missing directory instead of scanning the working directory.
 - The native shims release the programmer sound they created when `clearProgrammerSound` runs before the instance ends. Before, the clear unsubscribed the callback that released it.
 - The HTML5 shim returns 0.0 instead of an error code from the parameter getters given a non-string name. It rejects a null or oversized buffer in `loadBankMemory` and bounds the inclusion list it hands FMOD. It reports `FMOD_ERR_MEMORY` when the handle table is full and truncates callback strings at the native limits. It resolves the instance of a core `Error` callback and uninstalls a callback it no longer needs.

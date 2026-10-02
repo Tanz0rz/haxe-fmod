@@ -120,7 +120,10 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_set_channel_group(this, group);
     }
 
-    /** Inserts an effect on this channel (0 = head of the chain). */
+    /**
+     * Inserts an effect on this channel (0 = head of the chain). When the DSP
+     * already has outputs, an accepted call ends every DspConnection handle.
+     */
     public inline function addDsp(index:Int, dsp:Dsp):FmodResult {
         return NativeStudio.chan_add_dsp(this, index, dsp);
     }
@@ -535,7 +538,10 @@ abstract Channel(Int) from Int to Int {
         return NativeStudio.chan_get_dsp(this, index);
     }
 
-    /** Moves an attached effect to another chain position (0 = head). */
+    /**
+     * Moves an attached effect to another chain position (0 = head). An
+     * accepted call ends every DspConnection handle.
+     */
     public inline function setDspIndex(dsp:Dsp, index:Int):FmodResult {
         return NativeStudio.chan_set_dsp_index(this, dsp, index);
     }

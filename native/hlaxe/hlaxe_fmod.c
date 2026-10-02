@@ -1709,8 +1709,14 @@ DEFINE_PRIM(_BOOL, cg_get_paused, _I32);
 HL_PRIM int HL_NAME(cg_add_dsp)(int h, int index, int dspHandle) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
+    int outputs = 0;
     if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (FMOD_DSP_GetNumOutputs(dsp, &outputs) != FMOD_OK) outputs = 0;
     gLastResult = FMOD_ChannelGroup_AddDSP(group, index, dsp);
+    /* A DSP with outputs can be in a chain, which it leaves first. A
+     * group's tail that leaves destroys the connections of the group's
+     * children. */
+    if (gLastResult == FMOD_OK && outputs > 0) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, cg_add_dsp, _I32 _I32 _I32);
@@ -1827,8 +1833,13 @@ DEFINE_PRIM(_I32, chan_set_channel_group, _I32 _I32);
 HL_PRIM int HL_NAME(chan_add_dsp)(int h, int index, int dspHandle) {
     FMOD_CHANNEL* channel = resolve_channel(h);
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
+    int outputs = 0;
     if (!channel || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    if (FMOD_DSP_GetNumOutputs(dsp, &outputs) != FMOD_OK) outputs = 0;
     gLastResult = FMOD_Channel_AddDSP(channel, index, dsp);
+    /* A DSP with outputs can be in a chain, which it leaves first. That
+     * can destroy connections there. */
+    if (gLastResult == FMOD_OK && outputs > 0) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, chan_add_dsp, _I32 _I32 _I32);
@@ -7075,6 +7086,9 @@ HL_PRIM int HL_NAME(chan_set_dsp_index)(int h, int dspHandle, int index) {
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
     if (!channel || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Channel_SetDSPIndex(channel, dsp, index);
+    /* A reorder rebuilds links in the chain. Every connection handle ends,
+     * as on a group. */
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, chan_set_dsp_index, _I32 _I32 _I32);
@@ -7175,6 +7189,8 @@ HL_PRIM int HL_NAME(cg_set_dsp_index)(int h, int dspHandle, int index) {
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
     if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_ChannelGroup_SetDSPIndex(group, dsp, index);
+    /* Moving the group's tail destroys the connections of its children */
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, cg_set_dsp_index, _I32 _I32 _I32);

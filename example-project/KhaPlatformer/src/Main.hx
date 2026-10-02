@@ -105,6 +105,8 @@ class Main {
     function update():Void {
         var now = Scheduler.realTime();
         var dt = lastStamp < 0 ? 0.0 : now - lastStamp;
+        // One long frame would step the player through the floor
+        if (dt > 0.1) dt = 0.1;
         lastStamp = now;
         if (scene != null) scene.update(dt);
         #if sys

@@ -77,6 +77,7 @@ These FMOD features cannot be bound from Haxe. Most hand FMOD a function pointer
   - a sound from `SoundGroup.getSound` and the parent of a borrowed sound
   - a DSP graph walk and a DSP of a short-lived group
   - a connection that `Dsp.addInput` makes when either DSP came from a channel, an event, a bus, or a walk
+  - a connection that `ChannelGroup.addGroupConnection` makes when either group came from a channel, an event, a bus, or a walk
 - **These calls end every short-lived handle.** Fetch a short-lived handle again after any of them.
   - `FmodManager.Update()`
   - a call that stops, releases, or unloads anything, once FMOD accepts it, and `Bus.unlockChannelGroup()`

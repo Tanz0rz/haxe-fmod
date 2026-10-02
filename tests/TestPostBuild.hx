@@ -114,8 +114,6 @@ class TestPostBuild {
 		if (pass) passed++ else { failed++; Sys.println('  FAIL: $name'); }
 	}
 
-	// build-hdll and the package check must compute one hash. The exit
-	// code and stderr reach the message, so a missing python3 reads as such.
 	static function testScanHdllSource():Void {
 		var dir = "tests/.tmp/hdll-source";
 		sys.FileSystem.createDirectory(dir);
@@ -142,6 +140,8 @@ class TestPostBuild {
 		assert(run("current").indexOf(warn) == -1, "a project hdll built from these shim sources does not warn");
 	}
 
+	// build-hdll and the package check must compute one hash. The exit
+	// code and stderr reach the message, so a missing python3 reads as such.
 	static function testSourceHashParity():Void {
 		var process = new sys.io.Process("python3", ["ci/hlaxe-src-hash.py", "."]);
 		var scripted = StringTools.trim(process.stdout.readAll().toString());
@@ -593,6 +593,14 @@ class TestPostBuild {
 		check("stage names the version of an HTML5 package of another FMOD version", r.code == 1
 			&& r.out.indexOf("web SDK version mismatch") != -1 && r.out.indexOf("does not point at the HTML5") == -1);
 
+		// The same packages in FMOD_SDK are no desktop packages, whatever their version
+		r = runTool(["stage", platform, "hl", '$base/out-web-native'], plain, ["FMOD_SDK" => web]);
+		check("stage names an HTML5 package in FMOD_SDK before its version", r.code == 1
+			&& r.out.indexOf("points at the HTML5 FMOD Engine package") != -1 && r.out.indexOf("version mismatch") == -1);
+		r = runTool(["stage", platform, "hl", '$base/out-old-layout-native'], plain, ["FMOD_SDK" => oldLayout]);
+		check("stage names an HTML5 package of another FMOD version in FMOD_SDK", r.code == 1
+			&& r.out.indexOf("points at the HTML5 FMOD Engine package") != -1 && r.out.indexOf("version mismatch") == -1);
+
 		// An SDK folder with no libraries in it stages nothing, so the
 		// command fails instead of reporting success
 		var empty = fakeDesktopSdk('$base/empty-sdk', expected, false);
@@ -613,6 +621,8 @@ class TestPostBuild {
 		check("check fails a wrong SDK version", r.code == 1 && r.out.indexOf("[FAIL] FMOD version") != -1);
 		check("check fails missing runtime libraries", r.out.indexOf('[FAIL] $platform runtime libraries') != -1);
 		check("check fails a pre-built hdll for another SDK", r.out.indexOf("[FAIL] Pre-built hdll compatible with SDK") != -1);
+		r = runTool(["check"], plain, ["FMOD_SDK" => sdk, "FMOD_SDK_WEB" => web]);
+		check("check fails a web SDK of another version", r.code == 1 && r.out.indexOf("[FAIL] FMOD web SDK version") != -1);
 		r = runTool(["check"], oldAbi, ["FMOD_SDK" => sdk, "FMOD_SDK_WEB" => ""]);
 		check("check fails an hdll of another binding ABI", r.code == 1 && r.out.indexOf("[FAIL] hlaxe_fmod.hdll binding ABI") != -1);
 

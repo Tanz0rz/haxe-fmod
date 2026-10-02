@@ -88,7 +88,10 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_set_paused(this, paused);
     }
 
-    /** Inserts an effect at index (0 = head of the chain, or a DSP_* position). */
+    /**
+     * Inserts an effect at index (0 = head of the chain, or a DSP_* position).
+     * When the DSP already has outputs, an accepted call ends every DspConnection handle.
+     */
     public inline function addDsp(index:Int, dsp:Dsp):FmodResult {
         return NativeStudio.cg_add_dsp(this, index, dsp);
     }
@@ -486,7 +489,10 @@ abstract ChannelGroup(Int) from Int to Int {
         return NativeStudio.cg_get_audibility(this);
     }
 
-    /** Moves an attached effect to another chain position (0 = head). */
+    /**
+     * Moves an attached effect to another chain position (0 = head). An
+     * accepted call ends every DspConnection handle.
+     */
     public inline function setDspIndex(dsp:Dsp, index:Int):haxefmod.studio.FmodResult {
         return NativeStudio.cg_set_dsp_index(this, dsp, index);
     }

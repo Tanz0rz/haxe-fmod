@@ -1540,7 +1540,13 @@ int fmod_cg_add_dsp(int h, int index, int dspHandle) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    int outputs = 0;
+    if (dsp->getNumOutputs(&outputs) != FMOD_OK) outputs = 0;
     gLastResult = group->addDSP(index, dsp);
+    // A DSP with outputs can be in a chain, which it leaves first. A
+    // group's tail that leaves destroys the connections of the group's
+    // children.
+    if (gLastResult == FMOD_OK && outputs > 0) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 
@@ -1646,7 +1652,12 @@ int fmod_chan_add_dsp(int h, int index, int dspHandle) {
     FMOD::Channel* ch = resolveChannel(h);
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     if (!ch || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
+    int outputs = 0;
+    if (dsp->getNumOutputs(&outputs) != FMOD_OK) outputs = 0;
     gLastResult = ch->addDSP(index, dsp);
+    // A DSP with outputs can be in a chain, which it leaves first. That
+    // can destroy connections there.
+    if (gLastResult == FMOD_OK && outputs > 0) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 
@@ -6308,6 +6319,9 @@ int fmod_chan_set_dsp_index(int h, int dspHandle, int index) {
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     if (!ch || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = ch->setDSPIndex(dsp, index);
+    // A reorder rebuilds links in the chain. Every connection handle ends,
+    // as on a group.
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 
@@ -6397,6 +6411,8 @@ int fmod_cg_set_dsp_index(int h, int dspHandle, int index) {
     FMOD::DSP* dsp = resolveDsp(dspHandle);
     if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = group->setDSPIndex(dsp, index);
+    // Moving the group's tail destroys the connections of its children
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 

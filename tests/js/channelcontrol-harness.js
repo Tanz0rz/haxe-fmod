@@ -411,6 +411,47 @@ async function main() {
         jaxe.fmod_cg_release(dupParent);
     }
 
+    // A DSP at a group's tail carries the connections of the group's
+    // children. FMOD frees them when that DSP moves, so the move ends every
+    // connection handle. A fresh DSP keeps them.
+    {
+        const tailParent = jaxe.fmod_cg_create('cc-tail-parent');
+        const tailChild = jaxe.fmod_cg_create('cc-tail-child');
+        const tailConn = jaxe.fmod_cg_add_group(tailParent, tailChild, true);
+        jaxe.fmod_dspconn_set_mix(tailConn, 0.6);
+        const tailDsp = jaxe.fmod_dsp_create_by_type(3);
+        const tailAdd = jaxe.fmod_cg_add_dsp(tailParent, jaxe.fmod_cg_get_num_dsps(tailParent), tailDsp);
+        const tailKept = jaxe.fmod_dspconn_get_mix(tailConn);
+        const tailKeptResult = jaxe.lastResult;
+        check('cg_add_dsp_fresh_keeps_connection', tailAdd === OK && tailKeptResult === OK && Math.abs(tailKept - 0.6) < 0.001,
+            `add=${tailAdd} result=${tailKeptResult} mix=${tailKept}`);
+        const tailMove = jaxe.fmod_cg_set_dsp_index(tailParent, tailDsp, 0);
+        jaxe.fmod_dspconn_get_mix(tailConn);
+        const tailMoveResult = jaxe.lastResult;
+        check('cg_set_dsp_index_tail_ends_connection', tailMove === OK && tailMoveResult === INVALID_HANDLE,
+            `move=${tailMove} result=${tailMoveResult}`);
+        const readdParent = jaxe.fmod_cg_create('cc-readd-parent');
+        const readdChild = jaxe.fmod_cg_create('cc-readd-child');
+        const readdConn = jaxe.fmod_cg_add_group(readdParent, readdChild, true);
+        const readdDsp = jaxe.fmod_dsp_create_by_type(5);
+        const readdFirst = jaxe.fmod_cg_add_dsp(readdParent, jaxe.fmod_cg_get_num_dsps(readdParent), readdDsp);
+        jaxe.fmod_dspconn_get_mix(readdConn);
+        const readdLive = readdFirst === OK && jaxe.lastResult === OK;
+        const readdAgain = jaxe.fmod_cg_add_dsp(readdParent, 0, readdDsp);
+        jaxe.fmod_dspconn_get_mix(readdConn);
+        const readdResult = jaxe.lastResult;
+        check('cg_add_dsp_tail_again_ends_connection', readdLive && readdAgain === OK && readdResult === INVALID_HANDLE,
+            `live=${readdLive} again=${readdAgain} result=${readdResult}`);
+        jaxe.fmod_cg_remove_dsp(readdParent, readdDsp);
+        jaxe.fmod_dsp_release(readdDsp);
+        jaxe.fmod_cg_release(readdChild);
+        jaxe.fmod_cg_release(readdParent);
+        jaxe.fmod_cg_remove_dsp(tailParent, tailDsp);
+        jaxe.fmod_dsp_release(tailDsp);
+        jaxe.fmod_cg_release(tailChild);
+        jaxe.fmod_cg_release(tailParent);
+    }
+
     jaxe.fmod_cg_release(other);
     jaxe.fmod_cg_release(parent);
     check('no_handle_leaks', jaxe.fmod_debug_live_handle_count() === baseline,
