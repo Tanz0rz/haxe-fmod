@@ -675,6 +675,62 @@ class TestPostBuild {
 		check("build-hdll fails when the compiler fails and keeps the old marker",
 			r.code == 1 && StringTools.trim(sys.io.File.getContent('$project/.haxefmod/hlaxe_fmod.version')) == "0x00010101");
 
+		// lime's and openfl's project templates build into Export, and the
+		// postbuild must find the build there (Linux paths are case sensitive)
+		var goodWeb = '$base/good-web';
+		writeFile('$goodWeb/api/core/inc/fmod_common.h', '#define FMOD_VERSION $expected\n');
+		writeFile('$goodWeb/api/studio/lib/wasm/fmodstudio.js', "// engine");
+		writeFile('$goodWeb/api/studio/lib/wasm/fmodstudio.wasm', "wasm");
+		var limeExport = '$base/lime-export';
+		sys.FileSystem.createDirectory('$limeExport/Export/html5/bin');
+		r = runTool(["postbuild", "html5", "html5", "x"], limeExport, ["FMOD_SDK_WEB" => goodWeb]);
+		check("postbuild replaces the placeholders in a lime build under Export",
+			sys.FileSystem.exists('$limeExport/Export/html5/bin/lib/fmodstudio.wasm'));
+
+		// The compile check reads an SDK path relative to the project, so the
+		// postbuild and the stage read it from there too
+		var relProject = '$base/relative';
+		writeFile('$relProject/websdk/api/core/inc/fmod_common.h', '#define FMOD_VERSION $expected\n');
+		writeFile('$relProject/websdk/api/studio/lib/wasm/fmodstudio.js', "// engine");
+		writeFile('$relProject/websdk/api/studio/lib/wasm/fmodstudio.wasm', "wasm");
+		sys.FileSystem.createDirectory('$relProject/export/html5/bin');
+		r = runTool(["postbuild", "html5", "html5", "x"], relProject, ["FMOD_SDK_WEB" => "websdk"]);
+		check("postbuild reads a relative FMOD_SDK_WEB from the project",
+			r.code == 0 && sys.FileSystem.exists('$relProject/export/html5/bin/lib/fmodstudio.wasm'));
+
+		// lime ignores the postbuild exit code, so the compile refuses a
+		// desktop package without the studio library the postbuild copies
+		var noStudio = fakeDesktopSdk('$base/no-studio', expected, true);
+		sys.FileSystem.deleteFile('$noStudio/api/studio/lib/x86_64/libfmodstudio.so');
+		sys.FileSystem.deleteFile('$noStudio/api/studio/lib/libfmodstudio.dylib');
+		var mainDir = '$base/main';
+		writeFile('$mainDir/Main.hx', "class Main { static function main() {} }\n");
+		var savedSdk = Sys.getEnv("FMOD_SDK");
+		Sys.putEnv("FMOD_SDK", noStudio);
+		var p = new sys.io.Process("haxe", ["-cp", ".", "-cp", mainDir, "-main", "Main", "-hl", '$mainDir/out.hl', "--no-output",
+			"--macro", "haxefmod.tools.BuildCheck.verify()"]);
+		var compileOut = p.stdout.readAll().toString() + p.stderr.readAll().toString();
+		var compileCode = p.exitCode();
+		p.close();
+		check("a desktop package without the studio library stops the compile",
+			compileCode != 0 && compileOut.indexOf("libfmodstudio") != -1);
+
+		// The compile trusts a custom hdll without a version marker next to
+		// an SDK of another version, so the stage does too
+		var unmarked = '$base/unmarked';
+		writeFile('$unmarked/Main.hx', "class Main { static function main() {} }\n");
+		writeFile('$unmarked/.haxefmod/hlaxe_fmod.hdll', 'custom hlaxe_fmod_abi=$abi\x00');
+		Sys.putEnv("FMOD_SDK", oldSdkLibs);
+		p = new sys.io.Process("haxe", ["--cwd", unmarked, "-cp", sys.FileSystem.absolutePath("."), "-main", "Main", "-hl", "out.hl",
+			"--no-output", "--macro", "haxefmod.tools.BuildCheck.verify()"]);
+		compileOut = p.stdout.readAll().toString() + p.stderr.readAll().toString();
+		compileCode = p.exitCode();
+		p.close();
+		r = runTool(["stage", platform, "hl", '$base/out-unmarked'], unmarked, ["FMOD_SDK" => oldSdkLibs]);
+		check("a custom hdll without a marker gets the same verdict from the compile and the stage",
+			r.code == 0 && compileCode == 0 && sys.FileSystem.exists('$base/out-unmarked/hlaxe_fmod.hdll'));
+		Sys.putEnv("FMOD_SDK", savedSdk);
+
 		r = runTool(["no-such-command"], plain, []);
 		check("an unknown command exits nonzero", r.code == 1 && r.out.indexOf("Unknown command") != -1);
 		removeTree(base);

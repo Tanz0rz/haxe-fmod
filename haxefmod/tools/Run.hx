@@ -16,6 +16,12 @@ class Run {
 		var userArgs = args.length > 1 ? args.slice(0, args.length - 1) : [];
 
 		var command = userArgs.length > 0 ? userArgs[0] : "help";
+		// haxelib runs this tool from the library directory. The compile check
+		// reads a relative SDK path from the project, so this tool does too.
+		for (name in ["FMOD_SDK", "FMOD_SDK_WEB"]) {
+			var value = Sys.getEnv(name);
+			if (value != null && value != "" && !haxe.io.Path.isAbsolute(value)) Sys.putEnv(name, haxe.io.Path.join([cwd, value]));
+		}
 
 		// Resolve the haxelib root (parent of the directory haxelib passes as last arg).
 		var libRoot = resolveLibRoot();

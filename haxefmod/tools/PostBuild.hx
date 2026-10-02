@@ -20,6 +20,8 @@ class PostBuild {
 
 		// Use project directory for finding export/ output.
 		var exportDir = Path.join([projectDir, "export"]);
+		// lime's and openfl's project templates name it Export
+		if (!FileSystem.exists(exportDir)) exportDir = Path.join([projectDir, "Export"]);
 		var dest = findLimeOutputDir(platform, target, exportDir);
 		if (dest == null) {
 			if (platform == "mac") {
@@ -148,6 +150,15 @@ class PostBuild {
 		};
 	}
 
+	/** The studio library every native build copies, relative to the SDK root. */
+	public static function nativeStudioLib(platform:String):Array<String> {
+		return switch (platform) {
+			case "mac": ["api", "studio", "lib", "libfmodstudio.dylib"];
+			case "windows": ["api", "studio", "lib", "x64", "fmodstudio.dll"];
+			default: ["api", "studio", "lib", "x86_64", "libfmodstudio.so"];
+		};
+	}
+
 	/** True when the path holds the HTML5 FMOD Engine package. */
 	public static function looksLikeWebSdk(sdkPath:String):Bool {
 		// The FMOD 2.02 HTML5 package keeps it under upstream/
@@ -228,12 +239,18 @@ class PostBuild {
 		if (sdkEnvName != "FMOD_SDK_WEB") {
 			var markerFile = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.version"]);
 			var customHdll = Path.join([projectDir, ".haxefmod", "hlaxe_fmod.hdll"]);
-			// A marker left behind by a deleted hdll proves nothing: the
+			// A marker left behind by a deleted hdll proves nothing. The
 			// build then falls back to the pre-built hdll for another SDK.
-			if (FileSystem.exists(markerFile) && FileSystem.exists(customHdll)) {
+			// A custom hdll without a marker is trusted, the same policy
+			// as customHdllMatchesSdk.
+			if (FileSystem.exists(customHdll)) {
+				var ver = hexToVersion(sdkHex);
+				if (!FileSystem.exists(markerFile)) {
+					log('FMOD SDK version $ver - custom hdll in .haxefmod/ has no version marker, trusted as-is');
+					return;
+				}
 				var markerHex = StringTools.trim(File.getContent(markerFile));
 				if (sameVersion(markerHex, sdkHex)) {
-					var ver = hexToVersion(sdkHex);
 					log('FMOD SDK version $ver - OK (custom-compiled hdll from .haxefmod/)');
 					return;
 				}

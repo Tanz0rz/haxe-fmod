@@ -72,6 +72,7 @@ class BuildCheck {
             // included, so it cannot tell them apart. The platform's own
             // core library can, and it is the file the postbuild copies.
             requireSdkFile("FMOD_SDK", PostBuild.nativeCoreLib(targetPlatform()));
+            requireSdkFile("FMOD_SDK", PostBuild.nativeStudioLib(targetPlatform()));
         }
 
         // Kha's HashLink target is HL/C with hlaxe_fmod.c compiled into the
