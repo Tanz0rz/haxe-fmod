@@ -42,6 +42,8 @@ class TestFlixelHelpers {
 	// The updater's own handler stays, every poll a case left behind goes
 	static function reset():Void {
 		FlxG.switches = [];
+		FlxG.game._nextState = null;
+		FlxG.state = "Start";
 		FlxG.signals.postUpdate.handlers = FlxG.signals.postUpdate.handlers.slice(0, 1);
 		NativeStudioStub.testPlaybackStateQueue = [];
 		NativeStudioStub.testPlaybackState = PLAYING;
@@ -98,6 +100,30 @@ class TestFlixelHelpers {
 		assert("init after removeHook updates once per frame", updates == before + 2);
 		FlxG.signals.postUpdate.remove(remover);
 		CallbackDispatcher.frameHook = savedHook;
+	}
+
+	// The flixel components keep the zone shape, follow the midpoint and
+	// give their banks back on destroy
+	static function testComponents():Void {
+		var stub = NativeStudioStub;
+		stub.testInitialized = true;
+		stub.testBankLoadingState = 3; // LOADED
+		var tall = new flixel.FlxObject(10, 20, 4, 30);
+		var provider = new haxefmod.flixel.FmodFlxEmitter.FlxObjectPositionProvider(tall);
+		assert("the emitter follows the object midpoint", provider.fmodX() == 12 && provider.fmodY() == 35);
+		// The midpoint (300, 50) is inside a 400 x 100 zone
+		var body = new flixel.FlxObject(295, 45, 10, 10);
+		stub.testLastGlobalParameter = null;
+		var trigger = new haxefmod.flixel.FmodFlxParameterTrigger(body, flixel.math.FlxRect.get(0, 0, 400, 100), "Zone", 1, 0);
+		trigger.update(0);
+		assert("a trigger zone keeps its width and height", stub.testLastGlobalParameter == "Zone" && stub.testLastGlobalValue == 1);
+		var path = haxefmod.runtime.FmodRuntime.bankPath("FlxAdapters.bank");
+		var fired = 0;
+		var loader = new haxefmod.flixel.FmodFlxBankLoader(["FlxAdapters.bank"], () -> fired++);
+		loader.update(0);
+		assert("a bank loader loads and reports loaded", fired == 1 && loader.loaded && haxefmod.runtime.FmodRuntime.banks.refCount(path) == 1);
+		loader.destroy();
+		assert("destroy releases the loader banks", haxefmod.runtime.FmodRuntime.banks.refCount(path) == 0);
 	}
 
 	static function main() {
@@ -267,6 +293,49 @@ class TestFlixelHelpers {
 		assert("a switch by another route before a bank unload cancels the switch", FlxG.switches.length == 0);
 		FlxG.state = "Start";
 
+		// The game requests a switch in the frame the fade ends. Flixel
+		// applies a request at the start of the next frame, so FlxG.state
+		// still names the old state when the Stopped arrives. A later
+		// request in the same frame replaces an earlier one.
+		var request:String = null;
+		var thenInFrame:Void->Void = null;
+		var gameUpdate = () -> if (request != null) {
+			FlxG.switchState(request);
+			request = null;
+			if (thenInFrame != null) thenInFrame();
+			thenInFrame = null;
+		};
+		FlxG.signals.preUpdate.add(gameUpdate);
+		reset();
+		song = playSong("event:/N");
+		FmodFlxUtilities.TransitionToStateAndStopMusic("X");
+		NativeStudioStub.testPlaybackState = STOPPING;
+		FlxG.frame();
+		request = "Y";
+		var fading = song;
+		thenInFrame = () -> {
+			NativeStudioStub.testPlaybackState = STOPPED_STATE;
+			deliver(fading, STOPPED);
+		};
+		FlxG.frame();
+		FlxG.frame();
+		assert("a switch requested in the frame the fade ends wins", FlxG.state == "Y" && FlxG.switches.join(",") == "Y");
+
+		// The same through the poll, with a bank unload ending the song
+		reset();
+		song = playSong("event:/O");
+		FmodFlxUtilities.TransitionToStateAndStopMusic("X");
+		NativeStudioStub.testPlaybackState = STOPPING;
+		FlxG.frame();
+		request = "Y";
+		NativeStudioStub.testReleasedHandles.push(song);
+		NativeStudioStub.testPlaybackState = STOPPED_STATE;
+		FlxG.frame();
+		FlxG.frame();
+		assert("a switch requested in the frame the song is unloaded wins", FlxG.state == "Y" && FlxG.switches.join(",") == "Y");
+		FlxG.signals.preUpdate.remove(gameUpdate);
+		FlxG.state = "Start";
+
 		testListenerCut();
 		testUpdaterRemovedInDispatch();
 
@@ -279,6 +348,8 @@ class TestFlixelHelpers {
 		FmodFlxUpdater.init();
 		FmodFlxUpdater.initUnlessRemoved();
 		assert("init puts the hook back for later components", FmodFlxUpdater.isInstalled());
+
+		testComponents();
 
 		Sys.println('  $passed passed, $failed failed');
 		Sys.exit(failed > 0 ? 1 : 0);

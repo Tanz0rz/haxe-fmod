@@ -322,6 +322,10 @@ class TestStringsBankParser {
 		assert("PROBE generate defaults read the bank folder and write to source/", sys.FileSystem.exists(root + "/source/FmodEvents.hx"));
 		haxefmod.tools.Generate.run(["--strings", fixture, "--out", root + "/out", "--package", "game.audio"], Sys.getCwd());
 		assert("PROBE --package writes into the package folder", sys.FileSystem.exists(root + "/out/game/audio/FmodEvents.hx"));
+		// haxelib runs the tool from the library folder, so a relative
+		// --out is the caller's
+		haxefmod.tools.Generate.run(["--strings", sys.FileSystem.absolutePath(fixture), "--out", "relative-out"], root);
+		assert("PROBE a relative --out resolves against the caller's directory", sys.FileSystem.exists(root + "/relative-out/FmodEvents.hx"));
 	}
 
 	static function cleanup() {

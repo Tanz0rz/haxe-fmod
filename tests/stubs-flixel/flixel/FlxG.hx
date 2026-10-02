@@ -50,7 +50,16 @@ class Signals {
 	public function new() {}
 }
 
+// FlxG.switchState records the request. FlxGame applies the last one at
+// the start of the next update, before the signals.
+class FlxGame {
+	public var _nextState:String = null;
+
+	public function new() {}
+}
+
 class FlxG {
+	public static var game = new FlxGame();
 	public static var signals = new Signals();
 	public static var switches:Array<String> = [];
 	public static var state:String = "Start";
@@ -58,9 +67,14 @@ class FlxG {
 
 	public static function switchState(s:String) {
 		switches.push(s);
+		game._nextState = s;
 	}
 
 	public static function frame() {
+		if (game._nextState != null) {
+			state = game._nextState;
+			game._nextState = null;
+		}
 		signals.preUpdate.dispatch();
 		signals.postUpdate.dispatch();
 	}

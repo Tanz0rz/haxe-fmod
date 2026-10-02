@@ -127,36 +127,20 @@ static inline FMOD_SOUND* faxe_argcheck_sound_root(FMOD_SOUND* sound) {
     return sound;
 }
 
-/* Whether the channel or one of the groups above it is paused. A paused
- * channel does not drive the decoder. */
-static inline int faxe_argcheck_channel_paused(FMOD_CHANNEL* channel) {
-    FMOD_BOOL paused = 0;
-    FMOD_CHANNELGROUP* group = NULL;
-    int depth;
-    if (FMOD_Channel_GetPaused(channel, &paused) == FMOD_OK && paused) return 1;
-    if (FMOD_Channel_GetChannelGroup(channel, &group) != FMOD_OK) return 0;
-    for (depth = 0; group && depth < 64; depth++) {
-        FMOD_CHANNELGROUP* parent = NULL;
-        if (FMOD_ChannelGroup_GetPaused(group, &paused) == FMOD_OK && paused) return 1;
-        if (FMOD_ChannelGroup_GetParentGroup(group, &parent) != FMOD_OK) break;
-        group = parent;
-    }
-    return 0;
-}
-
 /* Whether readData and seekData may run on the sound. This check reads
  * FMOD's channel pool instead of a value. FMOD decodes a playing sound on
  * its mixer and stream threads. A readData or seekData on a sound of the
  * same subsound tree races that decoder and crashes FMOD. Returns 0 while
- * an unpaused channel plays a sound of the tree. A virtual channel counts
- * as playing. Studio plays a programmer sound on a pool channel. The scan
- * sees that channel too. The scan covers every pool channel. It costs
- * about 4 microseconds at 128 channels and 270 at 4095. The game thread
- * makes the check and the read. That thread also starts and unpauses
- * every channel the game plays. Studio starts and unpauses event channels
- * on its own update thread. A programmer sound can start between the
- * check and the read. jaxe.js has no counterpart. The web build reports
- * readData and seekData unsupported. */
+ * a channel plays a sound of the tree. A paused channel counts as playing.
+ * Its decoder keeps working for a moment after the pause. A virtual
+ * channel counts as playing too. Studio plays a programmer sound on a pool
+ * channel. The scan sees that channel too. The scan covers every pool
+ * channel. It costs about 4 microseconds at 128 channels and 270 at 4095.
+ * The game thread makes the check and the read. That thread also starts
+ * every channel the game plays. Studio starts event channels on its own
+ * update thread. A programmer sound can start between the check and the
+ * read. jaxe.js has no counterpart. The web build reports readData and
+ * seekData unsupported. */
 static inline int faxe_argcheck_sound_idle(FMOD_SYSTEM* system, FMOD_SOUND* sound) {
     FMOD_SOUND* root;
     FMOD_CHANNEL* channel = NULL;
@@ -168,8 +152,7 @@ static inline int faxe_argcheck_sound_idle(FMOD_SYSTEM* system, FMOD_SOUND* soun
         FMOD_SOUND* current = NULL;
         if (FMOD_Channel_IsPlaying(channel, &playing) != FMOD_OK || !playing) continue;
         if (FMOD_Channel_GetCurrentSound(channel, &current) != FMOD_OK || !current) continue;
-        if (faxe_argcheck_sound_root(current) != root) continue;
-        if (!faxe_argcheck_channel_paused(channel)) return 0;
+        if (faxe_argcheck_sound_root(current) == root) return 0;
     }
     return 1;
 }

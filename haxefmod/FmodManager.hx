@@ -309,7 +309,7 @@ class FmodManager {
     /**
      * Applies a snapshot until StopSnapshot. The path comes from FMOD Studio, for example "snapshot:/Paused".
      * A snapshot is a mixer state the sound designer authored. FMOD blends the mixer toward it and back.
-     * A snapshot that is already applied is left as it is. FMOD keeps the instance alive while it plays, so no handle is held here.
+     * A snapshot that is already applied is left as it is. One that is fading out after StopSnapshot starts again. FMOD keeps the instance alive while it plays, so no handle is held here.
      */
     public static function StartSnapshot(snapshotPath:String):Void {
         ensureInitialized();

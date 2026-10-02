@@ -21,6 +21,7 @@ class TestPostBuild {
 		testClearExecstack();
 		testSdkPackageDetection();
 		testStage();
+		testToolExits();
 		testRpathToRewrite();
 
 		Sys.println('  $passed passed, $failed failed');
@@ -475,5 +476,135 @@ class TestPostBuild {
 		Sys.putEnv("FMOD_SDK", savedSdk);
 		Sys.putEnv("FMOD_SDK_WEB", savedWeb);
 		rmTree(base);
+	}
+
+	// A CLI command in a child process, the way haxelib runs it: the
+	// caller's directory is the last argument, and Sys.exit ends only
+	// the child. The env entries hold for the child's lifetime.
+	static function runTool(args:Array<String>, cwd:String, env:Map<String, String>):{code:Int, out:String} {
+		var saved = new Map<String, Null<String>>();
+		for (key in env.keys()) {
+			saved.set(key, Sys.getEnv(key));
+			Sys.putEnv(key, env.get(key));
+		}
+		var p = new sys.io.Process("haxe", ["-cp", ".", "--run", "haxefmod.tools.Run"].concat(args).concat([cwd]));
+		var out = p.stdout.readAll().toString();
+		var err = p.stderr.readAll().toString();
+		var code = p.exitCode();
+		p.close();
+		for (key in saved.keys()) Sys.putEnv(key, saved.get(key));
+		return {code: code, out: out + err};
+	}
+
+	static function writeFile(path:String, content:String):Void {
+		var dir = haxe.io.Path.directory(path);
+		if (!sys.FileSystem.exists(dir)) sys.FileSystem.createDirectory(dir);
+		sys.io.File.saveContent(path, content);
+	}
+
+	static function fakeDesktopSdk(dir:String, version:String, libs:Bool):String {
+		writeFile('$dir/api/core/inc/fmod_common.h', '#define FMOD_VERSION $version\n');
+		writeFile('$dir/api/core/inc/fmod.h', "");
+		if (libs) {
+			for (lib in [["core", "libfmod"], ["studio", "libfmodstudio"]]) {
+				writeFile('$dir/api/${lib[0]}/lib/x86_64/${lib[1]}.so', "so");
+				writeFile('$dir/api/${lib[0]}/lib/${lib[1]}.dylib', "dylib");
+			}
+		}
+		return dir;
+	}
+
+	/**
+	 * The exit codes and refusals of stage, check, build-hdll and an
+	 * unknown command. A refusal that exits 0 ships a build that fails
+	 * at startup, and a doctor that passes a broken setup hides it.
+	 */
+	static function testToolExits():Void {
+		if (Sys.systemName() == "Windows") return;
+		var base = sys.FileSystem.absolutePath("tests/.tmp/tools");
+		removeTree(base);
+		var expected = StringTools.trim(sys.io.File.getContent("fmod_expected_version"));
+		var abi = PostBuild.expectedAbiVersion(".");
+		var platform = Sys.systemName() == "Mac" ? "mac" : "linux";
+		var sdk = fakeDesktopSdk('$base/sdk', expected, true);
+		var oldSdk = fakeDesktopSdk('$base/old-sdk', "0x00010101", false);
+		// With its libraries, so only the version check can stop a stage
+		var oldSdkLibs = fakeDesktopSdk('$base/old-sdk-libs', "0x00010101", true);
+		var plain = '$base/plain';
+		sys.FileSystem.createDirectory(plain);
+		// A project hdll whose marker names the expected version
+		var stale = '$base/stale-marker';
+		writeFile('$stale/.haxefmod/hlaxe_fmod.hdll', 'custom hlaxe_fmod_abi=$abi\x00');
+		writeFile('$stale/.haxefmod/hlaxe_fmod.version', expected);
+		var oldAbi = '$base/old-abi';
+		writeFile('$oldAbi/.haxefmod/hlaxe_fmod.hdll', 'custom hlaxe_fmod_abi=${abi + 100}\x00');
+		writeFile('$oldAbi/.haxefmod/hlaxe_fmod.version', expected);
+
+		var out = '$base/out-unknown';
+		var r = runTool(["stage", platform, "HL", out], plain, ["FMOD_SDK" => sdk]);
+		check("stage refuses an unknown target", r.code == 1 && !sys.FileSystem.exists(out));
+
+		out = '$base/out-old';
+		r = runTool(["stage", platform, "hl", out], plain, ["FMOD_SDK" => oldSdkLibs]);
+		check("stage refuses an SDK the pre-built hdll was not built for",
+			r.code == 1 && r.out.indexOf("ERROR: FMOD SDK version mismatch") != -1 && !sys.FileSystem.exists('$out/hlaxe_fmod.hdll'));
+
+		out = '$base/out-stale';
+		r = runTool(["stage", platform, "hl", out], stale, ["FMOD_SDK" => oldSdkLibs]);
+		check("stage refuses a project hdll built for another SDK", r.code == 1 && !sys.FileSystem.exists('$out/hlaxe_fmod.hdll'));
+
+		out = '$base/out-abi';
+		r = runTool(["stage", platform, "hl", out], oldAbi, ["FMOD_SDK" => sdk]);
+		check("stage refuses an hdll of another binding ABI",
+			r.code == 1 && r.out.indexOf("binding version mismatch") != -1 && !sys.FileSystem.exists('$out/hlaxe_fmod.hdll'));
+
+		var web = '$base/old-web';
+		writeFile('$web/api/core/inc/fmod_common.h', "#define FMOD_VERSION 0x00010101\n");
+		writeFile('$web/api/studio/lib/wasm/fmodstudio.js', "// engine");
+		writeFile('$web/api/studio/lib/wasm/fmodstudio.wasm', "wasm");
+		r = runTool(["stage", "html5", "html5", '$base/out-web'], plain, ["FMOD_SDK_WEB" => web]);
+		check("stage refuses a web SDK of another version", r.code == 1 && r.out.indexOf("web SDK version mismatch") != -1);
+
+		// An SDK folder with no libraries in it stages nothing, so the
+		// command fails instead of reporting success
+		var empty = fakeDesktopSdk('$base/empty-sdk', expected, false);
+		sys.FileSystem.createDirectory('$empty/api/core/lib/x86_64');
+		sys.FileSystem.createDirectory('$empty/api/studio/lib/x86_64');
+		if (platform == "linux") {
+			r = runTool(["stage", "linux", "cpp", '$base/out-empty'], plain, ["FMOD_SDK" => empty]);
+			check("stage fails on an SDK folder with no libraries", r.code == 1 && r.out.indexOf("no file named libfmod.so") != -1);
+		}
+		var noWasm = '$base/no-wasm';
+		writeFile('$noWasm/api/core/inc/fmod_common.h', '#define FMOD_VERSION $expected\n');
+		writeFile('$noWasm/api/studio/lib/wasm/fmodstudio.js', "// engine");
+		r = runTool(["stage", "html5", "html5", '$base/out-no-wasm'], plain, ["FMOD_SDK_WEB" => noWasm]);
+		check("stage fails on a web SDK without the wasm", r.code == 1 && r.out.indexOf("fmodstudio.wasm not found") != -1);
+
+		// The doctor fails what the build would refuse
+		r = runTool(["check"], plain, ["FMOD_SDK" => oldSdk, "FMOD_SDK_WEB" => ""]);
+		check("check fails a wrong SDK version", r.code == 1 && r.out.indexOf("[FAIL] FMOD version") != -1);
+		check("check fails missing runtime libraries", r.out.indexOf('[FAIL] $platform runtime libraries') != -1);
+		check("check fails a pre-built hdll for another SDK", r.out.indexOf("[FAIL] Pre-built hdll compatible with SDK") != -1);
+		r = runTool(["check"], oldAbi, ["FMOD_SDK" => sdk, "FMOD_SDK_WEB" => ""]);
+		check("check fails an hdll of another binding ABI", r.code == 1 && r.out.indexOf("[FAIL] hlaxe_fmod.hdll binding ABI") != -1);
+
+		// A failed compile keeps the old hdll's marker, so the build
+		// never takes the old hdll for one built against this SDK
+		var bin = '$base/bin';
+		for (name in ["gcc", "cc"]) {
+			writeFile('$bin/$name', '#!/bin/sh\n[ "$$1" = "--version" ] && exit 0\nexit 1\n');
+			Sys.command("chmod", ["+x", '$bin/$name']);
+		}
+		writeFile('$base/hl/include/hl.h', "");
+		var project = '$base/rebuild';
+		writeFile('$project/.haxefmod/hlaxe_fmod.hdll', "old hdll");
+		writeFile('$project/.haxefmod/hlaxe_fmod.version', "0x00010101");
+		r = runTool(["build-hdll"], project, ["FMOD_SDK" => sdk, "HASHLINK_DIR" => '$base/hl', "PATH" => bin + ":" + Sys.getEnv("PATH")]);
+		check("build-hdll fails when the compiler fails and keeps the old marker",
+			r.code == 1 && StringTools.trim(sys.io.File.getContent('$project/.haxefmod/hlaxe_fmod.version')) == "0x00010101");
+
+		r = runTool(["no-such-command"], plain, []);
+		check("an unknown command exits nonzero", r.code == 1 && r.out.indexOf("Unknown command") != -1);
+		removeTree(base);
 	}
 }

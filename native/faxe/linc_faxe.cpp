@@ -1387,17 +1387,22 @@ static bool lincParkGroup(FMOD::ChannelGroup* group, int h) {
     if (gCoreSystem->getMasterChannelGroup(&master) != FMOD_OK || !master) return false;
     if (group->setMode(mode | FMOD_3D_IGNOREGEOMETRY) != FMOD_OK) return false;
     int count = 0;
+    // The moves keep list order, as the FMOD release does. A moved entry
+    // leaves the list, so the next one takes its index. A refused move
+    // steps past its entry.
     if (group->getNumChannels(&count) == FMOD_OK) {
-        for (int i = count - 1; i >= 0; i--) {
+        int at = 0;
+        for (int i = 0; i < count; i++) {
             FMOD::Channel* ch = NULL;
-            if (group->getChannel(i, &ch) == FMOD_OK && ch) ch->setChannelGroup(master);
+            if (group->getChannel(at, &ch) != FMOD_OK || !ch || ch->setChannelGroup(master) != FMOD_OK) at++;
         }
     }
     count = 0;
     if (group->getNumGroups(&count) == FMOD_OK) {
-        for (int i = count - 1; i >= 0; i--) {
+        int at = 0;
+        for (int i = 0; i < count; i++) {
             FMOD::ChannelGroup* child = NULL;
-            if (group->getGroup(i, &child) == FMOD_OK && child) master->addGroup(child, true, NULL);
+            if (group->getGroup(at, &child) != FMOD_OK || !child || master->addGroup(child, true, NULL) != FMOD_OK) at++;
         }
     }
     // A full list waits for its oldest entry to go
@@ -1418,10 +1423,12 @@ static bool lincParkGroup(FMOD::ChannelGroup* group, int h) {
     return true;
 }
 
-// A group a walk must not show: the game released it, and its FMOD
-// release waits on the parked list
-static inline bool lincGroupHidden(FMOD::ChannelGroup* group) {
-    return faxe_park_count() > 0 && faxe_park_contains(group);
+// Child i of a group, for the parked list's walk helpers
+static int lincParkChildAt(void* parent, int i, void** child) {
+    FMOD::ChannelGroup* found = NULL;
+    if (((FMOD::ChannelGroup*)parent)->getGroup(i, &found) != FMOD_OK) return 0;
+    *child = found;
+    return 1;
 }
 
 int fmod_cg_release(int h) {
@@ -1892,35 +1899,21 @@ int fmod_cg_add_group(int h, int childHandle, bool propagateDspClock) {
 }
 
 // A parked group stays a child of its parent until its FMOD release.
-// The game released it, so the walks below skip it.
+// The game released it, so the walks below skip it (faxe_parking.h).
 int fmod_cg_get_num_groups(int h) {
     FMOD::ChannelGroup* group = resolveChanGroup(h);
     int count = 0;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = group->getNumGroups(&count);
-    if (gLastResult != FMOD_OK || faxe_park_count() == 0) return count;
-    int shown = 0;
-    for (int i = 0; i < count; i++) {
-        FMOD::ChannelGroup* child = NULL;
-        if (group->getGroup(i, &child) == FMOD_OK && !lincGroupHidden(child)) shown++;
-    }
-    return shown;
+    if (gLastResult != FMOD_OK) return count;
+    return faxe_park_shown_count(group, count, lincParkChildAt);
 }
 
-// The index FMOD knows for the index a walk shows. An index past the
-// shown groups maps past FMOD's own, so FMOD reports the error.
+// The index FMOD knows for the index a walk shows (faxe_parking.h)
 static int lincShownGroupIndex(FMOD::ChannelGroup* group, int index) {
     int count = 0;
-    int shown = 0;
     if (index < 0 || faxe_park_count() == 0 || group->getNumGroups(&count) != FMOD_OK) return index;
-    for (int i = 0; i < count; i++) {
-        FMOD::ChannelGroup* child = NULL;
-        if (group->getGroup(i, &child) != FMOD_OK) return index;
-        if (lincGroupHidden(child)) continue;
-        if (shown == index) return i;
-        shown++;
-    }
-    return count + (index - shown);
+    return faxe_park_shown_index(group, count, index, lincParkChildAt);
 }
 
 int fmod_cg_get_group(int h, int index) {
@@ -5691,7 +5684,7 @@ const char* fmod_sys_get_version() {
 
 // Returns the bytes read, or the negated FMOD error. A short read at the
 // end of the file still returns the count and leaves FMOD_ERR_FILE_EOF in
-// gLastResult. A sound that an unpaused channel plays fails with
+// gLastResult. A sound that a channel plays, paused or not, fails with
 // FMOD_ERR_NOTREADY (faxe_argcheck_sound_idle).
 int fmod_core_sound_read_data(int h, ::Array<unsigned char> data, int len) {
     FMOD::Sound* sound = resolveSound(h);
@@ -5705,8 +5698,8 @@ int fmod_core_sound_read_data(int h, ::Array<unsigned char> data, int len) {
     return (int)read;
 }
 
-// A sound that an unpaused channel plays fails with FMOD_ERR_NOTREADY, as
-// in fmod_core_sound_read_data.
+// A sound that a channel plays, paused or not, fails with
+// FMOD_ERR_NOTREADY, as in fmod_core_sound_read_data.
 int fmod_core_sound_seek_data(int h, int pcm) {
     FMOD::Sound* sound = resolveSound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }

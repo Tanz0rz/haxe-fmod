@@ -275,7 +275,7 @@ The trigger drives an FMOD parameter from a rectangular zone. While the target i
     FmodFlxUtilities.PlayOneShotAttached(FmodEvents.SFXCoin, coin);
     ```
 
-    `TransitionToStateAndStopMusic(state)` stops the current song with its authored fadeout, waits for it to report stopped, and then switches state. A `PlaySong`, `PlaySongTransition`, `OnSongEvent`, or `OnceSongEvent` call during the fade cancels the switch. `TransitionToState(state)` switches immediately.
+    `TransitionToStateAndStopMusic(state)` stops the current song with its authored fadeout, waits for it to report stopped, and then switches state. A `PlaySong`, `PlaySongTransition`, `OnSongEvent`, or `OnceSongEvent` call during the fade cancels the switch. So does a switch to another state. `TransitionToState(state)` switches immediately.
 
 === "Heaps"
 

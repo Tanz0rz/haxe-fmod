@@ -118,6 +118,41 @@ static int faxe_park_take_due(double now, FaxeParked* out, int max) {
     return taken;
 }
 
+/* Reads child i of parent into child. Returns 0 when FMOD refuses. */
+typedef int (*FaxeParkChildAt)(void* parent, int i, void** child);
+
+/* How many of a group's count children a walk shows. A parked child
+ * stays a child of its parent until its FMOD release. The game released
+ * it, so a walk skips it. A child that childAt cannot read is not shown. */
+static int faxe_park_shown_count(void* parent, int count, FaxeParkChildAt childAt) {
+    int i;
+    int shown = 0;
+    if (gFaxeParkedCount == 0) return count;
+    for (i = 0; i < count; i++) {
+        void* child = NULL;
+        if (childAt(parent, i, &child) && !faxe_park_contains(child)) shown++;
+    }
+    return shown;
+}
+
+/* The index FMOD knows for the index a walk shows. Any index past the
+ * shown children maps to count, which FMOD refuses as out of range. A
+ * negative index, or a child that childAt cannot read, leaves the index
+ * as it is for FMOD to judge. */
+static int faxe_park_shown_index(void* parent, int count, int index, FaxeParkChildAt childAt) {
+    int i;
+    int shown = 0;
+    if (index < 0 || gFaxeParkedCount == 0) return index;
+    for (i = 0; i < count; i++) {
+        void* child = NULL;
+        if (!childAt(parent, i, &child)) return index;
+        if (faxe_park_contains(child)) continue;
+        if (shown == index) return i;
+        shown++;
+    }
+    return count;
+}
+
 /* Milliseconds until the oldest entry is due. 0 when one is due already
  * or nothing is parked. */
 static double faxe_park_wait_ms(double now) {

@@ -1546,17 +1546,24 @@ static int hlaxe_park_group(FMOD_CHANNELGROUP* group, int h) {
     if (FMOD_ChannelGroup_GetMode(group, &mode) != FMOD_OK) return 0;
     if (FMOD_System_GetMasterChannelGroup(gCoreSystem, &master) != FMOD_OK || !master) return 0;
     if (FMOD_ChannelGroup_SetMode(group, mode | FMOD_3D_IGNOREGEOMETRY) != FMOD_OK) return 0;
+    /* The moves keep list order, as the FMOD release does. A moved entry
+     * leaves the list, so the next one takes its index. A refused move
+     * steps past its entry. */
     if (FMOD_ChannelGroup_GetNumChannels(group, &count) == FMOD_OK) {
-        for (i = count - 1; i >= 0; i--) {
+        int at = 0;
+        for (i = 0; i < count; i++) {
             FMOD_CHANNEL* ch = NULL;
-            if (FMOD_ChannelGroup_GetChannel(group, i, &ch) == FMOD_OK && ch) FMOD_Channel_SetChannelGroup(ch, master);
+            if (FMOD_ChannelGroup_GetChannel(group, at, &ch) != FMOD_OK || !ch
+                    || FMOD_Channel_SetChannelGroup(ch, master) != FMOD_OK) at++;
         }
     }
     count = 0;
     if (FMOD_ChannelGroup_GetNumGroups(group, &count) == FMOD_OK) {
-        for (i = count - 1; i >= 0; i--) {
+        int at = 0;
+        for (i = 0; i < count; i++) {
             FMOD_CHANNELGROUP* child = NULL;
-            if (FMOD_ChannelGroup_GetGroup(group, i, &child) == FMOD_OK && child) FMOD_ChannelGroup_AddGroup(master, child, 1, NULL);
+            if (FMOD_ChannelGroup_GetGroup(group, at, &child) != FMOD_OK || !child
+                    || FMOD_ChannelGroup_AddGroup(master, child, 1, NULL) != FMOD_OK) at++;
         }
     }
     /* A full list waits for its oldest entry to go */
@@ -1577,10 +1584,12 @@ static int hlaxe_park_group(FMOD_CHANNELGROUP* group, int h) {
     return 1;
 }
 
-/* A group a walk must not show: the game released it, and its FMOD
- * release waits on the parked list */
-static int hlaxe_group_hidden(FMOD_CHANNELGROUP* group) {
-    return faxe_park_count() > 0 && faxe_park_contains(group);
+/* Child i of a group, for the parked list's walk helpers */
+static int hlaxe_park_child_at(void* parent, int i, void** child) {
+    FMOD_CHANNELGROUP* found = NULL;
+    if (FMOD_ChannelGroup_GetGroup((FMOD_CHANNELGROUP*)parent, i, &found) != FMOD_OK) return 0;
+    *child = found;
+    return 1;
 }
 
 HL_PRIM int HL_NAME(cg_release)(int h) {
@@ -2096,38 +2105,22 @@ HL_PRIM int HL_NAME(cg_add_group)(int h, int childHandle, bool propagateDspClock
 DEFINE_PRIM(_I32, cg_add_group, _I32 _I32 _BOOL);
 
 /* A parked group stays a child of its parent until its FMOD release.
- * The game released it, so the walks below skip it. */
+ * The game released it, so the walks below skip it (faxe_parking.h). */
 HL_PRIM int HL_NAME(cg_get_num_groups)(int h) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     int count = 0;
-    int shown = 0;
-    int i;
     if (!group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_ChannelGroup_GetNumGroups(group, &count);
-    if (gLastResult != FMOD_OK || faxe_park_count() == 0) return count;
-    for (i = 0; i < count; i++) {
-        FMOD_CHANNELGROUP* child = NULL;
-        if (FMOD_ChannelGroup_GetGroup(group, i, &child) == FMOD_OK && !hlaxe_group_hidden(child)) shown++;
-    }
-    return shown;
+    if (gLastResult != FMOD_OK) return count;
+    return faxe_park_shown_count(group, count, hlaxe_park_child_at);
 }
 DEFINE_PRIM(_I32, cg_get_num_groups, _I32);
 
-/* The index FMOD knows for the index a walk shows. An index past the
- * shown groups maps past FMOD's own, so FMOD reports the error. */
+/* The index FMOD knows for the index a walk shows (faxe_parking.h) */
 static int hlaxe_shown_group_index(FMOD_CHANNELGROUP* group, int index) {
     int count = 0;
-    int shown = 0;
-    int i;
     if (index < 0 || faxe_park_count() == 0 || FMOD_ChannelGroup_GetNumGroups(group, &count) != FMOD_OK) return index;
-    for (i = 0; i < count; i++) {
-        FMOD_CHANNELGROUP* child = NULL;
-        if (FMOD_ChannelGroup_GetGroup(group, i, &child) != FMOD_OK) return index;
-        if (hlaxe_group_hidden(child)) continue;
-        if (shown == index) return i;
-        shown++;
-    }
-    return count + (index - shown);
+    return faxe_park_shown_index(group, count, index, hlaxe_park_child_at);
 }
 
 HL_PRIM int HL_NAME(cg_get_group)(int h, int index) {
@@ -6394,8 +6387,8 @@ DEFINE_PRIM(_BYTES, sys_get_version, _NO_ARG);
 // Returns the bytes read, or the negated FMOD error. A short read at the
 // end of the file still returns the count and leaves FMOD_ERR_FILE_EOF in
 // gLastResult. The buffer length is trusted, the Haxe wrapper clamps it.
-// A sound that an unpaused channel plays fails with FMOD_ERR_NOTREADY
-// (faxe_argcheck_sound_idle).
+// A sound that a channel plays, paused or not, fails with
+// FMOD_ERR_NOTREADY (faxe_argcheck_sound_idle).
 HL_PRIM int HL_NAME(core_sound_read_data)(int h, vbyte* data, int len) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     unsigned int read = 0;
@@ -6408,8 +6401,8 @@ HL_PRIM int HL_NAME(core_sound_read_data)(int h, vbyte* data, int len) {
 }
 DEFINE_PRIM(_I32, core_sound_read_data, _I32 _BYTES _I32);
 
-/* A sound that an unpaused channel plays fails with FMOD_ERR_NOTREADY, as
- * in core_sound_read_data. */
+/* A sound that a channel plays, paused or not, fails with
+ * FMOD_ERR_NOTREADY, as in core_sound_read_data. */
 HL_PRIM int HL_NAME(core_sound_seek_data)(int h, int pcm) {
     FMOD_SOUND* sound = resolve_core_sound(h);
     if (!sound) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }

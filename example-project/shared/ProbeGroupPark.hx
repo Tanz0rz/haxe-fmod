@@ -5,6 +5,7 @@ import haxefmod.core.Channel;
 import haxefmod.core.ChannelGroup;
 import haxefmod.core.ChannelMode;
 import haxefmod.core.Dsp;
+import haxefmod.core.DspType;
 import haxefmod.core.Geometry;
 import haxefmod.core.PcmStream;
 import haxefmod.studio.FmodResult;
@@ -17,7 +18,9 @@ import haxefmod.studio.Types.FmodVector;
  * thread. So the native shims park such a group and run the FMOD release
  * once 60 ms have passed. The game's handle dies at once. The group
  * walks skip the parked group. Its channels and child groups move to the
- * master at once. The parked group's DSPs stay in the graph until the
+ * master at once, in the order an immediate release gives. The probe
+ * makes that immediate release first, with no Geometry alive, and
+ * compares the two. The parked group's DSPs stay in the graph until the
  * FMOD release, which is how this probe sees that release happen. A
  * parent group of the probe's own holds the parked group, so nothing
  * else in the mix changes the input count it reads. Geometry is native
@@ -25,6 +28,9 @@ import haxefmod.studio.Types.FmodVector;
  */
 class ProbeGroupPark {
     static var _started:Bool = false;
+    static var _firstTick:Float = -1;
+    static var _immediateOrder:String = "";
+    static var _immediateInputs:Int = -1;
     static var _finished:Bool = false;
     static var _moving:Bool = false;
     static var _waiting:Bool = false;
@@ -37,8 +43,11 @@ class ProbeGroupPark {
     static var _parent:ChannelGroup = ChannelGroup.NULL;
     static var _group:ChannelGroup = ChannelGroup.NULL;
     static var _child:ChannelGroup = ChannelGroup.NULL;
+    static var _child2:ChannelGroup = ChannelGroup.NULL;
     static var _stream:PcmStream = PcmStream.NULL;
     static var _channel:Channel = Channel.NULL;
+    static var _tone:Dsp = Dsp.NULL;
+    static var _channel2:Channel = Channel.NULL;
     static var _parentHead:Dsp = Dsp.NULL;
 
     /** True until the parked release and its leak count have run (never on js). */
@@ -60,7 +69,12 @@ class ProbeGroupPark {
         return;
         #end
         if (!_started) {
+            // The same release with no Geometry comes first. It waits out
+            // the parking window of the occlusion probe's Geometry.
+            if (_firstTick < 0) _firstTick = haxe.Timer.stamp();
+            if (haxe.Timer.stamp() - _firstTick < 0.2) return;
             _started = true;
+            releaseImmediate();
             start(state);
             return;
         }
@@ -86,6 +100,60 @@ class ProbeGroupPark {
         }
     }
 
+    /**
+     * Where two channels and two child groups land in the master after
+     * their group's release. "ab" keeps the order they had in the group.
+     */
+    static function moveOrder(a:Channel, b:Channel, ga:ChannelGroup, gb:ChannelGroup):String {
+        var master = ChannelGroup.master();
+        var ia = -1, ib = -1, iga = -1, igb = -1;
+        for (i in 0...master.getNumChannels()) {
+            var c:Int = master.getChannel(i);
+            if (c == (a : Int)) ia = i;
+            if (c == (b : Int)) ib = i;
+        }
+        for (i in 0...master.getNumGroups()) {
+            var g:Int = master.getGroup(i);
+            if (g == (ga : Int)) iga = i;
+            if (g == (gb : Int)) igb = i;
+        }
+        var channels = ia < 0 || ib < 0 ? "missing" : (ia < ib ? "ab" : "ba");
+        var groups = iga < 0 || igb < 0 ? "missing" : (iga < igb ? "ab" : "ba");
+        return 'channels=$channels groups=$groups';
+    }
+
+    /**
+     * Releases a group with two channels and two child groups while no
+     * Geometry exists. FMOD releases it at once. The parked release
+     * below must leave the same order in the master.
+     */
+    static function releaseImmediate():Void {
+        var parent = ChannelGroup.create("probe-park-immediate-parent");
+        var group = ChannelGroup.create("probe-park-immediate-group");
+        var childA = ChannelGroup.create("probe-park-immediate-a");
+        var childB = ChannelGroup.create("probe-park-immediate-b");
+        parent.addGroup(group);
+        group.addGroup(childA);
+        group.addGroup(childB);
+        var toneA = Dsp.create(DspType.OSCILLATOR);
+        var toneB = Dsp.create(DspType.OSCILLATOR);
+        var channelA = toneA.play(false);
+        var channelB = toneB.play(false);
+        channelA.setChannelGroup(group);
+        channelB.setChannelGroup(group);
+        var head = parent.getDsp(ChannelGroup.DSP_HEAD);
+        group.release();
+        _immediateInputs = head.getNumInputs();
+        _immediateOrder = moveOrder(channelA, channelB, childA, childB);
+        channelA.stop();
+        channelB.stop();
+        toneA.release();
+        toneB.release();
+        childA.release();
+        childB.release();
+        parent.release();
+    }
+
     static function start(state:ApiProbeScenario):Void {
         // The master's fixed handle exists before the baseline
         ChannelGroup.master();
@@ -99,8 +167,10 @@ class ProbeGroupPark {
         _parent = ChannelGroup.create("probe-park-parent");
         _group = ChannelGroup.create("probe-park-group");
         _child = ChannelGroup.create("probe-park-child");
+        _child2 = ChannelGroup.create("probe-park-child2");
         _parent.addGroup(_group);
         _group.addGroup(_child);
+        _group.addGroup(_child2);
         _group.setMode(ChannelMode.MODE_3D);
         _group.set3DAttributes(5, 0, 0);
         _group.setCallback(function(_) {});
@@ -108,6 +178,9 @@ class ProbeGroupPark {
         _channel = _stream.play(false);
         _channel.setChannelGroup(_group);
         _channel.set3DAttributes(5, 0, 0);
+        _tone = Dsp.create(DspType.OSCILLATOR);
+        _channel2 = _tone.play(false);
+        _channel2.setChannelGroup(_group);
         _parentHead = _parent.getDsp(ChannelGroup.DSP_HEAD);
         @:privateAccess state.check("cg_park_setup", !_geometry.isNull() && !_group.isNull() && !_child.isNull()
             && !_channel.isNull() && _parentHead.getNumInputs() == 1 && _parent.getNumGroups() == 1,
@@ -141,6 +214,18 @@ class ProbeGroupPark {
         @:privateAccess state.check("cg_park_children_moved", (childParent : Int) == (master : Int)
             && (channelGroup : Int) == (master : Int),
             'childParent=${(childParent : Int)} channelGroup=${(channelGroup : Int)} master=${(master : Int)}');
+        // The move keeps the order the immediate release gave. That release
+        // ran at once, which the empty input list of its parent shows.
+        var parkedOrder = moveOrder(_channel, _channel2, _child, _child2);
+        @:privateAccess state.check("cg_park_keeps_release_order", _immediateInputs == 0
+            && _immediateOrder == "channels=ab groups=ab" && parkedOrder == _immediateOrder,
+            'immediate=[$_immediateOrder] immediateInputs=$_immediateInputs parked=[$parkedOrder]');
+        // An index past the shown children is out of range, whatever its size
+        var past = _parent.getGroup(0x7fffffff);
+        var pastResult = StudioSystem.lastResult();
+        @:privateAccess state.check("cg_park_hidden_index_past_end", past.isNull()
+            && pastResult == FmodResult.FMOD_ERR_INVALID_PARAM,
+            'handle=${(past : Int)} lastResult=${pastResult.toString()}');
         // The FMOD object waits on the parked list, so its DSPs still feed
         // the parent
         @:privateAccess state.check("cg_park_fmod_release_waits", inputs == 1, 'inputs=$inputs');
@@ -153,6 +238,9 @@ class ProbeGroupPark {
         @:privateAccess state.check("cg_park_fmod_release_runs", inputs == 0 && elapsed >= 0.05,
             'inputs=$inputs elapsed_ms=${Math.round(elapsed * 1000)}');
         _channel.stop();
+        _channel2.stop();
+        _tone.release();
+        _child2.release();
         var rStream = _stream.release();
         var rChild = _child.release();
         var rParent = _parent.release();

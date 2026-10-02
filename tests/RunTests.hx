@@ -22,6 +22,7 @@ class RunTests {
 		// After TestRuntime: FmodManager.Update initializes the runtime
 		totalFailed += TestEngineUpdaters.run();
 		totalFailed += TestEngineComponents.run();
+		totalFailed += TestEngineAdapters.run();
 
 		Sys.println("");
 		if (totalFailed > 0) {

@@ -102,13 +102,16 @@ class ProbeSoundLock {
         }
 
         // FMOD decodes a playing stream on its own threads. readData and
-        // seekData on it from the game thread crash FMOD. The binding
-        // refuses both while an unpaused channel plays the sound. A paused
-        // channel, a paused group, and a stopped channel leave both open.
+        // seekData on it from the game thread crash FMOD. A paused sound
+        // keeps decoding for a moment after the pause. The binding refuses
+        // both while any channel plays the sound, paused or not. A stopped
+        // channel leaves both open.
         var playing = Sound.create(wavPath, true, false, haxefmod.core.ChannelMode.CREATESTREAM);
         if (!playing.isNull()) {
             var readBuffer = haxe.io.Bytes.alloc(1024);
             var group = haxefmod.core.ChannelGroup.create("probe-read-data");
+            var above = haxefmod.core.ChannelGroup.create("probe-read-data-above");
+            above.addGroup(group);
             var channel = playing.play(false, group);
             var whilePlaying = playing.readData(readBuffer);
             var seekWhilePlaying:FmodResult = playing.seekData(0);
@@ -117,18 +120,26 @@ class ProbeSoundLock {
                 'read=$whilePlaying seek=${seekWhilePlaying.toString()}');
             channel.setPaused(true);
             var whilePaused = playing.readData(readBuffer);
+            var seekWhilePaused:FmodResult = playing.seekData(0);
             channel.setPaused(false);
-            group.setPaused(true);
+            above.setPaused(true);
             var whileGroupPaused = playing.readData(readBuffer);
-            group.setPaused(false);
+            var seekWhileGroupPaused:FmodResult = playing.seekData(0);
+            above.setPaused(false);
+            @:privateAccess state.check("core_sound_read_data_refused_while_paused",
+                whilePaused == -(FmodResult.FMOD_ERR_NOTREADY : Int) && seekWhilePaused == FmodResult.FMOD_ERR_NOTREADY
+                && whileGroupPaused == -(FmodResult.FMOD_ERR_NOTREADY : Int) && seekWhileGroupPaused == FmodResult.FMOD_ERR_NOTREADY,
+                'paused=$whilePaused seekPaused=${seekWhilePaused.toString()} groupPaused=$whileGroupPaused'
+                + ' seekGroupPaused=${seekWhileGroupPaused.toString()}');
             channel.stop();
             var seekStopped:FmodResult = playing.seekData(0);
             var afterStop = playing.readData(readBuffer);
-            @:privateAccess state.check("core_sound_read_data_open_when_paused_or_stopped",
-                whilePaused > 0 && whileGroupPaused > 0 && seekStopped.isOk() && afterStop > 0,
-                'paused=$whilePaused groupPaused=$whileGroupPaused seek=${seekStopped.toString()} stopped=$afterStop');
+            @:privateAccess state.check("core_sound_read_data_open_after_stop",
+                seekStopped.isOk() && afterStop > 0,
+                'seek=${seekStopped.toString()} stopped=$afterStop');
             playing.release();
             group.release();
+            above.release();
         }
 
         // The subsounds of a stream share its decoder. A playing subsound

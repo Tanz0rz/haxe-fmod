@@ -178,9 +178,9 @@ abstract Sound(Int) from Int to Int {
      * (unsupported in HTML5). Returns the bytes read, 0 at the end of the
      * file (StudioSystem.lastResult reports FMOD_ERR_FILE_EOF), or a
      * negated FMOD error code. HTML5 returns -68. length defaults to the
-     * whole buffer and is clamped to it. A sound that an unpaused channel
-     * plays returns -46 (FMOD_ERR_NOTREADY). Another sound of the same
-     * subsound tree does too.
+     * whole buffer and is clamped to it. A sound that a channel plays,
+     * paused or not, returns -46 (FMOD_ERR_NOTREADY). Another sound of the
+     * same subsound tree does too. Stop the channel first.
      */
     public macro function readData(self:haxe.macro.Expr, buffer:haxe.macro.Expr, ?length:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Sound.readData", "FMOD's web build cannot read sample data");
@@ -191,9 +191,9 @@ abstract Sound(Int) from Int to Int {
      * (unsupported in HTML5). Returns the bytes read, 0 at the end of the
      * file (StudioSystem.lastResult reports FMOD_ERR_FILE_EOF), or a
      * negated FMOD error code. HTML5 returns -68. length defaults to the
-     * whole buffer and is clamped to it. A sound that an unpaused channel
-     * plays returns -46 (FMOD_ERR_NOTREADY). Another sound of the same
-     * subsound tree does too.
+     * whole buffer and is clamped to it. A sound that a channel plays,
+     * paused or not, returns -46 (FMOD_ERR_NOTREADY). Another sound of the
+     * same subsound tree does too. Stop the channel first.
      */
     public function readData(buffer:haxe.io.Bytes, length:Int = -1):Int {
         if (buffer == null) return -(FmodResult.FMOD_ERR_INVALID_PARAM : Int);
@@ -207,8 +207,8 @@ abstract Sound(Int) from Int to Int {
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /**
      * Moves the readData cursor to a PCM sample offset (unsupported in
-     * HTML5, returns FMOD_ERR_UNSUPPORTED). A sound that an unpaused
-     * channel plays fails with FMOD_ERR_NOTREADY, as in readData.
+     * HTML5, returns FMOD_ERR_UNSUPPORTED). A sound that a channel plays,
+     * paused or not, fails with FMOD_ERR_NOTREADY, as in readData.
      */
     public macro function seekData(self:haxe.macro.Expr, pcm:haxe.macro.Expr):haxe.macro.Expr {
         return haxefmod.studio.native.Html5Gate.block("Sound.seekData", "FMOD's web build cannot seek sample data");
@@ -216,8 +216,8 @@ abstract Sound(Int) from Int to Int {
     #else
     /**
      * Moves the readData cursor to a PCM sample offset (unsupported in
-     * HTML5, returns FMOD_ERR_UNSUPPORTED). A sound that an unpaused
-     * channel plays fails with FMOD_ERR_NOTREADY, as in readData.
+     * HTML5, returns FMOD_ERR_UNSUPPORTED). A sound that a channel plays,
+     * paused or not, fails with FMOD_ERR_NOTREADY, as in readData.
      */
     public inline function seekData(pcm:Int):FmodResult {
         return NativeStudio.core_sound_seek_data(this, pcm);

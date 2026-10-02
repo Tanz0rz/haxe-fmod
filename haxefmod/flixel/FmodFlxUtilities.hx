@@ -40,7 +40,7 @@ class FmodFlxUtilities {
                 case Stopped:
                     if (!consumed) {
                         consumed = true;
-                        if (FlxG.state == stateOnCall) FlxG.switchState(state);
+                        if (FlxG.state == stateOnCall && !switchRequested()) FlxG.switchState(state);
                     }
                 // A same-song PlaySong during the fade cancels the switch
                 case Restarted: consumed = true;
@@ -62,7 +62,7 @@ class FmodFlxUtilities {
         // Stopped for it. The poll switches once the song is gone.
         var poll:Void->Void = null;
         poll = () -> {
-            if (@:privateAccess FmodManager.songHandlerSerial != serial || FlxG.state != stateOnCall) consumed = true;
+            if (@:privateAccess FmodManager.songHandlerSerial != serial || FlxG.state != stateOnCall || switchRequested()) consumed = true;
             if (!consumed && FmodManager.IsSongPlaying()) return;
             FlxG.signals.postUpdate.remove(poll);
             if (consumed) return;
@@ -71,6 +71,13 @@ class FmodFlxUtilities {
             FlxG.switchState(state);
         };
         FlxG.signals.postUpdate.add(poll);
+    }
+
+    // Flixel applies a switch request at the start of the next frame, and
+    // a later request replaces it. FlxG.state still names the old state
+    // in the frame the game asked for another one.
+    static inline function switchRequested():Bool {
+        return @:privateAccess FlxG.game._nextState != null;
     }
 
     /**
