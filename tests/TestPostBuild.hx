@@ -701,6 +701,17 @@ class TestPostBuild {
 		check("postbuild replaces the placeholders in a lime build under lime's default bin",
 			sys.FileSystem.exists('$limeDefault/bin/html5/bin/lib/fmodstudio.wasm'));
 
+		// A stale build under lime's default bin never takes the files a
+		// build under export or Export needs
+		for (folder in ["export", "Export"]) {
+			var limeBoth = '$base/lime-both-$folder';
+			sys.FileSystem.createDirectory('$limeBoth/$folder/html5/bin');
+			sys.FileSystem.createDirectory('$limeBoth/bin/html5/bin');
+			r = runTool(["postbuild", "html5", "html5", "x"], limeBoth, ["FMOD_SDK_WEB" => goodWeb]);
+			check('postbuild prefers $folder over a stale build under bin',
+				sys.FileSystem.exists('$limeBoth/$folder/html5/bin/lib/fmodstudio.wasm') && !sys.FileSystem.exists('$limeBoth/bin/html5/bin/lib'));
+		}
+
 		// The compile check reads an SDK path relative to the project, so the
 		// postbuild and the stage read it from there too
 		var relProject = '$base/relative';
