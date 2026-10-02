@@ -334,12 +334,12 @@ class ProgrammerSoundScenario implements TestScenario {
         check("at_destroy_callback_delivered", _atDestroys > 0, '$tag count=$_atDestroys');
         // The meter reports the last mix block, read once per frame. A
         // loop slower than 20 frames a second misses most blocks of a
-        // short word. The peak says nothing there, so the check is
+        // short sound. The peak says nothing there, so the check is
         // recorded as unsampled rather than guessed.
         info("at_timeline", '$tag create_frame=$_atCreateFrame ready_frame=$_atReadyFrame first_audible_frame=$_atFirstAudibleFrame stopped_frame=$_atFrames');
         var elapsed = haxe.Timer.stamp() - _atPlayStamp;
         var pollsPerSecond = elapsed > 0 ? _atFrames / elapsed : 0;
-        // The words fill only the first 0.12 s of each line, so a first
+        // The sounds fill only the first 0.12 s of each file, so a first
         // poll later than 0.1 s can miss them and is unsampled too
         if (pollsPerSecond >= 20 && _atFirstPoll < 0.1) {
             check("at_key_resolved_audibly", _atMaxPeak > 0.01, '$tag peak=$_atMaxPeak polls_per_second=${Math.round(pollsPerSecond)}');

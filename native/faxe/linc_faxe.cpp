@@ -1534,7 +1534,7 @@ bool fmod_cg_get_paused(int h) {
 // it. A DSP the game did not create goes only into the chain it came
 // from or a chain that already lists it. FMOD or Studio frees a group's
 // DSP or a Studio effect with its owner, also after the game removed it
-// from that chain. FMOD hands a channel's own DSP to the next channel
+// from that chain. FMOD hands a channel's own DSP to a later channel
 // that plays.
 static bool lincDspInOtherChain(int dspHandle, FMOD::DSP* dsp, int target) {
     int owner = faxe_dsp_chain(dspHandle);
