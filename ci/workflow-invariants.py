@@ -898,6 +898,22 @@ if status_missing:
 else:
     ok(f"the state action, the stress workflow and {run_functions} generated game runs fail on a nonzero exit status")
 
+# 22. The trace mirror writes only on Windows, where a GUI executable has
+# no stdout. Everywhere else stdout is redirected into the log file, and a
+# second writer on the same file overwrites lines (a game log once read
+# "oin" where a Coin line had been).
+jobs_text = re.split(r"\n  [a-z0-9-]+:\n    name: ", text)[1:]
+mirror_wrong = []
+for body in jobs_text:
+    title = body.split("\n", 1)[0]
+    if "HAXEFMOD_LOG_FILE" in body and not re.search(r"runs-on: windows", body):
+        mirror_wrong.append(title)
+mirror_action = re.findall(r"^ *(?:MINGW\*\|MSYS\*\|CYGWIN\*\)\s*)?export HAXEFMOD_LOG_FILE=", state_action, re.M)
+if mirror_wrong or len(mirror_action) != 1 or not mirror_action[0].strip().startswith("MINGW"):
+    fail(f"trace mirror outside Windows: jobs {mirror_wrong}, action exports {mirror_action}")
+else:
+    ok("the trace mirror into the log file is Windows-only in the workflow and the state action")
+
 print()
 if failures:
     print(f"workflow-invariants: {len(failures)} FAILURE(S)")

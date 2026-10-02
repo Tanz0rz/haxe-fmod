@@ -62,9 +62,12 @@ runs:
         fi
 
         export HAXEFMOD_TEST_STATE="${{ inputs.state }}"
-        # GUI executables on Windows have no stdout: the examples mirror
-        # their traces into this file
-        export HAXEFMOD_LOG_FILE="$LOG_FILE"
+        # GUI executables on Windows have no stdout, so there the examples
+        # mirror their traces into the log file. Elsewhere stdout is
+        # redirected into it, and a second writer would overwrite lines
+        case "$(uname -s)" in
+          MINGW*|MSYS*|CYGWIN*) export HAXEFMOD_LOG_FILE="$LOG_FILE" ;;
+        esac
         if [ "${{ inputs.use-wavwriter }}" = "true" ]; then
           export FMOD_WAVWRITER="${RUNNER_TEMP}/state-${{ inputs.state }}.wav"
         fi

@@ -297,8 +297,9 @@ def run_for(j, seconds, log, wav_env):
     """Runs the game for up to `seconds`, the log mirrored to `log`."""
     if j.linux and wav_env is None:
         # Linux records the real output through PulseAudio
-        return f"""          export HAXEFMOD_LOG_FILE={log}
-          ffmpeg -f pulse -i virtual_speaker.monitor -t {seconds} -y {j.tmp(f"audio-{j.name}.wav")} &
+        # stdout goes to the log by redirect. The trace mirror must not
+        # write the same file, two writers overwrite each other
+        return f"""          ffmpeg -f pulse -i virtual_speaker.monitor -t {seconds} -y {j.tmp(f"audio-{j.name}.wav")} &
           RECORD_PID=$!
           cd {j.bindir}
           # A game that ignores SIGTERM gets ten seconds, then SIGKILL
@@ -315,7 +316,6 @@ def run_for(j, seconds, log, wav_env):
           cd -
 """
     return f"""          export FMOD_WAVWRITER={wav_env}
-          export HAXEFMOD_LOG_FILE={log}
           cd {j.bindir}
 {run_game_function(seconds, log).replace('{launch}', j.launch)}
           if run_game; then
@@ -370,6 +370,10 @@ def native_steps(j):
     # Linux plays through PulseAudio, so only the synth state needs the
     # wavwriter there. macOS and Windows record everything through it.
     wavwriter = '"true"' if not j.linux else "\"${{ matrix.state == 'synth-test' && 'true' || 'false' }}\""
+    # GUI executables on Windows have no stdout, so there the examples
+    # mirror their traces into the log file. Elsewhere stdout is
+    # redirected into it, and a second writer would overwrite lines
+    mirror = '          export HAXEFMOD_LOG_FILE="$LOG"\n' if j.windows else ""
     manual = f"""
       - name: Run api-probe state (manual update variant)
         if: matrix.state == 'api-probe-manual'
@@ -429,8 +433,7 @@ def native_steps(j):
           export STRESS_SECONDS=15
           export FMOD_WAVWRITER="${{RUNNER_TEMP}}/stress-smoke.wav"
           LOG={L(f"stress-smoke-{j.name}.log")}
-          export HAXEFMOD_LOG_FILE="$LOG"
-          cd {j.bindir}
+{mirror}          cd {j.bindir}
 {run_game_function(90, '"$LOG"').replace('{launch}', j.launch)}
           if run_game; then
             echo "The game exited within five seconds with no state output. Launching once more."
