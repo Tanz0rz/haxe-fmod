@@ -1104,9 +1104,6 @@ HL_PRIM int HL_NAME(chan_stop)(int h) {
      * FMOD reports the channel already gone */
     gLastResult = FMOD_Channel_Stop(ch);
     faxe_handle_free(h);
-    /* Stopping tears down the channel's DSP chain, which destroys its
-     * connection objects */
-    faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     if (gLastResult == FMOD_OK) faxe_handles_free_volatile();
     return (int)gLastResult;
 }
@@ -1277,8 +1274,6 @@ HL_PRIM int HL_NAME(dsp_release)(int h) {
     /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
-        // Releasing a DSP tears down its connections
-        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
         faxe_handles_free_volatile();
     }
     return (int)gLastResult;
@@ -1525,11 +1520,7 @@ static void hlaxe_release_parked_groups(void) {
             faxe_park_add(due[i].ptr, due[i].aux, due[i].at);
         }
     }
-    if (released) {
-        /* The release took the group's DSPs out of the graph */
-        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
-        faxe_handles_free_volatile();
-    }
+    if (released) faxe_handles_free_volatile();
 }
 
 /* Parks a group whose occlusion request a geometry can have queued. The
@@ -1616,7 +1607,6 @@ HL_PRIM int HL_NAME(cg_release)(int h) {
     if (faxe_park_needed(hlaxe_now_ms()) && hlaxe_park_group(group, h)) {
         gLastResult = FMOD_OK;
         faxe_handle_free(h);
-        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
         faxe_handles_free_volatile();
         return (int)gLastResult;
     }
@@ -1626,8 +1616,6 @@ HL_PRIM int HL_NAME(cg_release)(int h) {
     /* INVALID_HANDLE means FMOD freed the object already, so the slot goes too */
     if (gLastResult == FMOD_OK || gLastResult == FMOD_ERR_INVALID_HANDLE) {
         faxe_handle_free(h);
-        /* Releasing the group destroys the connections of every DSP in it */
-        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
         faxe_handles_free_volatile();
     } else if (userData) {
         /* A refused release keeps the callback the game installed */
@@ -1709,14 +1697,8 @@ DEFINE_PRIM(_BOOL, cg_get_paused, _I32);
 HL_PRIM int HL_NAME(cg_add_dsp)(int h, int index, int dspHandle) {
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
-    int outputs = 0;
     if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (FMOD_DSP_GetNumOutputs(dsp, &outputs) != FMOD_OK) outputs = 0;
     gLastResult = FMOD_ChannelGroup_AddDSP(group, index, dsp);
-    /* A DSP with outputs can be in a chain, which it leaves first. A
-     * group's tail that leaves destroys the connections of the group's
-     * children. */
-    if (gLastResult == FMOD_OK && outputs > 0) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, cg_add_dsp, _I32 _I32 _I32);
@@ -1726,9 +1708,6 @@ HL_PRIM int HL_NAME(cg_remove_dsp)(int h, int dspHandle) {
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
     if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_ChannelGroup_RemoveDSP(group, dsp);
-    /* Removing a DSP rebuilds that part of the graph and destroys the
-     * affected connection objects */
-    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, cg_remove_dsp, _I32 _I32);
@@ -1794,38 +1773,11 @@ HL_PRIM int HL_NAME(chan_set_position)(int h, int position, int unit) {
 }
 DEFINE_PRIM(_I32, chan_set_position, _I32 _I32 _I32);
 
-/* Counts the connections from head, the unit's head DSP, to the tail of
-   from, the unit's parent, and puts the first one in old. A move to
-   another parent destroys one of them. A move into from changes nothing,
-   so the count is 0 for it. */
-static int hlaxe_moved_connection(FMOD_DSP* head, FMOD_CHANNELGROUP* from, FMOD_CHANNELGROUP* to, FMOD_DSPCONNECTION** old) {
-    *old = NULL;
-    if (!from || from == to) return 0;
-    return faxe_parent_connection(head, from, old);
-}
-
-/* Frees the handle of the connection an accepted move destroyed. With
-   more than one connection to the old tail the shim cannot tell which one
-   FMOD destroyed, so every connection handle goes. */
-static void hlaxe_end_moved_connection(int count, FMOD_DSPCONNECTION* old) {
-    if (count > 1) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
-    else if (old) faxe_handle_free(faxe_handle_find(old, FAXE_TYPE_DSPCONN));
-}
-
 HL_PRIM int HL_NAME(chan_set_channel_group)(int h, int groupHandle) {
     FMOD_CHANNEL* channel = resolve_channel(h);
     FMOD_CHANNELGROUP* group = resolve_changroup(groupHandle);
-    FMOD_CHANNELGROUP* from = NULL;
-    FMOD_DSP* head = NULL;
-    FMOD_DSPCONNECTION* old;
-    int count;
     if (!channel || !group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (FMOD_Channel_GetChannelGroup(channel, &from) != FMOD_OK) from = NULL;
-    if (FMOD_Channel_GetDSP(channel, FMOD_CHANNELCONTROL_DSP_HEAD, &head) != FMOD_OK) head = NULL;
-    count = hlaxe_moved_connection(head, from, group, &old);
     gLastResult = FMOD_Channel_SetChannelGroup(channel, group);
-    /* A move destroys the connection to the old group and no other */
-    if (gLastResult == FMOD_OK) hlaxe_end_moved_connection(count, old);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, chan_set_channel_group, _I32 _I32);
@@ -1833,13 +1785,8 @@ DEFINE_PRIM(_I32, chan_set_channel_group, _I32 _I32);
 HL_PRIM int HL_NAME(chan_add_dsp)(int h, int index, int dspHandle) {
     FMOD_CHANNEL* channel = resolve_channel(h);
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
-    int outputs = 0;
     if (!channel || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
-    if (FMOD_DSP_GetNumOutputs(dsp, &outputs) != FMOD_OK) outputs = 0;
     gLastResult = FMOD_Channel_AddDSP(channel, index, dsp);
-    /* A DSP with outputs can be in a chain, which it leaves first. That
-     * can destroy connections there. */
-    if (gLastResult == FMOD_OK && outputs > 0) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, chan_add_dsp, _I32 _I32 _I32);
@@ -1849,9 +1796,6 @@ HL_PRIM int HL_NAME(chan_remove_dsp)(int h, int dspHandle) {
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
     if (!channel || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Channel_RemoveDSP(channel, dsp);
-    /* Removing a DSP rebuilds that part of the graph and destroys the
-     * affected connection objects */
-    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, chan_remove_dsp, _I32 _I32);
@@ -2019,8 +1963,12 @@ DEFINE_PRIM(_I32, sys_get_reverb_properties, _I32 _BYTES);
 
 //// Core DSP connection graph
 
+static const FaxeConnOps gHlaxeConnOps = { faxe_conn_fmod_end_dsp, faxe_conn_fmod_count, faxe_conn_fmod_at };
+
+/* The connection behind a handle while it still joins the ends the handle
+   recorded. Otherwise the handle goes and the result is NULL. */
 static FMOD_DSPCONNECTION* resolve_dspconn(int h) {
-    return (FMOD_DSPCONNECTION*)faxe_handle_resolve(h, FAXE_TYPE_DSPCONN);
+    return (FMOD_DSPCONNECTION*)faxe_conn_check(h, &gHlaxeConnOps);
 }
 
 /* True for a DSP or a group the game reached through a channel, an event,
@@ -2033,13 +1981,38 @@ static int hlaxe_dsp_short_lived(int h) {
 }
 
 /* The handle of a connection the game made with addInput or addGroup.
-   output and input are its two ends, two DSPs or two groups. FMOD frees
+   output and input are the owners of its two ends, two DSPs or two
+   groups, with their roles. FMOD just made the connection, so a handle
+   that holds its address names an older connection and goes. FMOD frees
    the connection on its own when a short-lived end goes, so the handle is
    short-lived too. Any other one is long-lived. */
-static int hlaxe_mint_made_connection(FMOD_DSPCONNECTION* conn, int output, int input) {
-    if (hlaxe_dsp_short_lived(input)) return hlaxe_mint_borrowed(conn, FAXE_TYPE_DSPCONN, input, 1);
-    if (hlaxe_dsp_short_lived(output)) return hlaxe_mint_borrowed(conn, FAXE_TYPE_DSPCONN, output, 1);
-    return hlaxe_handle_or_memory(conn, FAXE_TYPE_DSPCONN);
+static int hlaxe_mint_made_connection(FMOD_DSPCONNECTION* conn, int output, unsigned char roleOut, int input, unsigned char roleIn) {
+    int handle;
+    faxe_handles_free_ptr(conn, FAXE_TYPE_DSPCONN);
+    faxe_conn_room(&gHlaxeConnOps);
+    if (hlaxe_dsp_short_lived(input)) handle = hlaxe_mint_borrowed(conn, FAXE_TYPE_DSPCONN, input, 1);
+    else if (hlaxe_dsp_short_lived(output)) handle = hlaxe_mint_borrowed(conn, FAXE_TYPE_DSPCONN, output, 1);
+    else handle = hlaxe_handle_or_memory(conn, FAXE_TYPE_DSPCONN);
+    if (handle) faxe_conn_set_ends(handle, input, roleIn, output, roleOut);
+    return handle;
+}
+
+/* The handle of a connection a walk from the DSP handle h reached. other
+   is the DSP on the far side, an input of h when inputs is set. A handle
+   the table holds for the connection comes back when it passes its check.
+   A new one is short-lived, like the DSPs it joins, and records h and a
+   handle for other as its ends. */
+static int hlaxe_mint_walked_connection(FMOD_DSPCONNECTION* conn, int h, FMOD_DSP* other, int inputs) {
+    int found = faxe_handle_find(conn, FAXE_TYPE_DSPCONN);
+    int end;
+    int handle;
+    if (found && resolve_dspconn(found)) return found;
+    end = hlaxe_mint_borrowed(other, FAXE_TYPE_DSP, h, 1);
+    if (!end) return 0;
+    faxe_conn_room(&gHlaxeConnOps);
+    handle = hlaxe_mint_borrowed(conn, FAXE_TYPE_DSPCONN, h, 1);
+    if (handle) faxe_conn_set_ends(handle, inputs ? end : h, FAXE_END_DSP, inputs ? h : end, FAXE_END_DSP);
+    return handle;
 }
 
 HL_PRIM int HL_NAME(dsp_add_input)(int h, int inputHandle, int type) {
@@ -2049,7 +2022,7 @@ HL_PRIM int HL_NAME(dsp_add_input)(int h, int inputHandle, int type) {
     if (!dsp || !input) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_AddInput(dsp, input, &conn, (FMOD_DSPCONNECTION_TYPE)type);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return hlaxe_mint_made_connection(conn, h, inputHandle);
+    return hlaxe_mint_made_connection(conn, h, FAXE_END_DSP, inputHandle, FAXE_END_DSP);
 }
 DEFINE_PRIM(_I32, dsp_add_input, _I32 _I32 _I32);
 
@@ -2064,9 +2037,6 @@ HL_PRIM int HL_NAME(dsp_disconnect_from)(int h, int inputHandle, int connHandle)
         if (!conn) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     }
     gLastResult = FMOD_DSP_DisconnectFrom(dsp, input, conn);
-    // Graph changes invalidate connection objects on the mixer's schedule,
-    // so every connection handle is dropped deterministically here
-    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, dsp_disconnect_from, _I32 _I32 _I32);
@@ -2075,7 +2045,6 @@ HL_PRIM int HL_NAME(dsp_disconnect_all)(int h, bool inputs, bool outputs) {
     FMOD_DSP* dsp = resolve_dsp(h);
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_DSP_DisconnectAll(dsp, inputs ? 1 : 0, outputs ? 1 : 0);
-    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, dsp_disconnect_all, _I32 _BOOL _BOOL);
@@ -2116,9 +2085,8 @@ HL_PRIM int HL_NAME(dsp_get_input_connection)(int h, int index) {
     FMOD_DSPCONNECTION* conn = NULL;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetInput(dsp, index, &input, &conn);
-    if (gLastResult != FMOD_OK || !conn) return 0;
-    /* A connection a walk reaches is short-lived, like the DSPs it joins */
-    return hlaxe_mint_borrowed(conn, FAXE_TYPE_DSPCONN, h, 1);
+    if (gLastResult != FMOD_OK || !conn || !input) return 0;
+    return hlaxe_mint_walked_connection(conn, h, input, 1);
 }
 DEFINE_PRIM(_I32, dsp_get_input_connection, _I32 _I32);
 
@@ -2157,22 +2125,14 @@ HL_PRIM int HL_NAME(cg_add_group)(int h, int childHandle, bool propagateDspClock
     FMOD_CHANNELGROUP* group = resolve_changroup(h);
     FMOD_CHANNELGROUP* child = resolve_changroup(childHandle);
     FMOD_DSPCONNECTION* conn = NULL;
-    FMOD_CHANNELGROUP* from = NULL;
-    FMOD_DSP* head = NULL;
-    FMOD_DSPCONNECTION* old;
-    int count;
     if (!group || !child) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     if (faxe_argcheck_group_above(group, child)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
-    if (FMOD_ChannelGroup_GetParentGroup(child, &from) != FMOD_OK) from = NULL;
-    if (FMOD_ChannelGroup_GetDSP(child, FMOD_CHANNELCONTROL_DSP_HEAD, &head) != FMOD_OK) head = NULL;
-    count = hlaxe_moved_connection(head, from, group, &old);
     gLastResult = FMOD_ChannelGroup_AddGroup(group, child, propagateDspClock ? 1 : 0, &conn);
-    /* A move destroys the connection to the old parent and no other */
-    if (gLastResult == FMOD_OK) hlaxe_end_moved_connection(count, old);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    /* Studio frees a bus's or an event's group on its own, and FMOD frees
-       the connection with it */
-    return hlaxe_mint_made_connection(conn, h, childHandle);
+    /* The connection joins the child's head to the group's tail. Studio
+       frees a bus's or an event's group on its own, and FMOD frees the
+       connection with it. */
+    return hlaxe_mint_made_connection(conn, h, FAXE_END_TAIL, childHandle, FAXE_END_HEAD);
 }
 DEFINE_PRIM(_I32, cg_add_group, _I32 _I32 _BOOL);
 
@@ -3799,9 +3759,8 @@ HL_PRIM int HL_NAME(dsp_get_output_connection)(int h, int index) {
     FMOD_DSPCONNECTION* conn = NULL;
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetOutput(dsp, index, &output, &conn);
-    if (gLastResult != FMOD_OK || !conn) return 0;
-    /* A connection a walk reaches is short-lived, like the DSPs it joins */
-    return hlaxe_mint_borrowed(conn, FAXE_TYPE_DSPCONN, h, 1);
+    if (gLastResult != FMOD_OK || !conn || !output) return 0;
+    return hlaxe_mint_walked_connection(conn, h, output, 0);
 }
 DEFINE_PRIM(_I32, dsp_get_output_connection, _I32 _I32);
 
@@ -4369,6 +4328,9 @@ HL_PRIM bool HL_NAME(cb_next)() {
          * fresh one: a sound FMOD rejected can already be gone. */
         unsigned char kind = hlaxe_error_instance_type(gCbCurrent.i2);
         gCbCurrent.i3 = kind == FAXE_TYPE_NONE ? 0 : faxe_handle_find(gCbCurrent.ptr, kind);
+        /* A connection handle names the failing connection only while it
+           passes its check */
+        if (kind == FAXE_TYPE_DSPCONN && gCbCurrent.i3 && !resolve_dspconn(gCbCurrent.i3)) gCbCurrent.i3 = 0;
     }
     gCbCurrent.ptr = NULL;
     return true;
@@ -7086,9 +7048,6 @@ HL_PRIM int HL_NAME(chan_set_dsp_index)(int h, int dspHandle, int index) {
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
     if (!channel || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Channel_SetDSPIndex(channel, dsp, index);
-    /* A reorder rebuilds links in the chain. Every connection handle ends,
-     * as on a group. */
-    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, chan_set_dsp_index, _I32 _I32 _I32);
@@ -7189,8 +7148,6 @@ HL_PRIM int HL_NAME(cg_set_dsp_index)(int h, int dspHandle, int index) {
     FMOD_DSP* dsp = resolve_dsp(dspHandle);
     if (!group || !dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_ChannelGroup_SetDSPIndex(group, dsp, index);
-    /* Moving the group's tail destroys the connections of its children */
-    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, cg_set_dsp_index, _I32 _I32 _I32);
@@ -7975,7 +7932,7 @@ HL_PRIM int HL_NAME(dsp_add_input_preallocated)(int h, int inputHandle, int conn
     gLastResult = FMOD_ERR_UNSUPPORTED;
 #endif
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return hlaxe_mint_made_connection(conn, h, inputHandle);
+    return hlaxe_mint_made_connection(conn, h, FAXE_END_DSP, inputHandle, FAXE_END_DSP);
 }
 DEFINE_PRIM(_I32, dsp_add_input_preallocated, _I32 _I32 _I32);
 

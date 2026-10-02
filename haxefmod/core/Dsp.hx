@@ -203,8 +203,8 @@ abstract Dsp(Int) from Int to Int {
      * The handle is long-lived when both DSPs are ones the game created or
      * DSPs of a channel group the game created or of the master. It is
      * short-lived when either DSP is one the game reached through a
-     * channel, an event, a bus, or a walk. DspConnection lists the calls
-     * that end a connection handle.
+     * channel, an event, a bus, or a walk. DspConnection says how long a
+     * connection handle stays valid.
      */
     public inline function addInput(input:Dsp, connectionType:DspConnectionType = DspConnectionType.STANDARD):DspConnection {
         return NativeStudio.dsp_add_input(this, input, connectionType);
@@ -214,7 +214,8 @@ abstract Dsp(Int) from Int to Int {
      * Removes the link from `input` into this unit. With no connection
      * given, every connection between the two goes. A connection narrows
      * it to that one link, and a stale connection handle reports
-     * FMOD_ERR_INVALID_HANDLE. A disconnect ends every connection handle.
+     * FMOD_ERR_INVALID_HANDLE. The handle of a removed connection fails its
+     * next check.
      */
     public inline function disconnectFrom(input:Dsp, connection:DspConnection = DspConnection.NULL):FmodResult {
         return NativeStudio.dsp_disconnect_from(this, input, connection);
@@ -267,9 +268,9 @@ abstract Dsp(Int) from Int to Int {
     }
 
     /**
-     * The connection carrying input slot `index`. A known connection returns its existing handle. Any other
-     * one gets a borrowed handle that lives the way getInput's does. Returns DspConnection.NULL on failure,
-     * with the reason in StudioSystem.lastResult().
+     * The connection carrying input slot `index`. A known connection returns its existing handle while that
+     * handle passes its check. Any other one gets a borrowed handle that lives the way getInput's does.
+     * Returns DspConnection.NULL on failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getInputConnection(index:Int):DspConnection {
         return NativeStudio.dsp_get_input_connection(this, index);
@@ -333,9 +334,9 @@ abstract Dsp(Int) from Int to Int {
     }
 
     /**
-     * The connection carrying output slot `index`. A known connection returns its existing handle. Any
-     * other one gets a borrowed handle that lives the way getInput's does. Returns DspConnection.NULL on
-     * failure, with the reason in StudioSystem.lastResult().
+     * The connection carrying output slot `index`. A known connection returns its existing handle while
+     * that handle passes its check. Any other one gets a borrowed handle that lives the way getInput's does.
+     * Returns DspConnection.NULL on failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getOutputConnection(index:Int):DspConnection {
         return NativeStudio.dsp_get_output_connection(this, index);

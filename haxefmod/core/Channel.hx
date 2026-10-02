@@ -111,18 +111,17 @@ abstract Channel(Int) from Int to Int {
     }
 
     /**
-     * Reroutes this channel into a group. A move to another group ends the
-     * handle of the connection to the old group. When the channel's head
-     * has a second connection to the old group's tail, the move ends every
-     * connection handle.
+     * Reroutes this channel into a group. A move to another group destroys
+     * the connection to the old group, and its handle fails its next check.
      */
     public inline function setChannelGroup(group:ChannelGroup):FmodResult {
         return NativeStudio.chan_set_channel_group(this, group);
     }
 
     /**
-     * Inserts an effect on this channel (0 = head of the chain). When the DSP
-     * already has outputs, an accepted call ends every DspConnection handle.
+     * Inserts an effect on this channel (0 = head of the chain). A
+     * connection handle whose connection FMOD destroys or moves here fails
+     * its next check.
      */
     public inline function addDsp(index:Int, dsp:Dsp):FmodResult {
         return NativeStudio.chan_add_dsp(this, index, dsp);
@@ -539,8 +538,9 @@ abstract Channel(Int) from Int to Int {
     }
 
     /**
-     * Moves an attached effect to another chain position (0 = head). An
-     * accepted call ends every DspConnection handle.
+     * Moves an attached effect to another chain position (0 = head). A
+     * connection handle whose connection FMOD destroys or moves here fails
+     * its next check.
      */
     public inline function setDspIndex(dsp:Dsp, index:Int):FmodResult {
         return NativeStudio.chan_set_dsp_index(this, dsp, index);

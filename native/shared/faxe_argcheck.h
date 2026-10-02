@@ -129,27 +129,39 @@ static inline int faxe_argcheck_group_above(FMOD_CHANNELGROUP* group, FMOD_CHANN
     return 0;
 }
 
-/* Counts the connections that join a unit's head DSP to the tail of its
- * parent group and puts the first one in *conn, NULL when there is none.
- * A move to another parent destroys the parent connection and leaves the
- * head's other connections alone. A game connection between the same two
- * DSPs can come first, so with a count above one the caller cannot tell
- * which one a move destroys. */
-static inline int faxe_parent_connection(FMOD_DSP* head, FMOD_CHANNELGROUP* parent, FMOD_DSPCONNECTION** conn) {
-    FMOD_DSP* tail = NULL;
-    int count = 0, found = 0, i;
-    *conn = NULL;
-    if (!head || !parent || FMOD_ChannelGroup_GetDSP(parent, FMOD_CHANNELCONTROL_DSP_TAIL, &tail) != FMOD_OK) return 0;
-    if (FMOD_DSP_GetNumOutputs(head, &count) != FMOD_OK) return 0;
-    for (i = 0; i < count; i++) {
-        FMOD_DSP* output = NULL;
-        FMOD_DSPCONNECTION* c = NULL;
-        if (FMOD_DSP_GetOutput(head, i, &output, &c) == FMOD_OK && output == tail) {
-            if (!found) *conn = c;
-            found++;
-        }
-    }
-    return found;
+/* The end roles of faxe_handles.h, for a file that includes only this one */
+#ifndef FAXE_END_DSP
+#define FAXE_END_DSP 0
+#define FAXE_END_HEAD 1
+#define FAXE_END_TAIL 2
+#endif
+
+/* The FMOD reads of a connection check (FaxeConnOps in faxe_handles.h).
+ * Both C shims fill their FaxeConnOps with these. A DSP list read makes
+ * FMOD apply its queued graph changes first. A fresh connection is listed
+ * at once, and a removed one is gone at once. */
+static inline void* faxe_conn_fmod_end_dsp(void* owner, unsigned char role) {
+    FMOD_DSP* dsp = NULL;
+    if (role == FAXE_END_DSP) return owner;
+    if (FMOD_ChannelGroup_GetDSP((FMOD_CHANNELGROUP*)owner,
+            role == FAXE_END_HEAD ? FMOD_CHANNELCONTROL_DSP_HEAD : FMOD_CHANNELCONTROL_DSP_TAIL, &dsp) != FMOD_OK) return NULL;
+    return dsp;
+}
+
+static inline int faxe_conn_fmod_count(void* dsp, int inputs) {
+    int count = 0;
+    FMOD_RESULT result = inputs ? FMOD_DSP_GetNumInputs((FMOD_DSP*)dsp, &count) : FMOD_DSP_GetNumOutputs((FMOD_DSP*)dsp, &count);
+    return result == FMOD_OK ? count : -1;
+}
+
+static inline int faxe_conn_fmod_at(void* dsp, int inputs, int index, void** conn, void** other) {
+    FMOD_DSP* side = NULL;
+    FMOD_DSPCONNECTION* c = NULL;
+    FMOD_RESULT result = inputs ? FMOD_DSP_GetInput((FMOD_DSP*)dsp, index, &side, &c) : FMOD_DSP_GetOutput((FMOD_DSP*)dsp, index, &side, &c);
+    if (result != FMOD_OK) return 0;
+    *conn = c;
+    *other = side;
+    return 1;
 }
 
 /* The top sound of a subsound tree. The subsounds of a stream share its

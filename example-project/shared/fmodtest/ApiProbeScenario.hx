@@ -1823,7 +1823,8 @@ class ApiProbeScenario implements TestScenario {
             StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
             'result=${StudioSystem.lastResult().toString()}');
 
-        // Graph-destroying calls invalidate every connection handle
+        // A graph call ends only the handles of the connections it destroys
+        // or moves. conn joins two DSPs none of the calls below touches.
         var dspA = Dsp.create(DspType.ECHO);
         var dspB = Dsp.create(DspType.OSCILLATOR);
         var conn = dspA.addInput(dspB);
@@ -1837,21 +1838,32 @@ class ApiProbeScenario implements TestScenario {
         conn.getMix();
         check("lifecycle_conn_survives_add", StudioSystem.lastResult().isOk(),
             'result=${StudioSystem.lastResult().toString()}');
+        var echoSource = Dsp.create(DspType.OSCILLATOR);
+        var feed = echo.addInput(echoSource);
         var removeResult = channel.removeDsp(echo);
         check("lifecycle_remove_dsp", removeResult.isOk(), 'result=${removeResult.toString()}');
+        // The removal moved the feed onto the chain, so its handle fails
+        feed.getMix();
+        var feedResult = StudioSystem.lastResult();
         conn.getMix();
         check("lifecycle_conn_dead_after_remove_dsp",
-            StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
-            'result=${StudioSystem.lastResult().toString()}');
+            feedResult == FmodResult.FMOD_ERR_INVALID_HANDLE && StudioSystem.lastResult().isOk(),
+            'feed=${feedResult.toString()} conn=${StudioSystem.lastResult().toString()}');
+        channel.addDsp(0, echo);
+        var feed2 = echo.addInput(echoSource);
         var conn2 = dspA.addInput(dspB);
-        check("lifecycle_conn2_created", !conn2.isNull(), "");
+        check("lifecycle_conn2_created", !conn2.isNull() && !feed2.isNull(), "");
         channel.stop();
+        // The stop takes the DSP out of the chain and moves its feed onto it
+        feed2.getMix();
+        var feed2Result = StudioSystem.lastResult();
         conn2.getMix();
         check("lifecycle_conn_dead_after_chan_stop",
-            StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
-            'result=${StudioSystem.lastResult().toString()}');
+            feed2Result == FmodResult.FMOD_ERR_INVALID_HANDLE && StudioSystem.lastResult().isOk(),
+            'feed=${feed2Result.toString()} conn=${StudioSystem.lastResult().toString()}');
         dspA.disconnectAll();
         echo.release();
+        echoSource.release();
         dspB.release();
         dspA.release();
         stream.release();

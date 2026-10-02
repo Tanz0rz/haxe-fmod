@@ -1048,7 +1048,7 @@ async function main() {
         drainEvents();
     }
 
-    // --- DSP connection handles die with graph teardown ---
+    // --- DSP connection handles fail after graph teardown ---
     const dsp = jaxe.fmod_dsp_create_by_type(3 /* echo */);
     check('dsp_created', dsp > 0, `handle=${dsp}`);
     const ps2 = jaxe.fmod_core_pcm_create(8000, 1, 8000);
@@ -1062,8 +1062,12 @@ async function main() {
     if (conn > 0) {
         check('conn_minted', true, `handle=${conn}`);
         check('chan_remove_dsp', jaxe.fmod_chan_remove_dsp(chan3, dsp) === 0, '');
-        check('conn_invalidated_by_remove_dsp',
-            jaxe.handleResolve(conn, jaxe.TYPE_DSPCONN) == null, '');
+        // The removal destroyed the connection, so the next call fails its
+        // check and frees the slot
+        const removedMix = jaxe.fmod_dspconn_get_mix(conn);
+        const removedResult = jaxe.lastResult;
+        check('conn_invalidated_by_remove_dsp', removedMix === 0 && removedResult === jaxe.ERR_INVALID_HANDLE
+            && jaxe.handleResolve(conn, jaxe.TYPE_DSPCONN) == null, `result=${removedResult}`);
         connInvalidationsRun++;
     } else {
         skip('conn_invalidated_by_remove_dsp', `conn=${conn}`);

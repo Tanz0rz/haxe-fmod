@@ -70,6 +70,13 @@ async function main() {
     const UNSUPPORTED = jaxe.ERR_UNSUPPORTED;
     const INVALID_HANDLE = jaxe.ERR_INVALID_HANDLE;
     const INVALID_PARAM = jaxe.ERR_INVALID_PARAM;
+    // Whether a connection handle still works and runs at mix, and whether
+    // it fails its check
+    const connLive = (c, mix) => {
+        const m = jaxe.fmod_dspconn_get_mix(c);
+        return Math.abs(m - mix) < 0.001 && jaxe.lastResult === OK;
+    };
+    const connDead = (c) => jaxe.fmod_dspconn_get_mix(c) === 0 && jaxe.lastResult === INVALID_HANDLE;
     jaxe.fmod_cg_get_master();
     const baseline = jaxe.fmod_debug_live_handle_count();
     const fbuf = new Array(1024).fill(0);
@@ -118,9 +125,10 @@ async function main() {
     check('dsp_walk_connection_short_lived', walkedLive && walkedResult === INVALID_HANDLE && reached === conn
         && connMix > 0 && jaxe.lastResult === OK,
         `live=${walkedLive} walked=${walkedResult} reached=${reached} conn=${conn} connMix=${connMix}`);
-    // A move ends the handle of the connection to the old parent and no
-    // other. A refused move keeps it, and so does a move into the parent
-    // the child already has. That move gets no connection.
+    // A move destroys the connection to the old parent, and its handle
+    // fails the check. Every other handle keeps working. A refused move
+    // keeps the connection, and so does a move into the parent the child
+    // already has. That move gets no connection.
     const moved = jaxe.fmod_cg_add_group(child, other, true);
     const movedLive = moved !== 0 && jaxe.fmod_dspconn_get_mix(moved) > 0;
     const refusedMove = jaxe.fmod_cg_add_group(other, parent, true);
@@ -144,9 +152,10 @@ async function main() {
     check('cg_is_playing_empty', jaxe.fmod_cg_is_playing(parent) === false && jaxe.lastResult === OK, `result=${jaxe.lastResult}`);
     const stream = jaxe.fmod_core_pcm_create(48000, 2, 4096);
     const channel = jaxe.fmod_core_pcm_play(stream, false);
-    // A channel move ends the handle of the connection to the old group
-    // and no other. A refused move keeps it, and so does a move into the
-    // group the channel is in.
+    // A channel move destroys the connection to the old group, and its
+    // handle fails the check. Every other handle keeps working. A refused
+    // move keeps the connection, and so does a move into the group the
+    // channel is in.
     const sendOsc = jaxe.fmod_dsp_create_by_type(2);
     const sendFft = jaxe.fmod_dsp_create_by_type(26);
     const send = jaxe.fmod_dsp_add_input(sendFft, sendOsc, 0);
@@ -245,10 +254,39 @@ async function main() {
     check('conn_set_mix_matrix_hop', jaxe.fmod_conn_set_mix_matrix(link, fbuf, 2, 2, 4) === OK, `result=${jaxe.lastResult}`);
     check('conn_get_mix_matrix_unsupported', jaxe.fmod_conn_get_mix_matrix(link, fbuf, ibuf, 0) === 0 && jaxe.lastResult === UNSUPPORTED, '');
 
-    // disconnectFrom narrowed to one connection, then the stale handle
+    // disconnectFrom narrowed to one connection, then the stale handle. A
+    // connection the disconnect leaves keeps its handle.
+    const bystanderIn = jaxe.fmod_dsp_create_by_type(2);
+    const bystanderOut = jaxe.fmod_dsp_create_by_type(1);
+    const bystander = jaxe.fmod_dsp_add_input(bystanderOut, bystanderIn, 0);
+    jaxe.fmod_dspconn_set_mix(bystander, 0.4);
     check('dsp_disconnect_from_connection', jaxe.fmod_dsp_disconnect_from(fft, osc, link) === OK
-        && jaxe.fmod_dsp_get_num_inputs(fft) === 0, `inputs=${jaxe.fmod_dsp_get_num_inputs(fft)}`);
+        && jaxe.fmod_dsp_get_num_inputs(fft) === 0 && connDead(link) && connLive(bystander, 0.4),
+        `inputs=${jaxe.fmod_dsp_get_num_inputs(fft)}`);
+    // A connection FMOD makes at the address of one it destroyed gets a
+    // new handle. The old handle is never checked before the new
+    // connections come, and no new one comes back with it.
+    const oldLink = jaxe.fmod_dsp_add_input(fft, osc, 0);
+    jaxe.fmod_dsp_disconnect_from(fft, osc, 0);
+    jaxe.fmod_sys_update();
+    // The mark goes out of reach so the check at the mark frees nothing
+    // and the make path alone keeps the handles apart
+    const markBefore = jaxe.connMark;
+    jaxe.connMark = 1 << 30;
+    let reusedAs = 0;
+    const churn = [];
+    for (let i = 0; i < 1500 && !reusedAs; i++) {
+        const x = jaxe.fmod_dsp_create_by_type(2), y = jaxe.fmod_dsp_create_by_type(1);
+        const c = jaxe.fmod_dsp_add_input(y, x, 0);
+        if (c === oldLink) reusedAs = c;
+        churn.push(x, y);
+        if (i % 64 === 63) jaxe.fmod_sys_update();
+    }
+    for (const d of churn) jaxe.fmod_dsp_release(d);
+    jaxe.connMark = markBefore;
     const again = jaxe.fmod_dsp_add_input(fft, osc, 0);
+    check('dsp_add_input_new_handle_at_reused_address', oldLink !== 0 && reusedAs === 0 && again !== oldLink
+        && connDead(oldLink) && connLive(again, 1.0), `old=${oldLink} reused=${reusedAs} again=${again}`);
     check('dsp_disconnect_from_stale_connection', jaxe.fmod_dsp_disconnect_from(fft, osc, link) === INVALID_HANDLE
         && jaxe.fmod_dsp_get_num_inputs(fft) === 1, `again=${again} old=${link}`);
     check('dsp_disconnect_from_any', jaxe.fmod_dsp_disconnect_from(fft, osc, 0) === OK
@@ -355,9 +393,9 @@ async function main() {
         jaxe.fmod_core_release_sound(shortSound);
     }
 
-    // A head with a second connection to the old parent's tail. The shim
-    // cannot tell which one a move destroys, so the move ends every
-    // connection handle. The game's send keeps routing at its mix.
+    // A head with a second connection to the old parent's tail. The move
+    // destroys the parent connection, and the game's send keeps routing at
+    // its mix with its handle.
     {
         const inputsAtMix = (dsp, mix) => {
             let count = 0;
@@ -380,7 +418,7 @@ async function main() {
         const dupResult = jaxe.lastResult;
         const dupSends = inputsAtMix(dupTail, 0.25);
         check('cg_add_group_second_tail_connection', dupLive && dupMove !== 0 && dupMoveResult === OK && dupMix === 0
-            && dupResult === INVALID_HANDLE && dupSends === 1,
+            && dupResult === INVALID_HANDLE && dupSends === 1 && connLive(dupSend, 0.25),
             `live=${dupLive} move=${dupMoveResult} result=${dupResult} sends=${dupSends}`);
         // The same holds for a channel. The game sends to a group's tail
         // first, then moves the channel into the group and out again.
@@ -403,7 +441,7 @@ async function main() {
         const chanResult = jaxe.lastResult;
         const chanSends = inputsAtMix(otherTail, 0.25);
         check('chan_set_channel_group_second_tail_connection', chanLive && chanLeave === OK && chanMix === 0
-            && chanResult === INVALID_HANDLE && chanSends === 1,
+            && chanResult === INVALID_HANDLE && chanSends === 1 && connLive(chanSend, 0.25),
             `live=${chanLive} leave=${chanLeave} result=${chanResult} sends=${chanSends}`);
         jaxe.fmod_chan_stop(dupChannel);
         jaxe.fmod_core_pcm_release(dupStream);
@@ -412,8 +450,10 @@ async function main() {
     }
 
     // A DSP at a group's tail carries the connections of the group's
-    // children. FMOD frees them when that DSP moves, so the move ends every
-    // connection handle. A fresh DSP keeps them.
+    // children. FMOD destroys the connection of a lone child when that DSP
+    // moves, and its handle fails the check. A fresh DSP at the tail takes
+    // the connection over, and the handle follows the tail. The bystander
+    // keeps working throughout.
     {
         const tailParent = jaxe.fmod_cg_create('cc-tail-parent');
         const tailChild = jaxe.fmod_cg_create('cc-tail-child');
@@ -428,7 +468,8 @@ async function main() {
         const tailMove = jaxe.fmod_cg_set_dsp_index(tailParent, tailDsp, 0);
         jaxe.fmod_dspconn_get_mix(tailConn);
         const tailMoveResult = jaxe.lastResult;
-        check('cg_set_dsp_index_tail_ends_connection', tailMove === OK && tailMoveResult === INVALID_HANDLE,
+        check('cg_set_dsp_index_tail_ends_connection', tailMove === OK && tailMoveResult === INVALID_HANDLE
+            && connLive(bystander, 0.4),
             `move=${tailMove} result=${tailMoveResult}`);
         const readdParent = jaxe.fmod_cg_create('cc-readd-parent');
         const readdChild = jaxe.fmod_cg_create('cc-readd-child');
@@ -440,7 +481,8 @@ async function main() {
         const readdAgain = jaxe.fmod_cg_add_dsp(readdParent, 0, readdDsp);
         jaxe.fmod_dspconn_get_mix(readdConn);
         const readdResult = jaxe.lastResult;
-        check('cg_add_dsp_tail_again_ends_connection', readdLive && readdAgain === OK && readdResult === INVALID_HANDLE,
+        check('cg_add_dsp_tail_again_ends_connection', readdLive && readdAgain === OK && readdResult === INVALID_HANDLE
+            && connLive(bystander, 0.4),
             `live=${readdLive} again=${readdAgain} result=${readdResult}`);
         jaxe.fmod_cg_remove_dsp(readdParent, readdDsp);
         jaxe.fmod_dsp_release(readdDsp);
@@ -450,6 +492,138 @@ async function main() {
         jaxe.fmod_dsp_release(tailDsp);
         jaxe.fmod_cg_release(tailChild);
         jaxe.fmod_cg_release(tailParent);
+    }
+
+    // Each graph call ends only the handles of the connections it destroys
+    // or moves. The bystander joins two DSPs none of these calls touches.
+    {
+        const fxStream = jaxe.fmod_core_pcm_create(48000, 2, 4096);
+        const fxChannel = jaxe.fmod_core_pcm_play(fxStream, 0, false);
+        const fx = jaxe.fmod_dsp_create_by_type(3);
+        const fxIn = jaxe.fmod_dsp_create_by_type(1);
+        const fxOut = jaxe.fmod_dsp_create_by_type(1);
+        jaxe.fmod_chan_add_dsp(fxChannel, 0, fx);
+        const fxFeed = jaxe.fmod_dsp_add_input(fx, fxIn, 0);
+        jaxe.fmod_dspconn_set_mix(fxFeed, 0.3);
+        const fxSend = jaxe.fmod_dsp_add_input(fxOut, fx, 2);
+        jaxe.fmod_dspconn_set_mix(fxSend, 0.5);
+        const fxLive = connLive(fxFeed, 0.3) && connLive(fxSend, 0.5);
+        const fxStop = jaxe.fmod_chan_stop(fxChannel);
+        // The stop takes the DSP out of the channel's chain and moves its
+        // input onto the chain. The send out of it stays.
+        check('chan_stop_ends_feed_keeps_send', fxLive && fxStop === OK && connDead(fxFeed)
+            && connLive(fxSend, 0.5) && connLive(bystander, 0.4), `live=${fxLive} stop=${fxStop}`);
+        const fxFeed2 = jaxe.fmod_dsp_add_input(fx, fxIn, 0);
+        const fxFed = connLive(fxFeed2, 1.0);
+        const fxRelease = jaxe.fmod_dsp_release(fx);
+        check('dsp_release_ends_its_connections', fxFed && fxRelease === OK && connDead(fxFeed2)
+            && connDead(fxSend) && connLive(bystander, 0.4), `fed=${fxFed} release=${fxRelease}`);
+        jaxe.fmod_dsp_release(fxIn);
+        jaxe.fmod_dsp_release(fxOut);
+        jaxe.fmod_core_pcm_release(fxStream);
+
+        const relParent = jaxe.fmod_cg_create('cc-rel-parent');
+        const relChild = jaxe.fmod_cg_create('cc-rel-child');
+        const relConn = jaxe.fmod_cg_add_group(relParent, relChild, true);
+        jaxe.fmod_dspconn_set_mix(relConn, 0.7);
+        const relLive = connLive(relConn, 0.7);
+        const relRelease = jaxe.fmod_cg_release(relChild);
+        check('cg_release_ends_child_connection', relLive && relRelease === OK && connDead(relConn)
+            && connLive(bystander, 0.4), `live=${relLive} release=${relRelease}`);
+        jaxe.fmod_cg_release(relParent);
+
+        const rmGroup = jaxe.fmod_cg_create('cc-rm');
+        const rmDsp = jaxe.fmod_dsp_create_by_type(3);
+        const rmIn = jaxe.fmod_dsp_create_by_type(1);
+        const rmOut = jaxe.fmod_dsp_create_by_type(1);
+        jaxe.fmod_cg_add_dsp(rmGroup, 0, rmDsp);
+        const rmFeed = jaxe.fmod_dsp_add_input(rmDsp, rmIn, 0);
+        jaxe.fmod_dspconn_set_mix(rmFeed, 0.3);
+        const rmSend = jaxe.fmod_dsp_add_input(rmOut, rmDsp, 2);
+        jaxe.fmod_dspconn_set_mix(rmSend, 0.5);
+        const rmLive = connLive(rmFeed, 0.3) && connLive(rmSend, 0.5);
+        const rmResult = jaxe.fmod_cg_remove_dsp(rmGroup, rmDsp);
+        check('cg_remove_dsp_ends_feed_keeps_send', rmLive && rmResult === OK && connDead(rmFeed)
+            && connLive(rmSend, 0.5) && connLive(bystander, 0.4), `live=${rmLive} remove=${rmResult}`);
+        const daFeed = jaxe.fmod_dsp_add_input(rmDsp, rmIn, 0);
+        const daLive = connLive(daFeed, 1.0);
+        const daResult = jaxe.fmod_dsp_disconnect_all(rmDsp, true, false);
+        check('dsp_disconnect_all_ends_inputs_keeps_send', daLive && daResult === OK && connDead(daFeed)
+            && connLive(rmSend, 0.5) && connLive(bystander, 0.4), `live=${daLive} result=${daResult}`);
+        jaxe.fmod_dsp_release(rmOut);
+        jaxe.fmod_dsp_release(rmIn);
+        jaxe.fmod_dsp_release(rmDsp);
+        jaxe.fmod_cg_release(rmGroup);
+
+        // A reorder in a chain leaves the child's connection and a send out
+        // of the chain alone
+        const roParent = jaxe.fmod_cg_create('cc-ro-parent');
+        const roChild = jaxe.fmod_cg_create('cc-ro-child');
+        const roConn = jaxe.fmod_cg_add_group(roParent, roChild, true);
+        jaxe.fmod_dspconn_set_mix(roConn, 0.6);
+        const roX = jaxe.fmod_dsp_create_by_type(3);
+        const roY = jaxe.fmod_dsp_create_by_type(5);
+        const roOut = jaxe.fmod_dsp_create_by_type(1);
+        jaxe.fmod_cg_add_dsp(roParent, 0, roX);
+        jaxe.fmod_cg_add_dsp(roParent, 0, roY);
+        const roSend = jaxe.fmod_dsp_add_input(roOut, roX, 2);
+        jaxe.fmod_dspconn_set_mix(roSend, 0.5);
+        const roIn = jaxe.fmod_dsp_create_by_type(1);
+        const roFeed = jaxe.fmod_dsp_add_input(roX, roIn, 0);
+        jaxe.fmod_dspconn_set_mix(roFeed, 0.3);
+        const roLive = connLive(roConn, 0.6) && connLive(roSend, 0.5) && connLive(roFeed, 0.3);
+        const roMove = jaxe.fmod_cg_set_dsp_index(roParent, roY, 1);
+        check('cg_set_dsp_index_keeps_unrelated_connections', roLive && roMove === OK && connLive(roConn, 0.6)
+            && connLive(roSend, 0.5) && connLive(bystander, 0.4), `live=${roLive} move=${roMove}`);
+        // FMOD moved the feed onto the DSP above roX. Its
+        // handle fails, and a walk to the moved connection mints a new one.
+        let roWalked = 0;
+        for (let i = 0; i < jaxe.fmod_dsp_get_num_inputs(roY); i++) {
+            const c = jaxe.fmod_dsp_get_input_connection(roY, i);
+            if (Math.abs(jaxe.fmod_dspconn_get_mix(c) - 0.3) < 0.001) roWalked = c;
+        }
+        check('cg_set_dsp_index_moved_feed_rewalks', connDead(roFeed) && roWalked !== 0 && roWalked !== roFeed
+            && connLive(roWalked, 0.3), `walked=${roWalked} feed=${roFeed}`);
+        jaxe.fmod_dsp_release(roIn);
+        jaxe.fmod_cg_remove_dsp(roParent, roX);
+        jaxe.fmod_cg_remove_dsp(roParent, roY);
+        jaxe.fmod_dsp_release(roOut);
+        jaxe.fmod_dsp_release(roX);
+        jaxe.fmod_dsp_release(roY);
+        jaxe.fmod_cg_release(roChild);
+        jaxe.fmod_cg_release(roParent);
+
+        // FMOD destroys a standard input of a DSP that a chain takes
+        const fedParent = jaxe.fmod_cg_create('cc-fed-parent');
+        const fedSource = jaxe.fmod_dsp_create_by_type(1);
+        const fedDsp = jaxe.fmod_dsp_create_by_type(3);
+        const fedConn = jaxe.fmod_dsp_add_input(fedDsp, fedSource, 0);
+        const fedLive = connLive(fedConn, 1.0);
+        const fedAdd = jaxe.fmod_cg_add_dsp(fedParent, 0, fedDsp);
+        check('cg_add_dsp_fed_ends_connection', fedLive && fedAdd === OK && connDead(fedConn)
+            && connLive(bystander, 0.4), `live=${fedLive} add=${fedAdd}`);
+        jaxe.fmod_cg_remove_dsp(fedParent, fedDsp);
+        jaxe.fmod_dsp_release(fedDsp);
+        jaxe.fmod_dsp_release(fedSource);
+        jaxe.fmod_cg_release(fedParent);
+
+        // An addDsp past the end of the DSP's own chain takes the DSP out
+        // of the chain before FMOD refuses the index
+        const refParent = jaxe.fmod_cg_create('cc-refused-parent');
+        const refChild = jaxe.fmod_cg_create('cc-refused-child');
+        const refConn = jaxe.fmod_cg_add_group(refParent, refChild, true);
+        const refDsp = jaxe.fmod_dsp_create_by_type(3);
+        const refFirst = jaxe.fmod_cg_add_dsp(refParent, jaxe.fmod_cg_get_num_dsps(refParent), refDsp);
+        const refLive = refFirst === OK && connLive(refConn, 1.0);
+        const refAgain = jaxe.fmod_cg_add_dsp(refParent, jaxe.fmod_cg_get_num_dsps(refParent), refDsp);
+        check('cg_add_dsp_refused_ends_connection', refLive && refAgain === INVALID_PARAM && connDead(refConn)
+            && connLive(bystander, 0.4), `live=${refLive} again=${refAgain}`);
+        jaxe.fmod_cg_remove_dsp(refParent, refDsp);
+        jaxe.fmod_dsp_release(refDsp);
+        jaxe.fmod_cg_release(refChild);
+        jaxe.fmod_cg_release(refParent);
+        jaxe.fmod_dsp_release(bystanderOut);
+        jaxe.fmod_dsp_release(bystanderIn);
     }
 
     jaxe.fmod_cg_release(other);

@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../../native/shared/faxe_handles.h"
 
 static int sweep_all_valid(void* ptr, unsigned char type) {
@@ -146,6 +147,243 @@ static void test_fuzz_against_model(void) {
         faxe_handle_free(gFuzzLive[0].handle);
         fuzz_model_remove(gFuzzLive[0].handle);
     }
+}
+
+/* A stand-in DSP: its input and output lists, each entry a connection
+ * and the DSP on its far side */
+typedef struct FakeDsp {
+    void* ins[8];
+    void* insOther[8];
+    int nIn;
+    void* outs[8];
+    void* outsOther[8];
+    int nOut;
+} FakeDsp;
+
+/* A stand-in channel group: its head and tail DSPs */
+typedef struct {
+    FakeDsp* head;
+    FakeDsp* tail;
+} FakeGroup;
+
+static int gOpsCalls = 0;
+static int gAtInputs = 0;
+static int gAtOutputs = 0;
+
+static void* fake_end_dsp(void* owner, unsigned char role) {
+    FakeGroup* g = (FakeGroup*)owner;
+    gOpsCalls++;
+    if (role == FAXE_END_DSP) return owner;
+    return role == FAXE_END_HEAD ? g->head : g->tail;
+}
+
+static int fake_count(void* dsp, int inputs) {
+    FakeDsp* d = (FakeDsp*)dsp;
+    gOpsCalls++;
+    return inputs ? d->nIn : d->nOut;
+}
+
+static int fake_at(void* dsp, int inputs, int index, void** conn, void** other) {
+    FakeDsp* d = (FakeDsp*)dsp;
+    gOpsCalls++;
+    if (inputs) gAtInputs++; else gAtOutputs++;
+    if (index < 0 || index >= (inputs ? d->nIn : d->nOut)) return 0;
+    *conn = inputs ? d->ins[index] : d->outs[index];
+    *other = inputs ? d->insOther[index] : d->outsOther[index];
+    return 1;
+}
+
+static const FaxeConnOps gFakeOps = { fake_end_dsp, fake_count, fake_at };
+
+/* Lists conn as a connection from in to out */
+static void fake_link(FakeDsp* in, FakeDsp* out, void* conn) {
+    in->outs[in->nOut] = conn;
+    in->outsOther[in->nOut++] = out;
+    out->ins[out->nIn] = conn;
+    out->insOther[out->nIn++] = in;
+}
+
+/* Removes conn from both lists */
+static void fake_unlink(FakeDsp* in, FakeDsp* out, void* conn) {
+    int i;
+    for (i = 0; i < in->nOut; i++) {
+        if (in->outs[i] == conn) {
+            in->outs[i] = in->outs[in->nOut - 1];
+            in->outsOther[i] = in->outsOther[--in->nOut];
+            break;
+        }
+    }
+    for (i = 0; i < out->nIn; i++) {
+        if (out->ins[i] == conn) {
+            out->ins[i] = out->ins[out->nIn - 1];
+            out->insOther[i] = out->insOther[--out->nIn];
+            break;
+        }
+    }
+}
+
+static void test_conn_checks(void) {
+    FakeDsp a, b, c, filler;
+    FakeGroup parent, child;
+    int connA = 0, connB = 0, connC = 0;
+    int ha, hb, hc, hParent, hChild, hp, before, h1, h2, i, base;
+    memset(&a, 0, sizeof a);
+    memset(&b, 0, sizeof b);
+    memset(&c, 0, sizeof c);
+    memset(&filler, 0, sizeof filler);
+    ha = faxe_handle_alloc(&a, FAXE_TYPE_DSP);
+    hb = faxe_handle_alloc(&b, FAXE_TYPE_DSP);
+    hc = faxe_handle_alloc(&c, FAXE_TYPE_DSP);
+    base = gFaxeConnCount;
+
+    /* A connection FMOD lists from a to b passes and keeps its handle */
+    fake_link(&a, &b, &connA);
+    h1 = faxe_handle_alloc(&connA, FAXE_TYPE_DSPCONN);
+    assert(gFaxeConnCount == base + 1);
+    faxe_conn_set_ends(h1, ha, FAXE_END_DSP, hb, FAXE_END_DSP);
+    assert(faxe_conn_check(h1, &gFakeOps) == &connA);
+    assert(faxe_handle_resolve(h1, FAXE_TYPE_DSPCONN) == &connA);
+
+    /* Two connections between the same pair: the one FMOD drops fails,
+     * the other passes */
+    fake_link(&a, &b, &connB);
+    h2 = faxe_handle_alloc(&connB, FAXE_TYPE_DSPCONN);
+    faxe_conn_set_ends(h2, ha, FAXE_END_DSP, hb, FAXE_END_DSP);
+    fake_unlink(&a, &b, &connA);
+    assert(faxe_conn_check(h1, &gFakeOps) == NULL);
+    assert(faxe_handle_resolve(h1, FAXE_TYPE_DSPCONN) == NULL);
+    assert(faxe_conn_check(h2, &gFakeOps) == &connB);
+
+    /* FMOD reused the address for a connection between other DSPs: the
+     * handle fails although FMOD lists the address */
+    fake_unlink(&a, &b, &connB);
+    fake_link(&a, &c, &connB);
+    assert(faxe_conn_check(h2, &gFakeOps) == NULL);
+    assert(gFaxeConnCount == base);
+    fake_unlink(&a, &c, &connB);
+
+    /* The DSP on the far side of the scanned list must be the other
+     * recorded end. a lists the connection once as an output to c, and b
+     * has more inputs, so the scan reads a's outputs. */
+    fake_link(&filler, &b, &filler.outs[6]);
+    fake_link(&filler, &b, &filler.outs[7]);
+    fake_link(&a, &c, &connC);
+    h1 = faxe_handle_alloc(&connC, FAXE_TYPE_DSPCONN);
+    faxe_conn_set_ends(h1, ha, FAXE_END_DSP, hb, FAXE_END_DSP);
+    assert(faxe_conn_check(h1, &gFakeOps) == NULL);
+    fake_unlink(&a, &c, &connC);
+    fake_unlink(&filler, &b, &filler.outs[6]);
+    fake_unlink(&filler, &b, &filler.outs[7]);
+
+    /* An end whose owner handle is stale fails before any FMOD read, even
+     * when its slot holds a new object */
+    {
+        int stale = faxe_handle_alloc(&b, FAXE_TYPE_DSP);
+        int reuse;
+        faxe_handle_free(stale);
+        reuse = faxe_handle_alloc(&c, FAXE_TYPE_DSP);
+        assert((reuse & 0xFFFF) == (stale & 0xFFFF));
+        fake_link(&c, &a, &connC);
+        h1 = faxe_handle_alloc(&connC, FAXE_TYPE_DSPCONN);
+        faxe_conn_set_ends(h1, stale, FAXE_END_DSP, ha, FAXE_END_DSP);
+        before = gOpsCalls;
+        assert(faxe_conn_check(h1, &gFakeOps) == NULL);
+        assert(gOpsCalls == before);
+        fake_unlink(&c, &a, &connC);
+        faxe_handle_free(reuse);
+    }
+
+    /* An end whose owner handle died takes the connection handle along */
+    fake_link(&a, &b, &connC);
+    h1 = faxe_handle_alloc(&connC, FAXE_TYPE_DSPCONN);
+    faxe_conn_set_ends(h1, hb, FAXE_END_DSP, hc, FAXE_END_DSP);
+    fake_unlink(&a, &b, &connC);
+    fake_link(&b, &c, &connC);
+    assert(faxe_conn_check(h1, &gFakeOps) == &connC);
+    /* The connection handle dies with its owner, before any check */
+    faxe_handle_free(hb);
+    assert(faxe_handle_resolve(h1, FAXE_TYPE_DSPCONN) == NULL);
+    before = gOpsCalls;
+    assert(faxe_conn_check(h1, &gFakeOps) == NULL);
+    assert(gOpsCalls == before);
+    fake_unlink(&b, &c, &connC);
+
+    /* A group end follows the group's tail. FMOD moving the connection to
+     * a new tail keeps it valid. A tail that changes without the move
+     * fails it. */
+    memset(&b, 0, sizeof b);
+    parent.head = &b;
+    parent.tail = &b;
+    child.head = &a;
+    child.tail = &a;
+    hParent = faxe_handle_alloc(&parent, FAXE_TYPE_CHANGROUP);
+    hChild = faxe_handle_alloc(&child, FAXE_TYPE_CHANGROUP);
+    fake_link(&a, &b, &connA);
+    hp = faxe_handle_alloc(&connA, FAXE_TYPE_DSPCONN);
+    faxe_conn_set_ends(hp, hChild, FAXE_END_HEAD, hParent, FAXE_END_TAIL);
+    assert(faxe_conn_check(hp, &gFakeOps) == &connA);
+    fake_unlink(&a, &b, &connA);
+    fake_link(&a, &c, &connA);
+    parent.tail = &c;
+    assert(faxe_conn_check(hp, &gFakeOps) == &connA);
+    parent.tail = &b;
+    assert(faxe_conn_check(hp, &gFakeOps) == NULL);
+    fake_unlink(&a, &c, &connA);
+
+    /* The scan reads the shorter list: one output of a against six inputs
+     * of c */
+    for (i = 0; i < 5; i++) fake_link(&filler, &c, &filler.ins[0] + i);
+    fake_link(&a, &c, &connB);
+    h1 = faxe_handle_alloc(&connB, FAXE_TYPE_DSPCONN);
+    faxe_conn_set_ends(h1, ha, FAXE_END_DSP, hc, FAXE_END_DSP);
+    gAtInputs = 0;
+    gAtOutputs = 0;
+    assert(faxe_conn_check(h1, &gFakeOps) == &connB);
+    assert(gAtInputs == 0 && gAtOutputs == 1);
+
+    /* A freed slot clears its ends, so another type never inherits them */
+    faxe_handle_free(h1);
+    h2 = faxe_handle_alloc(&connC, FAXE_TYPE_DSP);
+    assert(gFaxeSlots[h2 & 0xFFFF].end_in == 0 && gFaxeSlots[h2 & 0xFFFF].end_out == 0);
+    faxe_handle_free(h2);
+
+    /* reclaim frees the failing handles and leaves the volatile ones and
+     * the passing ones */
+    fake_unlink(&a, &c, &connB);
+    fake_link(&a, &c, &connA);
+    h1 = faxe_handle_alloc(&connA, FAXE_TYPE_DSPCONN);
+    faxe_conn_set_ends(h1, ha, FAXE_END_DSP, hc, FAXE_END_DSP);
+    h2 = faxe_handle_alloc(&connB, FAXE_TYPE_DSPCONN);
+    faxe_conn_set_ends(h2, ha, FAXE_END_DSP, hc, FAXE_END_DSP);
+    hb = faxe_handle_alloc(&connC, FAXE_TYPE_DSPCONN);
+    faxe_conn_set_ends(hb, ha, FAXE_END_DSP, hc, FAXE_END_DSP);
+    faxe_handle_set_volatile(hb);
+    faxe_conn_reclaim(&gFakeOps);
+    assert(faxe_handle_resolve(h1, FAXE_TYPE_DSPCONN) == &connA);
+    assert(faxe_handle_resolve(h2, FAXE_TYPE_DSPCONN) == NULL);
+    assert(faxe_handle_resolve(hb, FAXE_TYPE_DSPCONN) == &connC);
+
+    /* room checks them all once the count reaches the mark, then sets the
+     * mark to twice the survivors with 256 as the floor */
+    h2 = faxe_handle_alloc(&connB, FAXE_TYPE_DSPCONN);
+    faxe_conn_set_ends(h2, ha, FAXE_END_DSP, hc, FAXE_END_DSP);
+    gFaxeConnMark = gFaxeConnCount + 1;
+    faxe_conn_room(&gFakeOps);
+    assert(faxe_handle_resolve(h2, FAXE_TYPE_DSPCONN) == &connB);
+    gFaxeConnMark = gFaxeConnCount;
+    faxe_conn_room(&gFakeOps);
+    assert(faxe_handle_resolve(h2, FAXE_TYPE_DSPCONN) == NULL);
+    assert(faxe_handle_resolve(h1, FAXE_TYPE_DSPCONN) == &connA);
+    assert(gFaxeConnMark == 256);
+
+    faxe_handle_free(h1);
+    faxe_handle_free(hb);
+    faxe_handle_free(hp);
+    faxe_handle_free(hParent);
+    faxe_handle_free(hChild);
+    faxe_handle_free(ha);
+    faxe_handle_free(hc);
+    assert(gFaxeConnCount == base);
 }
 
 int main(void) {
@@ -417,26 +655,8 @@ int main(void) {
         faxe_handle_free(hk);
     }
 
-    /* free_type drops every slot of one type and only that type */
-    {
-        int obj1 = 1, obj2 = 2, obj3 = 3;
-        int hc1 = faxe_handle_alloc(&obj1, FAXE_TYPE_DSPCONN);
-        int hc2 = faxe_handle_alloc(&obj2, FAXE_TYPE_DSPCONN);
-        int hd = faxe_handle_alloc(&obj3, FAXE_TYPE_DSP);
-        assert(hc1 > 0 && hc2 > 0 && hd > 0);
-
-        faxe_handles_free_type(FAXE_TYPE_DSPCONN);
-        assert(faxe_handle_resolve(hc1, FAXE_TYPE_DSPCONN) == NULL);
-        assert(faxe_handle_resolve(hc2, FAXE_TYPE_DSPCONN) == NULL);
-        assert(faxe_handle_resolve(hd, FAXE_TYPE_DSP) == &obj3);
-
-        /* a recycled slot must not resolve through the freed handles */
-        int hc3 = faxe_handle_alloc(&obj1, FAXE_TYPE_DSPCONN);
-        assert(hc3 > 0);
-        assert(faxe_handle_resolve(hc1, FAXE_TYPE_DSPCONN) == NULL);
-        faxe_handle_free(hc3);
-        faxe_handle_free(hd);
-    }
+    /* A connection handle checks its recorded ends before every use */
+    test_conn_checks();
 
     test_fuzz_against_model();
 

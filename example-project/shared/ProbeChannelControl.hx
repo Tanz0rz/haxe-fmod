@@ -47,6 +47,18 @@ class ProbeChannelControl {
     static var _stream:PcmStream = PcmStream.NULL;
     static var _channel:Channel = Channel.NULL;
 
+    /** True when the connection handle still works and runs at mix. */
+    static function connLive(c:DspConnection, mix:Float):Bool {
+        var m = c.getMix();
+        return Math.abs(m - mix) < 0.001 && StudioSystem.lastResult().isOk();
+    }
+
+    /** True when the connection handle fails its check. */
+    static function connDead(c:DspConnection):Bool {
+        var m = c.getMix();
+        return m == 0 && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE;
+    }
+
     /** How many of a DSP's input connections run at mix. */
     static function countInputsAtMix(dsp:Dsp, mix:Float):Int {
         var count = 0;
@@ -110,9 +122,10 @@ class ProbeChannelControl {
             && connMix > 0 && StudioSystem.lastResult().isOk(),
             'live=$walkedLive walked=${walkedResult.toString()} reached=${(reached : Int)} conn=${(conn : Int)}'
             + ' connMix=$connMix');
-        // A move ends the handle of the connection to the old parent and no
-        // other. A refused move keeps it, and so does a move into the
-        // parent the child already has.
+        // A move destroys the connection to the old parent, and its handle
+        // fails the check. Every other handle keeps working. A refused move
+        // keeps the connection, and so does a move into the parent the
+        // child already has.
         var moved = child.addGroupConnection(other);
         var movedLive = !moved.isNull() && moved.getMix() > 0;
         var refusedMove:FmodResult = other.addGroup(parent);
@@ -139,9 +152,10 @@ class ProbeChannelControl {
             'lastResult=${StudioSystem.lastResult().toString()}');
         var stream = PcmStream.create(48000, 2);
         var channel = stream.play(false);
-        // A channel move ends the handle of the connection to the old group
-        // and no other. A refused move keeps it, and so does a move into
-        // the group the channel is in.
+        // A channel move destroys the connection to the old group, and its
+        // handle fails the check. Every other handle keeps working. A
+        // refused move keeps the connection, and so does a move into the
+        // group the channel is in.
         var sendOsc = Dsp.create(DspType.OSCILLATOR);
         var sendFft = Dsp.create(DspType.FFT);
         var send = sendFft.addInput(sendOsc);
@@ -275,11 +289,39 @@ class ProbeChannelControl {
             linkHopped == null ? 'result=${StudioSystem.lastResult().toString()}' : 'length=${linkHopped.matrix.length}');
         #end
 
-        // disconnectFrom narrowed to one connection, then the stale handle
+        // disconnectFrom narrowed to one connection, then the stale handle.
+        // A connection the disconnect leaves keeps its handle.
+        var bystanderIn = Dsp.create(DspType.OSCILLATOR);
+        var bystanderOut = Dsp.create(DspType.MIXER);
+        var bystander = bystanderOut.addInput(bystanderIn);
+        bystander.setMix(0.4);
         var narrow:FmodResult = fft.disconnectFrom(osc, link);
-        @:privateAccess state.check("dsp_disconnect_from_connection", narrow.isOk() && fft.getInputCount() == 0,
+        @:privateAccess state.check("dsp_disconnect_from_connection", narrow.isOk() && fft.getInputCount() == 0
+            && connDead(link) && connLive(bystander, 0.4),
             'result=${narrow.toString()} inputs=${fft.getInputCount()}');
+        // A connection FMOD makes at the address of one it destroyed gets a
+        // new handle. The old handle is never checked before the new
+        // connections come, and no new one comes back with it.
+        var oldLink = fft.addInput(osc);
+        fft.disconnectFrom(osc);
+        StudioSystem.flushCommands();
+        var reusedAs = 0;
+        var churn:Array<Dsp> = [];
+        for (i in 0...1500) {
+            var x = Dsp.create(DspType.OSCILLATOR);
+            var y = Dsp.create(DspType.MIXER);
+            var c = y.addInput(x);
+            if ((c : Int) == (oldLink : Int)) reusedAs = c;
+            churn.push(x);
+            churn.push(y);
+            if (reusedAs != 0) break;
+            if (i % 64 == 63) StudioSystem.flushCommands();
+        }
+        for (d in churn) d.release();
         var again = fft.addInput(osc);
+        @:privateAccess state.check("dsp_add_input_new_handle_at_reused_address", !oldLink.isNull() && reusedAs == 0
+            && (again : Int) != (oldLink : Int) && connDead(oldLink) && connLive(again, 1.0),
+            'old=${(oldLink : Int)} reused=$reusedAs again=${(again : Int)}');
         @:privateAccess state.check("dsp_disconnect_from_stale_connection",
             fft.disconnectFrom(osc, link) == FmodResult.FMOD_ERR_INVALID_HANDLE && fft.getInputCount() == 1,
             'inputs=${fft.getInputCount()} again=${(again : Int)} old=${(link : Int)}');
@@ -295,9 +337,9 @@ class ProbeChannelControl {
         child.setCallback(function(_) groupEvents++);
         @:privateAccess state.check("cg_set_callback", StudioSystem.lastResult().isOk(), 'lastResult=${StudioSystem.lastResult().toString()}');
 
-        // A head with a second connection to the old parent's tail. The
-        // shim cannot tell which one a move destroys, so the move ends
-        // every connection handle. The game's send keeps routing at its mix.
+        // A head with a second connection to the old parent's tail. The move
+        // destroys the parent connection, and the game's send keeps routing
+        // at its mix with its handle.
         var dupParent = ChannelGroup.create("probe-cc-dup-parent");
         var dupChild = ChannelGroup.create("probe-cc-dup-child");
         var dupTail = dupParent.getDsp(ChannelGroup.DSP_TAIL);
@@ -310,7 +352,7 @@ class ProbeChannelControl {
         var dupResult = StudioSystem.lastResult();
         var dupSends = countInputsAtMix(dupTail, 0.25);
         @:privateAccess state.check("cg_add_group_second_tail_connection", dupLive && dupMove.isOk() && dupMix == 0
-            && dupResult == FmodResult.FMOD_ERR_INVALID_HANDLE && dupSends == 1,
+            && dupResult == FmodResult.FMOD_ERR_INVALID_HANDLE && dupSends == 1 && connLive(dupSend, 0.25),
             'live=$dupLive move=${dupMove.toString()} result=${dupResult.toString()} sends=$dupSends');
         // The same holds for a channel. The game sends to a group's tail
         // first, then moves the channel into the group and out again.
@@ -330,14 +372,16 @@ class ProbeChannelControl {
         var chanResult = StudioSystem.lastResult();
         var chanSends = countInputsAtMix(otherTail, 0.25);
         @:privateAccess state.check("chan_set_channel_group_second_tail_connection", chanLive && chanLeave.isOk() && chanMix == 0
-            && chanResult == FmodResult.FMOD_ERR_INVALID_HANDLE && chanSends == 1,
+            && chanResult == FmodResult.FMOD_ERR_INVALID_HANDLE && chanSends == 1 && connLive(chanSend, 0.25),
             'live=$chanLive leave=${chanLeave.toString()} result=${chanResult.toString()} sends=$chanSends');
         dupChild.release();
         dupParent.release();
 
         // A DSP at a group's tail carries the connections of the group's
-        // children. FMOD frees them when that DSP moves, so the move ends
-        // every connection handle. A fresh DSP keeps them.
+        // children. FMOD destroys the connection of a lone child when that
+        // DSP moves, and its handle fails the check. A fresh DSP at the
+        // tail takes the connection over, and the handle follows the tail.
+        // The bystander keeps working throughout.
         var tailParent = ChannelGroup.create("probe-cc-tail-parent");
         var tailChild = ChannelGroup.create("probe-cc-tail-child");
         var tailConn = tailParent.addGroupConnection(tailChild);
@@ -352,7 +396,8 @@ class ProbeChannelControl {
         tailConn.getMix();
         var tailMoveResult = StudioSystem.lastResult();
         @:privateAccess state.check("cg_set_dsp_index_tail_ends_connection", tailMove.isOk()
-            && tailMoveResult == FmodResult.FMOD_ERR_INVALID_HANDLE, 'move=${tailMove.toString()} result=${tailMoveResult.toString()}');
+            && tailMoveResult == FmodResult.FMOD_ERR_INVALID_HANDLE && connLive(bystander, 0.4),
+            'move=${tailMove.toString()} result=${tailMoveResult.toString()}');
         var readdParent = ChannelGroup.create("probe-cc-readd-parent");
         var readdChild = ChannelGroup.create("probe-cc-readd-child");
         var readdConn = readdParent.addGroupConnection(readdChild);
@@ -364,7 +409,7 @@ class ProbeChannelControl {
         readdConn.getMix();
         var readdResult = StudioSystem.lastResult();
         @:privateAccess state.check("cg_add_dsp_tail_again_ends_connection", readdLive && readdAgain.isOk()
-            && readdResult == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            && readdResult == FmodResult.FMOD_ERR_INVALID_HANDLE && connLive(bystander, 0.4),
             'live=$readdLive again=${readdAgain.toString()} result=${readdResult.toString()}');
         readdParent.removeDsp(readdDsp);
         readdDsp.release();
@@ -374,6 +419,140 @@ class ProbeChannelControl {
         tailDsp.release();
         tailChild.release();
         tailParent.release();
+
+        // Each graph call ends only the handles of the connections it
+        // destroys or moves. The bystander joins two DSPs none of these
+        // calls touches.
+        var fxStream = PcmStream.create(48000, 2);
+        var fxChannel = fxStream.play(false);
+        var fx = Dsp.create(DspType.LOWPASS);
+        var fxIn = Dsp.create(DspType.MIXER);
+        var fxOut = Dsp.create(DspType.MIXER);
+        fxChannel.addDsp(0, fx);
+        var fxFeed = fx.addInput(fxIn);
+        fxFeed.setMix(0.3);
+        var fxSend = fxOut.addInput(fx, DspConnection.TYPE_SEND);
+        fxSend.setMix(0.5);
+        var fxLive = connLive(fxFeed, 0.3) && connLive(fxSend, 0.5);
+        var fxStop:FmodResult = fxChannel.stop();
+        // The stop takes the DSP out of the channel's chain and moves its
+        // input onto the chain. The send out of it stays.
+        @:privateAccess state.check("chan_stop_ends_feed_keeps_send", fxLive && fxStop.isOk() && connDead(fxFeed)
+            && connLive(fxSend, 0.5) && connLive(bystander, 0.4), 'live=$fxLive stop=${fxStop.toString()}');
+        var fxFeed2 = fx.addInput(fxIn);
+        var fxFed = connLive(fxFeed2, 1.0);
+        var fxRelease:FmodResult = fx.release();
+        @:privateAccess state.check("dsp_release_ends_its_connections", fxFed && fxRelease.isOk() && connDead(fxFeed2)
+            && connDead(fxSend) && connLive(bystander, 0.4), 'fed=$fxFed release=${fxRelease.toString()}');
+        fxIn.release();
+        fxOut.release();
+        fxStream.release();
+
+        var relParent = ChannelGroup.create("probe-cc-rel-parent");
+        var relChild = ChannelGroup.create("probe-cc-rel-child");
+        var relConn = relParent.addGroupConnection(relChild);
+        relConn.setMix(0.7);
+        var relLive = connLive(relConn, 0.7);
+        var relRelease:FmodResult = relChild.release();
+        @:privateAccess state.check("cg_release_ends_child_connection", relLive && relRelease.isOk() && connDead(relConn)
+            && connLive(bystander, 0.4), 'live=$relLive release=${relRelease.toString()}');
+        relParent.release();
+
+        var rmGroup = ChannelGroup.create("probe-cc-rm");
+        var rmDsp = Dsp.create(DspType.LOWPASS);
+        var rmIn = Dsp.create(DspType.MIXER);
+        var rmOut = Dsp.create(DspType.MIXER);
+        rmGroup.addDsp(0, rmDsp);
+        var rmFeed = rmDsp.addInput(rmIn);
+        rmFeed.setMix(0.3);
+        var rmSend = rmOut.addInput(rmDsp, DspConnection.TYPE_SEND);
+        rmSend.setMix(0.5);
+        var rmLive = connLive(rmFeed, 0.3) && connLive(rmSend, 0.5);
+        var rmResult:FmodResult = rmGroup.removeDsp(rmDsp);
+        @:privateAccess state.check("cg_remove_dsp_ends_feed_keeps_send", rmLive && rmResult.isOk() && connDead(rmFeed)
+            && connLive(rmSend, 0.5) && connLive(bystander, 0.4), 'live=$rmLive remove=${rmResult.toString()}');
+        var daFeed = rmDsp.addInput(rmIn);
+        var daLive = connLive(daFeed, 1.0);
+        var daResult:FmodResult = rmDsp.disconnectAll(true, false);
+        @:privateAccess state.check("dsp_disconnect_all_ends_inputs_keeps_send", daLive && daResult.isOk() && connDead(daFeed)
+            && connLive(rmSend, 0.5) && connLive(bystander, 0.4), 'live=$daLive result=${daResult.toString()}');
+        rmOut.release();
+        rmIn.release();
+        rmDsp.release();
+        rmGroup.release();
+
+        // A reorder in a chain leaves the child's connection and a send out
+        // of the chain alone
+        var roParent = ChannelGroup.create("probe-cc-ro-parent");
+        var roChild = ChannelGroup.create("probe-cc-ro-child");
+        var roConn = roParent.addGroupConnection(roChild);
+        roConn.setMix(0.6);
+        var roX = Dsp.create(DspType.LOWPASS);
+        var roY = Dsp.create(DspType.HIGHPASS);
+        var roOut = Dsp.create(DspType.MIXER);
+        roParent.addDsp(0, roX);
+        roParent.addDsp(0, roY);
+        var roSend = roOut.addInput(roX, DspConnection.TYPE_SEND);
+        roSend.setMix(0.5);
+        var roIn = Dsp.create(DspType.MIXER);
+        var roFeed = roX.addInput(roIn);
+        roFeed.setMix(0.3);
+        var roLive = connLive(roConn, 0.6) && connLive(roSend, 0.5) && connLive(roFeed, 0.3);
+        var roMove:FmodResult = roParent.setDspIndex(roY, 1);
+        @:privateAccess state.check("cg_set_dsp_index_keeps_unrelated_connections", roLive && roMove.isOk()
+            && connLive(roConn, 0.6) && connLive(roSend, 0.5) && connLive(bystander, 0.4),
+            'live=$roLive move=${roMove.toString()}');
+        // FMOD moved the feed onto the DSP above roX. Its
+        // handle fails, and a walk to the moved connection mints a new one.
+        var roWalked = DspConnection.NULL;
+        for (i in 0...roY.getInputCount()) {
+            var c = roY.getInputConnection(i);
+            if (Math.abs(c.getMix() - 0.3) < 0.001) roWalked = c;
+        }
+        @:privateAccess state.check("cg_set_dsp_index_moved_feed_rewalks", connDead(roFeed) && !roWalked.isNull()
+            && (roWalked : Int) != (roFeed : Int) && connLive(roWalked, 0.3),
+            'walked=${(roWalked : Int)} feed=${(roFeed : Int)}');
+        roIn.release();
+        roParent.removeDsp(roX);
+        roParent.removeDsp(roY);
+        roOut.release();
+        roX.release();
+        roY.release();
+        roChild.release();
+        roParent.release();
+
+        // FMOD destroys a standard input of a DSP that a chain takes
+        var fedParent = ChannelGroup.create("probe-cc-fed-parent");
+        var fedSource = Dsp.create(DspType.MIXER);
+        var fedDsp = Dsp.create(DspType.LOWPASS);
+        var fedConn = fedDsp.addInput(fedSource);
+        var fedLive = connLive(fedConn, 1.0);
+        var fedAdd:FmodResult = fedParent.addDsp(0, fedDsp);
+        @:privateAccess state.check("cg_add_dsp_fed_ends_connection", fedLive && fedAdd.isOk() && connDead(fedConn)
+            && connLive(bystander, 0.4), 'live=$fedLive add=${fedAdd.toString()}');
+        fedParent.removeDsp(fedDsp);
+        fedDsp.release();
+        fedSource.release();
+        fedParent.release();
+
+        // An addDsp past the end of the DSP's own chain takes the DSP out of
+        // the chain before FMOD refuses the index
+        var refParent = ChannelGroup.create("probe-cc-refused-parent");
+        var refChild = ChannelGroup.create("probe-cc-refused-child");
+        var refConn = refParent.addGroupConnection(refChild);
+        var refDsp = Dsp.create(DspType.LOWPASS);
+        var refFirst:FmodResult = refParent.addDsp(refParent.getNumDSPs(), refDsp);
+        var refLive = refFirst.isOk() && connLive(refConn, 1.0);
+        var refAgain:FmodResult = refParent.addDsp(refParent.getNumDSPs(), refDsp);
+        @:privateAccess state.check("cg_add_dsp_refused_ends_connection", refLive
+            && refAgain == FmodResult.FMOD_ERR_INVALID_PARAM && connDead(refConn) && connLive(bystander, 0.4),
+            'live=$refLive again=${refAgain.toString()}');
+        refParent.removeDsp(refDsp);
+        refDsp.release();
+        refChild.release();
+        refParent.release();
+        bystanderOut.release();
+        bystanderIn.release();
 
         channel.stop();
         stream.release();

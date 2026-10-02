@@ -90,7 +90,8 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * Inserts an effect at index (0 = head of the chain, or a DSP_* position).
-     * When the DSP already has outputs, an accepted call ends every DspConnection handle.
+     * A connection handle whose connection FMOD destroys or moves here fails
+     * its next check.
      */
     public inline function addDsp(index:Int, dsp:Dsp):FmodResult {
         return NativeStudio.cg_add_dsp(this, index, dsp);
@@ -111,10 +112,9 @@ abstract ChannelGroup(Int) from Int to Int {
      * group's, which sample-accurate scheduling across the tree needs.
      * addGroupConnection does the same and hands back the connection.
      * A child that is this group or a group above it, such as the master,
-     * fails with FMOD_ERR_INVALID_PARAM. A move from another parent ends
-     * the handle of the connection to that parent. When the child's head
-     * has a second connection to that parent's tail, the move ends every
-     * connection handle.
+     * fails with FMOD_ERR_INVALID_PARAM. A move from another parent
+     * destroys the connection to that parent, and its handle fails its
+     * next check.
      */
     public function addGroup(child:ChannelGroup, propagateDspClock:Bool = true):FmodResult {
         NativeStudio.cg_add_group(this, child, propagateDspClock);
@@ -127,9 +127,9 @@ abstract ChannelGroup(Int) from Int to Int {
      * reason in StudioSystem.lastResult(). The handle is long-lived when
      * both groups are ones the game created or the master. It is
      * short-lived when either is a bus's or an event's group or one a walk
-     * reached. DspConnection lists the calls that end it. A child already in this
-     * group keeps its connection, and the call returns DspConnection.NULL
-     * with FMOD_OK.
+     * reached. DspConnection says how long it stays valid. A child already
+     * in this group keeps its connection, and the call returns
+     * DspConnection.NULL with FMOD_OK.
      */
     public inline function addGroupConnection(child:ChannelGroup, propagateDspClock:Bool = true):DspConnection {
         return NativeStudio.cg_add_group(this, child, propagateDspClock);
@@ -490,8 +490,9 @@ abstract ChannelGroup(Int) from Int to Int {
     }
 
     /**
-     * Moves an attached effect to another chain position (0 = head). An
-     * accepted call ends every DspConnection handle.
+     * Moves an attached effect to another chain position (0 = head). A
+     * connection handle whose connection FMOD destroys or moves here fails
+     * its next check.
      */
     public inline function setDspIndex(dsp:Dsp, index:Int):haxefmod.studio.FmodResult {
         return NativeStudio.cg_set_dsp_index(this, dsp, index);

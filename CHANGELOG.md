@@ -88,6 +88,7 @@
 - `FmodManager.ClearAllCallbacks` shrinks every native callback mask, so instances and channels with no handler stop filling the callback queue.
 - `haxelib run haxefmod check` reads the expected FMOD version from the library instead of a literal. It checks the hdll binding ABI the way the build does. It requires only the haxelibs a lime project file names. A Heaps or Kha project gets a skip instead of a failure.
 - `EventInstance.setCallback` delivers every callback type when no mask is given. That is the default FMOD's API and its C# integration use. `FmodManager.OnSongEvent`, `OnceSongEvent`, and `FmodEvent.onEvent` take the same default through it.
+- A `DspConnection` handle stays valid while its connection joins the two ends it joined when the game got the handle. A disconnect, a DSP or group release, a channel stop, or a `removeDsp` leaves the handles of other connections working. 2.0 ended every connection handle at those calls.
 - `StudioSystem.lookupID` returns `FmodGuid.NULL` on failure. 2.0 returned an empty string. A comparison with `""` no longer matches a failed lookup. Call `isNull()` on the result.
 - `Sound.getFormat()` now returns the container `type` (`FmodSoundType`) and sample `format` (`FmodSoundFormat`) next to `channels` and `bits`.
 - The native programmer sound callback creates its sound with `FMOD_NONBLOCKING`, the same as FMOD's own example, so audio table entries and files decode off the Studio thread. FMOD waits for the sound before the instrument plays it.
@@ -174,10 +175,9 @@
 - `ChannelGroup.addGroup` refuses the group itself, a group above it, or the master with `FMOD_ERR_INVALID_PARAM`. FMOD crashed on such a call.
 - A connection that `Dsp.getInputConnection` or `getOutputConnection` reaches gets a short-lived handle unless the connection already has a live handle. Its handle read freed memory after Studio freed an event.
 - A connection that `Dsp.addInput` makes when either DSP came from a channel, an event, a bus, or a walk gets a short-lived handle. When the channel ended on its own, the handle read and wrote freed memory or controlled another channel's send.
-- A `ChannelGroup.addGroup` or `Channel.setChannelGroup` that moves a group or channel to another parent ends the handle of the connection to the old parent. That stale handle could control an unrelated connection at the same address. When the moved unit has a second connection to the old parent's tail, the move ends every connection handle.
+- A `DspConnection` handle to a connection that FMOD destroyed or moved could control another connection. Examples are a group or channel moved to another parent and an `addDsp` of a DSP with an input. The handle now reports `FMOD_ERR_INVALID_HANDLE`.
 - A js build reports the version mismatch for an FMOD 2.02 HTML5 package. It said the package did not look like an FMOD Engine SDK.
 - `haxelib run haxefmod check` fails an HTML5 FMOD package of another version or without its headers. It passed a setup that the build then refused. A js build stops on a package without its headers too.
-- An `addDsp` of a DSP that already has outputs ends every connection handle. A handle to a connection into a group's tail DSP could control an unrelated connection after that DSP moved.
 - A command replay unloads the banks it loaded when it stops or ends. The handles into those banks die at the update that delivers the unload. Their callbacks go with them. A bus channel group handle read freed memory before.
 - `FmodManager.Todo` with `-D haxefmod_todo_beep` plays its beep only once FMOD is initialized. It initialized FMOD with default settings before, and a later `Initialize(settings)` lost its settings.
 - `StudioSystem.loadBankFile` passes `DECOMPRESS_SAMPLES` and `UNENCRYPTED` to FMOD. It kept `NONBLOCKING` alone.
