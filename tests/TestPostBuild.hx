@@ -712,6 +712,16 @@ class TestPostBuild {
 				sys.FileSystem.exists('$limeBoth/$folder/html5/bin/lib/fmodstudio.wasm') && !sys.FileSystem.exists('$limeBoth/bin/html5/bin/lib'));
 		}
 
+		// A file system that folds case answers to both names with one folder
+		var limeCase = '$base/lime-case';
+		sys.FileSystem.createDirectory('$limeCase/Export/html5/bin');
+		if (!sys.FileSystem.exists('$limeCase/export')) {
+			sys.FileSystem.createDirectory('$limeCase/export/html5/bin');
+			r = runTool(["postbuild", "html5", "html5", "x"], limeCase, ["FMOD_SDK_WEB" => goodWeb]);
+			check("postbuild prefers export over Export",
+				sys.FileSystem.exists('$limeCase/export/html5/bin/lib/fmodstudio.wasm') && !sys.FileSystem.exists('$limeCase/Export/html5/bin/lib'));
+		}
+
 		// The compile check reads an SDK path relative to the project, so the
 		// postbuild and the stage read it from there too
 		var relProject = '$base/relative';
