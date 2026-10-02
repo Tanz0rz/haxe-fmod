@@ -585,8 +585,8 @@ static void faxe_handle_set_image(int handle, void* image) {
  * handle, as far as the table knows. That is the owner of the last
  * accepted addDsp. A borrowed DSP the game reached from a channel or a
  * group has that channel or group. 0 when the table knows none. The
- * owner handle can be dead, and the caller asks FMOD whether its chain
- * still lists the DSP. */
+ * owner handle can be dead. The caller asks FMOD whether a live owner's
+ * chain still lists the DSP. */
 static int faxe_dsp_chain(int handle) {
     FaxeSlot* s;
     unsigned char parentType;

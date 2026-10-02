@@ -251,7 +251,19 @@ class ProbeGroupPark {
             'inputs=$inputs elapsed_ms=${Math.round(elapsed * 1000)}');
         // FMOD keeps the released group's effect marked in use. An add to
         // another chain and its removal make it releasable.
+        // The effect's holder parked after the awaited group, so its own
+        // FMOD release can still be a few frames away. The wait is on the
+        // clock.
         var fxAdd:FmodResult = _otherChain.addDsp(0, _parkedFx);
+        #if sys
+        var fxDeadline = haxe.Timer.stamp() + 3.0;
+        while (fxAdd == FmodResult.FMOD_ERR_DSP_INUSE && haxe.Timer.stamp() < fxDeadline) {
+            Sys.sleep(0.01);
+            haxefmod.studio.native.NativeStudio.sys_update();
+            haxefmod.studio.CallbackDispatcher.update();
+            fxAdd = _otherChain.addDsp(0, _parkedFx);
+        }
+        #end
         var fxRemove:FmodResult = _otherChain.removeDsp(_parkedFx);
         var fxRelease:FmodResult = _parkedFx.release();
         @:privateAccess state.check("cg_park_effect_held_until_release", _parkedAdd == FmodResult.FMOD_ERR_DSP_INUSE

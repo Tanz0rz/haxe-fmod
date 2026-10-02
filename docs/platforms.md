@@ -69,7 +69,9 @@ C++ builds compile the binding (`linc_faxe.cpp`) into the executable next to you
 
 ## Other FMOD Engine versions
 
-The officially supported FMOD Engine version is 2.03.12. Other versions can work but are not tested. C++ and Kha native builds compile against the SDK that `FMOD_SDK` points at. They need nothing extra. HTML5 builds need the 2.03.12 HTML5 package. The build stops on any other version. HashLink builds load the pre-built hdll, which is compiled against 2.03.12. For another version, compile the hdll from source against your installed SDK.
+The officially supported FMOD Engine version is 2.03.12. Other versions can work but are not tested. C++ and Kha native builds compile against the SDK that `FMOD_SDK` points at. They need nothing extra. HTML5 builds need the 2.03.12 HTML5 package. The build stops on any other version.
+
+HashLink builds load the pre-built hdll, which is compiled against 2.03.12. For another version, compile the hdll from source against your installed SDK.
 
 ```bash
 # 1. Set FMOD_SDK to your version
