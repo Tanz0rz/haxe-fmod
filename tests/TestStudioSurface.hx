@@ -475,8 +475,8 @@ class TestStudioSurface {
 		var stream3d = PcmStream.create3d(48000, 1);
 		assert(stream3d.isNull(), "pcm stream 3d null");
 
-		// The ring rounds down to whole frames. A part frame shifts every
-		// later sample the mixer reads.
+		// Odd rates and custom sizes off a frame boundary lose the part
+		// frame. A ring under one frame reaches the native create as 0.
 		PcmStream.create(48000, 1);
 		assert(stub.testLastPcmRingBytes == 48000, "pcm ring default whole frames kept");
 		PcmStream.create(11025, 1);
@@ -491,6 +491,12 @@ class TestStudioSurface {
 		assert(stub.testLastPcmRingBytes == 4096, "pcm ring 3d custom size whole frames");
 		PcmStream.create(48000, 2, 3);
 		assert(stub.testLastPcmRingBytes == 0, "pcm ring below one frame reaches the native refusal");
+		// A channel count the native create refuses keeps its ring size.
+		// Zero channels must not reach the modulo, which hxcpp throws on.
+		PcmStream.create(48000, 0, 4096);
+		assert(stub.testLastPcmRingBytes == 4096, "pcm ring zero channels reaches the native refusal");
+		PcmStream.create3d(48000, 3, 4096);
+		assert(stub.testLastPcmRingBytes == 4096, "pcm ring three channels reaches the native refusal");
 
 		var dsp = Dsp.create(DspType.LOWPASS_SIMPLE);
 		assert(dsp.isNull(), "dsp null");

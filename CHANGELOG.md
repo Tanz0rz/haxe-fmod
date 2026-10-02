@@ -169,9 +169,11 @@
 - `FmodFlxUtilities.TransitionToStateAndStopMusic` cancels its switch when the game switches to another state during the fade. It took the game from the new state to the old target before.
 - A negative label index in `getParameterLabel` and an index below -3 in `Channel.getDsp` crashed inside FMOD. Both now return `FMOD_ERR_INVALID_PARAM`.
 - HTML5 initialization finishes when the game unloads a default bank that is still downloading. It waited for that bank forever before.
-- `haxelib run haxefmod generate` names a constant `Dynamic2` when the FMOD name is `Dynamic`. A field named `Dynamic` failed the C++ build.
+- `haxelib run haxefmod generate` and the FMOD Studio export script name a constant `Dynamic2` when its path mangles to `Dynamic`. A field named `Dynamic` failed the C++ build. A few C macro names such as `NAN` and `INFINITY` get the same suffix. The two tools also order non-ASCII paths the same way.
 - `PcmStream.create` and `create3d` round the ring down to whole frames. An odd sample rate such as 11025 Hz played mono as noise and stereo with left and right swapped. A `ringBytes` that is not a whole number of frames did the same.
 - `ChannelGroup.addGroup` refuses the group itself, a group above it, or the master with `FMOD_ERR_INVALID_PARAM`. FMOD crashed on such a call.
+- A connection that `Dsp.getInputConnection` or `getOutputConnection` reaches is short-lived when the game did not make it. Its handle read freed memory after Studio freed an event.
+- An accepted `ChannelGroup.addGroup` or `Channel.setChannelGroup` ends every connection handle. A stale handle could control an unrelated connection at the same address.
 - A command replay unloads the banks it loaded when it stops or ends. The handles into those banks die at the update that delivers the unload. Their callbacks go with them. A bus channel group handle read freed memory before.
 - `FmodManager.Todo` with `-D haxefmod_todo_beep` plays its beep only once FMOD is initialized. It initialized FMOD with default settings before, and a later `Initialize(settings)` lost its settings.
 - `StudioSystem.loadBankFile` passes `DECOMPRESS_SAMPLES` and `UNENCRYPTED` to FMOD. It kept `NONBLOCKING` alone.

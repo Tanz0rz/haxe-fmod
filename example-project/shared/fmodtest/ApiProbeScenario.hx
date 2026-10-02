@@ -3102,8 +3102,8 @@ class ApiProbeScenario implements TestScenario {
         var stream = PcmStream.create(48000, 1);
         check("core_pcm_create", !stream.isNull(), 'handle=${(stream : Int)}');
 
-        // The ring holds whole frames. A part frame shifts every later
-        // sample the mixer reads.
+        // At 11025 Hz neither default ring is a whole number of frames.
+        // space() reports the ring cut to whole frames.
         var oddMono = PcmStream.create(11025, 1);
         var oddStereo = PcmStream.create3d(11025, 2);
         check("core_pcm_ring_whole_frames", oddMono.space() == 11024 && oddStereo.space() == 22048,

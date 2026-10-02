@@ -91,6 +91,15 @@ for (const name of cliFiles) {
     }
 }
 
+// The Studio script reserves the same identifiers as Generate.identifiersFor
+for (const reserved of ['Dynamic', 'NAN']) {
+    const got = core.identifiersFor(['event:/' + reserved], 'event:/')[0];
+    if (got !== reserved + '2') fail(`the Studio script names event:/${reserved} ${got}, the CLI names it ${reserved}2`);
+}
+// Both tools order paths by UTF-8 bytes
+const mixed = core.generate([{ path: 'event:/A\u{1F525}', guid: '{00000000-0000-0000-0000-000000000001}' }, { path: 'event:/A\uFF01', guid: '{00000000-0000-0000-0000-000000000002}' }])['FmodEvents.hx'];
+if (!mixed.includes('var A:String = "event:/A\uFF01"')) fail('the Studio script orders paths unlike the CLI');
+
 if (Object.keys(studioFiles).length === 0) {
     fail('Studio script emitted no files');
 }

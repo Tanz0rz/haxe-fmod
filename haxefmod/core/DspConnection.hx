@@ -13,9 +13,14 @@ import haxefmod.studio.native.NativeStudio;
  * the signal flowing through this specific connection, which is how send
  * and sidechain style routings balance their inputs.
  *
- * Any graph change (a disconnect or a DSP release) invalidates every
- * connection handle, matching FMOD's own rule that graph changes
- * invalidate connections. Re-query through Dsp.getInputConnection after
+ * Any graph change invalidates every connection handle, matching FMOD's
+ * own rule that graph changes invalidate connections. The calls that end
+ * every connection handle are a disconnect, a DSP removal or release, a
+ * channel stop, a group release, and an accepted ChannelGroup.addGroup
+ * or Channel.setChannelGroup. A connection that a walk reaches and the
+ * game did not make with addInput or addGroupConnection is short-lived.
+ * It dies at the next update or at the next call that stops, releases,
+ * or unloads anything. Re-query through Dsp.getInputConnection after
  * changing the graph.
  */
 abstract DspConnection(Int) from Int to Int {

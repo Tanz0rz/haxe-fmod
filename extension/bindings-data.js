@@ -4639,7 +4639,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The connection carrying input slot index (a known connection returns its existing handle).",
+     "doc": "The connection carrying input slot index.",
      "gated": false,
      "name": "getInputConnection",
      "signature": "getInputConnection(index:Int):DspConnection",
@@ -4789,7 +4789,7 @@ const HAXEFMOD_BINDINGS = {
     },
     {
      "direct": false,
-     "doc": "The connection carrying output slot index (a known connection returns its existing handle).",
+     "doc": "The connection carrying output slot index.",
      "gated": false,
      "name": "getOutputConnection",
      "signature": "getOutputConnection(index:Int):DspConnection",

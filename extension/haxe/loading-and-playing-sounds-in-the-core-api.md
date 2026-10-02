@@ -95,7 +95,7 @@ var stream = PcmStream.create(
     2,                       // Number of channels in the sound
     44100 * 2 * 2 * 5);      // Ring size in bytes. 2 = bytes per sample and 5 = seconds
 
-// Each frame, write sample data instead of a read callback
+// Each frame, write sample data. setReadCallback is the callback form.
 var buffer = haxe.io.Bytes.alloc(stream.space());
 for (i in 0...Std.int(buffer.length / 2)) {
     buffer.setUInt16(i * 2, nextSample() & 0xFFFF);

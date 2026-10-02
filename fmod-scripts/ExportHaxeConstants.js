@@ -55,9 +55,15 @@ var HaxefmodConstants = {
         return out;
     },
 
+    // UTF-8 byte order, like the CLI
+    byPath: function (a, b) {
+        var x = unescape(encodeURIComponent(a.path)), y = unescape(encodeURIComponent(b.path));
+        return x < y ? -1 : (x > y ? 1 : 0);
+    },
+
     // Mirrors Generate.identifiersFor: numeric suffixes on collision
     identifiersFor: function (paths, prefix) {
-        var used = {Dynamic: true};
+        var used = {Dynamic: true, GetEnumName: true, NOMINMAX: true, BUFSIZ: true, WEOF: true, INFINITY: true, NAN: true, CSIGNAL: true, NFDBITS: true, WCONTINUED: true, WEXITED: true, WNOHANG: true, WNOWAIT: true, WSTOPPED: true, WUNTRACED: true};
         var out = [];
         for (var i = 0; i < paths.length; i++) {
             var base = this.mangle(paths[i], prefix);
@@ -121,9 +127,7 @@ var HaxefmodConstants = {
             }
         }
         if (matched.length === 0) return null;
-        matched.sort(function (a, b) {
-            return a.path < b.path ? -1 : (a.path > b.path ? 1 : 0);
-        });
+        matched.sort(this.byPath);
         var paths = [];
         for (var j = 0; j < matched.length; j++) paths.push(matched[j].path);
         var names = this.identifiersFor(paths, "event:/");
@@ -177,9 +181,7 @@ var HaxefmodConstants = {
                 }
             }
             if (matched.length === 0) continue;
-            matched.sort(function (a, b) {
-                return a.path < b.path ? -1 : (a.path > b.path ? 1 : 0);
-            });
+            matched.sort(this.byPath);
             files[cat.className + ".hx"] = this.emitClass(cat.className, cat.prefix, matched, pkg);
         }
         return files;

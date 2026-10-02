@@ -31,8 +31,8 @@ abstract PcmStream(Int) from Int to Int {
     /**
      * Creates a stream. channels is 1 (mono) or 2 (stereo). ringBytes sets
      * how much audio can be buffered between the game and the mixer. The
-     * default holds half a second: bigger rides out frame spikes without
-     * underruns, smaller lets generated audio react faster.
+     * default holds half a second. A bigger ring rides out frame spikes
+     * without underruns. A smaller ring lets generated audio react faster.
      * The ring rounds down to whole frames (2 bytes per channel).
      * Returns PcmStream.NULL on failure (see StudioSystem.lastResult).
      */
@@ -55,8 +55,8 @@ abstract PcmStream(Int) from Int to Int {
      * A ring size rounded down to whole frames. The mixer reads whole
      * frames, and a ring of whole frames keeps every read, every write
      * that space() allows, and every read callback length on a frame
-     * boundary. A part frame would shift every later sample. A count the
-     * native create refuses stays as it is.
+     * boundary. A part frame would shift every later sample. A channel
+     * count the native create refuses leaves the size as it is.
      */
     static inline function wholeFrames(bytes:Int, channels:Int):Int {
         return channels == 1 || channels == 2 ? bytes - bytes % (2 * channels) : bytes;

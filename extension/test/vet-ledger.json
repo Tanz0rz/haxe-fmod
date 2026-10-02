@@ -250,7 +250,7 @@
  "loading-and-playing-sounds-in-the-core-api/4.3.1 Creating a Sound from memory": "c31908e57245d508ec73de5c1b40ffd25d4d6584",
  "loading-and-playing-sounds-in-the-core-api/4.3.1 Creating a Sound from memory#2": "a989bc77c6d57e2ad2c5eb912e5a726959f7fb24",
  "loading-and-playing-sounds-in-the-core-api/4.3.2 Creating a Sound from PCM data": "6c8491cb9803b208f829ab24159cff5db6d5ee35",
- "loading-and-playing-sounds-in-the-core-api/4.3.3 Creating a Sound by manually providing sample data": "669546630a47739b7de7ef543b87284dd86ed038",
+ "loading-and-playing-sounds-in-the-core-api/4.3.3 Creating a Sound by manually providing sample data": "1af7d1599d6a205799ce7180c038271c5a7bbdb7",
  "loading-and-playing-sounds-in-the-core-api/4.3.4 Creating the Sound as a Streamed FSB File": "6e7ac22ae81c691d59be2bd098bc441f65728627",
  "loading-and-playing-sounds-in-the-core-api/4.5.1 Setup : Override FMOD's file system with callbacks": "2af9bd36352879dbd38e28f3abb303461b7c348a",
  "loading-and-playing-sounds-in-the-core-api/4.5.1 Setup : Override FMOD's file system with callbacks#2": "a4431ff4e02dba627763ae5efac7238e86967ad3",

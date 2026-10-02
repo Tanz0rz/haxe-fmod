@@ -264,8 +264,9 @@ abstract Dsp(Int) from Int to Int {
     }
 
     /**
-     * The connection carrying input slot `index` (a known connection returns its existing handle). Returns
-     * DspConnection.NULL on failure, with the reason in StudioSystem.lastResult().
+     * The connection carrying input slot `index`. A known connection returns its existing handle. Any other
+     * one gets a borrowed handle that lives the way getInput's does. Returns DspConnection.NULL on failure,
+     * with the reason in StudioSystem.lastResult().
      */
     public inline function getInputConnection(index:Int):DspConnection {
         return NativeStudio.dsp_get_input_connection(this, index);
@@ -329,8 +330,9 @@ abstract Dsp(Int) from Int to Int {
     }
 
     /**
-     * The connection carrying output slot `index` (a known connection returns its existing handle). Returns
-     * DspConnection.NULL on failure, with the reason in StudioSystem.lastResult().
+     * The connection carrying output slot `index`. A known connection returns its existing handle. Any
+     * other one gets a borrowed handle that lives the way getInput's does. Returns DspConnection.NULL on
+     * failure, with the reason in StudioSystem.lastResult().
      */
     public inline function getOutputConnection(index:Int):DspConnection {
         return NativeStudio.dsp_get_output_connection(this, index);

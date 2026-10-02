@@ -1793,6 +1793,8 @@ HL_PRIM int HL_NAME(chan_set_channel_group)(int h, int groupHandle) {
     FMOD_CHANNELGROUP* group = resolve_changroup(groupHandle);
     if (!channel || !group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = FMOD_Channel_SetChannelGroup(channel, group);
+    /* A move destroys the connection to the old group */
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 DEFINE_PRIM(_I32, chan_set_channel_group, _I32 _I32);
@@ -2060,7 +2062,8 @@ HL_PRIM int HL_NAME(dsp_get_input_connection)(int h, int index) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetInput(dsp, index, &input, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return hlaxe_handle_or_memory(conn, FAXE_TYPE_DSPCONN);
+    /* A connection a walk reaches is short-lived, like the DSPs it joins */
+    return hlaxe_mint_borrowed(conn, FAXE_TYPE_DSPCONN, h, 1);
 }
 DEFINE_PRIM(_I32, dsp_get_input_connection, _I32 _I32);
 
@@ -2102,6 +2105,8 @@ HL_PRIM int HL_NAME(cg_add_group)(int h, int childHandle, bool propagateDspClock
     if (!group || !child) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     if (faxe_argcheck_group_above(group, child)) { gLastResult = FMOD_ERR_INVALID_PARAM; return 0; }
     gLastResult = FMOD_ChannelGroup_AddGroup(group, child, propagateDspClock ? 1 : 0, &conn);
+    /* A move destroys the connection to the old parent */
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     if (gLastResult != FMOD_OK || !conn) return 0;
     return hlaxe_handle_or_memory(conn, FAXE_TYPE_DSPCONN);
 }
@@ -3731,7 +3736,8 @@ HL_PRIM int HL_NAME(dsp_get_output_connection)(int h, int index) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = FMOD_DSP_GetOutput(dsp, index, &output, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return hlaxe_handle_or_memory(conn, FAXE_TYPE_DSPCONN);
+    /* A connection a walk reaches is short-lived, like the DSPs it joins */
+    return hlaxe_mint_borrowed(conn, FAXE_TYPE_DSPCONN, h, 1);
 }
 DEFINE_PRIM(_I32, dsp_get_output_connection, _I32 _I32);
 

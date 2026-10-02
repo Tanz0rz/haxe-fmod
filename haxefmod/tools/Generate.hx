@@ -37,7 +37,8 @@ import sys.io.File;
  * piece and concatenates them ("Vehicles/Ride-on Mower" ->
  * "VehiclesRideOnMower"). An empty result (the bus:/ root) becomes "Root",
  * a leading digit gets an underscore prefix, and duplicate identifiers get
- * numeric suffixes ("Coin", "Coin2", ...).
+ * numeric suffixes ("Coin", "Coin2", ...). "Dynamic" and a few C
+ * macro names such as "NAN" are reserved and get the suffix 2.
  */
 class Generate {
 	static var categories = [
@@ -243,12 +244,16 @@ class Generate {
 		return name;
 	}
 
+	static var RESERVED = ["Dynamic", "GetEnumName", "NOMINMAX", "BUFSIZ", "WEOF", "INFINITY", "NAN", "CSIGNAL", "NFDBITS", "WCONTINUED", "WEXITED", "WNOHANG", "WNOWAIT", "WSTOPPED", "WUNTRACED"];
+
 	/** Assigns unique identifiers for a list of paths. Collisions get
 		numeric suffixes. */
 	public static function identifiersFor(paths:Array<String>, prefix:String):Array<String> {
-		// hxcpp declares Dynamic in every class header, and g++ refuses a
-		// field of that name
-		var used = ["Dynamic" => true];
+		// Names an hxcpp or HashLink/C build cannot hold as a field. The
+		// class headers declare Dynamic and GetEnumName, and the rest are
+		// macros of the C headers those builds include.
+		var used = new Map<String, Bool>();
+		for (name in RESERVED) used.set(name, true);
 		var out = new Array<String>();
 		for (p in paths) {
 			var base = mangle(p, prefix);

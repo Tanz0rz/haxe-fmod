@@ -86,12 +86,55 @@ class ProbeChannelControl {
             && (other.getParentGroup() : Int) == (parent : Int) && parent.getGroupCount() == 2,
             'down=${down.toString()} up=${up.toString()} groups=${parent.getGroupCount()}');
 
+        // A connection a walk reaches is short-lived, like the DSPs a walk
+        // reaches. A stop ends it.
+        var walkedHead = parent.getDsp(-1);
+        var walked = walkedHead.getOutputConnection(0);
+        var walkedIn = walkedHead.getInputConnection(0);
+        var walkedLive = !walked.isNull() && walked.getMix() > 0 && !walkedIn.isNull() && walkedIn.getMix() > 0;
+        parent.stop();
+        var walkedMix = walked.getMix();
+        var walkedOutResult = StudioSystem.lastResult();
+        var walkedInMix = walkedIn.getMix();
+        @:privateAccess state.check("dsp_walk_connection_short_lived", walkedLive && walkedMix == 0
+            && walkedOutResult == FmodResult.FMOD_ERR_INVALID_HANDLE && walkedInMix == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'live=$walkedLive out=${walkedOutResult.toString()} in=${StudioSystem.lastResult().toString()}');
+        // A move ends the connection the old parent made. A refused move
+        // keeps it.
+        var moved = child.addGroupConnection(other);
+        var movedLive = !moved.isNull() && moved.getMix() > 0;
+        var refusedMove:FmodResult = other.addGroup(parent);
+        var keptMix = moved.getMix();
+        var moveBack:FmodResult = parent.addGroup(other);
+        var movedMix = moved.getMix();
+        @:privateAccess state.check("cg_add_group_move_ends_connection", movedLive
+            && refusedMove == FmodResult.FMOD_ERR_INVALID_PARAM && keptMix > 0 && moveBack.isOk() && movedMix == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE
+            && (other.getParentGroup() : Int) == (parent : Int),
+            'live=$movedLive refused=${refusedMove.toString()} kept=$keptMix back=${moveBack.toString()} mix=$movedMix');
+
         // isPlaying follows the channels routed into the group
         @:privateAccess state.check("cg_is_playing_empty", !parent.isPlaying() && StudioSystem.lastResult().isOk(),
             'lastResult=${StudioSystem.lastResult().toString()}');
         var stream = PcmStream.create(48000, 2);
         var channel = stream.play(false);
-        channel.setChannelGroup(child);
+        // A channel move ends every connection handle. A refused move
+        // keeps them.
+        var sendOsc = Dsp.create(DspType.OSCILLATOR);
+        var sendFft = Dsp.create(DspType.FFT);
+        var send = sendFft.addInput(sendOsc);
+        var sendLive = !send.isNull() && send.getMix() > 0;
+        var refusedRoute:FmodResult = channel.setChannelGroup(stale);
+        var sendKept = send.getMix();
+        var route:FmodResult = channel.setChannelGroup(child);
+        var sendMix = send.getMix();
+        @:privateAccess state.check("chan_set_channel_group_ends_connection", sendLive
+            && refusedRoute == FmodResult.FMOD_ERR_INVALID_HANDLE && sendKept > 0 && route.isOk() && sendMix == 0
+            && StudioSystem.lastResult() == FmodResult.FMOD_ERR_INVALID_HANDLE,
+            'live=$sendLive refused=${refusedRoute.toString()} kept=$sendKept route=${route.toString()} mix=$sendMix');
+        sendFft.release();
+        sendOsc.release();
         @:privateAccess state.check("cg_is_playing_nested", parent.isPlaying() && child.isPlaying(),
             'parent=${parent.isPlaying()} child=${child.isPlaying()}');
         @:privateAccess state.check("cg_is_playing_stale", !stale.isPlaying()

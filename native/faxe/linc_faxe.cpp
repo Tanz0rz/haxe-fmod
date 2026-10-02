@@ -1614,6 +1614,8 @@ int fmod_chan_set_channel_group(int h, int groupHandle) {
     FMOD::ChannelGroup* group = resolveChanGroup(groupHandle);
     if (!ch || !group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     gLastResult = ch->setChannelGroup(group);
+    // A move destroys the connection to the old group
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     return (int)gLastResult;
 }
 
@@ -1859,7 +1861,8 @@ int fmod_dsp_get_input_connection(int h, int index) {
     if (!dsp) { gLastResult = FMOD_ERR_INVALID_HANDLE; return 0; }
     gLastResult = dsp->getInput(index, &input, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
+    // A connection a walk reaches is short-lived, like the DSPs it joins
+    return lincMintBorrowed(conn, FAXE_TYPE_DSPCONN, h, true);
 }
 
 int fmod_dspconn_set_mix(int h, float mix) {
@@ -1900,6 +1903,8 @@ int fmod_cg_add_group(int h, int childHandle, bool propagateDspClock) {
         return 0;
     }
     gLastResult = group->addGroup(child, propagateDspClock, &conn);
+    // A move destroys the connection to the old parent
+    if (gLastResult == FMOD_OK) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
     if (gLastResult != FMOD_OK || !conn) return 0;
     return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
 }
@@ -3343,7 +3348,8 @@ int fmod_dsp_get_output_connection(int h, int index) {
     FMOD::DSPConnection* conn = NULL;
     gLastResult = dsp->getOutput(index, &output, &conn);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
+    // A connection a walk reaches is short-lived, like the DSPs it joins
+    return lincMintBorrowed(conn, FAXE_TYPE_DSPCONN, h, true);
 }
 
 int fmod_dspconn_get_input_dsp(int h) {

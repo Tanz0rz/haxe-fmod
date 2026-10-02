@@ -225,6 +225,9 @@ class TestStringsBankParser {
 		assert("collisions get numeric suffixes", names.join(",") == "AB,AB2,AB3");
 		// hxcpp cannot compile a field named Dynamic
 		assert("Dynamic gets a suffix", Generate.identifiersFor(["event:/Dynamic"], "event:/")[0] == "Dynamic2");
+		assert("C macro names get a suffix", Generate.identifiersFor(["event:/BUFSIZ", "event:/INFINITY", "event:/NAN", "event:/NOMINMAX", "event:/WNOHANG"], "event:/").join(",") == "BUFSIZ2,INFINITY2,NAN2,NOMINMAX2,WNOHANG2");
+		// The Studio script must order paths the same way
+		assert("paths sort in UTF-8 byte order", Generate.emitEventEnums([{path: "event:/A\u{1F525}", guid: "{1}"}, {path: "event:/A\uFF01", guid: "{2}"}], "").indexOf('case A: "event:/A\uFF01"') >= 0);
 		var guidLike = Generate.identifiersFor(["event:/Coin", "event:/Coin Guid"], "event:/");
 		assert("Guid-suffixed paths stay distinct", guidLike.join(",") == "Coin,CoinGuid");
 	}

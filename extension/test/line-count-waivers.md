@@ -35,7 +35,7 @@
 | loading-and-playing-sounds-in-the-core-api | 4.1.1 Non-blocking Sound Creation#3 | text | 10 | 7 | The nonblock callback cannot be hosted, the exinfo lines are replaced by a getOpenState poll. |
 | loading-and-playing-sounds-in-the-core-api | 4.2 Playing a sound | C# | 9 | 8 | The result declaration goes, the checks read lastResult. |
 | loading-and-playing-sounds-in-the-core-api | 4.3.1 Creating a Sound from memory | C# | 16 | 9 | fromMemory reads the length from the bytes, the exinfo lines and the GCHandle note go. |
-| loading-and-playing-sounds-in-the-core-api | 4.3.3 Creating a Sound by manually providing sample data | C# | 15 | 11 | The read callback cannot be hosted, PcmStream takes the same rate, channels, and size and the game writes the samples. |
+| loading-and-playing-sounds-in-the-core-api | 4.3.3 Creating a Sound by manually providing sample data | C# | 15 | 11 | PcmStream takes the same rate, channels, and size. The game writes the samples each frame. |
 | loading-and-playing-sounds-in-the-core-api | 4.3.4 Creating the Sound as a Streamed FSB File | text | 10 | 4 | initialSubsound is an argument of Sound.create, the exinfo lines and the result declaration go. |
 | managing-resources-in-the-core-api | 9.5.1 Use a Fixed-size Memory Pool. | text | 2 | 1 | The pool is a setting of Initialize, its result surfaces through lastResult. |
 | platforms-html5 | Setting and getting | JavaScript | 7 | 5 | getName returns the string, the outval object goes. |

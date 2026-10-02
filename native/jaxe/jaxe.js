@@ -3862,6 +3862,8 @@ class jaxe {
         var group = jaxe.resolveCg(groupHandle);
         if (!ch || !group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
         jaxe.lastResult = ch.setChannelGroup(group);
+        // A move destroys the connection to the old group
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
         return jaxe.lastResult;
     }
 
@@ -4095,7 +4097,8 @@ class jaxe {
         jaxe.lastResult = dsp.getInput(index, dspOut, connOut);
         jaxe.dropWrapper(dspOut.val);
         if (jaxe.lastResult != jaxe.FMOD.OK || !connOut.val) return 0;
-        return jaxe.handleOrMemory(connOut.val, jaxe.TYPE_DSPCONN);
+        // A connection a walk reaches is short-lived, like the DSPs it joins
+        return jaxe.mintBorrowed(connOut.val, jaxe.TYPE_DSPCONN, handle, true);
     }
 
     static fmod_dspconn_set_mix(handle, mix) {
@@ -4153,7 +4156,12 @@ class jaxe {
         if (jaxe.groupAbove(group, child)) { jaxe.lastResult = jaxe.ERR_INVALID_PARAM; return 0; }
         var out = {};
         jaxe.lastResult = group.addGroup(child, !!propagateDspClock, out);
+        // A move destroys the connection to the old parent
+        if (jaxe.lastResult == jaxe.FMOD.OK) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
+        // A child already in this group gets no new connection. The glue
+        // hands back a wrapper around a null pointer for it.
+        if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
         return jaxe.handleOrMemory(out.val, jaxe.TYPE_DSPCONN);
     }
 
@@ -5632,7 +5640,8 @@ class jaxe {
         jaxe.lastResult = dsp.getOutput(index, dspOut, connOut);
         jaxe.dropWrapper(dspOut.val);
         if (jaxe.lastResult != jaxe.FMOD.OK || !connOut.val) return 0;
-        return jaxe.handleOrMemory(connOut.val, jaxe.TYPE_DSPCONN);
+        // A connection a walk reaches is short-lived, like the DSPs it joins
+        return jaxe.mintBorrowed(connOut.val, jaxe.TYPE_DSPCONN, handle, true);
     }
 
     static fmod_dspconn_get_input_dsp(handle) {
