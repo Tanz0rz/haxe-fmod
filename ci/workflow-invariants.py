@@ -28,8 +28,9 @@ leans on:
      sets are read from tests/native and its includes, in the workflow
      and in ci/local-ci.sh, so a test reaches every pass.
      Each test that needs the SDK headers is built and run on its own
-     line with gcc, Apple clang, MSVC, and the 2.02.33 headers. Every
-     shared header is in the package file list.
+     line with gcc, Apple clang, MSVC, and the 2.02.33 headers. The
+     2.02.33 step leaves out dspparams, which names 2.03 parameters.
+     Every shared header is in the package file list.
   9. The HashLink commit is named once, in HASHLINK_COMMIT, and every
      checkout and cache key reads it there.
   10. HAXELIB_PINS names every pinned haxelib install and every haxelib
@@ -522,7 +523,8 @@ else:
 # file list.
 def sdk_tests_built(pattern):
     # A test counts when its compile names an output and that output runs
-    # on a line of its own. A line that ends in || true counts for nothing.
+    # on a line of its own. A line that ends in || true or || : counts
+    # for nothing.
     built = set()
     for step in re.split(r"\n(?= {6}- )", text):
         name = re.search(r"- name: ([^\n]+)", step)
@@ -842,6 +844,7 @@ else:
     # Quoted text and trailing comments name a keyword without running it
     bare = re.sub(r"\"[^\"\n]*\"|'[^'\n]*'", "", rest)
     bare = re.sub(r"[ \t]#[^\n]*", "", bare)
+    bare = re.sub(r"^ *- name:[^\n]*", "", bare, flags=re.M)
     if re.search(r"\b(?:for|exec|trap|alias|shopt)\b", bare):
         glibc_problems.append("loops, execs, traps or aliases around the gate")
     if re.search(r"^ *(?:export +)?(?:NEEDS|NEWEST|NAMED|PATH)=", rest, re.M):
@@ -864,7 +867,7 @@ host_missing = []
 for where, body in (("workflow", commands_only(text)), ("ci/local-ci.sh", commands_only(local_runner))):
     for label, pattern in (("the wrapped build", r"gcc [^\n]*--wrap=FMOD_Sound_Release[^\n]*--wrap=FMOD_System_RecordStop[^\n]*native/hlaxe/hlaxe_fmod\.c tests/native/hlaxe_test_wraps\.c"),
                            ("the program build", r"haxe -cp \. -main tests\.ShimDropPoints -hl "),
-                           ("the run", r"(?m)tests\.ShimDropPoints -hl [\s\S]{0,400}?LD_LIBRARY_PATH=\S+ hl \"?\S*main\.hl\"?'?(?: _ [^\n]*)?$")):
+                           ("the run", r"(?m)tests\.ShimDropPoints -hl [\s\S]{0,400}?LD_LIBRARY_PATH=\S+ (?:\w+=\S+ )*hl \"?\S*main\.hl\"?'?(?: _ [^\n]*|[ \t]+#[^\n]*)?$")):
         if not re.search(pattern, body):
             host_missing.append(f"{where}: {label}")
 if host_missing:
