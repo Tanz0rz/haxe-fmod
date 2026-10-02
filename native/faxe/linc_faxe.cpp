@@ -1530,11 +1530,21 @@ bool fmod_cg_get_paused(int h) {
 // chain still names it. The mixer then reads freed memory. FMOD's text
 // for FMOD_ERR_DSP_INUSE says a DSP must be removed before it is
 // reinserted. So an add into another chain is refused with that code
-// while the recorded chain still lists the DSP.
+// while the recorded chain still lists the DSP. A DSP the game did not
+// create and whose chain the table does not know is refused too, unless
+// the target chain lists it. A group's own fader reached through a DSP
+// walk is such a DSP.
 static bool lincDspInOtherChain(int dspHandle, FMOD::DSP* dsp, int target) {
     int owner = faxe_dsp_chain(dspHandle);
     int index = -1;
-    if (!owner || owner == target) return false;
+    if (owner == target) return false;
+    if (!owner) {
+        if (!faxe_handle_is_owned(dspHandle)) return false;
+        FMOD::Channel* self = resolveChannel(target);
+        if (self) return self->getDSPIndex(dsp, &index) != FMOD_OK;
+        FMOD::ChannelGroup* selfGroup = resolveChanGroup(target);
+        return !selfGroup || selfGroup->getDSPIndex(dsp, &index) != FMOD_OK;
+    }
     FMOD::Channel* channel = resolveChannel(owner);
     if (channel) return channel->getDSPIndex(dsp, &index) == FMOD_OK;
     FMOD::ChannelGroup* group = resolveChanGroup(owner);

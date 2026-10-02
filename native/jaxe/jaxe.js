@@ -3820,12 +3820,20 @@ class jaxe {
     // other chain still names it. FMOD's text for ERR_DSP_INUSE says a DSP
     // must be removed before it is reinserted. So an add into another
     // chain is refused with that code while the recorded chain still
-    // lists the DSP. Mirrors hlaxe_dsp_in_other_chain.
+    // lists the DSP. A DSP the game did not create and whose chain the
+    // table does not know is refused too, unless the target chain lists
+    // it. A group's own fader reached through a DSP walk is such a DSP.
+    // Mirrors hlaxe_dsp_in_other_chain.
     static dspInOtherChain(dspHandle, dsp, target) {
         var owner = jaxe.dspChain(dspHandle);
-        if (!owner || owner == target) return false;
-        var other = jaxe.handleResolve(owner, jaxe.TYPE_CHAN) || jaxe.handleResolve(owner, jaxe.TYPE_CHANGROUP);
         var out = {};
+        if (owner == target) return false;
+        if (!owner) {
+            if (!jaxe.isOwned(dspHandle)) return false;
+            var self = jaxe.handleResolve(target, jaxe.TYPE_CHAN) || jaxe.handleResolve(target, jaxe.TYPE_CHANGROUP);
+            return !self || self.getDSPIndex(dsp, out) != jaxe.FMOD.OK;
+        }
+        var other = jaxe.handleResolve(owner, jaxe.TYPE_CHAN) || jaxe.handleResolve(owner, jaxe.TYPE_CHANGROUP);
         return !!other && other.getDSPIndex(dsp, out) == jaxe.FMOD.OK;
     }
 

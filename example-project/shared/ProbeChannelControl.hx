@@ -598,6 +598,28 @@ class ProbeChannelControl {
         inuseStream.release();
         inuseOther.release();
         inuseGroup.release();
+
+        // A group's own fader reached through a DSP walk has no recorded
+        // chain. FMOD accepts it in a second chain and reads freed memory
+        // after the group's release. So the second chain refuses it.
+        var walkGroup = ChannelGroup.create("probe-cc-walk-group");
+        var walkOther = ChannelGroup.create("probe-cc-walk-other");
+        var walkDsp = Dsp.create(DspType.LOWPASS);
+        var walkFirst:FmodResult = walkGroup.addDsp(0, walkDsp);
+        var walkFader = walkDsp.getInput(0);
+        var walkFaderIndex = walkGroup.getDspIndex(walkFader);
+        var walkAdd:FmodResult = walkOther.addDsp(0, walkFader);
+        var walkListed = walkOther.getDspIndex(walkFader);
+        if (walkAdd.isOk()) walkOther.removeDsp(walkFader);
+        var walkRemove:FmodResult = walkGroup.removeDsp(walkDsp);
+        var walkRelease:FmodResult = walkDsp.release();
+        @:privateAccess state.check("cg_add_dsp_walked_fader_inuse", walkFirst.isOk() && !walkFader.isNull()
+            && walkFaderIndex == 1 && walkAdd == FmodResult.FMOD_ERR_DSP_INUSE && walkListed == -1
+            && walkRemove.isOk() && walkRelease.isOk(),
+            'first=${walkFirst.toString()} fader=${(walkFader : Int)}/$walkFaderIndex add=${walkAdd.toString()}'
+            + ' listed=$walkListed remove=${walkRemove.toString()} release=${walkRelease.toString()}');
+        walkOther.release();
+        walkGroup.release();
         bystanderOut.release();
         bystanderIn.release();
 
