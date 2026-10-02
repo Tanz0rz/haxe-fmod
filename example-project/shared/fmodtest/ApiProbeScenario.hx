@@ -564,6 +564,15 @@ class ApiProbeScenario implements TestScenario {
         // handle. It is minted here, before the baseline.
         extras.getEventList();
         pump();
+        // A replay runs on the clock and unloads its banks when it reaches
+        // the end of the capture. The capture spans a second, so the bank
+        // stays loaded long enough to be seen.
+        #if sys
+        for (i in 0...10) {
+            Sys.sleep(0.1);
+            pump();
+        }
+        #end
         StudioSystem.stopCommandCapture();
         extras.unload();
         pump();
