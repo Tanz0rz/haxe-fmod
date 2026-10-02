@@ -512,12 +512,22 @@ else:
 # the 2.02.33 step leaves it out. Every shared header is in the package
 # file list.
 def sdk_tests_built(pattern):
+    # A test counts when its compile names an output and that output runs
+    # on a line of its own. A line that ends in || true counts for nothing.
     built = set()
     for step in re.split(r"\n(?= {6}- )", text):
         name = re.search(r"- name: ([^\n]+)", step)
         if name and re.search(pattern, name.group(1)):
-            lines = "\n".join(line for line in step.split("\n") if not line.lstrip().startswith("#"))
-            built |= set(re.findall(r"tests[/\\]native[/\\]test_faxe_(\w+)\.c", lines))
+            lines = re.sub(r"\\\n *", " ", step)
+            lines = [line.strip() for line in lines.split("\n") if not line.lstrip().startswith("#")]
+            lines = [line for line in lines if not re.search(r"\|\|\s*true\s*$", line)]
+            for line in lines:
+                for test in re.findall(r"tests[/\\]native[/\\]test_faxe_(\w+)\.c", line):
+                    out = re.search(r"(?:-o |/Fe:)(\S+)", line)
+                    if out and "$t" not in out.group(1) and "%%t" not in out.group(1):
+                        ran = out.group(1)
+                        if any(other == ran or other.startswith(ran + " ") for other in lines):
+                            built.add(test)
     return built
 per_sdk_missing = []
 for label, pattern, exempt in (("the gcc steps against this SDK's headers", r"against this SDK's headers$", set()),
@@ -528,7 +538,8 @@ for label, pattern, exempt in (("the gcc steps against this SDK's headers", r"ag
     if missing:
         per_sdk_missing.append(f"{label} lacks {missing}")
 shared_headers = sorted(name for name in os.listdir(os.path.join(ROOT, "native", "shared")) if name.endswith(".h"))
-unlisted = [name for name in shared_headers if f'"native/shared/{name}"' not in text]
+listed = "\n".join(line for line in text.split("\n") if not line.lstrip().startswith("#"))
+unlisted = [name for name in shared_headers if not re.search(r'^ +"native/shared/' + re.escape(name) + r'" \\$', listed, re.M)]
 if unlisted:
     per_sdk_missing.append(f"the package file list lacks {unlisted}")
 if per_sdk_missing or len(SDK_TESTS) < 5:
@@ -819,11 +830,16 @@ else:
     # each lets the step end clean around the gate
     if re.search(r"^" + base + r"[^\n]*(?:&&|\|\||\||\\)[ \t]*$", body, re.M):
         glibc_problems.append("continues a line into the next one")
-    if re.search(r"\b(?:for|exec|trap|alias|shopt)\b", rest):
+    # Quoted text and trailing comments name a keyword without running it
+    bare = re.sub(r"\"[^\"\n]*\"|'[^'\n]*'", "", rest)
+    bare = re.sub(r"[ \t]#[^\n]*", "", bare)
+    if re.search(r"(?:^|[;&|(])\s*(?:for|exec|trap|alias|shopt)\b", bare, re.M):
         glibc_problems.append("loops, execs, traps or aliases around the gate")
     if re.search(r"^ *(?:export +)?(?:NEEDS|NEWEST|NAMED|PATH)=", rest, re.M):
         glibc_problems.append("sets a gate variable or PATH outside the gate lines")
-    if re.search(r"^ +shell:", body, re.M) or re.search(r"^ +defaults:", hl_build, re.M) or re.search(r"^defaults:", text, re.M):
+    top_defaults = re.search(r"^defaults:\n(?:[ \t]+[^\n]*\n)+", text, re.M)
+    job_defaults = re.search(r"^    defaults:\n(?: {5,}[^\n]*\n)+", hl_build, re.M)
+    if re.search(r"^ +shell:", body, re.M) or any(found and re.search(r"^ +shell:", found.group(0), re.M) for found in (top_defaults, job_defaults)):
         glibc_problems.append("runs under a shell other than the default")
     if not re.search(r"^    runs-on: ubuntu-24\.04$", hl_build, re.M):
         glibc_problems.append("does not build on the pinned ubuntu-24.04 image")
@@ -831,6 +847,44 @@ if glibc_problems:
     fail(f"the glibc floor gate in linux-hl-build: {glibc_problems}")
 else:
     ok("the Linux hdll build fails on a glibc requirement newer than 2.34 or a named one")
+
+# 20. The shim drop-point host test builds the HashLink shim with two
+# FMOD calls wrapped and runs it. The workflow and the local runner both
+# build it with the wrapper file and run the program.
+host_missing = []
+for where, body in (("workflow", commands_only(text)), ("ci/local-ci.sh", commands_only(local_runner))):
+    for label, pattern in (("the wrapped build", r"gcc [^\n]*--wrap=FMOD_Sound_Release[^\n]*--wrap=FMOD_System_RecordStop[^\n]*native/hlaxe/hlaxe_fmod\.c tests/native/hlaxe_test_wraps\.c"),
+                           ("the program build", r"haxe -cp \. -main tests\.ShimDropPoints -hl "),
+                           ("the run", r"tests\.ShimDropPoints -hl [\s\S]{0,400}?\bhl \"?\S*main\.hl")):
+        if not re.search(pattern, body):
+            host_missing.append(f"{where}: {label}")
+if host_missing:
+    fail(f"the shim drop-point host test is not run: {host_missing}")
+else:
+    ok("the shim drop-point host test builds and runs in the workflow and ci/local-ci.sh")
+
+# 21. A state that leaves on its own must leave with status 0. The
+# action, the generated run function and the stress workflow each keep
+# the status and fail on it.
+status_missing = []
+KEEP = r"wait \$GAME_PID 2>/dev/null \|\| GAME_STATUS=\$\?"
+FAILS = r'\[ "\$GAME_STATUS" != 0 \] && \[ "\$GAME_STATUS" != killed \]'
+with open(os.path.join(ROOT, ".github", "actions", "run-test-state", "action.yml")) as fh:
+    state_action = fh.read()
+with open(os.path.join(os.path.dirname(PATH), "stress-test.yml")) as fh:
+    stress_workflow = fh.read()
+for where, body in (("run-test-state action", state_action), ("stress-test.yml", stress_workflow)):
+    if not re.search(KEEP, commands_only(body)) or not re.search(FAILS, commands_only(body)):
+        status_missing.append(where)
+run_functions = len(re.findall(r"^ +run_game\(\) \{$", text, re.M))
+kept = len(re.findall(KEEP, commands_only(text)))
+failing = len(re.findall(FAILS, commands_only(text)))
+if run_functions == 0 or kept != run_functions or failing != run_functions:
+    status_missing.append(f"audio-test.yml: {run_functions} run_game functions, {kept} keep the status, {failing} fail on it")
+if status_missing:
+    fail(f"game exit status not checked: {status_missing}")
+else:
+    ok(f"the state action, the stress workflow and {run_functions} generated game runs fail on a nonzero exit status")
 
 print()
 if failures:

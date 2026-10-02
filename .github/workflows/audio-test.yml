@@ -171,6 +171,13 @@ jobs:
           g++ -x c++ -pthread -Wall -Wextra -Werror -o /tmp/test_pcmring_cpp tests/native/test_faxe_pcmring.c
           /tmp/test_pcmring_cpp
 
+      - name: Test native parked group list (C99 and C++ modes)
+        run: |
+          gcc -std=c99 -Wall -Wextra -Werror -o /tmp/test_parking_c tests/native/test_faxe_parking.c
+          /tmp/test_parking_c
+          g++ -x c++ -Wall -Wextra -Werror -o /tmp/test_parking_cpp tests/native/test_faxe_parking.c
+          /tmp/test_parking_cpp
+
       - name: Check binding coverage against the manifest
         run: python3 ci/binding-coverage.py
 
@@ -211,7 +218,7 @@ jobs:
         run: |
           # The SDK-dependent tests join, since a fixture read past its
           # arrays there stays hidden in a plain build
-          for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums argcheck; do
+          for t in handles cbqueue guid instctx pcmring parking dspdata dsptype dspparams enums argcheck; do
             gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
               -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" -o /tmp/asan_$t tests/native/test_faxe_$t.c
             /tmp/asan_$t
@@ -706,6 +713,7 @@ jobs:
             "native/shared/faxe_dsptype.h" \
             "native/shared/faxe_guid.h" \
             "native/shared/faxe_instctx.h" \
+            "native/shared/faxe_parking.h" \
             "native/shared/faxe_pcmring.h" \
             "native/faxe/linc_faxe.cpp" \
             "native/faxe/linc_faxe.h" \
@@ -1292,6 +1300,16 @@ jobs:
           [ -z "$NAMED" ] || { echo "FAIL: the hdll requires $NAMED, which glibc 2.34 does not provide"; exit 1; }
           [ "$(printf '%s\n' "$NEWEST" GLIBC_2.34 | sort -V | tail -n 1)" = "GLIBC_2.34" ] || { echo "FAIL: the hdll needs $NEWEST, and the shipped one must load on glibc 2.34"; objdump -T .haxefmod/hlaxe_fmod.hdll | grep "$NEWEST"; exit 1; }
 
+      # The shim built with two FMOD calls wrapped, so the test decides
+      # what FMOD answers. A refused sound release and an accepted record
+      # stop cannot be had from the real library on a runner.
+      - name: Run the shim drop-point host test
+        run: |
+          mkdir -p /tmp/shim-drop-points
+          gcc -shared -fPIC -O1 -std=c99 -DHLAXE_SRC_HASH=test -Wl,-rpath,'$ORIGIN' -Wl,--wrap=FMOD_Sound_Release -Wl,--wrap=FMOD_System_RecordStop -I /usr/local/include -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" -o /tmp/shim-drop-points/hlaxe_fmod.hdll native/hlaxe/hlaxe_fmod.c tests/native/hlaxe_test_wraps.c -L /usr/local/lib -L "$FMOD_SDK/api/core/lib/x86_64" -L "$FMOD_SDK/api/studio/lib/x86_64" -lfmod -lfmodstudio -lhl -lpthread
+          haxe -cp . -main tests.ShimDropPoints -hl /tmp/shim-drop-points/main.hl
+          LD_LIBRARY_PATH="/tmp/shim-drop-points:$FMOD_SDK/api/core/lib/x86_64:$FMOD_SDK/api/studio/lib/x86_64" hl /tmp/shim-drop-points/main.hl
+
       - name: Rebuild HashLink target (custom hdll)
         run: |
           set -o pipefail
@@ -1790,7 +1808,7 @@ jobs:
       - name: Test native headers with Apple clang (sanitizers)
         if: ${{ !cancelled() }}
         run: |
-          for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums argcheck; do
+          for t in handles cbqueue guid instctx pcmring parking dspdata dsptype dspparams enums argcheck; do
             clang -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
               -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" -o /tmp/asan_$t tests/native/test_faxe_$t.c
             /tmp/asan_$t
@@ -2049,7 +2067,7 @@ jobs:
         run: |
           for /f "usebackq tokens=*" %%i in (`"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do set VSPATH=%%i
           call "%VSPATH%\VC\Auxiliary\Build\vcvars64.bat" || exit /b 1
-          for %%t in (handles cbqueue guid instctx pcmring) do (
+          for %%t in (handles cbqueue guid instctx pcmring parking) do (
             cl /nologo /W3 /WX /D_CRT_SECURE_NO_WARNINGS /std:c11 /TC /Fe:%TEMP%\msvc_c_%%t.exe tests\native\test_faxe_%%t.c || exit /b 1
             %TEMP%\msvc_c_%%t.exe || exit /b 1
             cl /nologo /W3 /WX /D_CRT_SECURE_NO_WARNINGS /TP /Fe:%TEMP%\msvc_cpp_%%t.exe tests\native\test_faxe_%%t.c || exit /b 1
@@ -4066,7 +4084,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-linux-cpp.log
           }
           if run_game; then
@@ -4075,6 +4097,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/volume-test-linux-cpp.log; exit 1; fi
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -4143,7 +4167,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -4155,6 +4183,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Upload logs
         uses: actions/upload-artifact@v6
@@ -4276,7 +4306,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-linux-hl.log
           }
           if run_game; then
@@ -4285,6 +4319,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/volume-test-linux-hl.log; exit 1; fi
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -4342,7 +4378,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -4354,6 +4394,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Upload logs
         uses: actions/upload-artifact@v6
@@ -4727,7 +4769,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/game-mac-cpp.log
           }
           if run_game; then
@@ -4736,6 +4782,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/game-mac-cpp.log; exit 1; fi
           echo "=== Game log ==="
           cat /tmp/game-mac-cpp.log || true
           echo "=== End game log ==="
@@ -4765,7 +4813,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-mac-cpp.log
           }
           if run_game; then
@@ -4774,6 +4826,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/volume-test-mac-cpp.log; exit 1; fi
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -4831,7 +4885,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -4843,6 +4901,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Collect crash reports
         if: failure()
@@ -4946,7 +5006,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/game-mac-hl.log
           }
           if run_game; then
@@ -4955,6 +5019,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/game-mac-hl.log; exit 1; fi
           echo "=== Game log ==="
           cat /tmp/game-mac-hl.log || true
           echo "=== End game log ==="
@@ -4984,7 +5050,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-mac-hl.log
           }
           if run_game; then
@@ -4993,6 +5063,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/volume-test-mac-hl.log; exit 1; fi
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -5050,7 +5122,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -5062,6 +5138,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Collect crash reports
         if: failure()
@@ -5252,7 +5330,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -5264,6 +5346,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Upload logs
         uses: actions/upload-artifact@v6
@@ -5435,7 +5519,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -5447,6 +5535,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Upload logs
         uses: actions/upload-artifact@v6
@@ -5611,7 +5701,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-heaps-hl.log
           }
           if run_game; then
@@ -5620,6 +5714,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/volume-test-heaps-hl.log; exit 1; fi
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -5688,7 +5784,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -5700,6 +5800,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Upload logs
         uses: actions/upload-artifact@v6
@@ -6073,7 +6175,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/game-heaps-mac-hl.log
           }
           if run_game; then
@@ -6082,6 +6188,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/game-heaps-mac-hl.log; exit 1; fi
           echo "=== Game log ==="
           cat /tmp/game-heaps-mac-hl.log || true
           echo "=== End game log ==="
@@ -6111,7 +6219,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-heaps-mac-hl.log
           }
           if run_game; then
@@ -6120,6 +6232,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/volume-test-heaps-mac-hl.log; exit 1; fi
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -6177,7 +6291,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -6189,6 +6307,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Collect crash reports
         if: failure()
@@ -6379,7 +6499,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -6391,6 +6515,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Upload logs
         uses: actions/upload-artifact@v6
@@ -6521,7 +6647,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-kha-linux.log
           }
           if run_game; then
@@ -6530,6 +6660,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/volume-test-kha-linux.log; exit 1; fi
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -6598,7 +6730,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -6610,6 +6746,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Upload logs
         uses: actions/upload-artifact@v6
@@ -6731,7 +6869,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-kha-hl.log
           }
           if run_game; then
@@ -6740,6 +6882,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/volume-test-kha-hl.log; exit 1; fi
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -6797,7 +6941,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -6809,6 +6957,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Upload logs
         uses: actions/upload-artifact@v6
@@ -7182,7 +7332,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/game-kha-mac.log
           }
           if run_game; then
@@ -7191,6 +7345,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/game-kha-mac.log; exit 1; fi
           echo "=== Game log ==="
           cat /tmp/game-kha-mac.log || true
           echo "=== End game log ==="
@@ -7220,7 +7376,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-kha-mac.log
           }
           if run_game; then
@@ -7229,6 +7389,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/volume-test-kha-mac.log; exit 1; fi
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -7286,7 +7448,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -7298,6 +7464,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Collect crash reports
         if: failure()
@@ -7401,7 +7569,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/game-kha-mac-hl.log
           }
           if run_game; then
@@ -7410,6 +7582,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/game-kha-mac-hl.log; exit 1; fi
           echo "=== Game log ==="
           cat /tmp/game-kha-mac-hl.log || true
           echo "=== End game log ==="
@@ -7439,7 +7613,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" /tmp/volume-test-kha-mac-hl.log
           }
           if run_game; then
@@ -7448,6 +7626,8 @@ jobs:
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat /tmp/volume-test-kha-mac-hl.log; exit 1; fi
 
       - name: Validate audio
         if: matrix.state == 'game-audio'
@@ -7505,7 +7685,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -7517,6 +7701,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Collect crash reports
         if: failure()
@@ -7707,7 +7893,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -7719,6 +7909,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Upload logs
         uses: actions/upload-artifact@v6
@@ -7890,7 +8082,11 @@ jobs:
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" "$LOG"
           }
           if run_game; then
@@ -7902,6 +8098,8 @@ jobs:
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || { echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 
       - name: Upload logs
         uses: actions/upload-artifact@v6

@@ -333,7 +333,7 @@ job_unit_tests() {
     grep -q "3 sound TODO(s) remaining." "$1/todos.out"
     haxe -cp . --no-output -js "$1/todo-typing.js" -D haxefmod_todo_beep --debug haxefmod.FmodManager' _ "$TMP"
   step "Verify native shims match the FFI manifest" haxe -cp . --run haxefmod.tools.NativeManifestCheck
-  for t in handles cbqueue guid instctx pcmring; do
+  for t in handles cbqueue guid instctx pcmring parking; do
     step "Test native $t (C99 and C++ modes)" bash -eo pipefail -c '
       gcc -std=c99 -pthread -Wall -Wextra -Werror -o "$2/test_$1_c" tests/native/test_faxe_$1.c && "$2/test_$1_c"
       g++ -x c++ -pthread -Wall -Wextra -Werror -o "$2/test_$1_cpp" tests/native/test_faxe_$1.c && "$2/test_$1_cpp"' _ "$t" "$TMP"
@@ -365,7 +365,7 @@ job_unit_tests() {
   step "Test the default bank failure path" bash -eo pipefail -c '
     haxe tests/build-preload-failure.hxml && haxe tests/build-init-refused.hxml && haxe tests/build-default-bank-failure.hxml && haxe tests/build-default-bank-failure-provided.hxml'
   step "Run native tests under AddressSanitizer and UBSan" bash -eo pipefail -c '
-    for t in handles cbqueue guid instctx pcmring dspdata dsptype dspparams enums argcheck; do
+    for t in handles cbqueue guid instctx pcmring parking dspdata dsptype dspparams enums argcheck; do
       gcc -std=c99 -pthread -fsanitize=address,undefined -fno-sanitize-recover=all \
         -Wall -Wextra -Werror -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" -o "$1/asan_$t" tests/native/test_faxe_$t.c
       "$1/asan_$t"
@@ -433,6 +433,7 @@ job_linux_cpp() {
 job_linux_hl() {
   begin_job linux-hl
   require_sdk
+  step "Run the shim drop-point host test" bash -eo pipefail -c 'HL="${HASHLINK_DIR:-/usr/local}"; D="$2/shim-drop-points"; mkdir -p "$D"; gcc -shared -fPIC -O1 -std=c99 -DHLAXE_SRC_HASH=test -Wl,-rpath,"\$ORIGIN" -Wl,--wrap=FMOD_Sound_Release -Wl,--wrap=FMOD_System_RecordStop -I "$HL/include" -I "$1/api/core/inc" -I "$1/api/studio/inc" -o "$D/hlaxe_fmod.hdll" native/hlaxe/hlaxe_fmod.c tests/native/hlaxe_test_wraps.c -L "$HL/lib" -L "$1/api/core/lib/x86_64" -L "$1/api/studio/lib/x86_64" -lfmod -lfmodstudio -lhl -lpthread; haxe -cp . -main tests.ShimDropPoints -hl "$D/main.hl"; LD_LIBRARY_PATH="$D:$1/api/core/lib/x86_64:$1/api/studio/lib/x86_64:$HL/lib" hl "$D/main.hl"' _ "$FMOD_SDK" "$TMP"
   local bin="$EXAMPLE/export/hl/bin"
   # A clean checkout has no custom hdll, and the first build must pick the
   # pre-built one

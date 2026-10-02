@@ -137,8 +137,14 @@ jobs:
             kill -0 $GAME_PID 2>/dev/null || break
             sleep 1
           done
+          ALIVE=0
+          kill -0 $GAME_PID 2>/dev/null && ALIVE=1
           kill -9 $GAME_PID 2>/dev/null || true
-          wait $GAME_PID 2>/dev/null || true
+          # The status of a game that left on its own is kept. A crash
+          # after the state printed its last line shows only there.
+          GAME_STATUS=0
+          wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+          [ "$ALIVE" = 0 ] || GAME_STATUS=killed
 
           grep "STRESS_TEST:" /tmp/stress-test.log || true
           if ! grep -q "STRESS_TEST: COMPLETE" /tmp/stress-test.log; then
@@ -148,6 +154,11 @@ jobs:
           fi
           if grep -q "pass=false" /tmp/stress-test.log; then
             echo "Stress state reported failing checks"
+            exit 1
+          fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then
+            echo "The game exited with status $GAME_STATUS after the stress state completed"
             exit 1
           fi
           echo "Stress test passed"

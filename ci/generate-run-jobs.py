@@ -315,6 +315,8 @@ def run_for(j, seconds, log, wav_env):
             run_game || true
           fi
           cd -
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat {log}; exit 1; fi
 """
 
 
@@ -342,7 +344,11 @@ def run_game_function(seconds, log):
               sleep 1
             done
             kill -9 $GAME_PID 2>/dev/null || true
-            wait $GAME_PID 2>/dev/null || true
+            # The status of a game that left on its own is kept. A crash
+            # after the state printed its last line shows only there.
+            GAME_STATUS=0
+            wait $GAME_PID 2>/dev/null || GAME_STATUS=$?
+            [ "$ALIVE" = 0 ] || GAME_STATUS=killed
             [ "$ALIVE" = 0 ] && [ $(( $(date +%s) - STARTED )) -lt 5 ] && ! grep -Eq "_TEST:|API_PROBE:" {log}
           }}"""
 
@@ -426,6 +432,8 @@ def native_steps(j):
           grep "STRESS_TEST:" "$LOG" || true
           grep -q "STRESS_TEST: COMPLETE" "$LOG" || {{ echo "Stress smoke never completed, full log:"; cat "$LOG"; exit 1; }}
           if grep -q "pass=false" "$LOG"; then echo "Stress smoke reported failing checks"; exit 1; fi
+          echo "game exit status: $GAME_STATUS"
+          if [ "$GAME_STATUS" != 0 ] && [ "$GAME_STATUS" != killed ]; then echo "The game exited with status $GAME_STATUS"; cat "$LOG"; exit 1; fi
 """
 
 
