@@ -56,9 +56,11 @@ class BuildCheck {
         // The postbuild guards also catch it, but lime can bury their exit
         // code. The compile-time check is the reliable block.
         if (Context.defined("html5") || Context.defined("js")) {
-            // The version comes first. An HTML5 package of another FMOD
-            // version keeps its files elsewhere and would read as the
-            // wrong package.
+            // The version comes first. The FMOD 2.02 HTML5 package keeps
+            // its files elsewhere. The file check below would refuse it
+            // without naming its version. The version is read from the
+            // header, which the stage also requires.
+            requireSdkFile("FMOD_SDK_WEB", ["api", "core", "inc", "fmod_common.h"]);
             verifyWebSdkVersionGate();
             requirePackage("FMOD_SDK_WEB", true);
             requireSdkFile("FMOD_SDK_WEB", ["api", "studio", "lib", "wasm", "fmodstudio.js"]);
@@ -89,7 +91,7 @@ class BuildCheck {
         var sdkPath = Sys.getEnv("FMOD_SDK_WEB");
         if (sdkPath == null || sdkPath == "") return; // requireEnv handled it.
         var sdkHeader = haxe.io.Path.join([sdkPath, "api", "core", "inc", "fmod_common.h"]);
-        if (!sys.FileSystem.exists(sdkHeader)) return; // header layout varies, postbuild warns.
+        if (!sys.FileSystem.exists(sdkHeader)) return; // verify() requires the header first.
         var libRoot = resolveLibRoot();
         if (libRoot == null) return;
         var versionFile = haxe.io.Path.join([libRoot, "fmod_expected_version"]);

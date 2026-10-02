@@ -442,7 +442,12 @@ class Run {
 
 		// The build refuses a web SDK of another version, so the doctor does too
 		var webHeader = haxe.io.Path.join([fmodSdkWeb, "api", "core", "inc", "fmod_common.h"]);
-		var webHex = FileSystem.exists(webHeader) ? PostBuild.parseFmodVersion(webHeader) : null;
+		if (!FileSystem.exists(webHeader)) {
+			fail("FMOD web SDK headers present", 'Missing: $webHeader');
+			Sys.println('         Download FMOD Engine $expectedVersion for HTML5 from https://www.fmod.com/download');
+			return;
+		}
+		var webHex = PostBuild.parseFmodVersion(webHeader);
 		if (webHex != null && PostBuild.hexToVersion(webHex) != expectedVersion) {
 			fail("FMOD web SDK version", 'Found ${PostBuild.hexToVersion(webHex)}, expected $expectedVersion.');
 			Sys.println('         Download FMOD Engine $expectedVersion for HTML5 from https://www.fmod.com/download');

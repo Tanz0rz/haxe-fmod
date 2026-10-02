@@ -175,8 +175,8 @@
 - A connection that `Dsp.getInputConnection` or `getOutputConnection` reaches gets a short-lived handle unless the connection already has a live handle. Its handle read freed memory after Studio freed an event.
 - A connection that `Dsp.addInput` makes when either DSP came from a channel, an event, a bus, or a walk gets a short-lived handle. When the channel ended on its own, the handle read and wrote freed memory or controlled another channel's send.
 - A `ChannelGroup.addGroup` or `Channel.setChannelGroup` that moves a group or channel to another parent ends the handle of the connection to the old parent. That stale handle could control an unrelated connection at the same address. When the moved unit has a second connection to the old parent's tail, the move ends every connection handle.
-- A js build reports the version mismatch for an HTML5 FMOD package of another version. It said the package did not look like an FMOD Engine SDK.
-- `haxelib run haxefmod check` fails an HTML5 FMOD package of another version. It passed a setup that the build then refused.
+- A js build reports the version mismatch for an FMOD 2.02 HTML5 package. It said the package did not look like an FMOD Engine SDK.
+- `haxelib run haxefmod check` fails an HTML5 FMOD package of another version or without its headers. It passed a setup that the build then refused. A js build stops on a package without its headers too.
 - An `addDsp` of a DSP that already has outputs ends every connection handle. A handle to a connection into a group's tail DSP could control an unrelated connection after that DSP moved.
 - A command replay unloads the banks it loaded when it stops or ends. The handles into those banks die at the update that delivers the unload. Their callbacks go with them. A bus channel group handle read freed memory before.
 - `FmodManager.Todo` with `-D haxefmod_todo_beep` plays its beep only once FMOD is initialized. It initialized FMOD with default settings before, and a later `Initialize(settings)` lost its settings.

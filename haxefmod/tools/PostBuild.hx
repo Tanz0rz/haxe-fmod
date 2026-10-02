@@ -83,7 +83,7 @@ class PostBuild {
 		// Both FMOD packages ship api/core/inc, so a header check cannot
 		// tell the desktop SDK from the HTML5 one. Name the mix-up here
 		// rather than failing later on a library that was never there.
-		// An HTML5 package of another FMOD version keeps its files
+		// The FMOD 2.02 HTML5 package keeps its files
 		// elsewhere, so its version comes first.
 		if (platform == "html5") verifyVersion(libRoot, sdkPath, sdkEnvName, projectDir, target);
 		verifyPackage(platform, sdkPath, sdkEnvName);
@@ -150,7 +150,7 @@ class PostBuild {
 
 	/** True when the path holds the HTML5 FMOD Engine package. */
 	public static function looksLikeWebSdk(sdkPath:String):Bool {
-		// An HTML5 package of another FMOD version keeps it under upstream/
+		// The FMOD 2.02 HTML5 package keeps it under upstream/
 		return FileSystem.exists(Path.join([sdkPath, "api", "studio", "lib", "wasm", "fmodstudio.js"]))
 			|| FileSystem.exists(Path.join([sdkPath, "api", "studio", "lib", "upstream", "wasm", "fmodstudio.js"]));
 	}

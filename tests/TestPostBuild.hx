@@ -515,7 +515,7 @@ class TestPostBuild {
 		return dir;
 	}
 
-	// An HTML5 package of another FMOD version keeps fmodstudio.js outside
+	// The FMOD 2.02 HTML5 package keeps fmodstudio.js outside
 	// lib/wasm. The build check named it a desktop package.
 	static function testBuildCheckOldWebSdk():Void {
 		var dir = "tests/.tmp/buildcheck-web";
@@ -532,6 +532,19 @@ class TestPostBuild {
 		Sys.putEnv("FMOD_SDK_WEB", saved);
 		assert(code != 0 && out.indexOf("version mismatch") != -1 && out.indexOf("does not point at the HTML5") == -1,
 			"an HTML5 package of another FMOD version reports the version");
+
+		// lime ignores the postbuild exit code, so the compile refuses
+		// what the stage refuses
+		var noHeader = '$dir/no-header';
+		writeFile('$noHeader/api/studio/lib/wasm/fmodstudio.js', "");
+		Sys.putEnv("FMOD_SDK_WEB", sys.FileSystem.fullPath(noHeader));
+		p = new sys.io.Process("haxe", ["-cp", ".", "-cp", dir, "-main", "Main", "-js", '$dir/out.js', "--no-output",
+			"--macro", "haxefmod.tools.BuildCheck.verify()"]);
+		out = p.stdout.readAll().toString() + p.stderr.readAll().toString();
+		code = p.exitCode();
+		p.close();
+		Sys.putEnv("FMOD_SDK_WEB", saved);
+		assert(code != 0 && out.indexOf("fmod_common.h") != -1, "a web package without its headers stops the compile");
 	}
 
 	/**
@@ -585,7 +598,7 @@ class TestPostBuild {
 		r = runTool(["stage", "html5", "html5", '$base/out-web'], plain, ["FMOD_SDK_WEB" => web]);
 		check("stage refuses a web SDK of another version", r.code == 1 && r.out.indexOf("web SDK version mismatch") != -1);
 
-		// An HTML5 package of another FMOD version keeps fmodstudio.js outside lib/wasm
+		// The FMOD 2.02 HTML5 package keeps fmodstudio.js outside lib/wasm
 		var oldLayout = '$base/old-layout-web';
 		writeFile('$oldLayout/api/core/inc/fmod_common.h', "#define FMOD_VERSION 0x00020233\n");
 		writeFile('$oldLayout/api/studio/lib/upstream/wasm/fmodstudio.js', "// engine");
@@ -623,6 +636,13 @@ class TestPostBuild {
 		check("check fails a pre-built hdll for another SDK", r.out.indexOf("[FAIL] Pre-built hdll compatible with SDK") != -1);
 		r = runTool(["check"], plain, ["FMOD_SDK" => sdk, "FMOD_SDK_WEB" => web]);
 		check("check fails a web SDK of another version", r.code == 1 && r.out.indexOf("[FAIL] FMOD web SDK version") != -1);
+
+		// The stage refuses a web package without its headers, so the doctor does too
+		var noHeader = '$base/no-header-web';
+		writeFile('$noHeader/api/studio/lib/wasm/fmodstudio.js', "// engine");
+		writeFile('$noHeader/api/studio/lib/wasm/fmodstudio.wasm', "wasm");
+		r = runTool(["check"], plain, ["FMOD_SDK" => sdk, "FMOD_SDK_WEB" => noHeader]);
+		check("check fails a web SDK without its headers", r.code == 1 && r.out.indexOf("[FAIL] FMOD web SDK headers present") != -1);
 		r = runTool(["check"], oldAbi, ["FMOD_SDK" => sdk, "FMOD_SDK_WEB" => ""]);
 		check("check fails an hdll of another binding ABI", r.code == 1 && r.out.indexOf("[FAIL] hlaxe_fmod.hdll binding ABI") != -1);
 
