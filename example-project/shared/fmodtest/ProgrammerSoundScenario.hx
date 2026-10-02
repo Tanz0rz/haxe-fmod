@@ -339,9 +339,9 @@ class ProgrammerSoundScenario implements TestScenario {
         info("at_timeline", '$tag create_frame=$_atCreateFrame ready_frame=$_atReadyFrame first_audible_frame=$_atFirstAudibleFrame stopped_frame=$_atFrames');
         var elapsed = haxe.Timer.stamp() - _atPlayStamp;
         var pollsPerSecond = elapsed > 0 ? _atFrames / elapsed : 0;
-        // A line that played out before the first poll leaves nothing to
-        // read, so a late first poll is unsampled too
-        if (pollsPerSecond >= 20 && _atFirstPoll < 0.25) {
+        // The words fill only the first 0.12 s of each line, so a first
+        // poll later than 0.1 s can miss them and is unsampled too
+        if (pollsPerSecond >= 20 && _atFirstPoll < 0.1) {
             check("at_key_resolved_audibly", _atMaxPeak > 0.01, '$tag peak=$_atMaxPeak polls_per_second=${Math.round(pollsPerSecond)}');
         } else {
             info("at_key_resolved_audibly", 'unsampled $tag peak=$_atMaxPeak polls_per_second=${Math.round(pollsPerSecond)} first_poll_ms=${Math.round(_atFirstPoll * 1000)}');
