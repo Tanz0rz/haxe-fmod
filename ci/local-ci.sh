@@ -335,8 +335,10 @@ job_unit_tests() {
   step "Verify native shims match the FFI manifest" haxe -cp . --run haxefmod.tools.NativeManifestCheck
   for t in handles cbqueue guid instctx pcmring parking; do
     step "Test native $t (C99 and C++ modes)" bash -eo pipefail -c '
-      gcc -std=c99 -pthread -Wall -Wextra -Werror -o "$2/test_$1_c" tests/native/test_faxe_$1.c && "$2/test_$1_c"
-      g++ -x c++ -pthread -Wall -Wextra -Werror -o "$2/test_$1_cpp" tests/native/test_faxe_$1.c && "$2/test_$1_cpp"' _ "$t" "$TMP"
+      gcc -std=c99 -pthread -Wall -Wextra -Werror -o "$2/test_$1_c" tests/native/test_faxe_$1.c
+      "$2/test_$1_c"
+      g++ -x c++ -pthread -Wall -Wextra -Werror -o "$2/test_$1_cpp" tests/native/test_faxe_$1.c
+      "$2/test_$1_cpp"' _ "$t" "$TMP"
   done
   step "Negative-test the synth frequency gate" python3 ci/synth-gate-selftest.py
   step "Check workflow gating invariants" python3 ci/workflow-invariants.py
