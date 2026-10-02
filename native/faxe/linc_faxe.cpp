@@ -1609,13 +1609,23 @@ int fmod_chan_set_position(int h, int position, int unit) {
     return (int)gLastResult;
 }
 
-// The connection that moving unit into the group to destroys. from is the
-// unit's parent. The connection joins the unit's head to the tail of from.
-// NULL for a move into from, since FMOD then changes nothing.
-static FMOD_DSPCONNECTION* lincMovedConnection(FMOD::ChannelControl* unit, FMOD::ChannelGroup* from, FMOD::ChannelGroup* to) {
+// Counts the connections from the unit's head to the tail of from, the
+// unit's parent, and puts the first one in old. A move to another parent
+// destroys one of them. A move into from changes nothing, so the count is
+// 0 for it.
+static int lincMovedConnection(FMOD::ChannelControl* unit, FMOD::ChannelGroup* from, FMOD::ChannelGroup* to, FMOD_DSPCONNECTION** old) {
     FMOD::DSP* head = NULL;
-    if (!from || from == to || unit->getDSP(FMOD_CHANNELCONTROL_DSP_HEAD, &head) != FMOD_OK) return NULL;
-    return faxe_parent_connection((FMOD_DSP*)head, (FMOD_CHANNELGROUP*)from);
+    *old = NULL;
+    if (!from || from == to || unit->getDSP(FMOD_CHANNELCONTROL_DSP_HEAD, &head) != FMOD_OK) return 0;
+    return faxe_parent_connection((FMOD_DSP*)head, (FMOD_CHANNELGROUP*)from, old);
+}
+
+// Frees the handle of the connection an accepted move destroyed. With more
+// than one connection to the old tail the shim cannot tell which one FMOD
+// destroyed, so every connection handle goes.
+static void lincEndMovedConnection(int count, FMOD_DSPCONNECTION* old) {
+    if (count > 1) faxe_handles_free_type(FAXE_TYPE_DSPCONN);
+    else if (old) faxe_handle_free(faxe_handle_find(old, FAXE_TYPE_DSPCONN));
 }
 
 int fmod_chan_set_channel_group(int h, int groupHandle) {
@@ -1624,10 +1634,11 @@ int fmod_chan_set_channel_group(int h, int groupHandle) {
     if (!ch || !group) { gLastResult = FMOD_ERR_INVALID_HANDLE; return (int)gLastResult; }
     FMOD::ChannelGroup* from = NULL;
     if (ch->getChannelGroup(&from) != FMOD_OK) from = NULL;
-    FMOD_DSPCONNECTION* old = lincMovedConnection(ch, from, group);
+    FMOD_DSPCONNECTION* old = NULL;
+    int count = lincMovedConnection(ch, from, group, &old);
     gLastResult = ch->setChannelGroup(group);
     // A move destroys the connection to the old group and no other
-    if (gLastResult == FMOD_OK && old) faxe_handle_free(faxe_handle_find(old, FAXE_TYPE_DSPCONN));
+    if (gLastResult == FMOD_OK) lincEndMovedConnection(count, old);
     return (int)gLastResult;
 }
 
@@ -1804,18 +1815,19 @@ static inline FMOD::Reverb3D* resolveReverb3d(int h) {
     return (FMOD::Reverb3D*)faxe_handle_resolve(h, FAXE_TYPE_REVERB3D);
 }
 
-// True for a DSP the game reached through a channel, an event, a bus, or
-// a DSP walk. FMOD or Studio can free such a DSP with no call the shim
-// sees. A DSP the game created and the chain of a channel group the game
-// created or of the master live until a call the shim sees.
+// True for a DSP or a group the game reached through a channel, an event,
+// a bus, or a walk. FMOD or Studio can free such an object with no call
+// the shim sees. A DSP or a group the game created, the chain of such a
+// group, and the master live until a call the shim sees.
 static bool lincDspShortLived(int h) {
     return faxe_handle_is_owned(h) && (faxe_handle_get_borrowed(h) == FAXE_BORROWED_VOLATILE
         || faxe_handle_get_type(faxe_handle_root(h)) != FAXE_TYPE_CHANGROUP);
 }
 
-// The handle of a connection the game made between two DSPs. FMOD frees
-// the connection on its own when a short-lived DSP at either end goes, so
-// the handle is short-lived too. Any other one is long-lived.
+// The handle of a connection the game made with addInput or addGroup.
+// output and input are its two ends, two DSPs or two groups. FMOD frees
+// the connection on its own when a short-lived end goes, so the handle is
+// short-lived too. Any other one is long-lived.
 static int lincMintMadeConnection(FMOD::DSPConnection* conn, int output, int input) {
     if (lincDspShortLived(input)) return lincMintBorrowed(conn, FAXE_TYPE_DSPCONN, input, true);
     if (lincDspShortLived(output)) return lincMintBorrowed(conn, FAXE_TYPE_DSPCONN, output, true);
@@ -1934,12 +1946,15 @@ int fmod_cg_add_group(int h, int childHandle, bool propagateDspClock) {
     }
     FMOD::ChannelGroup* from = NULL;
     if (child->getParentGroup(&from) != FMOD_OK) from = NULL;
-    FMOD_DSPCONNECTION* old = lincMovedConnection(child, from, group);
+    FMOD_DSPCONNECTION* old = NULL;
+    int count = lincMovedConnection(child, from, group, &old);
     gLastResult = group->addGroup(child, propagateDspClock, &conn);
     // A move destroys the connection to the old parent and no other
-    if (gLastResult == FMOD_OK && old) faxe_handle_free(faxe_handle_find(old, FAXE_TYPE_DSPCONN));
+    if (gLastResult == FMOD_OK) lincEndMovedConnection(count, old);
     if (gLastResult != FMOD_OK || !conn) return 0;
-    return lincHandleOrMemory(conn, FAXE_TYPE_DSPCONN);
+    // Studio frees a bus's or an event's group on its own, and FMOD frees
+    // the connection with it
+    return lincMintMadeConnection(conn, h, childHandle);
 }
 
 // A parked group stays a child of its parent until its FMOD release.

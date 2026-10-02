@@ -3866,7 +3866,7 @@ class jaxe {
         var old = jaxe.movedConnection(ch, from.val, group);
         jaxe.lastResult = ch.setChannelGroup(group);
         // A move destroys the connection to the old group and no other
-        if (jaxe.lastResult == jaxe.FMOD.OK && old) jaxe.handleFree(old);
+        if (jaxe.lastResult == jaxe.FMOD.OK && old) jaxe.endMovedConnection(old);
         return jaxe.lastResult;
     }
 
@@ -4031,10 +4031,10 @@ class jaxe {
         return jaxe.handleResolve(handle, jaxe.TYPE_DSPCONN);
     }
 
-    // True for a DSP the game reached through a channel, an event, a bus,
-    // or a DSP walk. FMOD can free such a DSP with no call the shim sees. A
-    // DSP the game created and the chain of a channel group the game
-    // created or of the master live until a call the shim sees. Mirrors
+    // True for a DSP or a group the game reached through a channel, an
+    // event, a bus, or a walk. FMOD can free such an object with no call
+    // the shim sees. A DSP or a group the game created, the chain of such a
+    // group, and the master live until a call the shim sees. Mirrors
     // hlaxe_dsp_short_lived.
     static dspShortLived(handle) {
         var s = jaxe.slotOf(handle);
@@ -4043,9 +4043,10 @@ class jaxe {
         return s.borrowed == jaxe.BORROWED_VOLATILE || !root || root.type != jaxe.TYPE_CHANGROUP;
     }
 
-    // The handle of a connection the game made between two DSPs. FMOD
-    // frees the connection on its own when a short-lived DSP at either end
-    // goes, so the handle is short-lived too. Any other one is long-lived.
+    // The handle of a connection the game made with addInput or addGroup.
+    // output and input are its two ends, two DSPs or two groups. FMOD frees
+    // the connection on its own when a short-lived end goes, so the handle
+    // is short-lived too. Any other one is long-lived.
     static mintMadeConnection(conn, output, input) {
         if (jaxe.dspShortLived(input)) return jaxe.mintBorrowed(conn, jaxe.TYPE_DSPCONN, input, true);
         if (jaxe.dspShortLived(output)) return jaxe.mintBorrowed(conn, jaxe.TYPE_DSPCONN, output, true);
@@ -4172,9 +4173,10 @@ class jaxe {
 
     // The handle of the connection that moving unit into the group to
     // destroys, 0 when the table has none. from is the unit's parent. The
-    // connection joins the unit's head to the tail of from. A move into
-    // from changes nothing. Drops the from wrapper. Mirrors
-    // hlaxe_moved_connection.
+    // connection joins the unit's head to the tail of from. A head with
+    // more than one connection to that tail gives -1, since the shim cannot
+    // tell which one FMOD destroys. A move into from changes nothing. Drops
+    // the from wrapper. Mirrors hlaxe_moved_connection.
     static movedConnection(unit, from, to) {
         var found = 0;
         if (!from) return 0;
@@ -4184,10 +4186,12 @@ class jaxe {
             && from.getDSP(jaxe.FMOD.CHANNELCONTROL_DSP_TAIL, tailOut) == jaxe.FMOD.OK && tailOut.val
             && headOut.val.getNumOutputs(countOut) == jaxe.FMOD.OK) {
             var tail = jaxe.rawPtr(tailOut.val);
-            for (var i = 0; i < countOut.val && !found; i++) {
+            var matches = 0;
+            for (var i = 0; i < countOut.val; i++) {
                 var output = {}, conn = {};
                 if (headOut.val.getOutput(i, output, conn) == jaxe.FMOD.OK && jaxe.rawPtr(output.val) === tail) {
-                    found = jaxe.handleFind(conn.val, jaxe.TYPE_DSPCONN);
+                    if (++matches == 1) found = jaxe.handleFind(conn.val, jaxe.TYPE_DSPCONN);
+                    else found = -1;
                 }
                 jaxe.dropWrapper(output.val);
                 jaxe.dropWrapper(conn.val);
@@ -4197,6 +4201,13 @@ class jaxe {
         jaxe.dropWrapper(headOut.val);
         jaxe.dropWrapper(from);
         return found;
+    }
+
+    // Frees the handle movedConnection found. For -1 every connection
+    // handle goes.
+    static endMovedConnection(old) {
+        if (old === -1) jaxe.freeAllOfType(jaxe.TYPE_DSPCONN);
+        else jaxe.handleFree(old);
     }
 
     // Returns the connection handle, 0 on failure with the reason in
@@ -4212,12 +4223,14 @@ class jaxe {
         var old = jaxe.movedConnection(child, from.val, group);
         jaxe.lastResult = group.addGroup(child, !!propagateDspClock, out);
         // A move destroys the connection to the old parent and no other
-        if (jaxe.lastResult == jaxe.FMOD.OK && old) jaxe.handleFree(old);
+        if (jaxe.lastResult == jaxe.FMOD.OK && old) jaxe.endMovedConnection(old);
         if (jaxe.lastResult != jaxe.FMOD.OK || !out.val) return 0;
         // A child already in this group gets no new connection. The glue
         // hands back a wrapper around a null pointer for it.
         if (jaxe.rawPtr(out.val) == 0) { jaxe.dropWrapper(out.val); return 0; }
-        return jaxe.handleOrMemory(out.val, jaxe.TYPE_DSPCONN);
+        // Studio frees a bus's or an event's group on its own, and FMOD
+        // frees the connection with it
+        return jaxe.mintMadeConnection(out.val, handle, childHandle);
     }
 
     static fmod_cg_get_num_groups(handle) {

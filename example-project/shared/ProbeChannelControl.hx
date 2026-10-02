@@ -47,6 +47,15 @@ class ProbeChannelControl {
     static var _stream:PcmStream = PcmStream.NULL;
     static var _channel:Channel = Channel.NULL;
 
+    /** How many of a DSP's input connections run at mix. */
+    static function countInputsAtMix(dsp:Dsp, mix:Float):Int {
+        var count = 0;
+        for (i in 0...dsp.getInputCount()) {
+            if (Math.abs(dsp.getInputConnection(i).getMix() - mix) < 0.001) count++;
+        }
+        return count;
+    }
+
     public static function run(state:ApiProbeScenario):Void {
         var master = ChannelGroup.master();
         var baseline = StudioSystem.liveHandleCount();
@@ -285,6 +294,46 @@ class ProbeChannelControl {
         child.clearCallback();
         child.setCallback(function(_) groupEvents++);
         @:privateAccess state.check("cg_set_callback", StudioSystem.lastResult().isOk(), 'lastResult=${StudioSystem.lastResult().toString()}');
+
+        // A head with a second connection to the old parent's tail. The
+        // shim cannot tell which one a move destroys, so the move ends
+        // every connection handle. The game's send keeps routing at its mix.
+        var dupParent = ChannelGroup.create("probe-cc-dup-parent");
+        var dupChild = ChannelGroup.create("probe-cc-dup-child");
+        var dupTail = dupParent.getDsp(ChannelGroup.DSP_TAIL);
+        var dupSend = dupTail.addInput(dupChild.getDsp(ChannelGroup.DSP_HEAD), DspConnection.TYPE_SEND);
+        dupSend.setMix(0.25);
+        var dupConn = dupParent.addGroupConnection(dupChild);
+        var dupLive = !dupSend.isNull() && !dupConn.isNull() && dupConn.getMix() > 0 && countInputsAtMix(dupTail, 0.25) == 1;
+        var dupMove:FmodResult = other.addGroup(dupChild);
+        var dupMix = dupConn.getMix();
+        var dupResult = StudioSystem.lastResult();
+        var dupSends = countInputsAtMix(dupTail, 0.25);
+        @:privateAccess state.check("cg_add_group_second_tail_connection", dupLive && dupMove.isOk() && dupMix == 0
+            && dupResult == FmodResult.FMOD_ERR_INVALID_HANDLE && dupSends == 1,
+            'live=$dupLive move=${dupMove.toString()} result=${dupResult.toString()} sends=$dupSends');
+        // The same holds for a channel. The game sends to a group's tail
+        // first, then moves the channel into the group and out again.
+        var otherTail = other.getDsp(ChannelGroup.DSP_TAIL);
+        var chanSend = otherTail.addInput(channel.getDsp(Channel.DSP_HEAD), DspConnection.TYPE_SEND);
+        chanSend.setMix(0.25);
+        var tailInputs = [for (i in 0...otherTail.getInputCount()) (otherTail.getInputConnection(i) : Int)];
+        var chanJoin:FmodResult = channel.setChannelGroup(other);
+        var chanParent = DspConnection.NULL;
+        for (i in 0...otherTail.getInputCount()) {
+            var c = otherTail.getInputConnection(i);
+            if (tailInputs.indexOf((c : Int)) < 0) chanParent = c;
+        }
+        var chanLive = !chanSend.isNull() && chanJoin.isOk() && !chanParent.isNull() && chanParent.getMix() > 0;
+        var chanLeave:FmodResult = channel.setChannelGroup(child);
+        var chanMix = chanParent.getMix();
+        var chanResult = StudioSystem.lastResult();
+        var chanSends = countInputsAtMix(otherTail, 0.25);
+        @:privateAccess state.check("chan_set_channel_group_second_tail_connection", chanLive && chanLeave.isOk() && chanMix == 0
+            && chanResult == FmodResult.FMOD_ERR_INVALID_HANDLE && chanSends == 1,
+            'live=$chanLive leave=${chanLeave.toString()} result=${chanResult.toString()} sends=$chanSends');
+        dupChild.release();
+        dupParent.release();
 
         channel.stop();
         stream.release();

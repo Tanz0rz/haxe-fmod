@@ -175,7 +175,7 @@
 - A connection that `Dsp.getInputConnection` or `getOutputConnection` reaches gets a short-lived handle unless the connection already has a live handle. Its handle read freed memory after Studio freed an event.
 - A connection that `Dsp.addInput` makes to a channel's DSP, or to a DSP of an event or a bus, gets a short-lived handle. When the channel ended on its own, the handle read and wrote freed memory or controlled another channel's send.
 - A `ChannelGroup.addGroup` or `Channel.setChannelGroup` that moves a group or channel to another parent ends the handle of the connection to the old parent. That stale handle could control an unrelated connection at the same address.
-- A js build against an HTML5 FMOD package of another version reports the version mismatch. It said the package was not an HTML5 one.
+- A js build and the `stage` command report the version mismatch for an HTML5 FMOD package of another version. Both said the package was not an HTML5 one.
 - A command replay unloads the banks it loaded when it stops or ends. The handles into those banks die at the update that delivers the unload. Their callbacks go with them. A bus channel group handle read freed memory before.
 - `FmodManager.Todo` with `-D haxefmod_todo_beep` plays its beep only once FMOD is initialized. It initialized FMOD with default settings before, and a later `Initialize(settings)` lost its settings.
 - `StudioSystem.loadBankFile` passes `DECOMPRESS_SAMPLES` and `UNENCRYPTED` to FMOD. It kept `NONBLOCKING` alone.

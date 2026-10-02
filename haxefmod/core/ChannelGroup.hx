@@ -109,7 +109,9 @@ abstract ChannelGroup(Int) from Int to Int {
      * addGroupConnection does the same and hands back the connection.
      * A child that is this group or a group above it, such as the master,
      * fails with FMOD_ERR_INVALID_PARAM. A move from another parent ends
-     * the handle of the connection to that parent.
+     * the handle of the connection to that parent. When the child's head
+     * has a second connection to that parent's tail, the move ends every
+     * connection handle.
      */
     public function addGroup(child:ChannelGroup, propagateDspClock:Bool = true):FmodResult {
         NativeStudio.cg_add_group(this, child, propagateDspClock);
@@ -119,8 +121,10 @@ abstract ChannelGroup(Int) from Int to Int {
     /**
      * Routes a child group's output through this one and returns the
      * connection between the two, DspConnection.NULL on failure with the
-     * reason in StudioSystem.lastResult(). The handle is long-lived.
-     * DspConnection lists the calls that end it. A child already in this
+     * reason in StudioSystem.lastResult(). The handle is long-lived when
+     * both groups are ones the game created or the master. It is
+     * short-lived when either is a bus's or an event's group or one a walk
+     * reached. DspConnection lists the calls that end it. A child already in this
      * group keeps its connection, and the call returns DspConnection.NULL
      * with FMOD_OK.
      */

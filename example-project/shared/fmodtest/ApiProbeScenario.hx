@@ -2194,6 +2194,11 @@ class ApiProbeScenario implements TestScenario {
     var _borrowedStream:EventInstance = EventInstance.NULL;
     var _borrowedStreamSound:Sound = Sound.NULL;
     var _borrowedStreamChannel:Channel = Channel.NULL;
+    var _borrowedGuest:ChannelGroup = ChannelGroup.NULL;
+    var _borrowedGuestConn:DspConnection = DspConnection.NULL;
+    var _borrowedHost:ChannelGroup = ChannelGroup.NULL;
+    var _borrowedHostChild:ChannelGroup = ChannelGroup.NULL;
+    var _borrowedHostConn:DspConnection = DspConnection.NULL;
 
     /** The first channel under a group, depth first. */
     static function probeFirstChannel(group:ChannelGroup):Channel {
@@ -2242,6 +2247,17 @@ class ApiProbeScenario implements TestScenario {
             'result=${StudioSystem.lastResult().toString()}');
         _borrowedParent.setUserData("first instance");
         _borrowedDsp.setUserData("first instance");
+        // A connection into an instance's group dies with that group, so
+        // its handle is short-lived. A connection between two groups the
+        // game created is long-lived.
+        _borrowedGuest = ChannelGroup.create("probe-borrowed-guest");
+        _borrowedGuestConn = _borrowedGroup.addGroupConnection(_borrowedGuest);
+        _borrowedHost = ChannelGroup.create("probe-borrowed-host");
+        _borrowedHostChild = ChannelGroup.create("probe-borrowed-host-child");
+        _borrowedHostConn = _borrowedHost.addGroupConnection(_borrowedHostChild);
+        check("borrowed_group_connections_made", !_borrowedGuestConn.isNull() && _borrowedGuestConn.getMix() > 0
+            && !_borrowedHostConn.isNull() && _borrowedHostConn.getMix() > 0,
+            'guest=${(_borrowedGuestConn : Int)} host=${(_borrowedHostConn : Int)} result=${StudioSystem.lastResult().toString()}');
         // A streaming event plays a sound FMOD makes for the instance and
         // frees with it. The handle a channel lookup minted for it dies
         // with the instance too.
@@ -2275,6 +2291,16 @@ class ApiProbeScenario implements TestScenario {
         check("borrowed_stream_sound_dies_with_instance", !_borrowedStreamSound.isNull()
             && !haxefmod.studio.native.NativeStudio.debug_handle_is_live(_borrowedStreamSound),
             'sound=${(_borrowedStreamSound : Int)} frames=$_borrowedFrames');
+        var guestMix = _borrowedGuestConn.getMix();
+        var guestResult = StudioSystem.lastResult();
+        check("borrowed_instance_group_connection_short_lived", guestMix == 0
+            && guestResult == FmodResult.FMOD_ERR_INVALID_HANDLE, 'result=${guestResult.toString()} frames=$_borrowedFrames');
+        var hostMix = _borrowedHostConn.getMix();
+        check("borrowed_game_group_connection_long_lived", hostMix > 0 && StudioSystem.lastResult().isOk(),
+            'mix=$hostMix result=${StudioSystem.lastResult().toString()}');
+        _borrowedGuest.release();
+        _borrowedHostChild.release();
+        _borrowedHost.release();
         // The channel ended with the instance. Its slot goes with the stop.
         _borrowedStreamChannel.stop();
         // The next instance's groups can sit at the same addresses. They

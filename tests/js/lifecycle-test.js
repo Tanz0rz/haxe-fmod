@@ -1084,6 +1084,41 @@ async function main() {
     jaxe.fmod_core_pcm_release(ps2);
     jaxe.fmod_dsp_release(dsp);
 
+    // A connection into an instance's group dies with that group, so its
+    // handle is short-lived. A connection between two groups the game
+    // created is long-lived.
+    {
+        const connLive = jaxe.liveCount;
+        const host = jaxe.fmod_evd_create_instance(evd);
+        jaxe.fmod_evi_start(host);
+        await pump(3);
+        const hostGroup = jaxe.fmod_evi_get_channel_group(host);
+        const guest = jaxe.fmod_cg_create('lifecycle-guest');
+        const guestConn = jaxe.fmod_cg_add_group(hostGroup, guest, true);
+        const pairParent = jaxe.fmod_cg_create('lifecycle-pair-parent');
+        const pairChild = jaxe.fmod_cg_create('lifecycle-pair-child');
+        const pairConn = jaxe.fmod_cg_add_group(pairParent, pairChild, true);
+        check('group_connections_made', guestConn > 0 && jaxe.fmod_dspconn_get_mix(guestConn) > 0
+            && pairConn > 0 && jaxe.fmod_dspconn_get_mix(pairConn) > 0, `guest=${guestConn} pair=${pairConn}`);
+        jaxe.fmod_evi_stop(host, 1);
+        jaxe.fmod_evi_release(host);
+        // Studio frees the instance and its group on its own clock
+        const deadline = Date.now() + 5000;
+        while (Date.now() < deadline && jaxe.fmod_evi_is_valid(host)) await pump(1);
+        await pump(2);
+        drainEvents();
+        const guestMix = jaxe.fmod_dspconn_get_mix(guestConn);
+        const guestResult = jaxe.lastResult;
+        check('instance_group_connection_short_lived', !jaxe.fmod_evi_is_valid(host) && guestMix === 0
+            && guestResult === jaxe.ERR_INVALID_HANDLE, `result=${guestResult}`);
+        const pairMix = jaxe.fmod_dspconn_get_mix(pairConn);
+        check('game_group_connection_long_lived', pairMix > 0 && jaxe.lastResult === 0, `mix=${pairMix} result=${jaxe.lastResult}`);
+        jaxe.fmod_cg_release(guest);
+        jaxe.fmod_cg_release(pairChild);
+        jaxe.fmod_cg_release(pairParent);
+        check('group_connections_leave_no_slots', jaxe.liveCount === connLive, `live=${jaxe.liveCount} before=${connLive}`);
+    }
+
     // --- error paths zero-fill the out buffer ---
     const bus = jaxe.fmod_sys_get_bus('bus:/');
     const memBuf = [7, 7, 7];

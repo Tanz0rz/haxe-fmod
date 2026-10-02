@@ -76,6 +76,7 @@ These FMOD features cannot be bound from Haxe. Most hand FMOD a function pointer
   - a channel's group and current sound
   - a sound from `SoundGroup.getSound` and the parent of a borrowed sound
   - a DSP graph walk and a DSP of a short-lived group
+  - a connection that `Dsp.addInput` makes when either DSP came from a channel, an event, a bus, or a walk
 - **These calls end every short-lived handle.** Fetch a short-lived handle again after any of them.
   - `FmodManager.Update()`
   - a call that stops, releases, or unloads anything, once FMOD accepts it, and `Bus.unlockChannelGroup()`
@@ -93,7 +94,7 @@ These FMOD features cannot be bound from Haxe. Most hand FMOD a function pointer
   - with automatic updates on, a handle fetched after `Bank.unloadSampleData()` or `EventDescription.unloadSampleData()` in the same frame. Fetch it before the call.
   - with automatic updates off, a handle fetched after `FmodManager.PauseSong()` in the same frame, when a stop or release came earlier in that frame. Fetch it before the call.
 - **The group of an unlocked bus that Studio frees while idle keeps its handle until the bus dies.**
-- **A connection to a DSP the game added to a channel outlives the channel.** `Dsp.addInput` gives such a connection a long-lived handle. When the channel ends on its own, FMOD frees the connection and the handle names freed memory. Use the handle only while `Channel.isPlaying()` reports true. Another way is to fetch the connection again with `Dsp.getInputConnection` in the frame that uses it. `Channel.stop()` ends the handle itself.
+- **A connection handle can outlive its connection on a channel or an event.** This applies when the game creates a DSP and adds it to a channel or an event instance's group. `Dsp.addInput` gives a connection to that DSP a long-lived handle. FMOD frees the connection when the channel ends. This includes a channel that `ChannelGroup.stop()`, `SoundGroup.stop()`, or `Sound.release()` ends. FMOD can also free it when a released event finishes. Fetch the connection again with `Dsp.getInputConnection` in the frame that uses it.
 - **Channel group nesting has a depth limit.** FMOD's mixer thread walks nested groups on its own stack. About 260 nested levels overflow the default stack and crash the mixer. A larger mixer stack in `threadAttributes` raises the limit.
 - **Sample readback refuses a playing sound.** `Sound.readData` and `seekData` refuse a sound that a channel plays. A paused channel counts as playing. They report `FMOD_ERR_NOTREADY` on native targets. Every sound of the same subsound tree is refused too. FMOD decodes a playing sound on its own threads. A paused sound keeps decoding for a moment after the pause. A read from the game thread at the same time crashes FMOD. Stop the channel first. A programmer sound that Studio starts during the read is not covered.
 - **Live Update uses TCP port 9264 by default.** The `profilePort` setting picks another port. When it is enabled, macOS and Windows show a firewall dialog. It defaults to on in debug builds only.

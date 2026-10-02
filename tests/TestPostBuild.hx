@@ -515,11 +515,6 @@ class TestPostBuild {
 		return dir;
 	}
 
-	/**
-	 * The exit codes and refusals of stage, check, build-hdll and an
-	 * unknown command. A refusal that exits 0 ships a build that fails
-	 * at startup, and a doctor that passes a broken setup hides it.
-	 */
 	// An HTML5 package of another FMOD version keeps fmodstudio.js outside
 	// lib/wasm. The build check named it a desktop package.
 	static function testBuildCheckOldWebSdk():Void {
@@ -539,6 +534,11 @@ class TestPostBuild {
 			"an HTML5 package of another FMOD version reports the version");
 	}
 
+	/**
+	 * The exit codes and refusals of stage, check, build-hdll and an
+	 * unknown command. A refusal that exits 0 ships a build that fails
+	 * at startup, and a doctor that passes a broken setup hides it.
+	 */
 	static function testToolExits():Void {
 		if (Sys.systemName() == "Windows") return;
 		var base = sys.FileSystem.absolutePath("tests/.tmp/tools");
@@ -584,6 +584,14 @@ class TestPostBuild {
 		writeFile('$web/api/studio/lib/wasm/fmodstudio.wasm', "wasm");
 		r = runTool(["stage", "html5", "html5", '$base/out-web'], plain, ["FMOD_SDK_WEB" => web]);
 		check("stage refuses a web SDK of another version", r.code == 1 && r.out.indexOf("web SDK version mismatch") != -1);
+
+		// An HTML5 package of another FMOD version keeps fmodstudio.js outside lib/wasm
+		var oldLayout = '$base/old-layout-web';
+		writeFile('$oldLayout/api/core/inc/fmod_common.h', "#define FMOD_VERSION 0x00020233\n");
+		writeFile('$oldLayout/api/studio/lib/upstream/wasm/fmodstudio.js', "// engine");
+		r = runTool(["stage", "html5", "html5", '$base/out-old-layout'], plain, ["FMOD_SDK_WEB" => oldLayout]);
+		check("stage names the version of an HTML5 package of another FMOD version", r.code == 1
+			&& r.out.indexOf("web SDK version mismatch") != -1 && r.out.indexOf("does not point at the HTML5") == -1);
 
 		// An SDK folder with no libraries in it stages nothing, so the
 		// command fails instead of reporting success

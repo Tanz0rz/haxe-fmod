@@ -112,7 +112,9 @@ abstract Channel(Int) from Int to Int {
 
     /**
      * Reroutes this channel into a group. A move to another group ends the
-     * handle of the connection to the old group.
+     * handle of the connection to the old group. When the channel's head
+     * has a second connection to the old group's tail, the move ends every
+     * connection handle.
      */
     public inline function setChannelGroup(group:ChannelGroup):FmodResult {
         return NativeStudio.chan_set_channel_group(this, group);

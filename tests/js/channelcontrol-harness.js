@@ -355,6 +355,62 @@ async function main() {
         jaxe.fmod_core_release_sound(shortSound);
     }
 
+    // A head with a second connection to the old parent's tail. The shim
+    // cannot tell which one a move destroys, so the move ends every
+    // connection handle. The game's send keeps routing at its mix.
+    {
+        const inputsAtMix = (dsp, mix) => {
+            let count = 0;
+            const n = jaxe.fmod_dsp_get_num_inputs(dsp);
+            for (let i = 0; i < n; i++) {
+                if (Math.abs(jaxe.fmod_dspconn_get_mix(jaxe.fmod_dsp_get_input_connection(dsp, i)) - mix) < 0.001) count++;
+            }
+            return count;
+        };
+        const dupParent = jaxe.fmod_cg_create('cc-dup-parent');
+        const dupChild = jaxe.fmod_cg_create('cc-dup-child');
+        const dupTail = jaxe.fmod_cg_get_dsp(dupParent, -3);
+        const dupSend = jaxe.fmod_dsp_add_input(dupTail, jaxe.fmod_cg_get_dsp(dupChild, -1), 2);
+        jaxe.fmod_dspconn_set_mix(dupSend, 0.25);
+        const dupConn = jaxe.fmod_cg_add_group(dupParent, dupChild, true);
+        const dupLive = dupSend !== 0 && dupConn !== 0 && jaxe.fmod_dspconn_get_mix(dupConn) > 0 && inputsAtMix(dupTail, 0.25) === 1;
+        const dupMove = jaxe.fmod_cg_add_group(other, dupChild, true);
+        const dupMoveResult = jaxe.lastResult;
+        const dupMix = jaxe.fmod_dspconn_get_mix(dupConn);
+        const dupResult = jaxe.lastResult;
+        const dupSends = inputsAtMix(dupTail, 0.25);
+        check('cg_add_group_second_tail_connection', dupLive && dupMove !== 0 && dupMoveResult === OK && dupMix === 0
+            && dupResult === INVALID_HANDLE && dupSends === 1,
+            `live=${dupLive} move=${dupMoveResult} result=${dupResult} sends=${dupSends}`);
+        // The same holds for a channel. The game sends to a group's tail
+        // first, then moves the channel into the group and out again.
+        const dupStream = jaxe.fmod_core_pcm_create(48000, 2, 4096);
+        const dupChannel = jaxe.fmod_core_pcm_play(dupStream, 0, false);
+        const otherTail = jaxe.fmod_cg_get_dsp(other, -3);
+        const chanSend = jaxe.fmod_dsp_add_input(otherTail, jaxe.fmod_chan_get_dsp(dupChannel, -1), 2);
+        jaxe.fmod_dspconn_set_mix(chanSend, 0.25);
+        const before = [];
+        for (let i = 0; i < jaxe.fmod_dsp_get_num_inputs(otherTail); i++) before.push(jaxe.fmod_dsp_get_input_connection(otherTail, i));
+        const chanJoin = jaxe.fmod_chan_set_channel_group(dupChannel, other);
+        let chanParent = 0;
+        for (let i = 0; i < jaxe.fmod_dsp_get_num_inputs(otherTail); i++) {
+            const c = jaxe.fmod_dsp_get_input_connection(otherTail, i);
+            if (before.indexOf(c) < 0) chanParent = c;
+        }
+        const chanLive = chanSend !== 0 && chanJoin === OK && chanParent !== 0 && jaxe.fmod_dspconn_get_mix(chanParent) > 0;
+        const chanLeave = jaxe.fmod_chan_set_channel_group(dupChannel, parent);
+        const chanMix = jaxe.fmod_dspconn_get_mix(chanParent);
+        const chanResult = jaxe.lastResult;
+        const chanSends = inputsAtMix(otherTail, 0.25);
+        check('chan_set_channel_group_second_tail_connection', chanLive && chanLeave === OK && chanMix === 0
+            && chanResult === INVALID_HANDLE && chanSends === 1,
+            `live=${chanLive} leave=${chanLeave} result=${chanResult} sends=${chanSends}`);
+        jaxe.fmod_chan_stop(dupChannel);
+        jaxe.fmod_core_pcm_release(dupStream);
+        jaxe.fmod_cg_release(dupChild);
+        jaxe.fmod_cg_release(dupParent);
+    }
+
     jaxe.fmod_cg_release(other);
     jaxe.fmod_cg_release(parent);
     check('no_handle_leaks', jaxe.fmod_debug_live_handle_count() === baseline,

@@ -129,20 +129,27 @@ static inline int faxe_argcheck_group_above(FMOD_CHANNELGROUP* group, FMOD_CHANN
     return 0;
 }
 
-/* The connection that joins a unit's head DSP to the tail of its parent
- * group, NULL when there is none. A move to another parent destroys this
- * connection and leaves the head's other connections alone. */
-static inline FMOD_DSPCONNECTION* faxe_parent_connection(FMOD_DSP* head, FMOD_CHANNELGROUP* parent) {
+/* Counts the connections that join a unit's head DSP to the tail of its
+ * parent group and puts the first one in *conn, NULL when there is none.
+ * A move to another parent destroys the parent connection and leaves the
+ * head's other connections alone. A game connection between the same two
+ * DSPs can come first, so with a count above one the caller cannot tell
+ * which one a move destroys. */
+static inline int faxe_parent_connection(FMOD_DSP* head, FMOD_CHANNELGROUP* parent, FMOD_DSPCONNECTION** conn) {
     FMOD_DSP* tail = NULL;
-    int count = 0, i;
-    if (!head || !parent || FMOD_ChannelGroup_GetDSP(parent, FMOD_CHANNELCONTROL_DSP_TAIL, &tail) != FMOD_OK) return NULL;
-    if (FMOD_DSP_GetNumOutputs(head, &count) != FMOD_OK) return NULL;
+    int count = 0, found = 0, i;
+    *conn = NULL;
+    if (!head || !parent || FMOD_ChannelGroup_GetDSP(parent, FMOD_CHANNELCONTROL_DSP_TAIL, &tail) != FMOD_OK) return 0;
+    if (FMOD_DSP_GetNumOutputs(head, &count) != FMOD_OK) return 0;
     for (i = 0; i < count; i++) {
         FMOD_DSP* output = NULL;
-        FMOD_DSPCONNECTION* conn = NULL;
-        if (FMOD_DSP_GetOutput(head, i, &output, &conn) == FMOD_OK && output == tail) return conn;
+        FMOD_DSPCONNECTION* c = NULL;
+        if (FMOD_DSP_GetOutput(head, i, &output, &c) == FMOD_OK && output == tail) {
+            if (!found) *conn = c;
+            found++;
+        }
     }
-    return NULL;
+    return found;
 }
 
 /* The top sound of a subsound tree. The subsounds of a stream share its
