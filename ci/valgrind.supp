@@ -1,0 +1,10 @@
+# Reports the weekly valgrind job leaves out. Each entry names the one
+# call path it covers.
+
+# lime frees a new[] buffer with delete in its font family lookup.
+{
+   lime_font_family_name_delete
+   Memcheck:Free
+   ...
+   fun:*lime_font_get_family_name*
+}

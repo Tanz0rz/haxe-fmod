@@ -6,7 +6,7 @@
 WAV_FILE="$1"
 MIN_DURATION="${2:-10}"
 
-# Resolve ffprobe/ffmpeg commands (may need explicit paths on Windows)
+# Resolve ffprobe/ffmpeg commands (Windows needs explicit paths)
 FFPROBE="ffprobe"
 FFMPEG="ffmpeg"
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then

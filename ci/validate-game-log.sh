@@ -16,7 +16,7 @@ if [ ! -f "$LOG_FILE" ]; then
 fi
 echo "OK"
 
-# 2. Check log is not empty (debug messages should be present)
+# 2. Check log is not empty (debug messages must be present)
 LINES=$(wc -l < "$LOG_FILE" | tr -d ' ')
 echo -n "  [2/3] Log has content .............. "
 if [ "$LINES" -eq 0 ]; then
@@ -27,7 +27,10 @@ echo "OK ($LINES lines)"
 
 # 3. Check for error indicators
 echo -n "  [3/3] No FMOD errors ............... "
-ERRORS=$(grep -iE "(Failed|Error|error|FMOD_ERR)" "$LOG_FILE" || true)
+# Mesa prints "libEGL warning: DRI3 error" on a virtual display with no
+# accelerated device. The game runs fine on software GL, so that line is
+# not an error.
+ERRORS=$(grep -iE "(Failed|Error|error|FMOD_ERR)" "$LOG_FILE" | grep -v "libEGL warning" || true)
 if [ -n "$ERRORS" ]; then
   echo "FAIL"
   echo ""

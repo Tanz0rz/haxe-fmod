@@ -1,0 +1,5 @@
+-cp .
+-cp tests
+-cp tests/stubs-flixel
+-main tests.TestFlixelHelpers
+--interp

@@ -7,15 +7,19 @@ import haxefmod.FmodManager;
 import haxefmod.flixel.FmodFlxEmitter.FlxObjectPositionProvider;
 import haxefmod.studio.Callbacks;
 
+/** Helpers that tie FmodManager to HaxeFlixel objects and states. **/
 class FmodFlxUtilities {
     /**
         Sends the "stop" command to the FMOD API and waits for the
         current song to stop before triggering a state transition.
 
-        Switches immediately when no song is playing. Requires
+        Switches immediately when no song is playing. A PlaySong,
+        PlaySongTransition, OnSongEvent, or OnceSongEvent call during the
+        fade cancels the switch. A switch to another state during the fade
+        cancels the switch too. Requires
         FmodManager.Update() every frame to deliver the stop event.
-        @param state the state to load after the music stops (either a
-        constructor like PlayState.new or a FlxState instance)
+        @param state The state to load after the music stops. Pass a
+        constructor like PlayState.new or a FlxState instance.
     **/
     public static function TransitionToStateAndStopMusic(state:NextState):Void {
         if (!FmodManager.IsSongPlaying()) {
@@ -23,38 +27,64 @@ class FmodFlxUtilities {
             return;
         }
 
-        // Once-semantics matter here: a persistent handler would survive on
-        // the retained song instance and yank the game into this state
-        // again the next time the same song stops. RESTARTED is in the mask
-        // so a direct PlaySong of the same song during the fade consumes
+        // Once-semantics matter here. A persistent handler survives on the
+        // retained song instance. It yanks the game into this state again
+        // the next time the same song stops. RESTARTED is in the mask. A
+        // direct PlaySong of the same song during the fade then consumes
         // the registration instead of leaving it armed.
         var consumed = false;
+        // A switch the game makes by another route ends the request
+        var stateOnCall = FlxG.state;
         FmodManager.OnceSongEvent(data -> {
             switch (data) {
                 case Stopped:
                     if (!consumed) {
                         consumed = true;
-                        FlxG.switchState(state);
+                        if (FlxG.state == stateOnCall && !switchRequested()) FlxG.switchState(state);
                     }
+                // A same-song PlaySong during the fade cancels the switch
+                case Restarted: consumed = true;
                 default:
             }
         }, EventCallbackType.STOPPED | EventCallbackType.RESTARTED);
+        var serial = @:privateAccess FmodManager.songHandlerSerial;
 
         FmodManager.StopSong();
-        // A fade already in flight can complete before the handler was
-        // installed: no Stopped will arrive, so switch directly
+        // A fade already in flight can complete before the handler is
+        // installed. No Stopped event arrives then, so switch directly.
         if (!FmodManager.IsSongPlaying() && !consumed) {
             consumed = true;
             FmodManager.OnSongEvent(null);
             FlxG.switchState(state);
+            return;
         }
+        // A bank unload destroys the fading song and FMOD raises no
+        // Stopped for it. The poll switches once the song is gone.
+        var poll:Void->Void = null;
+        poll = () -> {
+            if (@:privateAccess FmodManager.songHandlerSerial != serial || FlxG.state != stateOnCall || switchRequested()) consumed = true;
+            if (!consumed && FmodManager.IsSongPlaying()) return;
+            FlxG.signals.postUpdate.remove(poll);
+            if (consumed) return;
+            consumed = true;
+            FmodManager.OnSongEvent(null);
+            FlxG.switchState(state);
+        };
+        FlxG.signals.postUpdate.add(poll);
+    }
+
+    // Flixel applies a switch request at the start of the next frame, and
+    // a later request replaces it. FlxG.state still names the old state
+    // in the frame the game asked for another one.
+    static inline function switchRequested():Bool {
+        return @:privateAccess FlxG.game._nextState != null;
     }
 
     /**
-        Convenience wrapper for FlxG.switchState(state)
+        Convenience wrapper for FlxG.switchState(state).
 
-        Any loaded music will continue to play even after loading the new state
-        @param state the state to load
+        Any loaded music continues to play after the state loads.
+        @param state The state to load.
     **/
     public static function TransitionToState(state:NextState):Void {
         FlxG.switchState(state);
@@ -63,11 +93,17 @@ class FmodFlxUtilities {
     /**
         Fire-and-forget playback that follows a FlxObject (midpoint and
         velocity) until the event ends. Intended for one-shot (self-ending)
-        events - a looping event played this way never releases.
-        @param soundPath the full event path (e.g. "event:/SFX/Explosion")
-        @param target the object the sound follows
+        events. A looping event played this way never releases.
+        @param eventPath The full event path, for example "event:/SFX/Explosion".
+        @param target The object the event follows.
     **/
-    public static function PlaySoundOneShotAttached(soundPath:String, target:FlxObject):Void {
-        FmodManager.PlaySoundOneShotAttached(soundPath, new FlxObjectPositionProvider(target));
+    public static function PlayOneShotAttached(eventPath:String, target:FlxObject):Void {
+        FmodManager.PlayOneShotAttached(eventPath, new FlxObjectPositionProvider(target));
+    }
+
+    /** Deprecated alias of PlayOneShotAttached. **/
+    @:deprecated("FmodFlxUtilities.PlaySoundOneShotAttached is now PlayOneShotAttached")
+    public static function PlaySoundOneShotAttached(eventPath:String, target:FlxObject):Void {
+        PlayOneShotAttached(eventPath, target);
     }
 }

@@ -1,0 +1,87 @@
+# Platforms
+
+The Haxe API is identical on every target. Underneath, the targets differ in what initializes asynchronously and in how the build finds the native binding. They also differ in how a build uses another FMOD Engine version. [Limitations](limitations.md#html5) has the FMOD features the web build lacks.
+
+## HTML5
+
+The FMOD web build is a WebAssembly module. The library's post-build step copies `fmodstudio.js` and `fmodstudio.wasm` from `FMOD_SDK_WEB` next to the output. On Heaps and Kha the [stage command](guides/tools-cli.md#stage) does this copy. An HTML5 build must have `FMOD_SDK_WEB` set, even when `FMOD_SDK` is also set.
+
+### Asynchronous initialization
+
+HTML5 initializes asynchronously. See [Limitations](limitations.md#html5). `FmodManager.IsInitialized()` (or `FmodRuntime.isInitialized()`) turns true once it is done.
+
+The engine preloaders make that wait invisible. `FmodFlxPreloader` runs inside lime's preloader. `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` call back once FMOD is ready. Each hands the default banks to the runtime as bytes it read during loading. The banks are fetched once. The first scene starts with FMOD usable. [Engine components](guides/components.md#setup) shows the three.
+
+The bytes go through `FmodRuntime.provideBank(fileName, bytes)`, with the `banksProvided` setting on. A game on another engine does the same from whatever loads its assets, then calls `FmodRuntime.onceReady(start, onFailed)`.
+
+A game that starts FMOD without a preloader polls the flag from a loading scene. It starts the real game from there.
+
+```haxe
+function update():Void {
+    if (FmodManager.IsInitialized()) {
+        startGame();
+    }
+}
+```
+
+`FmodManager.InitializeFailed()` reports that a default bank failed to load, or that FMOD refused to initialize. A missing bank leaves the system running without it. `InitializeSettled()` turns true once every default bank is loaded or has failed, or FMOD refused. A loading scene shows a message and starts the game on that. `FmodFlxPreloader` does this for you. `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` run the `onFailed` callback the game passed, or `onReady` anyway when there is none. `AnyBankFailed()` reports a later bank whose load settled in error. That covers every HTML5 load and `loadAsync` on native. A failed native `LoadBank` prints a warning instead.
+
+```haxe
+var audioWarned = false;
+
+function updateLoadingScene():Void {
+    if (FmodManager.InitializeFailed() && !audioWarned) {
+        audioWarned = true;
+        trace("Audio did not fully start, the console names the cause");
+    }
+    if (FmodManager.InitializeSettled()) startGame();
+}
+```
+
+The three example games start through their preloaders and have no loading scene. Setup code that pushes state to FMOD can use `FmodRuntime.onceReady` instead of a poll.
+
+Bank loads are always asynchronous on HTML5. A bank file exists in the browser's virtual filesystem only after a fetch wrote it. `BankRegistry.load` and `loadAsync` behave the same there. See [Bank loading](guides/bank-loading.md).
+
+### Browser autoplay
+
+Browsers refuse to start audio before the user's first gesture on the page. See [Limitations](limitations.md#html5). An event started before that gesture is silent until the mixer resumes, then plays from that moment on.
+
+### Native-only calls
+
+A call to a feature the web build lacks is a compile error in a js build. See [Limitations](limitations.md#html5) for the opt-out.
+
+## HashLink
+
+HashLink loads the binding from `hlaxe_fmod.hdll`, a native library compiled against one FMOD Engine version. The library bundles pre-built hdlls for 2.03.12 on Linux, macOS, and Windows. The Linux hdll needs glibc 2.34 or newer. On an older system run `haxelib run haxefmod build-hdll`.
+
+At build time `lime test hl` looks for the hdll in this order. The [stage command](guides/tools-cli.md#stage) does the same for Heaps builds.
+
+1. Project-local `.haxefmod/hlaxe_fmod.hdll`, when present. Its version marker must name the SDK in `FMOD_SDK`. An hdll without a marker is used as is. `haxelib run haxefmod build-hdll` writes both files.
+2. The pre-built `templates/bin/hl/<Platform>/hlaxe_fmod.hdll` inside the installed library.
+
+The build log states which one it used. At runtime the library checks the hdll's binding version against its own. On a mismatch it refuses to initialize and prints the `build-hdll` command to run.
+
+Kha builds never use the hdll, the Kore HL/C target included, because the binding is compiled into the executable there.
+
+## C++
+
+C++ builds compile the binding (`linc_faxe.cpp`) into the executable next to your game. They link against the FMOD libraries in `FMOD_SDK`. Kha's Kore C++ targets do this through the library's `kfile.js`. Its HL/C targets compile `hlaxe_fmod.c` into the executable the same way. There is nothing version-specific to rebuild. To switch FMOD Engine versions, point `FMOD_SDK` at the new SDK and rebuild.
+
+## Other FMOD Engine versions
+
+The officially supported FMOD Engine version is 2.03.12. CI also tests HashLink builds against FMOD Engine 2.02.33. Other versions can work but are not tested. C++ and Kha native builds compile against the SDK that `FMOD_SDK` points at. They need nothing extra. HTML5 builds need the 2.03.12 HTML5 package. The build stops on any other version.
+
+HashLink builds load the pre-built hdll, which is compiled against 2.03.12. For another version, compile the hdll from source against your installed SDK.
+
+```bash
+# 1. Set FMOD_SDK to your version
+export FMOD_SDK=/path/to/your/fmodstudioapi
+
+# 2. Compile the hdll (from your project directory)
+haxelib run haxefmod build-hdll
+
+# 3. Build as normal
+lime test hl
+```
+
+[build-hdll](guides/tools-cli.md#build-hdll) covers what the command needs. Bank files require an engine at least as new as the FMOD Studio that built them. The Studio version and the engine version therefore move together. `StudioSystem.getVersion()` reports the engine that the running build loaded, formatted like `"2.03.12"`. That value confirms where `FMOD_SDK`, `FMOD_SDK_WEB`, or the hdll points.

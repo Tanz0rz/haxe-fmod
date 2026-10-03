@@ -4,8 +4,8 @@ import haxefmod.tools.Todos;
 
 /**
  * Tests the FmodManager.Todo scanner behind `haxelib run haxefmod todos`.
- * Everything runs against in-memory source strings through
- * Todos.scanContent, so no filesystem fixtures are needed.
+ * Most cases run against in-memory source strings through
+ * Todos.scanContent. The directory walk gets a small tree under tests/.tmp.
  */
 class TestTodoScanner {
 	static var passed = 0;
@@ -31,6 +31,7 @@ class TestTodoScanner {
 		testFindsFullyQualified();
 		testRegexLiteralWithQuote();
 		testRootResolution();
+		testScanDirectory();
 
 		Sys.println('  $passed passed, $failed failed');
 		return failed;
@@ -53,6 +54,8 @@ class TestTodoScanner {
 	static function testReportsCorrectLine() {
 		var found = scan('var a = 1;\nvar b = 2;\nFmodManager.Todo("on line three");\n');
 		assert("reports the call line", found.length == 1 && found[0].line == 3);
+		var afterString = scan('var s = "one\ntwo";\nFmodManager.Todo("below a two-line string");\n');
+		assert("counts the lines inside a string", afterString.length == 1 && afterString[0].line == 3);
 	}
 
 	static function testMultiplePerFile() {
@@ -63,6 +66,10 @@ class TestTodoScanner {
 	static function testMultilineCall() {
 		var found = scan('FmodManager.Todo(\n    "wrapped description"\n);\nFmodManager.Todo("after");');
 		assert("handles a call split across lines", found.length == 2 && found[0].description == "wrapped description" && found[0].line == 1 && found[1].line == 4);
+		var wrapped = scan('FmodManager.Todo("two\nlines");\nFmodManager.Todo("next");\n');
+		assert("counts the lines inside a description", wrapped.length == 2 && wrapped[1].line == 3);
+		var spaced = scan('FmodManager.Todo ("spaced");');
+		assert("allows a space before the parenthesis", spaced.length == 1 && spaced[0].description == "spaced");
 	}
 
 	static function testDynamicDescription() {
@@ -127,17 +134,36 @@ class TestTodoScanner {
 	}
 
 	static function testRootResolution() {
-		// A relative directory argument is the caller's, not the process
+		// A relative directory argument is the caller's rather than the process
 		// cwd (haxelib run leaves the process inside the library root)
 		var cwd = Sys.getCwd();
-		var resolved = Todos.resolveRoot(["tests"], cwd);
+		// The caller cwd differs from the process cwd, so a resolver that
+		// used the process cwd would land somewhere else
+		var caller = haxe.io.Path.join([cwd, "tests"]);
+		var resolved = Todos.resolveRoot(["fixtures"], caller);
 		assert("relative arg resolves against the caller cwd",
-			StringTools.replace(resolved, "\\", "/") == StringTools.replace(haxe.io.Path.join([cwd, "tests"]), "\\", "/"));
+			StringTools.replace(resolved, "\\", "/") == StringTools.replace(haxe.io.Path.join([caller, "fixtures"]), "\\", "/"));
 		assert("absolute arg kept", Todos.resolveRoot([cwd], "/somewhere/else") == cwd);
-		assert("missing arg falls back to the caller cwd",
-			Todos.resolveRoot(["no-such-dir-here"], cwd) == cwd);
+		assert("missing directory resolves to null",
+			Todos.resolveRoot(["no-such-dir-here"], cwd) == null);
 		assert("no arg falls back to the caller cwd", Todos.resolveRoot([], cwd) == cwd);
 		assert("json flag is not a directory", Todos.resolveRoot(["--json"], cwd) == cwd);
+	}
+
+	static function testScanDirectory() {
+		// Build output and hidden folders hold copies of the game's source.
+		// The walk skips them and sorts what it finds by file.
+		var root = sys.FileSystem.absolutePath("tests/.tmp/todo-tree");
+		for (dir in ["src", "export/linux/haxe", ".cache"]) sys.FileSystem.createDirectory('$root/$dir');
+		for (file in ["src/Zone.hx", "src/Area.hx", "export/linux/haxe/Copy.hx", ".cache/Hidden.hx"]) {
+			sys.io.File.saveContent('$root/$file', 'FmodManager.Todo("wind");\n');
+		}
+		var files = [for (entry in Todos.scanDirectory(root)) entry.file];
+		assert("the walk skips build output and hidden folders", files.indexOf("export/linux/haxe/Copy.hx") < 0
+			&& files.indexOf(".cache/Hidden.hx") < 0 && files.length == 2);
+		assert("the walk sorts entries by file", files.join(",") == "src/Area.hx,src/Zone.hx");
+		for (file in ["src/Zone.hx", "src/Area.hx", "export/linux/haxe/Copy.hx", ".cache/Hidden.hx"]) sys.FileSystem.deleteFile('$root/$file');
+		for (dir in ["src", "export/linux/haxe", "export/linux", "export", ".cache", ""]) sys.FileSystem.deleteDirectory('$root/$dir');
 	}
 
 	static function assert(name:String, condition:Bool) {

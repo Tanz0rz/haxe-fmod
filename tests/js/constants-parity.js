@@ -1,8 +1,11 @@
-// Parity test between the two constants generators: the FMOD Studio-side
-// script (fmod-scripts/ExportHaxeConstants.js, runs inside Studio on every
-// export) and the CLI (haxelib run haxefmod generate, parses the built
-// strings bank). Both must emit byte-identical files or projects that mix
-// the workflows drift.
+// Parity test between the two constants generators.
+// The first is the FMOD Studio-side script
+// (fmod-scripts/ExportHaxeConstants.js), which runs inside Studio on every
+// export.
+// The second is the CLI (haxelib run haxefmod generate), which parses the
+// built strings bank.
+// Both must emit byte-identical files or projects that mix the workflows
+// drift.
 //
 // Usage: node tests/js/constants-parity.js <dir-with-cli-generated-files>
 // The directory comes from running the CLI generator against the checked-in
@@ -86,6 +89,41 @@ for (const name of cliFiles) {
     if (!(name in studioFiles)) {
         fail(`CLI generated ${name} but the Studio script does not emit it`);
     }
+}
+
+// The Studio script reserves the same identifiers as Generate.identifiersFor
+for (const reserved of ['Dynamic', 'GetEnumName', 'NOMINMAX', 'BUFSIZ', 'WEOF', 'INFINITY', 'NAN', 'CSIGNAL', 'NFDBITS', 'WCONTINUED', 'WEXITED', 'WNOHANG', 'WNOWAIT', 'WSTOPPED', 'WUNTRACED']) {
+    const got = core.identifiersFor(['event:/' + reserved], 'event:/')[0];
+    if (got !== reserved + '2') fail(`the Studio script names event:/${reserved} ${got}, the CLI names it ${reserved}2`);
+}
+// Both tools order paths by UTF-8 bytes
+const mixed = core.generate([{ path: 'event:/A\u{1F525}', guid: '{00000000-0000-0000-0000-000000000001}' }, { path: 'event:/A\uFF01', guid: '{00000000-0000-0000-0000-000000000002}' }])['FmodEvents.hx'];
+if (!mixed.includes('var A:String = "event:/A\uFF01"')) fail('the Studio script orders paths unlike the CLI');
+const mixedEnum = core.generateEventEnums([{ path: 'event:/A\u{1F525}', guid: '{00000000-0000-0000-0000-000000000001}' }, { path: 'event:/A\uFF01', guid: '{00000000-0000-0000-0000-000000000002}' }], '');
+if (!mixedEnum.includes('case A: "event:/A\uFF01"')) fail('the Studio script orders event enum paths unlike the CLI');
+
+// The fixture bank has no digits, separators, lowercase pieces, quotes or
+// repeated collisions, so the Studio script's answers for those are pinned
+// to the values TestStringsBankParser pins for the CLI
+for (const [p, prefix, want] of [
+    ['event:/VO/Main Menu', 'event:/', 'VOMainMenu'],
+    ['event:/Vehicles/Ride-on Mower', 'event:/', 'VehiclesRideOnMower'],
+    ['parameter:/A.B (C)', 'parameter:/', 'ABC'],
+    ['event:/2nd Floor/Door', 'event:/', '_2ndFloorDoor'],
+]) {
+    const got = core.mangle(p, prefix);
+    if (got !== want) fail(`the Studio script names ${p} ${got}, the CLI names it ${want}`);
+}
+const collisions = core.identifiersFor(['event:/A B', 'event:/A/B', 'event:/AB'], 'event:/').join(',');
+if (collisions !== 'AB,AB2,AB3') fail(`the Studio script suffixes collisions ${collisions}, the CLI AB,AB2,AB3`);
+if (core.quoteHx('He said "hi" a\\b') !== 'He said \\"hi\\" a\\\\b') fail('the Studio script escapes string literals unlike the CLI');
+const upper = [{ path: 'event:/SFX/Coin', guid: '{6C656399-97F5-432F-9817-C10C8C56939D}' }];
+const pkgEnum = core.generateEventEnums(upper, 'sounds');
+if (!pkgEnum.includes('package sounds;\n\nenum FmodEventEnum {') || !pkgEnum.includes('case SFXCoin: "{6c656399-97f5-432f-9817-c10c8c56939d}";')) {
+    fail('the Studio script writes the package line or the GUIDs of the event enum unlike the CLI');
+}
+if (!core.generate(upper, 'sounds')['FmodEvents.hx'].includes('package sounds;\n\nclass FmodEvents {')) {
+    fail('the Studio script writes the package line unlike the CLI');
 }
 
 if (Object.keys(studioFiles).length === 0) {

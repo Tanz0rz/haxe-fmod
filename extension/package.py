@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+"""Builds the store packages: one zip for Chromium browsers and one for
+Firefox, from the same files.
+
+extension/manifest.json is the Chromium form (a background service
+worker, no browser-specific keys, since Chrome warns about keys it does
+not know). Firefox runs the background file as a script and needs the
+gecko id, so its manifest is derived here rather than kept by hand.
+
+Run: python3 extension/package.py            writes extension/dist/*.zip
+     python3 extension/package.py --unpacked  also writes extension/dist/firefox/
+                                              for about:debugging loads
+     python3 extension/package.py --check     names every file the manifest
+                                              asks for that is missing, and
+                                              writes nothing
+"""
+
+import json
+import glob
+import os
+import shutil
+import sys
+import zipfile
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+DIST = os.path.join(HERE, "dist")
+GECKO_ID = "haxefmod-docs@haxe-fmod.tanz0rz.github.io"
+
+
+def package_files(manifest):
+    """Every file the manifest names, in manifest order, without repeats.
+
+    The manifest is the one list of what the extension loads, so a script
+    added to content_scripts reaches the package with no edit here.
+    """
+    names = []
+
+    def add(name):
+        if name not in names:
+            names.append(name)
+
+    for script in manifest.get("content_scripts", []):
+        for name in script.get("js", []):
+            add(name)
+        for name in script.get("css", []):
+            add(name)
+    worker = manifest.get("background", {}).get("service_worker")
+    if worker:
+        add(worker)
+    for name in manifest.get("background", {}).get("scripts", []):
+        add(name)
+    if manifest.get("background", {}).get("page"):
+        add(manifest["background"]["page"])
+    for name in manifest.get("icons", {}).values():
+        add(name)
+    action = manifest.get("action", {})
+    if action.get("default_popup"):
+        add(action["default_popup"])
+    icon = action.get("default_icon")
+    if isinstance(icon, str):
+        add(icon)
+    elif isinstance(icon, dict):
+        for name in icon.values():
+            add(name)
+    if manifest.get("options_page"):
+        add(manifest["options_page"])
+    if manifest.get("options_ui", {}).get("page"):
+        add(manifest["options_ui"]["page"])
+    for entry in manifest.get("web_accessible_resources", []):
+        for name in entry.get("resources", []):
+            if "*" in name:
+                # A glob expands here, and one that matches nothing is a
+                # manifest error rather than a silent gap
+                matches = sorted(os.path.relpath(p, HERE) for p in glob.glob(os.path.join(HERE, name), recursive=True))
+                if not matches:
+                    raise SystemExit(f"package.py: web_accessible_resources pattern {name!r} matches no file")
+                for match in matches:
+                    add(match)
+            else:
+                add(name)
+    # A key this walk does not know that still names a file would ship
+    # a broken package. That is an error rather than a silent gap.
+    known = {"content_scripts", "background", "icons", "action", "options_page",
+             "options_ui", "web_accessible_resources"}
+    for key, value in manifest.items():
+        if key in known:
+            continue
+        for text in strings_in(value):
+            if text.rsplit(".", 1)[-1] in ("js", "css", "html", "png", "svg", "json"):
+                raise SystemExit(f"package.py: manifest key {key!r} names {text!r}, which this packager does not collect")
+    return names
+
+
+def strings_in(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from strings_in(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from strings_in(item)
+
+
+def missing(names):
+    return [name for name in names if not os.path.isfile(os.path.join(HERE, name))]
+
+
+def firefox_manifest(manifest):
+    firefox = json.loads(json.dumps(manifest))
+    background = manifest.get("background", {})
+    if background.get("service_worker"):
+        firefox["background"] = {"scripts": [background["service_worker"]]}
+    # A scripts list or a page already runs on Firefox as written
+    firefox["browser_specific_settings"] = {"gecko": {"id": GECKO_ID, "strict_min_version": "109.0"}}
+    return firefox
+
+
+def write_zip(path, manifest, names):
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("manifest.json", json.dumps(manifest, indent=2) + "\n")
+        for name in names:
+            zf.write(os.path.join(HERE, name), name)
+
+
+def main():
+    with open(os.path.join(HERE, "manifest.json"), encoding="utf-8") as fh:
+        manifest = json.load(fh)
+    names = package_files(manifest)
+    gone = missing(names)
+    if gone:
+        for name in gone:
+            print(f"missing: {name} (named by extension/manifest.json)")
+        print(f"package.py: {len(gone)} of {len(names)} files are missing, nothing was written")
+        return 1
+    if "--check" in sys.argv[1:]:
+        print(f"package.py: all {len(names)} files the manifest names are present")
+        return 0
+    version = manifest["version"]
+    os.makedirs(DIST, exist_ok=True)
+    chrome = os.path.join(DIST, f"haxefmod-fmod-docs-chrome-{version}.zip")
+    firefox = os.path.join(DIST, f"haxefmod-fmod-docs-firefox-{version}.zip")
+    write_zip(chrome, manifest, names)
+    write_zip(firefox, firefox_manifest(manifest), names)
+    print("wrote " + os.path.relpath(chrome, HERE) + " and " + os.path.relpath(firefox, HERE))
+    if "--unpacked" in sys.argv[1:]:
+        unpacked = os.path.join(DIST, "firefox")
+        shutil.rmtree(unpacked, ignore_errors=True)
+        os.makedirs(unpacked)
+        for name in names:
+            target = os.path.join(unpacked, name)
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            shutil.copy(os.path.join(HERE, name), target)
+        absent = [name for name in names if not os.path.isfile(os.path.join(unpacked, name))]
+        if absent:
+            print("package.py: the unpacked tree lacks " + ", ".join(absent))
+            return 1
+        with open(os.path.join(unpacked, "manifest.json"), "w", encoding="utf-8") as fh:
+            json.dump(firefox_manifest(manifest), fh, indent=2)
+            fh.write("\n")
+        print("wrote dist/firefox/ for about:debugging")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

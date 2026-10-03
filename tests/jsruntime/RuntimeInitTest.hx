@@ -6,15 +6,29 @@ import haxefmod.studio.Types;
 
 /**
  * The html5 initialization contract, driven through the shipped Haxe
- * runtime layer compiled to js against the real wasm (the tests/js
- * harnesses talk to jaxe.js directly and cannot see this layer).
+ * runtime layer. That layer compiles to js and runs against the real
+ * wasm. The tests/js harnesses talk to jaxe.js directly, so they cannot
+ * see this layer.
  *
- * Two modes, selected by RUNTIME_TEST_MODE before the script loads:
- *   ok      - autoLoadBanks resolve: isInitialized() flips true only
- *             once the banks are usable, and onceReady fires.
- *   missing - the banks 404: isInitialized() stays false (the game's
- *             banks are unusable), the bank settles in ERROR, and the
- *             failure warning traces exactly once.
+ * RUNTIME_TEST_MODE selects the mode before the script loads.
+ *
+ * Mode ok: autoLoadBanks resolve. isInitialized() flips true only once
+ * the banks are usable, and onceReady fires.
+ *
+ * Mode missing: the banks 404. Each bank settles in ERROR and is
+ * reported exactly once. Initialization completes without them, so
+ * isInitialized() turns true and initFailed() reports the failure. The
+ * onFailed side of a handler pair runs instead of the ready side. A
+ * handler with no onFailed still runs.
+ *
+ * Mode provided: banksProvided is set and the bytes arrive after init,
+ * the order an engine preloader uses in the browser. One bank is an
+ * HTML error page, the answer a server gives for a missing file.
+ * Initialization settles as failed and the onFailed side runs once.
+ *
+ * Mode unloadprovided: banksProvided is set. The game unloads a provided
+ * default bank after it loads, and the other bank arrives later.
+ * Initialization still settles.
  *
  * Compiled and run by tests/js/runtime-init-test.js.
  */
@@ -39,14 +53,30 @@ class RuntimeInitTest {
 
 		var folder = mode == "missing" ? "missing/banks" : "assets/fmod/Desktop";
 		var readyFired = false;
-		FmodRuntime.onceReady(() -> readyFired = true);
+		var pairReady = false;
+		var pairFailed = 0;
+		// Every handler records whether the module was up when it ran
+		var ranBeforeReady = false;
+		var note = function() if (!FmodRuntime.isInitialized()) ranBeforeReady = true;
+		FmodRuntime.onceReady(() -> { note(); readyFired = true; });
+		FmodRuntime.onceReady(() -> { note(); pairReady = true; }, () -> { note(); pairFailed++; });
 		FmodRuntime.init({
 			bankFolder: folder,
 			autoLoadBanks: ["Master.bank", "Master.strings.bank"],
+			banksProvided: mode == "provided" || mode == "unloadprovided",
 		});
 		check("init_not_ready_synchronously", !FmodRuntime.isInitialized(), "");
+		if (mode == "provided") {
+			var real:haxe.io.Bytes = haxe.io.Bytes.ofData(js.Syntax.code("globalThis.RUNTIME_TEST_STRINGS_BANK"));
+			FmodRuntime.provideBank("Master.bank", haxe.io.Bytes.ofString("<!doctype html><html><body>not found</body></html>"));
+			FmodRuntime.provideBank("Master.strings.bank", real);
+		}
 
+		if (mode == "unloadprovided") {
+			FmodRuntime.provideBank("Master.strings.bank", haxe.io.Bytes.ofData(js.Syntax.code("globalThis.RUNTIME_TEST_STRINGS_BANK")));
+		}
 		var polls = 0;
+		var unloaded = false;
 		var timer:Dynamic = null;
 		timer = js.Syntax.code("setInterval({0}, 50)", function() {
 			polls++;
@@ -55,7 +85,9 @@ class RuntimeInitTest {
 				if (FmodRuntime.isInitialized()) {
 					js.Syntax.code("clearInterval({0})", timer);
 					check("initialized_once_banks_usable", true, 'polls=$polls');
-					check("once_ready_fired", readyFired, "");
+					check("once_ready_fired", readyFired && pairReady, "");
+					check("once_ready_not_failed", pairFailed == 0 && !FmodRuntime.initFailed(), "");
+					check("handlers_ran_after_ready", !ranBeforeReady, "");
 					check("banks_loaded", FmodRuntime.banks.isLoaded(FmodRuntime.bankPath("Master.bank")), "");
 					finish();
 				} else if (polls > 300) {
@@ -63,17 +95,73 @@ class RuntimeInitTest {
 					check("initialized_once_banks_usable", false, "timed out");
 					finish();
 				}
+			} else if (mode == "unloadprovided") {
+				// Regression: initialization waited forever for a provided
+				// default bank the game unloaded after it loaded
+				var path = FmodRuntime.bankPath("Master.strings.bank");
+				if (!unloaded && FmodRuntime.banks.isLoaded(path)) {
+					unloaded = true;
+					FmodRuntime.banks.unload(path);
+					js.Syntax.code("console.log({0})", 'RUNTIME_INIT_TEST: unloaded a provided default bank before init settled, poll ' + polls);
+				}
+				if (unloaded && polls == 20) FmodRuntime.provideBank("Master.bank", haxe.io.Bytes.ofData(js.Syntax.code("globalThis.RUNTIME_TEST_MASTER_BANK")));
+				if (FmodRuntime.initSettled() || polls > 200) {
+					js.Syntax.code("clearInterval({0})", timer);
+					check("unloadprovided_settles", FmodRuntime.initSettled(), 'polls=$polls unloaded=$unloaded masterLoaded=${FmodRuntime.banks.isLoaded(FmodRuntime.bankPath("Master.bank"))}');
+					finish();
+				}
+			} else if (mode == "unloadinit") {
+				var path = FmodRuntime.bankPath("Master.strings.bank");
+				if (!unloaded && FmodRuntime.banks.isRegistered(path) && !FmodRuntime.banks.isLoaded(path)) {
+					unloaded = true;
+					FmodRuntime.banks.unload(path);
+					js.Syntax.code("console.log({0})", 'RUNTIME_INIT_TEST: unloaded a default bank mid-fetch at poll ' + polls);
+				}
+				if (FmodRuntime.initSettled() || polls > 200) {
+					js.Syntax.code("clearInterval({0})", timer);
+					check("unloadinit_settles", FmodRuntime.initSettled(), 'polls=$polls unloaded=$unloaded ready=$readyFired pairReady=$pairReady pairFailed=$pairFailed');
+					finish();
+				}
+			} else if (mode == "refused" || mode == "staggered") {
+				if (FmodRuntime.initSettled() || polls > 200) {
+					js.Syntax.code("clearInterval({0})", timer);
+					var warns = traces.filter(t -> t.indexOf("failed to load") >= 0 || t.indexOf("could not start loading") >= 0);
+					check(mode + "_settles", FmodRuntime.initSettled(), 'polls=$polls');
+					check(mode + "_reports_failure", FmodRuntime.initFailed(), "");
+					check(mode + "_pair_runs_on_failed", !pairReady && pairFailed == 1, 'failed=$pairFailed');
+					check(mode + "_failure_reported_once", warns.length == 1, 'count=${warns.length}');
+					if (mode == "staggered") check("staggered_slow_bank_loaded_at_settle", FmodRuntime.banks.isLoaded(FmodRuntime.bankPath("Master.bank")), 'polls=$polls');
+					finish();
+				}
+			} else if (mode == "provided") {
+				if (FmodRuntime.initSettled() || polls > 200) {
+					js.Syntax.code("clearInterval({0})", timer);
+					check("corrupt_provided_bank_settles", FmodRuntime.initSettled(), 'polls=$polls');
+					check("corrupt_provided_bank_reports_failure", FmodRuntime.initFailed(), "");
+					check("provided_pair_runs_on_failed", !pairReady && pairFailed == 1, 'failed=$pairFailed');
+					check("provided_plain_handler_runs_anyway", readyFired, "");
+					check("handlers_ran_after_ready", !ranBeforeReady, "");
+					finish();
+				}
 			} else {
 				// Give the failing fetches ample time to settle, then assert
-				// the gate held the whole way
+				// that every bank was settled as a failure
 				if (polls == 100) {
 					js.Syntax.code("clearInterval({0})", timer);
-					check("missing_banks_hold_init_false", !FmodRuntime.isInitialized(), "");
-					check("once_ready_not_fired", !readyFired, "");
+					check("missing_banks_settle_initialized", FmodRuntime.isInitialized(), "");
+					check("missing_banks_report_failure", FmodRuntime.initFailed(), "");
+					check("pair_runs_on_failed", !pairReady && pairFailed == 1, 'failed=$pairFailed');
+					check("plain_handler_runs_anyway", readyFired, "");
+					check("handlers_ran_after_ready", !ranBeforeReady, "");
+					// Counted before the state read below, which is a registry call
+					// that warns on its own
+					var warns = traces.filter(t -> t.indexOf("failed to load") >= 0);
+					check("each_failure_reported_exactly_once", warns.length == 2, 'count=${warns.length}');
 					var state = FmodRuntime.banks.loadingState(FmodRuntime.bankPath("Master.bank"));
 					check("missing_bank_settled_error", state == FmodLoadingState.ERROR, 'state=${(state : Int)}');
-					var warns = traces.filter(t -> t.indexOf("default bank failed to load") >= 0);
-					check("failure_warned_exactly_once", warns.length == 1, 'count=${warns.length}');
+					var late = 0;
+					FmodRuntime.onceReady(() -> {}, () -> late++);
+					check("late_pair_fails_at_once", late == 1, "");
 					finish();
 				}
 			}

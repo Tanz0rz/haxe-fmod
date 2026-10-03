@@ -7,4 +7,6 @@
 -D haxefmod_bank_folder=custom/banks
 -D haxefmod_live_update
 -D haxefmod_no_mute_when_unfocused
+-D haxefmod_dsp_buffer_size=1024
+-D haxefmod_software_channels=48
 --interp

@@ -2,4 +2,5 @@
 -cp tests
 -main tests.TestDefineOverrides
 -debug
+-D haxefmod_todo_beep
 --interp

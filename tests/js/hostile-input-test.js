@@ -1,10 +1,12 @@
-// Hostile-input contract for the JS shim: every manifest function that
-// takes a string must handle a null (or non-string) argument the way the
-// C shims do - set lastResult to an error code and return - instead of
-// letting emscripten's embind throw a BindingError out of the shim.
-// Also pins the programmer-sound key length contract (>= 512 UTF-8 bytes
-// rejected, matching FAXE_PS_KEY_MAX on native) and the pcm length
-// contract (a count beyond the buffer's real size never over-reads).
+// Hostile-input contract for the JS shim.
+// Every manifest function that takes a string must handle a null (or
+// non-string) argument the way the C shims do.
+// The shim sets lastResult to an error code and returns.
+// Emscripten's embind must not throw a BindingError out of the shim.
+// The file also pins the programmer-sound key length contract: 512 UTF-8
+// bytes or more get rejected, which matches FAXE_PS_KEY_MAX on native.
+// The pcm length contract comes with it, where a count beyond the buffer's
+// real size never over-reads.
 // Usage: FMOD_SDK_WEB=<sdk root> node hostile-input-test.js
 const path = require('path');
 const fs = require('fs');
@@ -71,7 +73,8 @@ async function main() {
     // Every str-taking export survives a null in each str position:
     // no throw, and lastResult reports an error (never left at OK)
     const fns = strFunctions();
-    check('manifest_str_functions_found', fns.length >= 30, `count=${fns.length}`);
+    check('manifest_str_functions_found', fns.length === 45, `count=${fns.length}`);
+    const expectedClean = fns.reduce((n, f) => n + f.positions.length, 0);
     let clean = 0;
     for (const fn of fns) {
         const impl = jaxe['fmod_' + fn.name];
@@ -91,9 +94,10 @@ async function main() {
             }
         }
     }
-    check('null_strings_handled_everywhere', true, `clean=${clean}`);
+    check('null_strings_handled_everywhere', clean === expectedClean,
+        `clean=${clean} expected=${expectedClean}`);
 
-    // The system still works after the hostile sweep
+    // The system works after the hostile sweep
     const evd = jaxe.fmod_sys_get_event('event:/Music/MainLevel');
     check('system_survives_hostile_sweep', evd > 0, `handle=${evd}`);
 
@@ -104,9 +108,9 @@ async function main() {
     const longKey = 'k'.repeat(600);
     const r = jaxe.fmod_ps_assign(evi, longKey);
     check('ps_key_overlong_rejected', r !== 0 && jaxe.lastResult !== 0, `r=${r}`);
-    // A well-formed key passes validation and reaches the platform gate:
-    // programmer sounds are unsupported on html5 (FMOD glue defect, see
-    // fmod_ps_glue_repro.html), so the report is 68 rather than 0
+    // A well-formed key passes validation and reaches the platform gate.
+    // The html5 target does not support programmer sounds (FMOD glue defect,
+    // see fmod_ps_glue_repro.html), so the report is 68 rather than 0.
     const okKey = jaxe.fmod_ps_assign(evi, 'sfx-table-key');
     check('ps_key_valid_reaches_platform_gate', okKey === 68, `r=${okKey}`);
     jaxe.fmod_ps_clear(evi);
@@ -121,6 +125,46 @@ async function main() {
     const good = jaxe.fmod_core_create_sound_pcm(pcm, 1024, 44100, 1);
     check('pcm_true_length_works', good > 0, `handle=${good}`);
     jaxe.fmod_core_release_sound(good);
+
+    // A non-string name reaches the f64 parameter getters through the same
+    // guard the C++ shim has, which answers 0.0 rather than the error code.
+    const eviNum = jaxe.fmod_evd_create_instance(evd);
+    check('sys_param_by_name_nonstring_returns_zero',
+        jaxe.fmod_sys_get_param_by_name(7) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+    check('sys_param_by_name_final_nonstring_returns_zero',
+        jaxe.fmod_sys_get_param_by_name_final(7) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+    check('evi_param_by_name_nonstring_returns_zero',
+        jaxe.fmod_evi_get_param_by_name(eviNum, 7) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+    check('evi_param_by_name_final_nonstring_returns_zero',
+        jaxe.fmod_evi_get_param_by_name_final(eviNum, 7) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+
+    // Handle first, then the string, the order native uses. A bad handle
+    // with a bad key reports the handle.
+    check('ps_assign_checks_handle_first',
+        jaxe.fmod_ps_assign(0, 12345) !== 0 && jaxe.lastResult === 30,
+        `lastResult=${jaxe.lastResult}`);
+    check('ps_assign_named_checks_handle_first',
+        jaxe.fmod_ps_assign_named(0, 12345, 12345) !== 0 && jaxe.lastResult === 30,
+        `lastResult=${jaxe.lastResult}`);
+    jaxe.fmod_evi_release(eviNum);
+
+    // Bank bytes from memory get the same length guard the core sound
+    // loader has, so a null buffer or a lied count never over-reads.
+    const bankBytes = fs.readFileSync(path.join(BANKS, 'Master.bank'));
+    const bankAb = bankBytes.buffer.slice(bankBytes.byteOffset, bankBytes.byteOffset + bankBytes.byteLength);
+    check('load_bank_memory_null_rejected',
+        jaxe.fmod_sys_load_bank_memory(null, 16, 0) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+    check('load_bank_memory_negative_len_rejected',
+        jaxe.fmod_sys_load_bank_memory(bankAb, -4, 0) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
+    check('load_bank_memory_lied_length_rejected',
+        jaxe.fmod_sys_load_bank_memory(bankAb, bankAb.byteLength + 1, 0) === 0 && jaxe.lastResult === 31,
+        `lastResult=${jaxe.lastResult}`);
 
     console.log(`HOSTILE_TEST: failures = ${fails}`);
     console.log(fails === 0 ? 'HOSTILE_TEST: COMPLETE' : 'HOSTILE_TEST: FAILED');

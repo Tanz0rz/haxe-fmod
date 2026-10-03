@@ -20,12 +20,12 @@ class PlayState2 extends FlxState {
 
     override public function onFocus() {
         super.onFocus();
-        FmodManager.SetEventParameterOnSong("HighPass", 0);
+        FmodManager.SetSongParameter("HighPass", 0);
     }
 
     override public function onFocusLost() {
         super.onFocusLost();
-        FmodManager.SetEventParameterOnSong("HighPass", 1);
+        FmodManager.SetSongParameter("HighPass", 1);
     }
 
     override public function create():Void {
@@ -55,11 +55,11 @@ class PlayState2 extends FlxState {
     }
 
     override public function update(elapsed:Float):Void {
-        // FmodManager.Update() runs via the FmodFlxUpdater plugin added in PlayState
+        // FmodManager.Update() runs via the FmodFlxUpdater hook installed in PlayState
 
         // Auto-jump when approaching the coin
         if (!_jumped && _player.x >= 14 * 8 && _player.isTouching(FlxDirectionFlags.DOWN)) {
-            FmodManager.PlaySoundOneShot(FmodEvents.SFXJump);
+            FmodManager.PlayOneShot(FmodEvents.SFXJump);
             _player.velocity.y = -_player.maxVelocity.y / 2;
             _jumped = true;
         }
@@ -86,7 +86,7 @@ class PlayState2 extends FlxState {
     }
 
     function getCoin(Coin:FlxObject, Player:FlxObject):Void {
-        FmodManager.PlaySoundOneShot(FmodEvents.SFXCoin);
+        FmodManager.PlayOneShot(FmodEvents.SFXCoin);
         Coin.kill();
         _status.text = "Oops! Collected the coin.";
     }

@@ -10,11 +10,11 @@ or FLOAT typed property. The glue converts every field of the value
 union for the out object, and its string conversion dereferences the
 raw number bits as a pointer. String properties read correctly, and
 their floatvalue comes back as the string pointer bits read as a
-float, which shows the same union mishandling from the other side.
+float. That shows the same union mishandling from the other side.
 
 To run: serve this file next to fmodstudio.js, fmodstudio.wasm, and a
-Master.bank/Master.strings.bank pair whose event:/Music/MainLevel
-carries at least one numeric user property, then open it in a browser
+Master.bank/Master.strings.bank pair. Its event:/Music/MainLevel must
+carry at least one numeric user property. Then open it in a browser
 and watch the console.
 -->
 <html><head><meta charset="utf-8"><title>fmod user property repro</title></head><body>

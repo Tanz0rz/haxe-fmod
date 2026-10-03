@@ -1,62 +1,123 @@
 # Limitations
 
-What haxefmod does not do, and why. The library keeps one API surface that behaves the same on every target, so a feature that cannot work on one platform is generally left out everywhere and listed here instead of failing quietly on the platform that lacks it. The behavioral contracts described here are pinned by the test suite.
+Native builds bind every FMOD function that Haxe can host. The functions left out are the callbacks FMOD runs on its own threads. A few raw-pointer and platform-specific entry points are left out too. The web build has significantly fewer features than the native builds. FMOD's Emscripten runtime lacks them. A call to one of them is a compile error in a js build.
 
 ## Platform support
 
 | Platform | Supported | Notes |
 |---|---|---|
 | Windows | x86_64 | |
-| Linux | x86_64 | FMOD publishes no ARM64 Linux SDK |
+| Linux | x86_64 | ARM64 Linux is not supported |
 | macOS | Apple Silicon (arm64) | Intel Macs are not supported |
 | HTML5 | WebAssembly | See the HTML5 section below |
-| Mobile and consoles | No | Desktop and web only |
+| Mobile and consoles | Not yet | Planned for a later release |
 
 ## HTML5
 
-The web build runs on FMOD's Emscripten runtime, which has real differences from the native engine.
+The web build runs on FMOD's Emscripten runtime, which differs from the native engine.
 
-- **Initialization is asynchronous.** The wasm module and the default banks load in the background. `FmodManager.IsInitialized()` reports true once both are usable, and games gate their first scene on it. Native targets initialize synchronously, so the same polling code works everywhere.
-- **Programmer sounds are unsupported.** `assignProgrammerSound` returns `FMOD_ERR_UNSUPPORTED` on HTML5. This is a defect in FMOD's JS runtime: handing the sound created in the create callback back to FMOD stops the event without playing it and permanently ends callback delivery for that instance. It reproduces with FMOD's own example pattern and no haxefmod code involved. The standalone repro is `tests/js/fmod_ps_glue_repro.html`. Until FMOD fixes it, author dialogue and other swappable audio as ordinary events on HTML5. Related FMOD behavior worth knowing: an async programmer instrument that never receives a sound holds its event open forever in the browser, so shipping an event with a programmer instrument to HTML5 is not useful even without haxefmod in the picture.
-- **FSB-only codecs.** The web build cannot decode loose files or encoded memory buffers. `CoreSound.create` on a .wav/.ogg/.mp3 path returns `FMOD_ERR_FORMAT`. Bank content plays normally because banks carry FSB data. `CoreSound.fromPcm` and `PcmStream` work everywhere because they take raw PCM.
-- **The Destroyed callback never arrives.** FMOD's JS glue corrupts the wasm module if an instance is destroyed while a callback is installed, so the binding uninstalls callbacks before any destruction path and `Destroyed` cannot be delivered. Handler cleanup happens in `release()` on every target, so code that cleans up there behaves identically everywhere.
-- **Firefox never delivers nested timeline beats.** FMOD's JS runtime does not invoke the `NestedTimelineBeat` callback on Firefox, so beats from a referenced event's timeline reach the parent instance only on Chromium-based browsers. The parent still receives the referenced timeline's markers in both. Firefox also fires an extra empty duplicate callback (blank name, position -1) alongside each real marker. Both behaviors reproduce in the Firefox CI job with no library code in the delivery path.
-- **Numeric user properties are unreadable.** Reading an INTEGER, BOOLEAN, or FLOAT typed user property crashes FMOD's JS runtime (the repro is `tests/js/fmod_userprop_glue_repro.html`), so the binding reports `FMOD_ERR_UNSUPPORTED` for them on HTML5. String properties read correctly, and FMOD Studio builds every property value it cannot parse as a number as a string anyway.
-- **Microphone recording reports zero drivers** until the browser's permission prompt is granted, and the recording API is not exposed (see the next section).
+- **Native-only calls are compile errors in a js build.** The compiler stops at each call site, names the method and the reason, and points at the opt-out. Projects that share code across targets and branch at runtime set `-D haxefmod_html5_allow_unsupported`. The calls then compile and fail with `FMOD_ERR_UNSUPPORTED` at runtime in the browser. A getter returns its failure value, such as `null`, `false`, `0`, or `-1`. `StudioSystem.lastResult()` holds the code. `clearProgrammerSound` returns `FMOD_OK` there, since nothing can be assigned. The library prints one warning per build saying so.
+
+- **Browser autoplay holds audio suspended.** Browsers refuse to start audio before the player interacts with the page. FMOD's mixer stays suspended until the first `click`, `keydown`, `pointerdown`, or `touchstart`. The library listens for all four from the moment its script loads. A gesture on the loading screen counts. Audio resumes as soon as the module is ready. A game that needs sound on its very first frame puts a "click to start" screen ahead of it.
+- **The web package exports no FMOD logger.** `FmodRuntime.setDebugLevel` forwards to `FMOD_Debug_Initialize`, which the FMOD Engine 2.03.12 web packages do not export. The call reports `FMOD_ERR_UNSUPPORTED` and no FMOD log line reaches the browser console.
+- **Initialization is asynchronous.** The wasm module and the default banks load in the background. `FmodManager.IsInitialized()` reports true once the module is up and every default bank is loaded or has failed. The engine preloaders wait for it before the first scene. A game without one gates its first scene on it. Native targets initialize synchronously. The same gate passes at once there.
+- **Bank loads by path are fetches.** `FmodManager.LoadBank` and `FmodRuntime.banks.load` fetch the file and load it in the background. Calls on the bank report `FMOD_ERR_NOTREADY` until then. A fetch that takes over 30 seconds fails. The bank then reports the `ERROR` loading state.
+- **A module that never loads is a wait with no end.** Initialization settles once the module is up, or once FMOD refuses. A `fmodstudio.wasm` that fails to download does neither. The preloader waits. The console shows only the browser's own error. A missing `fmodstudio.js` throws from `Initialize` instead. Check both files in the deploy.
+- **Programmer sounds are unsupported.** `assignProgrammerSound` and its variants are compile errors in a js build (see the compile gate above). They return `FMOD_ERR_UNSUPPORTED` on HTML5 when the project opts in. The cause is a defect in FMOD's JS runtime. When the create callback hands the created sound back to FMOD, the event stops without playing. Callback delivery for that instance ends permanently. It reproduces with FMOD's own example pattern and no haxefmod code involved. The standalone repro is `tests/js/fmod_ps_glue_repro.html`. Until FMOD fixes it, author dialogue and other swappable audio as ordinary events on HTML5. FMOD has a related behavior. An async programmer instrument that never receives a sound holds its event open forever in the browser. An event with a programmer instrument is therefore not useful on HTML5 even without haxefmod.
+- **FSB-only codecs.** The web build decodes FSB data only. It cannot decode a wav, ogg, or mp3 file or file image. `Sound.create` and `StudioSystem.loadBankFile` read the browser's virtual filesystem. The library puts no game file there. A path load reports `FMOD_ERR_FILE_NOTFOUND`. `Sound.fromMemory` with an FSB file image works. A wav, ogg, or mp3 image reports `FMOD_ERR_FORMAT`. Bank content plays normally because banks carry FSB data. `Sound.fromPcm` and `PcmStream` work everywhere because they take raw PCM.
+- **The Destroyed callback never arrives.** FMOD's JS glue corrupts the wasm module if an instance is destroyed while a callback is installed. The binding therefore uninstalls callbacks before any destruction path. `Destroyed` cannot be delivered. Handler cleanup happens in `release()` on every target. Code that cleans up there behaves identically everywhere. On HTML5 the dispatcher also drops the handlers and user data of instances that died without `release()`, once per update.
+- **Nested timeline beats never arrive.** FMOD's JS runtime does not invoke the `NestedTimelineBeat` callback. Beats from a referenced event's timeline reach the parent instance on native targets only. The parent receives the referenced timeline's markers in every browser. Firefox also fires an extra empty duplicate callback (blank name, position -1) alongside each real marker. Both behaviors reproduce in the Chromium and Firefox CI jobs with no library code in the delivery path.
+- **Numeric user properties are unreadable.** A read of an INTEGER, BOOLEAN, or FLOAT typed user property crashes FMOD's JS runtime. The repro is `tests/js/fmod_userprop_glue_repro.html`. `getUserPropertyByIndex` therefore returns null with `FMOD_ERR_UNSUPPORTED` for them on HTML5. A lookup by name returns null for them. String properties read correctly. FMOD Studio builds every property value it cannot parse as a number as a string anyway.
+- **Geometry occlusion is native only.** `Geometry.create` and `Geometry.load` make an occlusion mesh (unsupported in HTML5). They return `Geometry.NULL` there. Every other geometry call returns `FMOD_ERR_UNSUPPORTED`, `-1`, `0`, `false`, or `null`. The web build reports the Geometry API unsupported. The alternative that works everywhere is a game-side raycast that drives an event parameter. The sound designer hooks that parameter to a filter in FMOD Studio. Manual occlusion values are bound per channel and per group through `set3DOcclusion`.
+- **Microphone recording is native only.** `StudioSystem.recordStart` and `recordStop` record a driver into a `Sound.createRecordBuffer` sound (unsupported in HTML5). They return `FMOD_ERR_UNSUPPORTED` there. `getRecordDriverCount` and `getRecordDriverInfo` return `null`. `isRecording` is always false. `getRecordPosition` is always `-1`. `createRecordBuffer` returns `Sound.NULL`. Browser permission flows make recording behavior environment-dependent and untestable in CI.
+- **Custom 3D rolloff curves are native only.** `set3DCustomRolloff` on `Channel`, `ChannelGroup`, and `Sound` replaces the rolloff with a point array (unsupported in HTML5). It returns `FMOD_ERR_UNSUPPORTED` there. `get3DCustomRolloff` is always empty. The web boundary rejects the point-array argument. The built-in rolloff modes work everywhere.
+- **Tracker music channel control is native only.** `Sound.getMusicNumChannels`, `setMusicChannelVolume`, `getMusicChannelVolume`, `setMusicSpeed`, and `getMusicSpeed` drive MOD, S3M, XM, and IT playback (unsupported in HTML5). They return `FMOD_ERR_UNSUPPORTED`, `-1`, or `0` there. The web build cannot load loose tracker files at all.
+- **Tag payloads are native only.** `Sound.getTag` reads a metadata tag (unsupported in HTML5). It returns `null` there because FMOD's web glue cannot hand the payload to JavaScript. `getNumTags`, `getNumSubSounds`, `getSubSound`, and `getSubSoundParent` work everywhere.
+- **Console ports are native only.** `CoreSystem.attachChannelGroupToPort` and `detachChannelGroupFromPort` return `FMOD_ERR_UNSUPPORTED` (unsupported in HTML5). Desktop outputs have no ports either. FMOD reports that in the result. The calls exist for builds that target a console SDK.
+- **Eight init settings are native only.** `memoryPoolSize`, `threadAttributes`, and `logFile` are skipped with one warning on HTML5. `logFlags` and `logLevel` have no effect there (see the logger bullet above). `streamingScheduleDelay` and `encryptionKey` are accepted and have no effect there. `liveUpdate` needs a TCP connection, which the browser has no way to open. The web build allocates from the wasm heap and runs on the browser's audio thread. `output` accepts only `AUTODETECT`, `WEBAUDIO`, `AUDIOWORKLET`, `NOSOUND`, and `NOSOUND_NRT` there. Any other value fails init with `FMOD_ERR_UNSUPPORTED`.
+- **Readback and profiling queries are native only.** FMOD's web build lacks these calls or cannot hand their payloads to JavaScript. Each is a compile error in a js build. With the opt-out each one fails with `FMOD_ERR_UNSUPPORTED`. A getter returns its failure value. The calls are:
+  - `getFadePoints` and `getMixMatrix` on `Channel` and `ChannelGroup`, `DspConnection.getMixMatrix`, and `CoreSystem.getDefaultMixMatrix`
+  - `CoreSystem.getDspInfoByType`, `Dsp.getParameterInfo`, `Dsp.getLoudnessMeterInfo`, `Dsp.getLoudnessMeterWeighting`, `Dsp.getPluginInfo`, and `Dsp.addInputPreallocated`
+  - `Sound.lock` and `Sound.unlock`
+  - `CoreSystem.setDiskBusy` and `getDiskBusy`, and `Bus.getPortIndex` and `setPortIndex`
+  - `getCpuUsage` and `getMemoryUsage` on `Bus` and `EventInstance`, and `StudioSystem.getMemoryUsage`
+- **Advanced settings readback is native only.** `StudioSystem.getAdvancedSettings` and `getStudioAdvancedSettings` return `null` (unsupported in HTML5). The web build rejects the getter. The settings themselves apply there through `FmodSettings`.
+- **Plugin loading is native only.** `StudioSystem.loadPlugin` loads a plugin shared library and returns FMOD's plugin handle (unsupported in HTML5). It returns `0` there with `FMOD_ERR_UNSUPPORTED` in `lastResult()`. `setPluginPath` and `unloadPlugin` return `FMOD_ERR_UNSUPPORTED`. The count and handle queries return `-1` and `0`. The info queries return `null`. `Dsp.createByPlugin` returns `Dsp.NULL`. The web build has no plugin host. Every built-in DSP type works everywhere.
+- **Sample readback is native only.** `Sound.readData` decodes PCM out of a sound opened with the `openOnly` flag (unsupported in HTML5). With the opt-out it returns `-68` there, the negated `FMOD_ERR_UNSUPPORTED` code. `seekData` returns `FMOD_ERR_UNSUPPORTED`. A game that needs waveform data in the browser keeps its own copy of the PCM. That is the data it feeds through `PcmStream` or `Sound.fromPcm`.
 
 ## FMOD features not exposed on any target
 
-These FMOD features exist in the native engine but are not part of the haxefmod surface, either because the web build cannot support them or because they conflict with how the binding keeps every target stable. In the future, features that are supported by native builds, but not HTML5, will be fully implemented.
+These FMOD features cannot be bound from Haxe. Most hand FMOD a function pointer or a memory layout that FMOD calls into from its own threads. No Haxe target can run game code there safely.
 
-- **Geometry-based occlusion** (the Geometry API). The web build reports it unsupported. The standard alternative works everywhere: a game-side raycast drives an event parameter that the sound designer hooks to a filter in FMOD Studio. Manual occlusion values are bound per channel and per group through `set3DOcclusion`.
-- **Microphone recording.** Browser permission flows make behavior environment-dependent and untestable in CI.
-- **DSP parameter metadata** (`getParameterInfo`). The web build has no binding for the description struct. Parameter values themselves round-trip by index on every target.
-- **Custom DSP callbacks and third-party plugins.** Haxe code cannot run on FMOD's mixer thread on any target, and the web build removed the plugin-host DSP types entirely. All 33 built-in DSP types are bound.
-- **Loudness meter readback** (LUFS histograms). The web build returns zeroes from a working meter, so the values cannot be trusted cross-platform. FFT spectrum readback and DSP metering are bound and work everywhere.
-- **Custom 3D rolloff curves** (`set3DCustomRolloff`). The web boundary rejects the point-array argument, and FMOD requires the array to stay allocated for the object's lifetime, which a marshaled copy cannot guarantee. The built-in rolloff modes are bound.
-- **Sound sample readback** (`readData`, `lock`). Unsupported on the web build. Games that need waveform data keep their own copy of the PCM they feed through `PcmStream` or `CoreSound.fromPcm`.
-- **Tracker music channel control** (MOD/S3M/XM per-channel access).
-- **Speaker geometry and console port APIs.**
-- **userdata on FMOD objects.** The binding's handle table carries object identity, which is what userdata exists for. Typed handles and payload callbacks replace it.
-- **Custom file systems and `loadBankCustom`.** User IO callbacks would run on FMOD threads, which no Haxe target can do safely. `loadBankFile` and `loadBankMemory` are the supported paths.
-- **System lifecycle calls.** The library owns init and the per-frame update. There is no shutdown or re-init. FMOD initializes once per process and lives until the process exits, and every use-after-shutdown bug goes away with the capability. Init-time engine settings are exposed through `FmodSettings` and compile-time defines.
-- **System diagnostic callbacks and CommandReplay tool hooks.** These are FMOD-tooling integration points. Command capture and basic replay playback are bound.
-- **Tag and subsound access.** Container internals with no cross-platform story.
+- **Custom DSP descriptions and DSP callbacks.** A custom effect's process, create, and release functions run on FMOD's mixer thread. All 33 built-in DSP types are bound. Effects shipped as FMOD plugins load through `StudioSystem.loadPlugin`.
+- **Codec and output registration** (`registerCodec`, `registerOutput`). Both run their callbacks on FMOD's file and mixer threads.
+- **Custom file systems and file callbacks** (`setFileSystem`, `attachFileSystem`, `loadBankCustom`). User IO callbacks run on FMOD's file thread. `loadBankFile` and `loadBankMemory` are the supported paths.
+- **Allocator hooks** (the callback arguments of `Memory_Initialize`). FMOD would call into Haxe for every allocation on every thread. The fixed pool form is `FmodSettings.memoryPoolSize`.
+- **The rolloff callback** (`FMOD_3D_ROLLOFF_CALLBACK`). It runs per channel on the mixer thread. `set3DCustomRolloff` covers custom curves as point arrays.
+- **Android JNI setup.** It targets a platform the library does not ship for.
+- **Thread affinity groups.** `FMOD_THREAD_AFFINITY_GROUP_DEFAULT` and the `GROUP_A` to `GROUP_C` values are 64-bit and do not fit a Haxe `Int`. `FmodSettings.threadAttributes` takes a 32-bit core mask. An unset affinity keeps FMOD's default group.
+- **`getOutputHandle`.** It returns a platform-specific pointer that Haxe cannot use.
+- **CommandReplay callback setters** (`setFrameCallback`, `setLoadBankCallback`, `setCreateInstanceCallback`). They run on FMOD's replay thread. Command capture, replay playback, and command inspection are bound.
 
 ## Fixed behaviors and caps
 
 - **List getters return at most 1024 entries** (banks, events, buses, VCAs, instances, and the other enumerations). A larger result logs a truncation warning with the real total.
-- **Programmer sound keys must be under 512 UTF-8 bytes.** Longer keys are rejected with `FMOD_ERR_INVALID_PARAM` on every target.
-- **Live Update uses TCP port 9264 and the port is fixed** (the FMOD API has no way to change it). Enabling it triggers a firewall dialog on macOS and Windows. It defaults to on in debug builds only.
-- **Numeric arguments pass through to FMOD for validation.** An out-of-range index or count comes back as an FMOD error code from the engine, the same code native FMOD would report.
-- **Generated constants drop non-ASCII characters.** An event name with no ASCII characters at all mangles to `Root`, `Root2`, and so on.
-- **Bank files require an FMOD runtime at least as new as the FMOD Studio version that built them.** This is FMOD's own format rule. A project that rebuilds its banks with a newer Studio raises the minimum FMOD engine version its players' builds must bundle.
+- **Programmer sound keys must be under 512 UTF-8 bytes, and instrument names under 64.** Longer keys or names are rejected with `FMOD_ERR_INVALID_PARAM` on every target. An instance holds at most eight named assignments.
+- **Callback events queue up to 256 between updates.** A fuller queue drops the oldest events. The library logs a warning when it does.
+- **Callback strings are cut at 63 UTF-8 bytes on every target.** That covers marker, plugin, and instrument names and the `BankUnload` path. The `Error` parameters are cut at 127.
+- **Some lists have smaller caps.** `get3DCustomRolloff` returns at most 341 points. `getFadePoints` returns at most 512 points. `setParametersByIDs` refuses more than 512 pairs with `FMOD_ERR_INVALID_PARAM`. Native FMOD refuses more than 32 pairs with the same code. `getFftSpectrum` and `getFftSpectrumInfo` return at most 512 bins per channel. `Sound.create` and `Sound.fromMemory` pass at most 1004 `inclusionList` entries to FMOD.
+- **Raw PCM sounds are mono or stereo.** `Sound.fromPcm`, `PcmStream`, and `Sound.createRecordBuffer` refuse other channel counts with `FMOD_ERR_INVALID_PARAM`.
+- **On C++ and HashLink an instance records at most 64 live plugin instruments.** A further one arrives in `PluginCreated` with `Dsp.NULL` as its effect. HTML5 has no plugin host.
+- **The handle table holds at most 65536 slots on every target.** Each slot serves 32767 handles and then retires. A call that finds no free slot returns the null handle, with `FMOD_ERR_MEMORY` in `lastResult()`.
+- **Only a group the game created can be released.** `ChannelGroup.release` and `SoundGroup.release` refuse every other group with `FMOD_ERR_INVALID_PARAM`. That covers the master group, a bus's group, an instance's group, and a group first reached through a walk. The handle stays usable.
+- **A borrowed handle dies with the handle it was reached from.** These borrowed handles live exactly as long as that handle:
+  - an instance's own group, whose handle dies at the instance's `release()` while the event plays on
+  - a bus's own group, whose handle also dies at a `Bus.unlockChannelGroup()` that destroys the group
+  - a group's or a channel's DSP
+  - a parent group walked up from an instance's group
+- **Other borrowed handles are short-lived.** A handler or user data set through one stops with it. The short-lived handles are:
+  - a child group from `getGroup`
+  - a parent group walked from a bus, the master, a group the game made, or a short-lived group
+  - a channel's group and current sound
+  - a sound from `SoundGroup.getSound` and the parent of a borrowed sound
+  - a DSP graph walk and a DSP of a short-lived group
+  - a connection that `Dsp.addInput` makes when either DSP came from a channel, an event, a bus, or a walk
+  - a connection that `ChannelGroup.addGroupConnection` makes when either group came from a channel, an event, a bus, or a walk
+- **These calls end every short-lived handle.** Fetch a short-lived handle again after any of them.
+  - `FmodManager.Update()` and `FmodRuntime.update()`
+  - a call that stops, releases, or unloads anything, once FMOD accepts it, and `Bus.unlockChannelGroup()`
+  - a call that runs FMOD's command queue, once FMOD accepts it: `StudioSystem.flushCommands()`, `StudioSystem.flushSampleLoading()`, and `Bus.lockChannelGroup()`
+  - a bank load without `NONBLOCKING`, also when FMOD refuses it
+  - `StudioSystem.unloadAll()` and `EventDescription.releaseAllInstances()`, also when FMOD refuses them
+  - on HTML5, `Bank.unload()` also when FMOD refuses it
+  - `FmodManager.LoadBank()` when it loads a new bank, and `FmodManager.WaitForBanks()`
+  - `FmodManager.PauseSong()` with automatic updates off
+  - any other helper class call or component that makes one of these calls. `FmodManager.PlayOneShot` releases its instance. An emitter stops its event when it culls it.
+- **A walked group handle dies when another instance or bus reaches its group.** A walk from that instance or bus does it. So does its `getChannelGroup()`. That call gets a fresh handle with no user data. The handles reached from the old one die with it.
+- **FMOD can free an object before its short-lived handle dies.** A short-lived handle to such an object can name freed memory until the next update. The cases are:
+  - a stream that plays to its end, with automatic updates on and off. Read a stream's sound only while the stream has time left to play.
+  - with automatic updates on, a stopped stream or a finished nested event. Fetch the handle before the stop.
+  - with automatic updates on, a handle fetched after `Bank.unloadSampleData()` or `EventDescription.unloadSampleData()` in the same frame. Fetch it before the call.
+  - with automatic updates off, a handle fetched after `FmodManager.PauseSong()` in the same frame, when a stop or release came earlier in that frame. Fetch it before the call.
+- **The group of an unlocked bus that Studio frees while idle keeps its handle until the bus dies.**
+- **A connection call scans one end's connections.** Each `DspConnection` call checks that FMOD still has the connection. With hundreds of connections on both ends, one call can take about 0.1 ms.
+- **A DSP belongs to one chain at a time.** `Channel.addDsp` and `ChannelGroup.addDsp` report `FMOD_ERR_DSP_INUSE` for a DSP that another chain holds. They see that chain only while its channel or group has a live handle, or while the group waits parked. Remove a DSP from its chain before you add it to another one. Do that before you release the event instance whose group holds it. A DSP the game did not create goes back only into the chain it came from.
+- **Channel group nesting has a depth limit.** FMOD's mixer thread walks nested groups on its own stack. About 260 nested levels overflow the default stack and crash the mixer. A larger mixer stack in `threadAttributes` raises the limit.
+- **Sample readback refuses a playing sound.** `Sound.readData` and `seekData` refuse a sound that a channel plays. A paused channel counts as playing. They report `FMOD_ERR_NOTREADY` on native targets. Every sound of the same subsound tree is refused too. FMOD decodes a playing sound on its own threads. A paused sound keeps decoding for a moment after the pause. A read from the game thread at the same time crashes FMOD. Stop the channel first. A programmer sound that Studio starts during the read is not covered.
+- **Live Update uses TCP port 9264 by default.** The `profilePort` setting picks another port. When it is enabled, macOS and Windows show a firewall dialog. It defaults to on in debug builds only.
+- **Most numeric arguments pass through to FMOD for validation.** An out-of-range index or count comes back as the FMOD error code that native FMOD reports. The library refuses a value that crashes FMOD. That call returns `FMOD_ERR_INVALID_PARAM`.
+- **The library owns the system lifecycle.** It initializes FMOD once per process and runs the per-frame update. There is no shutdown or re-init. Init-time engine settings are exposed through `FmodSettings` and compile-time defines.
+- **FMOD's own log needs the logging FMOD libraries.** Native builds link the release FMOD libraries. With those libraries `FMOD_Debug_Initialize` reports `FMOD_ERR_UNSUPPORTED` and writes nothing. `logLevel`, `logFile`, `logFlags`, and `FmodRuntime.setDebugLevel` therefore produce no log on any target. The library's own trace messages from `FmodManager.EnableDebugMessages()` print as normal.
+- **Generated constants drop non-ASCII characters.** An event path with no ASCII letters or digits mangles to `Root`, `Root2`, and so on. In a folder such an event takes the folder's name. `event:/Music/音楽` becomes `Music`.
+- **Bank files require an FMOD runtime at least as new as the FMOD Studio version that built them.** This is FMOD's own format rule. A project that rebuilds its banks with a newer Studio raises the minimum FMOD engine version. The players' builds must bundle that version.
 
 ## Known FMOD engine defects
 
-These are defects in FMOD itself, kept here with standalone repros so they can be re-tested against new SDK releases.
+These are defects in FMOD itself. Each one has a standalone repro for re-tests against new SDK releases.
 
 - **HTML5 programmer-sound flow** (described above). Repro: `tests/js/fmod_ps_glue_repro.html`, verified against SDK 2.03.12.
 - **HTML5 numeric user property crash** (described above). Repro: `tests/js/fmod_userprop_glue_repro.html`, verified against SDK 2.03.12.
-- **Firefox nested-beat and duplicate-marker delivery** (described above). Reproduced by the linux-html5-firefox CI job against SDK 2.03.12 with Playwright Firefox.
-- **Linux stream and reverb zone churn crash.** High-frequency `Reverb3D` create/release while PCM streams churn segfaults inside the FMOD engine on Linux. Normal gameplay patterns do not hit it. Repro: `tests/native/fmod_churn_crash_repro.c`, verified against SDK 2.03.12.
+- **Nested-beat and Firefox duplicate-marker delivery** (described above). Reproduced by the linux-html5-chromium and linux-html5-firefox CI jobs against SDK 2.03.12.
+- **Channel group release while a geometry exists.** FMOD frees a 3D `ChannelGroup` with its occlusion request still queued. Its geometry thread then reads freed memory. The native shims guard `ChannelGroup.release()` against this. While a `Geometry` exists, the release parks the group. The same holds for 60 ms after the last `Geometry` release. The handle dies at once. Group walks skip the parked group. At most 32 groups wait parked. A further release blocks the game thread until the oldest one is due, up to 60 ms. Its channels and child groups move to the master at once. The FMOD release runs at the first update or callback drain after 60 ms. Until then a DSP walk can still reach the group's DSPs. An event's own channel groups carry no 3D mode in FMOD. Studio's teardown of them queues no occlusion request. Repro: `tests/native/fmod_geometry_group_release_repro.c`, verified against SDK 2.03.12 and 2.02.33.
+- **Geometry release while 3D channels move.** FMOD computes occlusion on its geometry thread. A `Geometry.release()` while a 3D channel's request is in flight can crash that thread. A tight test loop crashes about once in several thousand releases. Release a geometry while no 3D channel moves, for example between levels. Repro: `tests/native/fmod_last_geometry_release_repro.c`, verified against SDK 2.03.12 and 2.02.33.
+- **Linux stream and reverb zone churn crash.** Fast `Reverb3D` create and release cycles while PCM streams churn segfault inside the FMOD engine on Linux. Normal gameplay patterns do not hit it. Repro: `tests/native/fmod_churn_crash_repro.c`, verified against SDK 2.03.12.

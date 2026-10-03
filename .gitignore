@@ -7,7 +7,14 @@
 
 # Example project
 /example-project/EZPlatformer/export
+/example-project/HeapsPlatformer/build
+/example-project/HeapsPlatformer/build-manual
+/example-project/KhaPlatformer/build
+/example-project/KhaPlatformer/build-manual
+/example-project/HeapsPlatformer/.haxefmod
 /example-project/EZPlatformer/.haxefmod
+# build-hdll run at the library root writes its project-local hdll here
+/.haxefmod/
 /example-project/EZPlatformer/fmod/.cache
 /example-project/EZPlatformer/fmod/.user
 /example-project/EZPlatformer/fmod/.unsaved/
@@ -21,8 +28,9 @@ haxe-fmod.zip
 # Generated code
 *raw.js
 
-# Python bytecode
+# Python bytecode and local virtualenvs
 __pycache__/
+.venv/
 
 # FMOD SDK (users supply their own via $FMOD_SDK)
 /lib/
@@ -32,3 +40,15 @@ __pycache__/
 
 # Unit test scratch files
 /tests/.tmp/
+
+# Documentation site build output
+/site/
+
+# Extension test output
+/extension/test/last-run.png
+
+# Extension store packages
+/extension/dist/
+
+# Local CI runner output
+/ci/local/
