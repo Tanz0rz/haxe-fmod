@@ -5,13 +5,13 @@ haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS. 
 [Getting started](getting-started.md) takes a new project from an empty build file to a playing sound. Every step that differs by engine has HaxeFlixel, Heaps, and Kha tabs.
 
 - The [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and [FMOD Core API](https://www.fmod.com/docs/2.03/api/core-api.html) at runtime, with some known [limitations](limitations.md)
-    - Events, buses, VCAs, snapshots, banks, global and labeled parameters, and more
-- Typed callbacks with payloads (beats, timeline markers, etc.), see [Callbacks](guides/callbacks.md)
+- Events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), and more
+- Typed [callbacks](guides/callbacks.md) with payloads (beats, timeline markers, etc.)
 - [Live Update](live-update.md) for mixing sounds while playtesting
 - [Helper class](guides/fmod-manager.md) to map FMOD Studio calls/events to game code
 - [Generated constants](guides/constants.md) for every event, bus, VCA, snapshot, and global parameter in your banks
 - [TODO markers](guides/fmod-manager.md#sound-todo-markers) for sound effects to add later
-- An [extension for fmod.com (beta)](guides/extension.md) to integrate Haxe examples into the official docs
+- [fmod.com extension (beta)](guides/extension.md) to integrate Haxe examples into the official docs
 
 ## Two sets of docs
 

@@ -1,7 +1,7 @@
 # fmod.com extension (beta)
 
 !!! warning "Experimental feature"
-    Some code snippets are incorrect. The extension still helps developers who work from the docs first.
+    The code snippets are occasionally incorrect. The extension still provides value if you are a docs-first developer.
 
 You can work straight from the FMOD docs. The `haxefmod for FMOD docs` browser extension adds a **Haxe** tab to every function of the [FMOD API reference](https://www.fmod.com/docs/2.03/api/welcome.html). The tab sits beside C, C++, C#, and JS. The tab shows the haxefmod method that wraps the function and its Haxe signature. Type definitions show the Haxe declaration. Guide examples show the Haxe version. Functions haxefmod does not expose say so and give the reason.
 

@@ -8,7 +8,7 @@ FMOD Studio Live Update connects Studio to the running game. You mix in real tim
 |---|---|
 | C++ | Yes |
 | HashLink | Yes |
-| HTML5 | No. FMOD does not support it in browsers. |
+| HTML5 | No. FMOD does not support it in browsers and has no plans to. |
 
 ## Turning it on
 

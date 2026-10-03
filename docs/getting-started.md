@@ -22,7 +22,7 @@ The library is tested on HaxeFlixel and other `lime` and `openfl` games, on Heap
     | HTML5 | All | WebAssembly |
     | Windows | x86_64 | HashLink |
     | Linux | x86_64 | HashLink |
-    | macOS | ARM64 (Apple Silicon) | HashLink (compiled through HL/C) |
+    | macOS | ARM64 (Apple Silicon) | HashLink through HL/C |
 
 === "Kha"
 
@@ -130,7 +130,7 @@ Both variables can be set at the same time. One machine can hold the desktop SDK
 
 ## 4. Check your setup
 
-`haxelib run haxefmod check` checks your local dev environment and is **highly recommended**.
+`haxelib run haxefmod check` verifies your local dev environment and is **highly recommended** whenever something misbehaves.
 
 ```bash
 haxelib run haxefmod check
