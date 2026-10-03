@@ -59,7 +59,7 @@ class FmodManager {
     }
 
     /**
-     * Reports true once FMOD and the default banks are usable. Native targets are ready immediately.
+     * Reports true once FMOD is up and every default bank is loaded or has failed. InitializeFailed reports a failed bank. Native targets are ready immediately.
      * HTML5 initializes asynchronously, so poll this before the first scene.
      */
     public static function IsInitialized():Bool {
@@ -141,7 +141,7 @@ class FmodManager {
         return FmodRuntime.banks.isLoaded(FmodRuntime.bankPath(bankName));
     }
 
-    /** True when a bank load ended in error, for example a file that is missing. HTML5 reports the error after the fetch settles. */
+    /** True when an asynchronous bank load ended in error, for example an HTML5 fetch of a missing file. A native LoadBank fails at once with a warning. IsBankLoaded then stays false. */
     public static function AnyBankFailed():Bool {
         ensureInitialized();
         return FmodRuntime.banks.anyError();

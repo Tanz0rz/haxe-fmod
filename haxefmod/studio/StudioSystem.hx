@@ -122,9 +122,9 @@ class StudioSystem {
     }
 
     /**
-     * Loads a bank file. On HTML5 the file must already be in the virtual
-     * filesystem (the default banks are preloaded. Use FmodRuntime for
-     * fetch-based loading). Returns Bank.NULL on failure. A load without
+     * Loads a bank file. On HTML5 the browser's virtual filesystem holds no
+     * game file. Use FmodRuntime.banks for fetch-based loading there.
+     * Returns Bank.NULL on failure. A load without
      * NONBLOCKING ends the short-lived handles. A refused load ends them too.
      */
     public static function loadBankFile(path:String, flags:FmodLoadBankFlags = NORMAL):Bank {

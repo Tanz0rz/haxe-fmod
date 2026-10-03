@@ -30,8 +30,8 @@ abstract FmodSyncPoint(Int) from Int to Int {
 
 /**
  * A handle to an FMOD Core sound. Create from an audio file, a file image
- * in memory, or raw PCM. On native an audio file is a path on disk, and
- * on HTML5 a file preloaded into the virtual filesystem.
+ * in memory, or raw PCM. On native an audio file is a path on disk. On
+ * HTML5 a path finds no file. Use fromMemory with an FSB image there.
  */
 abstract Sound(Int) from Int to Int {
     public static inline var NULL:Sound = cast 0;
