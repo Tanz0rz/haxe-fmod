@@ -16,7 +16,7 @@ Native builds bind every FMOD function that Haxe can host. The functions left ou
 
 The web build runs on FMOD's Emscripten runtime, which differs from the native engine.
 
-- **Native-only calls are compile errors in a js build.** The compiler stops at each call site, names the method and the reason, and points at the opt-out. Projects that share code across targets and branch at runtime set `-D haxefmod_html5_allow_unsupported`. The calls then compile and return `FMOD_ERR_UNSUPPORTED` at runtime in the browser. The library prints one warning per build saying so.
+- **Native-only calls are compile errors in a js build.** The compiler stops at each call site, names the method and the reason, and points at the opt-out. Projects that share code across targets and branch at runtime set `-D haxefmod_html5_allow_unsupported`. The calls then compile and return `FMOD_ERR_UNSUPPORTED` at runtime in the browser. `clearProgrammerSound` returns `FMOD_OK` there, since nothing can be assigned. The library prints one warning per build saying so.
 
 - **Browser autoplay holds audio suspended.** Browsers refuse to start audio before the player interacts with the page. FMOD's mixer stays suspended until the first `click`, `keydown`, `pointerdown`, or `touchstart`. The library listens for all four from the moment its script loads. A gesture on the loading screen counts. Audio resumes as soon as the module is ready. A game that needs sound on its very first frame puts a "click to start" screen ahead of it.
 - **The web package exports no FMOD logger.** `FmodRuntime.setDebugLevel` forwards to `FMOD_Debug_Initialize`, which the FMOD Engine 2.03.12 web packages do not export. The call reports `FMOD_ERR_UNSUPPORTED` and no FMOD log line reaches the browser console.

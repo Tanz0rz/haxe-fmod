@@ -66,7 +66,7 @@ instance.setCallback(handler, EventCallbackType.STARTED | EventCallbackType.TIME
 
 ## HTML5 builds
 
-A call to a method FMOD's web build cannot make is now a compile error in a js build. The error names the method and the reason. `-D haxefmod_html5_allow_unsupported` compiles it with a one-time warning. The call then returns `FMOD_ERR_UNSUPPORTED` at runtime. Every such method carries "(unsupported in HTML5)" in its documentation.
+A call to a method FMOD's web build cannot make is now a compile error in a js build. The error names the method and the reason. `-D haxefmod_html5_allow_unsupported` compiles it with a one-time warning. The call then returns `FMOD_ERR_UNSUPPORTED` at runtime. `EventInstance.clearProgrammerSound` is the exception. It returns `FMOD_OK` because nothing can be assigned in a browser. Every such method carries "(unsupported in HTML5)" in its documentation.
 
 Seven calls a 2.0 js build compiled now fail that build:
 
@@ -75,7 +75,7 @@ Seven calls a 2.0 js build compiled now fail that build:
 - `EventInstance.assignProgrammerSound` and `EventInstance.clearProgrammerSound`
 - `StudioSystem.getMemoryUsage`
 
-Each returned `null` or `FMOD_ERR_UNSUPPORTED` in a 2.0 browser build. Remove the call, guard it with `#if !js`, or set the define.
+Six of them returned `null` or `FMOD_ERR_UNSUPPORTED` in a 2.0 browser build. `clearProgrammerSound` returned `FMOD_OK` there. Remove the call, guard it with `#if !js`, or set the define.
 
 A default bank that fails to load no longer holds `FmodManager.IsInitialized()` at false in a browser. Initialization completes without the bank. `FmodManager.InitializeFailed()` reports the failure. A `FmodRuntime.onceReady` handler without `onFailed` runs in that case too.
 
