@@ -84,7 +84,7 @@ These FMOD features cannot be bound from Haxe. Most hand FMOD a function pointer
   - a connection that `Dsp.addInput` makes when either DSP came from a channel, an event, a bus, or a walk
   - a connection that `ChannelGroup.addGroupConnection` makes when either group came from a channel, an event, a bus, or a walk
 - **These calls end every short-lived handle.** Fetch a short-lived handle again after any of them.
-  - `FmodManager.Update()`
+  - `FmodManager.Update()` and `FmodRuntime.update()`
   - a call that stops, releases, or unloads anything, once FMOD accepts it, and `Bus.unlockChannelGroup()`
   - a call that runs FMOD's command queue, once FMOD accepts it: `StudioSystem.flushCommands()`, `StudioSystem.flushSampleLoading()`, and `Bus.lockChannelGroup()`
   - a bank load without `NONBLOCKING`, also when FMOD refuses it
