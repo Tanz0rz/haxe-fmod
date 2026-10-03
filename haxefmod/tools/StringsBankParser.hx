@@ -17,10 +17,10 @@ typedef StringsBankEntry = {
  * Layout (determined empirically from FMOD Studio 2.03.x banks and verified
  * byte-for-byte against the FMOD runtime's own string table output):
  *
- * The file is a RIFF container ("RIFF" <u32 size> "FEV ") of nested chunks;
+ * The file is a RIFF container ("RIFF" <u32 size> "FEV ") of nested chunks.
  * "LIST" chunks hold a 4-byte list type followed by child chunks. The string
- * table lives in the "STDT" chunk (nested inside LIST/PROJ). Paths are NOT
- * stored as flat strings - they are fragments in a compressed radix trie.
+ * table lives in the "STDT" chunk (nested inside LIST/PROJ). Paths are stored
+ * as fragments in a compressed radix trie.
  *
  * STDT payload (all integers little-endian):
  *
@@ -51,8 +51,8 @@ typedef StringsBankEntry = {
  *
  * Path i is reconstructed by walking parent links from leaf[i] up to the
  * root and concatenating the fragments root-first (e.g. "b" + "ank:/Master"
- * + ".strings"). GUIDs are stored sorted by their formatted string form;
- * guid[i] pairs with path i. The parse is validated by requiring the STDT
+ * + ".strings"). GUIDs are stored sorted by their formatted string form.
+ * Each guid[i] pairs with path i. The parse is validated by requiring the STDT
  * payload to be consumed exactly, so layout drift errors out instead of
  * producing garbage.
  */
@@ -79,10 +79,15 @@ class StringsBankParser {
 		var end = 8 + riffSize;
 		if (end > bytes.length) end = bytes.length;
 
-		var stdt = findChunk(bytes, 12, end, "STDT");
+		var stdt = try {
+			findChunk(bytes, 12, end, "STDT", 0);
+		} catch (e:haxe.Exception) {
+			throw new haxe.Exception('$sourceName has a corrupt chunk layout: ${e.message}'
+				+ " - the bank is corrupt or uses an unsupported FMOD Studio format.");
+		}
 		if (stdt == null) {
 			throw new haxe.Exception('No string table (STDT chunk) found in $sourceName'
-				+ " - this looks like a regular bank, not the strings bank."
+				+ " - this is a regular bank. The generator needs Master.strings.bank."
 				+ " Point --strings at the Master.strings.bank file.");
 		}
 
@@ -90,7 +95,7 @@ class StringsBankParser {
 			parseStringTable(bytes, stdt.start, stdt.end);
 		} catch (e:haxe.Exception) {
 			throw new haxe.Exception('Failed to parse the string table in $sourceName: ${e.message}'
-				+ " - the bank may be corrupt or use an unsupported FMOD Studio format.");
+				+ " - the bank is corrupt or uses an unsupported FMOD Studio format.");
 		}
 
 		if (entries.length == 0) {
@@ -101,25 +106,33 @@ class StringsBankParser {
 		return entries;
 	}
 
+	// A real bank nests LIST chunks a few levels deep. A crafted file can
+	// nest one per twelve bytes, and the walk is recursive, so a bound
+	// keeps it off the native stack.
+	static inline var MAX_LIST_DEPTH:Int = 32;
+
 	/** Depth-first search for the first chunk with the given tag between
-		start and end. Returns the payload range or null. */
-	static function findChunk(bytes:Bytes, start:Int, end:Int, tag:String):Null<{start:Int, end:Int}> {
+		start and end. Returns the payload range or null. Throws past
+		MAX_LIST_DEPTH nested LIST chunks. */
+	static function findChunk(bytes:Bytes, start:Int, end:Int, tag:String, depth:Int):Null<{start:Int, end:Int}> {
+		if (depth > MAX_LIST_DEPTH) throw new haxe.Exception('LIST chunks nested deeper than $MAX_LIST_DEPTH levels');
 		var p = start;
 		while (p + 8 <= end) {
 			var chunkTag = bytes.getString(p, 4);
 			var size = readU32(bytes, p + 4);
 			var payloadStart = p + 8;
-			var payloadEnd = payloadStart + size;
 			// A negative size (a crafted 32-bit value read as signed) would
-			// stall or rewind the scan pointer forever
-			if (size < 0 || payloadEnd > end) return null; // corrupt chunk, stop scanning
+			// stall or rewind the scan pointer forever. The subtraction
+			// keeps a huge positive size from wrapping the end past zero.
+			if (size < 0 || size > end - payloadStart) return null; // corrupt chunk, stop scanning.
+			var payloadEnd = payloadStart + size;
 			if (chunkTag == tag) return {start: payloadStart, end: payloadEnd};
 			if (chunkTag == "LIST" && size >= 4) {
-				// LIST payload: 4-byte list type, then child chunks
-				var inner = findChunk(bytes, payloadStart + 4, payloadEnd, tag);
+				// LIST payload: 4-byte list type, then child chunks.
+				var inner = findChunk(bytes, payloadStart + 4, payloadEnd, tag, depth + 1);
 				if (inner != null) return inner;
 			}
-			// RIFF chunks are word-aligned. Sizes are padded to even
+			// RIFF chunks are word-aligned. Sizes are padded to even.
 			p = payloadEnd + (size & 1);
 		}
 		return null;
@@ -201,7 +214,7 @@ class StringsBankParser {
 			p += 3;
 		}
 
-		// the layout is only trusted if it accounts for every byte
+		// the layout is only trusted if it accounts for every byte.
 		if (p != end)
 			throw new haxe.Exception('string table has ${end - p} unexpected trailing byte(s)');
 

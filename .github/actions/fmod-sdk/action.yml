@@ -32,30 +32,46 @@ runs:
       uses: actions/cache@v5
       with:
         path: /tmp/fmod-sdk-cache-${{ inputs.version }}
-        key: fmod-sdk-${{ inputs.version }}
+        # Git on Windows checks the SDK's library symlinks out as plain
+        # files. An entry a Windows job saved would break the Linux and
+        # macOS link steps, so each OS keeps its own entry.
+        key: fmod-sdk-${{ runner.os }}-${{ inputs.version }}
 
     - name: Provide FMOD SDK ${{ inputs.version }}
       shell: bash
+      env:
+        # The token and the version reach the script through the
+        # environment, never through a string the runner pastes into it
+        SDK_TOKEN: ${{ inputs.token }}
+        SDK_VERSION: ${{ inputs.version }}
       run: |
-        CACHE_DIR="/tmp/fmod-sdk-cache-${{ inputs.version }}"
+        case "$SDK_VERSION" in
+          *[!0-9.]*|'') echo "fmod-sdk: the version must be digits and dots, got '$SDK_VERSION'"; exit 1 ;;
+        esac
+        CACHE_DIR="/tmp/fmod-sdk-cache-$SDK_VERSION"
         # actions/cache resolves /tmp against the workspace drive root on
         # Windows, while git-bash mounts /tmp elsewhere. clone to the
         # drive-root path so the post-job cache save sees the same directory
         case "$(uname -s)" in
           MINGW*|MSYS*|CYGWIN*)
             DRIVE=$(pwd -W | cut -c1 | tr '[:upper:]' '[:lower:]')
-            CACHE_DIR="/$DRIVE/tmp/fmod-sdk-cache-${{ inputs.version }}"
+            CACHE_DIR="/$DRIVE/tmp/fmod-sdk-cache-$SDK_VERSION"
             ;;
         esac
         if [ -z "$(ls -A "$CACHE_DIR" 2>/dev/null)" ]; then
-          git clone --depth 1 --branch "${{ inputs.version }}" \
-            https://x-access-token:${{ inputs.token }}@github.com/Tanz0rz/fmod-sdk-cache.git \
-            "$CACHE_DIR"
+          # The clone lands next to the cache directory and moves in whole,
+          # so a cancelled job never caches a partial tree under this key
+          rm -rf "$CACHE_DIR.tmp"
+          bash "$GITHUB_ACTION_PATH/../../../ci/retry.sh" --clean "$CACHE_DIR.tmp" git clone --depth 1 --branch "$SDK_VERSION" \
+            "https://x-access-token:${SDK_TOKEN}@github.com/Tanz0rz/fmod-sdk-cache.git" \
+            "$CACHE_DIR.tmp"
           # The clone's origin URL embeds the token. Never persist it (or any
           # git metadata) into the cache archive
-          rm -rf "$CACHE_DIR/.git"
+          rm -rf "$CACHE_DIR.tmp/.git"
+          rm -rf "$CACHE_DIR"
+          mv "$CACHE_DIR.tmp" "$CACHE_DIR"
         else
-          echo "FMOD SDK ${{ inputs.version }} restored from the actions cache"
+          echo "FMOD SDK $SDK_VERSION restored from the actions cache"
         fi
         if [ "${{ inputs.platform }}" != "none" ] && [ -n "${{ inputs.dest }}" ]; then
           mkdir -p "${{ inputs.dest }}"

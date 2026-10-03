@@ -1,7 +1,8 @@
-// Validates the M4 jaxe.js surface: core sound micro subset with a real wav
-// in MEMFS, ps_assign/ps_clear mask handling, and the CREATE_PROGRAMMER_SOUND
-// resolution logic (invoked directly - the example bank has no programmer
-// instrument to trigger it naturally).
+// Validates the M4 jaxe.js surface: the core sound micro subset with a real
+// wav in MEMFS, and ps_assign/ps_clear mask handling.
+// The CREATE_PROGRAMMER_SOUND resolution logic runs on a direct call,
+// because the example bank has no programmer instrument to trigger it
+// naturally.
 // Path resolution: the FMOD html5 SDK comes from $FMOD_SDK_WEB (the same
 // variable lime builds use). The shim and banks are found relative to this
 // file so the harness runs from any cwd.
@@ -56,14 +57,14 @@ async function main() {
 
     // --- Core micro subset: the html5 Studio build ships FSB-only codecs,
     // so loose wav/ogg files fail with FMOD_ERR_FORMAT (19). The binding must
-    // return 0 + lastResult, not throw. Native targets load
+    // return 0 + lastResult rather than throw. Native targets load
     // these files fine. That path is CI-validated by ProgrammerSoundTestState.
-    const snd = jaxe.fmod_core_create_sound('Jump.wav', 0);
+    const snd = jaxe.fmod_core_create_sound('Jump.wav', 0, -1);
     check('core_create_sound_format_limit', snd === 0 && jaxe.fmod_sys_last_result() === 19,
         `handle=${snd} lastResult=${jaxe.fmod_sys_last_result()}`);
-    check('core_missing_file', jaxe.fmod_core_create_sound('Nope.wav', 0) === 0
+    check('core_missing_file', jaxe.fmod_core_create_sound('Nope.wav', 0, -1) === 0
         && jaxe.fmod_sys_last_result() === 18, `lastResult=${jaxe.fmod_sys_last_result()}`);
-    check('core_invalid_handle_len', jaxe.fmod_core_get_sound_length(12345) === -1, '');
+    check('core_invalid_handle_len', jaxe.fmod_core_get_sound_length(12345, jaxe.FMOD.TIMEUNIT_MS) === -1, '');
 
     // --- ps_assign / ps_clear mask plumbing on a real instance ---
     const evi = jaxe.fmod_evd_create_instance(jaxe.fmod_sys_get_event('event:/Music/MainLevel'));
@@ -71,7 +72,7 @@ async function main() {
     check('ps_assign_reports_unsupported', jaxe.fmod_ps_assign(evi, 'Jump.wav') === 68, '');
     check('ps_key_not_stored', jaxe.psKeys[evi] === undefined, '');
     check('ps_mask_not_armed', (jaxe.effectiveCallbackMask(evi) & 0x180) === 0, '');
-    // a user mask still installs on its own
+    // a user mask installs on its own
     jaxe.fmod_evi_set_callback_mask(evi, 0x20);
     check('ps_user_mask_installs', (jaxe.effectiveCallbackMask(evi) & 0x20) === 0x20, '');
     // the handler paths below run against a white-box key (assignment is
@@ -79,8 +80,9 @@ async function main() {
     jaxe.psKeys[evi] = 'Jump.wav';
 
     // --- Direct CREATE_PROGRAMMER_SOUND resolution (file path fallback) ---
-    // The example bank has no programmer instrument, so invoke the handler
-    // exactly as FMOD would: same wrapper delivery, fake props object.
+    // The example bank has no programmer instrument.
+    // The handler runs here exactly as FMOD runs it: same wrapper delivery,
+    // fake props object.
     const inst = jaxe.handleResolve(evi, jaxe.TYPE_EVI);
     const props = { name: '', sound: null, subsoundIndex: 0 };
     const r = jaxe.callbackHandler(0x80, inst, props);
@@ -93,12 +95,13 @@ async function main() {
     check('destroy_ps_returns_ok', rd === 0, `r=${rd}`);
 
     // --- Programmer sounds are unsupported on html5 (FMOD glue defect) ---
-    // Handing the created sound back from the create callback stops the
-    // event instantly and ends callback delivery for the instance, with
-    // FMOD's own example pattern and no haxefmod code involved
-    // (fmod_ps_glue_repro.html in this directory). ps_assign reports
-    // UNSUPPORTED so the failure stays visible instead of wedging events.
-    delete jaxe.psKeys[evi]; // clear the white-box key from the block above
+    // The create callback hands the created sound back.
+    // That stops the event instantly and ends callback delivery for the
+    // instance. ps_assign reports UNSUPPORTED, so the failure stays visible
+    // instead of wedging events.
+    // The pattern comes from FMOD's own example, with no haxefmod code
+    // involved (fmod_ps_glue_repro.html in this directory).
+    delete jaxe.psKeys[evi]; // Clear the white-box key from the block above
     check('ps_assign_unsupported', jaxe.fmod_ps_assign(evi, 'hello') === 68, '');
     check('ps_assign_leaves_mask_unarmed', (jaxe.effectiveCallbackMask(evi) & 0x180) === 0, '');
 

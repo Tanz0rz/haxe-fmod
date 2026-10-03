@@ -1,9 +1,11 @@
 // Drives the actual Haxe runtime layer (FmodRuntime + BankRegistry,
-// compiled to js) against the real wasm under Node: the html5 init
-// contract - isInitialized() gates on the default banks being usable,
-// and a failed autoLoadBanks fetch holds it false with one traced
-// warning. The other harnesses talk to jaxe.js directly and cannot see
-// this layer.
+// compiled to js) against the real wasm under Node.
+// The subject is the html5 init contract.
+// isInitialized() gates on the default banks being settled.
+// A failed autoLoadBanks fetch is reported once, initFailed() turns true,
+// and initialization completes without that bank.
+// A provided bank that fails to load settles the same way.
+// The other harnesses talk to jaxe.js directly and cannot see this layer.
 //
 // Usage: FMOD_SDK_WEB=<sdk root> node runtime-init-test.js
 // Compiles tests/jsruntime/RuntimeInitTest.hx on the fly (needs haxe).
@@ -36,6 +38,12 @@ function runMode(mode) {
         global.RUNTIME_TEST_MODE = ${JSON.stringify(mode)};
         const fs = require('fs');
         const path = require('path');
+        // The bank a provided-mode run hands over as real bytes
+        const strings = fs.readFileSync(path.join(${JSON.stringify(BANKS)}, 'Master.strings.bank'));
+        global.RUNTIME_TEST_STRINGS_BANK = strings.buffer.slice(strings.byteOffset, strings.byteOffset + strings.byteLength);
+        // The second bank an unloadprovided run hands over
+        const master = fs.readFileSync(path.join(${JSON.stringify(BANKS)}, 'Master.bank'));
+        global.RUNTIME_TEST_MASTER_BANK = master.buffer.slice(master.byteOffset, master.byteOffset + master.byteLength);
         global.FMODModule = require(${JSON.stringify(path.join(SDK, 'fmodstudio.js'))});
         // Serve bank fetches from the local example project. Requests for
         // the 'missing/banks' folder 404 like a bad deploy would.
@@ -46,11 +54,24 @@ function runMode(mode) {
             if (raw.indexOf('missing/') >= 0 || !fs.existsSync(file)) {
                 return Promise.resolve({ ok: false, status: 404 });
             }
+            if (global.RUNTIME_TEST_MODE === 'staggered') {
+                if (name === 'Master.strings.bank') return Promise.resolve({ ok: false, status: 404 });
+                const b = fs.readFileSync(file);
+                return new Promise(res => setTimeout(() => res({ ok: true, arrayBuffer: () => Promise.resolve(
+                    b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)) }), 1000));
+            }
             const bytes = fs.readFileSync(file);
             return Promise.resolve({ ok: true, arrayBuffer: () => Promise.resolve(
                 bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)) });
         };
         eval(fs.readFileSync(${JSON.stringify(JAXE)}, 'utf8') + '\\nglobal.jaxe = jaxe;');
+        if (global.RUNTIME_TEST_MODE === 'refused') {
+            const realAsync = jaxe.fmod_sys_load_bank_async;
+            jaxe.fmod_sys_load_bank_async = function (p) {
+                if (String(p).endsWith('/Master.bank')) { jaxe.lastResult = 38; return 0; }
+                return realAsync(p);
+            };
+        }
         // Node has no audio device: route to NOSOUND inside the bootstrap
         const realBootstrap = jaxe.onRuntimeInitialized;
         jaxe.onRuntimeInitialized = function () {
@@ -81,5 +102,10 @@ function runMode(mode) {
 
 runMode('ok');
 runMode('missing');
+runMode('provided');
+runMode('refused');
+runMode('staggered');
+runMode('unloadinit');
+runMode('unloadprovided');
 console.log(fails === 0 ? 'RUNTIME_INIT_TEST: ALL MODES COMPLETE' : 'RUNTIME_INIT_TEST: FAILED');
 process.exit(fails === 0 ? 0 : 1);

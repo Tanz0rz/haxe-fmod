@@ -3,13 +3,15 @@ package tests;
 import haxefmod.FmodManager;
 import haxefmod.studio.CallbackDispatcher;
 import haxefmod.studio.Callbacks;
+import haxefmod.runtime.FmodRuntime;
 import haxefmod.studio.native.NativeStudioStub;
 
 /**
- * The facade's song state machine against the stub's synthetic handles:
- * same-song restart semantics, the transition handoff (both the callback
- * path and the direct path for a fade that finished before the handler
- * armed), and once-registration consumption. The playback-state queue
+ * The helper class's song state machine runs against the stub's synthetic
+ * handles. The suite covers same-song restart semantics and
+ * once-registration consumption. It also covers the transition handoff on
+ * two paths. The callback path is one. The other is the direct path for a
+ * fade that finished before the handler armed. The playback-state queue
  * scripts what each getPlaybackState call observes, so the async gaps the
  * real backends produce become deterministic here.
  */
@@ -23,20 +25,28 @@ class TestSongMachine {
 		NativeStudioStub.testSyntheticHandles = true;
 
 		// The hooks must be restored even when a test body throws, or one
-		// broken test cascades into every suite after this one. The facade
+		// broken test cascades into every suite after this one. The helper class
 		// statics this suite dirties (song slot, current path) are also
-		// stale after it: keep suites that read FmodManager song state
+		// stale after it. Keep suites that read FmodManager song state
 		// ahead of this one in RunTests.
 		try {
 			testSameSongRestartSemantics();
 			testTransitionCallbackHandoff();
 			testTransitionDirectHandoff();
+			testTransitionSongDiesWithBank();
 			testStopCancelsTransition();
+			testStopAllCancelsTransition();
 			testSameSongTransitionSupersedes();
 			testOnceConsumedByRestart();
 			testPauseUnpause();
 			testCreateFailureLeavesMachineUsable();
 			testOnceDestroyedUnwanted();
+			testSnapshotStartsFresh();
+			testSnapshotRestartsFadingInstance();
+			testSnapshotLeavesPlayingInstance();
+			testSnapshotActiveIgnoresStopped();
+			testStopAllClearsQueuedSnapshotStop();
+			probeGaps();
 		} catch (e:haxe.Exception) {
 			failed++;
 			Sys.println('  FAIL: unexpected exception: ${e.message}');
@@ -45,6 +55,7 @@ class TestSongMachine {
 		NativeStudioStub.testSyntheticHandles = false;
 		NativeStudioStub.testPlaybackStateQueue = [];
 		NativeStudioStub.testPlaybackState = 2;
+		NativeStudioStub.testInstanceList = [];
 		CallbackDispatcher.clearAll();
 
 		Sys.println('  $passed passed, $failed failed');
@@ -101,6 +112,23 @@ class TestSongMachine {
 			NativeStudioStub.testUpdateCalls == 0);
 		FmodManager.UnpauseSong();
 		assert("UnpauseSong unpauses the song instance", NativeStudioStub.testPausedState == false);
+		// With manual updates the pause is pushed through one update. A
+		// flush here blocked the game thread for 32 to 42 ms per call and
+		// landed the pause no sooner.
+		// The update ends the short-lived handles, and the Haxe entries of
+		// the dead ones go with it.
+		FmodRuntime.setAutoUpdate(false);
+		NativeStudioStub.testFlushCalls = 0;
+		var shortLived:haxefmod.core.Dsp = ++NativeStudioStub.testNextHandle;
+		shortLived.setUserData("walked");
+		NativeStudioStub.testDeadHandles.push(shortLived);
+		FmodManager.PauseSong();
+		FmodRuntime.setAutoUpdate(true);
+		assert("PauseSong pushes one update under manual updates", NativeStudioStub.testUpdateCalls == 1);
+		assert("PauseSong does not flush under manual updates", NativeStudioStub.testFlushCalls == 0);
+		assert("PauseSong drops a dead short-lived handle's userdata", shortLived.getUserData() == null);
+		NativeStudioStub.testDeadHandles.remove(shortLived);
+		FmodManager.UnpauseSong();
 	}
 
 	static function testCreateFailureLeavesMachineUsable() {
@@ -112,7 +140,7 @@ class TestSongMachine {
 		FmodManager.PlaySong("event:/Nope");
 		NativeStudioStub.testSyntheticHandles = true;
 		assert("failed PlaySong starts nothing", NativeStudioStub.testStartCalls == startsBefore);
-		// The machine still works afterwards
+		// The machine works afterwards
 		var handle = playSong("event:/Recovery");
 		assert("machine recovers after a failed play", handle != 0
 			&& NativeStudioStub.testStartCalls == startsBefore + 1);
@@ -121,9 +149,9 @@ class TestSongMachine {
 	static function testOnceDestroyedUnwanted() {
 		var handle = playSong("event:/OnceDestroyed");
 		var fired = 0;
-		// An explicit mask that excludes DESTROYED: the dispatcher still
-		// force-subscribes DESTROYED for cleanup, so the event arrives -
-		// the handler must not fire, but the registration must still end
+		// An explicit mask that excludes DESTROYED. The dispatcher
+		// force-subscribes DESTROYED for cleanup, so the event arrives.
+		// The handler must not fire, and the registration must end.
 		FmodManager.OnceSongEvent(function(event) fired++, 0x20 /* STOPPED only */);
 		CallbackDispatcher.deliver(handle, 0x2 /* DESTROYED */, 0, 0, 0, 0, 0, 0.0, "");
 		assert("mask-excluded Destroyed does not fire the once handler", fired == 0);
@@ -140,8 +168,8 @@ class TestSongMachine {
 
 	static function testTransitionCallbackHandoff() {
 		var handleA = playSong("event:/A");
-		// Entry check sees a playing song, the post-stop check still sees
-		// the fade in progress: the handoff waits for the callback
+		// The entry check sees a playing song. The post-stop check sees
+		// the fade in progress, so the handoff waits for the callback.
 		NativeStudioStub.testPlaybackStateQueue = [0, 4];
 		FmodManager.PlaySongTransition("event:/B");
 		assert("transition armed on the current song", CallbackDispatcher.hasHandler(handleA));
@@ -155,17 +183,44 @@ class TestSongMachine {
 		assert("old song handler cleaned up", !CallbackDispatcher.hasHandler(handleA));
 	}
 
+	static function testTransitionSongDiesWithBank() {
+		var handleA = playSong("event:/A");
+		NativeStudioStub.testPlaybackStateQueue = [0, 4];
+		FmodManager.PlaySongTransition("event:/B");
+		// A bank unload destroys the fading song. FMOD raises no Stopped for it.
+		NativeStudioStub.testReleasedHandles.push(handleA);
+		FmodManager.Update();
+		assert("a song that died with its bank during the fade hands off", FmodManager.GetCurrentSongPath() == "event:/B");
+
+		// A handler set during the fade cancels the transition for good
+		var handleC = playSong("event:/C");
+		NativeStudioStub.testPlaybackStateQueue = [0, 4];
+		FmodManager.PlaySongTransition("event:/D");
+		FmodManager.OnSongEvent(null);
+		NativeStudioStub.testReleasedHandles.push(handleC);
+		FmodManager.Update();
+		assert("a song handler set during the fade cancels the pending song", FmodManager.GetCurrentSongPath() != "event:/D");
+
+		var handleE = playSong("event:/E");
+		NativeStudioStub.testPlaybackStateQueue = [0, 4];
+		FmodManager.PlaySongTransition("event:/F");
+		FmodManager.OnceSongEvent(function(_) {});
+		NativeStudioStub.testReleasedHandles.push(handleE);
+		FmodManager.Update();
+		assert("a once song handler set during the fade cancels the pending song", FmodManager.GetCurrentSongPath() != "event:/F");
+	}
+
 	static function testTransitionDirectHandoff() {
 		var handleA = playSong("event:/A");
-		// Entry check sees the song mid-fade, the post-stop check sees the
-		// fade already complete: no Stopped will ever arrive for the armed
-		// handler, so the transition must hand off directly
+		// The entry check sees the song mid-fade. The post-stop check sees
+		// the fade already complete. No Stopped event arrives for the armed
+		// handler, so the transition hands off directly.
 		NativeStudioStub.testPlaybackStateQueue = [4, 2];
 		FmodManager.PlaySongTransition("event:/B");
 		assert("direct handoff played the next song",
 			FmodManager.GetCurrentSongPath() == "event:/B");
 
-		// A late queued Stopped for the old song is a harmless no-op
+		// A late queued Stopped for event:/A is a harmless no-op
 		var pathBefore = FmodManager.GetCurrentSongPath();
 		CallbackDispatcher.deliver(handleA, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("late Stopped after the direct handoff changes nothing",
@@ -182,6 +237,81 @@ class TestSongMachine {
 		CallbackDispatcher.deliver(handleA, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("stop cancels the pending transition",
 			FmodManager.GetCurrentSongPath() == "event:/A");
+	}
+
+	static function testStopAllCancelsTransition() {
+		var handleA = playSong("event:/A");
+		NativeStudioStub.testPlaybackStateQueue = [0, 4];
+		FmodManager.PlaySongTransition("event:/B");
+		FmodManager.StopAllEvents();
+		// The master bus stop ends the song, and the fade completing must
+		// not start the next one
+		CallbackDispatcher.deliver(handleA, 0x20, 0, 0, 0, 0, 0, 0.0, "");
+		assert("stop all cancels the pending transition",
+			FmodManager.GetCurrentSongPath() == "event:/A");
+	}
+
+	// A snapshot with no instance listed gets a fresh one, and one whose
+	// only instance stopped and awaits its release gets a fresh one too
+	static function testSnapshotStartsFresh() {
+		NativeStudioStub.testInstanceList = [];
+		var starts = NativeStudioStub.testStartCalls;
+		var creates = NativeStudioStub.testCreateInstanceCalls;
+		FmodManager.StartSnapshot("snapshot:/Fresh");
+		assert("an unlisted snapshot starts a fresh instance",
+			NativeStudioStub.testStartCalls == starts + 1 && NativeStudioStub.testCreateInstanceCalls == creates + 1);
+		NativeStudioStub.testInstanceList = [0x7001];
+		NativeStudioStub.testPlaybackStateQueue = [2]; // STOPPED, awaiting release
+		starts = NativeStudioStub.testStartCalls;
+		creates = NativeStudioStub.testCreateInstanceCalls;
+		FmodManager.StartSnapshot("snapshot:/Fresh");
+		assert("a stopped listed instance is replaced by a fresh one",
+			NativeStudioStub.testStartCalls == starts + 1 && NativeStudioStub.testCreateInstanceCalls == creates + 1);
+	}
+
+	static function testSnapshotRestartsFadingInstance() {
+		NativeStudioStub.testInstanceList = [0x7002];
+		NativeStudioStub.testPlaybackStateQueue = [4]; // STOPPING
+		var starts = NativeStudioStub.testStartCalls;
+		var creates = NativeStudioStub.testCreateInstanceCalls;
+		FmodManager.StartSnapshot("snapshot:/Fade");
+		assert("a fading instance restarts in place",
+			NativeStudioStub.testStartCalls == starts + 1 && NativeStudioStub.testCreateInstanceCalls == creates);
+	}
+
+	static function testSnapshotLeavesPlayingInstance() {
+		NativeStudioStub.testInstanceList = [0x7003];
+		NativeStudioStub.testPlaybackStateQueue = [0]; // PLAYING
+		var starts = NativeStudioStub.testStartCalls;
+		var creates = NativeStudioStub.testCreateInstanceCalls;
+		FmodManager.StartSnapshot("snapshot:/Playing");
+		assert("an applied snapshot is left alone",
+			NativeStudioStub.testStartCalls == starts && NativeStudioStub.testCreateInstanceCalls == creates);
+	}
+
+	static function testSnapshotActiveIgnoresStopped() {
+		NativeStudioStub.testInstanceList = [0x7004];
+		NativeStudioStub.testPlaybackStateQueue = [2];
+		assert("a stopped instance awaiting release is not active", !FmodManager.IsSnapshotActive("snapshot:/Active"));
+		NativeStudioStub.testPlaybackStateQueue = [4];
+		assert("a fading instance is still active", FmodManager.IsSnapshotActive("snapshot:/Active"));
+		NativeStudioStub.testInstanceList = [];
+		assert("no instance is not active", !FmodManager.IsSnapshotActive("snapshot:/Active"));
+	}
+
+	// StopAllEvents ends the snapshot instances too, so the queued stop
+	// must not make the next start restart a dead instance
+	static function testStopAllClearsQueuedSnapshotStop() {
+		NativeStudioStub.testInstanceList = [0x7005];
+		FmodManager.StopSnapshot("snapshot:/Queued");
+		FmodManager.StopAllEvents();
+		NativeStudioStub.testPlaybackStateQueue = [2];
+		var starts = NativeStudioStub.testStartCalls;
+		var creates = NativeStudioStub.testCreateInstanceCalls;
+		FmodManager.StartSnapshot("snapshot:/Queued");
+		assert("after StopAllEvents a fresh instance is made",
+			NativeStudioStub.testStartCalls == starts + 1 && NativeStudioStub.testCreateInstanceCalls == creates + 1);
+		NativeStudioStub.testInstanceList = [];
 	}
 
 	static function testSameSongTransitionSupersedes() {
@@ -222,6 +352,76 @@ class TestSongMachine {
 		// A later stop cannot re-fire it
 		CallbackDispatcher.deliver(handleA, 0x20, 0, 0, 0, 0, 0, 0.0, "");
 		assert("consumed registration stays consumed", calls == 1 && !sawStopped);
+	}
+
+
+	static function probeGaps() {
+		// S1: a direct play of another song stops the current one at once
+		var a = playSong("event:/PA");
+		var stops = NativeStudioStub.testStopCalls;
+		playSong("event:/PB");
+		assert("PROBE PlaySong stops the song it replaces", NativeStudioStub.testStopCalls == stops + 1
+			&& NativeStudioStub.testReleasedHandles.contains(a));
+		// S3: a song whose instance died is played afresh, not restarted on the dead handle
+		var b = NativeStudioStub.testNextHandle;
+		NativeStudioStub.testReleasedHandles.push(b);
+		var creates = NativeStudioStub.testCreateInstanceCalls;
+		NativeStudioStub.testPlaybackStateQueue = [2];
+		FmodManager.PlaySong("event:/PB");
+		assert("PROBE a dead song instance is replaced", NativeStudioStub.testCreateInstanceCalls == creates + 1);
+		// S4: a direct play of the current song cancels a pending transition
+		var c = playSong("event:/PC");
+		NativeStudioStub.testPlaybackStateQueue = [0, 4];
+		FmodManager.PlaySongTransition("event:/PD");
+		NativeStudioStub.testPlaybackStateQueue = [4];
+		FmodManager.PlaySong("event:/PC");
+		CallbackDispatcher.deliver(c, 0x20, 0, 0, 0, 0, 0, 0.0, "");
+		assert("PROBE a direct play of the current song cancels the transition", FmodManager.GetCurrentSongPath() == "event:/PC");
+		// S5: StopSongImmediately cancels a pending transition
+		var d = playSong("event:/PE");
+		NativeStudioStub.testPlaybackStateQueue = [0, 4];
+		FmodManager.PlaySongTransition("event:/PF");
+		FmodManager.StopSongImmediately();
+		CallbackDispatcher.deliver(d, 0x20, 0, 0, 0, 0, 0, 0.0, "");
+		assert("PROBE StopSongImmediately cancels the transition", FmodManager.GetCurrentSongPath() == "event:/PE");
+		// S24: a failed play leaves the slot empty
+		playSong("event:/PG");
+		NativeStudioStub.testSyntheticHandles = false;
+		FmodManager.PlaySong("event:/Nope");
+		NativeStudioStub.testSyntheticHandles = true;
+		assert("PROBE a failed PlaySong leaves the path empty", FmodManager.GetCurrentSongPath() == "");
+		// X1/S7: StopSnapshot stops every instance and queues the stop for a same-frame restart
+		NativeStudioStub.testInstanceList = [0x7101];
+		var snapStops = NativeStudioStub.testStopCalls;
+		FmodManager.StopSnapshot("snapshot:/PQ");
+		assert("PROBE StopSnapshot stops the instance", NativeStudioStub.testStopCalls == snapStops + 1);
+		NativeStudioStub.testPlaybackStateQueue = [0];
+		var starts = NativeStudioStub.testStartCalls;
+		FmodManager.StartSnapshot("snapshot:/PQ");
+		assert("PROBE a start right after a stop restarts the instance", NativeStudioStub.testStartCalls == starts + 1);
+		// S12: the queued stop is consumed, so a later start leaves a playing instance alone
+		NativeStudioStub.testPlaybackStateQueue = [0];
+		starts = NativeStudioStub.testStartCalls;
+		FmodManager.StartSnapshot("snapshot:/PQ");
+		assert("PROBE the queued stop is consumed once", NativeStudioStub.testStartCalls == starts);
+		// S9: StopSnapshotImmediately drops a queued stop
+		FmodManager.StopSnapshot("snapshot:/PQ");
+		FmodManager.StopSnapshotImmediately("snapshot:/PQ");
+		NativeStudioStub.testPlaybackStateQueue = [2];
+		starts = NativeStudioStub.testStartCalls;
+		var screates = NativeStudioStub.testCreateInstanceCalls;
+		FmodManager.StartSnapshot("snapshot:/PQ");
+		assert("PROBE StopSnapshotImmediately drops the queued stop", NativeStudioStub.testCreateInstanceCalls == screates + 1);
+		// S11: a fresh snapshot instance is released at once
+		NativeStudioStub.testInstanceList = [];
+		FmodManager.StartSnapshot("snapshot:/PR");
+		assert("PROBE StartSnapshot releases its instance", NativeStudioStub.testReleasedHandles.contains(NativeStudioStub.testNextHandle));
+		NativeStudioStub.testInstanceList = [];
+		NativeStudioStub.testPlaybackStateQueue = [];
+		NativeStudioStub.testLast3d = null;
+		FmodManager.PlayOneShotAt("event:/PS", 3, 4);
+		var at = NativeStudioStub.testLast3d;
+		assert("PROBE PlayOneShotAt places the event", at != null && at[1] == 3 && at[2] == 4);
 	}
 
 	static function assert(name:String, condition:Bool) {

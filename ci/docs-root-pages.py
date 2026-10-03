@@ -1,0 +1,47 @@
+"""MkDocs hook that serves the repo-root docs from inside the site.
+
+LIMITATIONS.md ships in the haxelib package and is linked from the
+README, so it stays at the repo root. This hook adds it to the site
+build as limitations.md without keeping a second copy under docs/.
+MIGRATION.md and the changelog stay off the site on purpose.
+
+Relative links inside the file point at repo-root files (LICENSE,
+fmod-scripts/...). They are rewritten to GitHub URLs so they keep working
+from the rendered site.
+"""
+
+import os
+import re
+
+from mkdocs.structure.files import File
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+ROOT_PAGES = {
+    "LIMITATIONS.md": "limitations.md",
+}
+
+# The blob links follow the branch the site was built from, like the
+# edit link (the docs workflow sets DOCS_BRANCH)
+GITHUB_BLOB = "https://github.com/Tanz0rz/haxe-fmod/blob/" + os.environ.get("DOCS_BRANCH", "master") + "/"
+
+# Links that already resolve to another root page keep pointing inside
+# the site. Everything else that looks like a repo path goes to GitHub.
+# An image link is left alone, a blob page cannot render as an image.
+_LINK = re.compile(r"(?<!!)\]\((?!https?://|#|mailto:)([^)\s]+)\)")
+
+
+def _rewrite(match):
+    target = match.group(1)
+    for source, page in ROOT_PAGES.items():
+        if target == source or target.startswith(source + "#"):
+            return "](" + target.replace(source, page) + ")"
+    return "](" + GITHUB_BLOB + target + ")"
+
+
+def on_files(files, config):
+    for source, page in ROOT_PAGES.items():
+        with open(os.path.join(ROOT, source), encoding="utf-8") as fh:
+            content = _LINK.sub(_rewrite, fh.read())
+        files.append(File.generated(config, page, content=content))
+    return files

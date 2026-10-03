@@ -1,9 +1,10 @@
 // Drives jaxe.js's REAL preRun/onRuntimeInitialized (the other harnesses
 // replace them) against the real wasm, with fetch redirected to local
-// files. The shim must not own bank loading: settings-driven banks load
-// through the runtime's registry via the async pipeline, so right after
-// init the system holds zero banks, and the same fetch path then loads
-// the master banks on request.
+// files.
+// The shim must not own bank loading.
+// Settings-driven banks load through the runtime's registry via the async
+// pipeline, so right after init the system holds zero banks.
+// The same fetch path then loads the master banks on request.
 // Usage: FMOD_SDK_WEB=<sdk root> node bank-pipeline-test.js
 const path = require('path');
 const fs = require('fs');
@@ -89,7 +90,7 @@ async function main() {
     check('event_resolves_after_async_load', evd > 0, `handle=${evd}`);
 
     // A failed fetch surfaces as ERROR instead of hanging init forever
-    // (the old preRun preload turned a 404 into an unresolvable hang)
+    // (a preRun preload turns a 404 into an unresolvable hang)
     const missing = jaxe.fmod_sys_load_bank_async('assets/fmod/Desktop/Nope.bank');
     for (let i = 0; i < 200 && jaxe.fmod_bank_get_loading_state(missing) === 2; i++) await sleep(20);
     check('missing_bank_settles_error', jaxe.fmod_bank_get_loading_state(missing) === 4,

@@ -15,7 +15,7 @@
 WAV_FILE="$1"
 TOTAL_DURATION="${2:-15}"
 
-# Resolve ffprobe/ffmpeg commands (may need explicit paths on Windows)
+# Resolve ffprobe/ffmpeg commands (Windows needs explicit paths)
 FFPROBE="ffprobe"
 FFMPEG="ffmpeg"
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
@@ -119,7 +119,15 @@ else
     echo " - WARN: not quieter than phase 1 (${VOL1} dB)"
     PASS=false
   else
-    echo " - quieter than phase 1"
+    # 0.3 of full scale is about 10.5 dB down. A drop far from that means
+    # the volume curve is wrong even though it went the right way.
+    DROP=$((VOL1_INT - VOL2_INT))
+    if [ "$DROP" -lt 6 ] || [ "$DROP" -gt 16 ]; then
+      echo " - FAIL: ${DROP} dB below phase 1, expected 6 to 16"
+      PASS=false
+    else
+      echo " - ${DROP} dB below phase 1"
+    fi
   fi
 fi
 

@@ -7,15 +7,22 @@ class RunTests {
 
 		var totalFailed = 0;
 		totalFailed += TestCallbackDispatcher.run();
-		totalFailed += TestFacadePredicates.run();
+		totalFailed += TestComponentCores.run();
+		totalFailed += TestHelperPredicates.run();
 		totalFailed += TestLayering.run();
+		totalFailed += TestPlugins.run();
 		totalFailed += TestPostBuild.run();
 		totalFailed += TestRuntime.run();
 		totalFailed += TestSongMachine.run();
 		totalFailed += TestStringsBankParser.run();
 		totalFailed += TestStudioSurface.run();
 		totalFailed += TestTodoScanner.run();
+		totalFailed += TestUserData.run();
 		totalFailed += TestVersionParsing.run();
+		// After TestRuntime: FmodManager.Update initializes the runtime
+		totalFailed += TestEngineUpdaters.run();
+		totalFailed += TestEngineComponents.run();
+		totalFailed += TestEngineAdapters.run();
 
 		Sys.println("");
 		if (totalFailed > 0) {

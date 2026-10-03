@@ -1,0 +1,5 @@
+# The HashLink shim sources feed the hdll's source hash, so every
+# checkout keeps their line endings as committed
+native/hlaxe/*.c text eol=lf
+native/shared/*.h text eol=lf
+native/manifest/studio_api.txt text eol=lf

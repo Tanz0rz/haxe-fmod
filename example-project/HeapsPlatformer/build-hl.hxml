@@ -1,0 +1,11 @@
+# HashLink VM build: hl build/hl/game.hl (run.sh from the stage command sets the library path)
+-cp src
+-cp ../shared
+-lib heaps
+-lib hlsdl
+-lib haxefmod
+-main Main
+-resource ../EZPlatformer/assets/level.csv@level
+-D windowSize=640x480
+--macro haxefmod.tools.BuildCheck.verify()
+-hl build/hl/game.hl

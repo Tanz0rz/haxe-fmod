@@ -2,12 +2,13 @@
  * Unit tests for native/shared/faxe_cbqueue.h (the thread-safe callback
  * event ring shared by the C++ and HashLink shims).
  *
- * Compiled and run in CI in both C99 and C++ modes:
+ * CI compiles and runs the file in C99 and in C++. Both modes:
  *   gcc -std=c99 -pthread -Wall -Wextra -Werror -o t_c   tests/native/test_faxe_cbqueue.c && ./t_c
  *   g++ -x c++   -pthread -Wall -Wextra -Werror -o t_cpp tests/native/test_faxe_cbqueue.c && ./t_cpp
  */
 #include <stdio.h>
 #include <assert.h>
+#include <stdint.h>
 #include "../../native/shared/faxe_cbqueue.h"
 
 #ifdef _WIN32
@@ -26,9 +27,9 @@ typedef struct {
 /* Concurrent producer/consumer stress modeling the real deployment: the
  * FMOD studio thread pushes events (some carrying opaque DESTROYED-ctx
  * payloads) while the game thread drains. The invariant is the lifetime
- * contract the shims depend on: every payload is delivered EXACTLY once,
- * through the queue or the orphan list, never lost and never twice. Run
- * under TSan in CI to also prove the locking. */
+ * contract the shims depend on. Every payload is delivered EXACTLY once,
+ * through the queue or the orphan list. No payload is lost, and none
+ * arrives twice. Run under TSan in CI to also prove the locking. */
 #define STRESS_TOTAL 20000
 
 typedef struct {
@@ -88,10 +89,10 @@ static void test_concurrent_payload_delivery(void) {
 #endif
 
     /* Drain concurrently with the producer. Every payload must arrive
-     * exactly once - through a popped event or the orphan list - so the
-     * running count reaching the total IS the termination condition (a
-     * lost payload would hang here, which the CI job timeout turns into
-     * a failure). */
+     * exactly once - through a popped event or the orphan list. The
+     * running count reaching the total IS the termination condition. A
+     * lost payload would hang here, and the CI job timeout turns that
+     * into a failure. */
     while (seen < STRESS_TOTAL) {
         if (faxe_cbq_pop(&out)) {
             assert(out.handle > lastHandle); /* FIFO order survives drops */
@@ -129,6 +130,44 @@ int main(void) {
     faxe_cbq_init();
     faxe_cbq_init(); /* double init is a safe no-op */
 
+    /* bank path stash: put, take once, then gone */
+    {
+        char path[FAXE_CBQ_STR_MAX];
+        int bankA = 1, bankB = 2, i;
+        char name[16];
+        assert(faxe_bankpath_take(&bankA, path) == 0 && path[0] == '\0'); /* nothing stashed yet */
+        faxe_bankpath_put(&bankA, "bank:/A");
+        faxe_bankpath_put(&bankA, "bank:/A2"); /* same bank updates in place */
+        assert(faxe_bankpath_take(&bankA, path) == 1);
+        assert(strcmp(path, "bank:/A2") == 0);
+        assert(faxe_bankpath_take(&bankA, path) == 0); /* consumed */
+        faxe_bankpath_put(&bankB, "");             /* empty path is ignored */
+        assert(faxe_bankpath_take(&bankB, path) == 0);
+        faxe_bankpath_put(NULL, "bank:/none");     /* null bank is ignored */
+        /* a full table overwrites the oldest entry */
+        for (i = 0; i < FAXE_BANKPATH_CAPACITY + 1; i++) {
+            snprintf(name, sizeof(name), "bank:/%d", i);
+            faxe_bankpath_put((const void*)(uintptr_t)(100 + i), name);
+        }
+        assert(faxe_bankpath_take((const void*)(uintptr_t)100, path) == 0);   /* oldest gone */
+        assert(faxe_bankpath_take((const void*)(uintptr_t)(100 + FAXE_BANKPATH_CAPACITY), path) == 1);
+        faxe_bankpath_clear();
+        assert(faxe_bankpath_take((const void*)(uintptr_t)101, path) == 0);   /* cleared */
+        /* a path too long for the event record still reaches the stash and
+         * comes back cut to the record's size, never empty */
+        {
+            char longPath[FAXE_BANKPATH_STR_MAX];
+            int k;
+            for (k = 0; k < FAXE_BANKPATH_STR_MAX - 1; k++) longPath[k] = 'p';
+            longPath[FAXE_BANKPATH_STR_MAX - 1] = '\0';
+            faxe_bankpath_put(&bankA, longPath);
+            assert(faxe_bankpath_take(&bankA, path) == 1);
+            assert(strlen(path) == FAXE_CBQ_STR_MAX - 1);
+            assert(strncmp(path, longPath, FAXE_CBQ_STR_MAX - 1) == 0);
+            faxe_bankpath_clear();
+        }
+    }
+
     /* empty pop */
     assert(faxe_cbq_pop(&out) == 0);
 
@@ -144,6 +183,7 @@ int main(void) {
         ev.i5 = i * 5;
         ev.f1 = (float)i * 0.5f;
         snprintf(ev.str, sizeof(ev.str), "marker-%d", i);
+        snprintf(ev.str2, sizeof(ev.str2), "params-%d", i);
         faxe_cbq_push(&ev);
     }
     for (int i = 0; i < 5; i++) {
@@ -155,6 +195,8 @@ int main(void) {
         assert(out.i4 == i * 4 && out.i5 == i * 5);
         snprintf(expected, sizeof(expected), "marker-%d", i);
         assert(strcmp(out.str, expected) == 0);
+        snprintf(expected, sizeof(expected), "params-%d", i);
+        assert(strcmp(out.str2, expected) == 0);
     }
     assert(faxe_cbq_pop(&out) == 0);
     assert(faxe_cbq_take_overflow() == 0);
@@ -162,9 +204,12 @@ int main(void) {
     /* string truncation stays NUL-terminated */
     memset(&ev, 0, sizeof(ev));
     memset(ev.str, 'x', sizeof(ev.str)); /* no terminator on purpose */
+    memset(ev.str2, 'y', sizeof(ev.str2));
     faxe_cbq_push(&ev);
     assert(faxe_cbq_pop(&out) == 1);
     assert(out.str[FAXE_CBQ_STR_MAX - 1] == '\0');
+    assert(out.str2[FAXE_CBQ_STR2_MAX - 1] == '\0');
+    assert(strlen(out.str2) == FAXE_CBQ_STR2_MAX - 1);
 
     /* overflow drops oldest and sets the flag */
     memset(&ev, 0, sizeof(ev));
@@ -181,6 +226,55 @@ int main(void) {
     assert(drained == FAXE_CBQ_CAPACITY);
     assert(out.handle == FAXE_CBQ_CAPACITY + 9); /* newest survived */
 
+    /* a dropped record marked freesI1 parks its handle for the drain, and
+     * one with a sound to release parks that. A dropped record without
+     * either, or with the mark and no handle, parks nothing */
+    {
+        FaxeCbDropped parked[FAXE_CBQ_DROPPED_MAX];
+        int soundA = 1, soundB = 2;
+        memset(&ev, 0, sizeof(ev));
+        ev.i1 = 0x30001;
+        ev.freesI1 = 1;
+        faxe_cbq_push(&ev);
+        ev.i1 = 0x30002;
+        ev.freesI1 = 0;
+        faxe_cbq_push(&ev);
+        ev.i1 = 0;
+        ev.freesI1 = 1;
+        faxe_cbq_push(&ev);
+        ev.i1 = 0x30004;
+        ev.releaseOnDrain = &soundA; /* a handle and a sound */
+        faxe_cbq_push(&ev);
+        ev.i1 = 0x30005; /* a borrowed handle the drain must not free */
+        ev.freesI1 = 0;
+        ev.releaseOnDrain = &soundB; /* a sound with no handle of its own */
+        faxe_cbq_push(&ev);
+        ev.releaseOnDrain = NULL;
+        assert(faxe_cbq_take_dropped(parked, FAXE_CBQ_DROPPED_MAX) == 0); /* nothing dropped yet */
+        for (int i = 0; i < FAXE_CBQ_CAPACITY; i++) faxe_cbq_push(&ev); /* pushes all five off */
+        assert(faxe_cbq_take_overflow() == 1);
+        assert(faxe_cbq_take_dropped(parked, FAXE_CBQ_DROPPED_MAX) == 3);
+        assert(parked[0].handle == 0x30001 && parked[0].sound == NULL);
+        assert(parked[1].handle == 0x30004 && parked[1].sound == &soundA);
+        assert(parked[2].handle == 0 && parked[2].sound == &soundB);
+        assert(faxe_cbq_take_dropped(parked, FAXE_CBQ_DROPPED_MAX) == 0); /* cleared on take */
+        while (faxe_cbq_pop(&out)) {}
+        /* the list caps rather than growing: one more marked record than
+         * the list holds is dropped without a parked handle */
+        for (int i = 0; i < FAXE_CBQ_DROPPED_MAX + 1; i++) {
+            ev.freesI1 = 1;
+            ev.i1 = 0x40000 + i;
+            faxe_cbq_push(&ev);
+        }
+        ev.freesI1 = 0;
+        ev.i1 = 0;
+        for (int i = 0; i < FAXE_CBQ_CAPACITY + 1; i++) faxe_cbq_push(&ev);
+        assert(faxe_cbq_take_dropped(parked, FAXE_CBQ_DROPPED_MAX) == FAXE_CBQ_DROPPED_MAX);
+        assert(parked[0].handle == 0x40000 && parked[FAXE_CBQ_DROPPED_MAX - 1].handle == 0x40000 + FAXE_CBQ_DROPPED_MAX - 1);
+        assert(faxe_cbq_take_overflow() == 1);
+        while (faxe_cbq_pop(&out)) {}
+    }
+
     /* opaque payloads ride the queue and come back intact */
     {
         TestPayload payload;
@@ -193,7 +287,7 @@ int main(void) {
         assert(faxe_cbq_pop(&out) == 1);
         assert(out.opaque == &payload);
         assert(((TestPayload*)out.opaque)->tag == 42);
-        assert(faxe_cbq_take_orphans() == NULL); /* consumed, not orphaned */
+        assert(faxe_cbq_take_orphans() == NULL); /* consumed rather than orphaned */
     }
 
     /* payloads of dropped events land on the orphan list, oldest-dropped
@@ -227,7 +321,56 @@ int main(void) {
         }
     }
 
+    /* a borrowed ptr rides the queue untouched and is never parked as an
+     * orphan when its event is dropped (it owns nothing) */
+    {
+        int borrowed = 5;
+        memset(&ev, 0, sizeof(ev));
+        ev.handle = 8;
+        ev.type = 0x200; /* PLUGIN_CREATED */
+        ev.ptr = &borrowed;
+        snprintf(ev.str, sizeof(ev.str), "fmod_gain");
+        faxe_cbq_push(&ev);
+        assert(faxe_cbq_pop(&out) == 1);
+        assert(out.ptr == &borrowed);
+        assert(out.opaque == NULL);
+        assert(strcmp(out.str, "fmod_gain") == 0);
+        for (int i = 0; i < FAXE_CBQ_CAPACITY + 1; i++) {
+            ev.handle = i;
+            faxe_cbq_push(&ev);
+        }
+        assert(faxe_cbq_take_overflow() == 1);
+        assert(faxe_cbq_take_orphans() == NULL);
+        assert(borrowed == 5); /* the dropped event never wrote into it */
+        while (faxe_cbq_pop(&out)) {
+            assert(out.ptr == &borrowed);
+        }
+    }
+
     test_concurrent_payload_delivery();
+
+    /* A cut string keeps whole codepoints: three-byte characters after
+     * a 61-byte ASCII run, so byte 63 lands inside one */
+    {
+        char text[128];
+        char out[FAXE_CBQ_STR_MAX];
+        int bank = 0;
+        memset(text, 'a', 61);
+        text[61] = '\0';
+        strcat(text, "\xe2\x82\xac\xe2\x82\xac");
+        faxe_str_copy(out, text, sizeof(out));
+        assert(strlen(out) == 61);
+        assert(out[61] == '\0');
+        faxe_str_copy(out, "short", sizeof(out));
+        assert(strcmp(out, "short") == 0);
+        text[60] = '\0';
+        strcat(text, "\xe2\x82\xac");
+        faxe_str_copy(out, text, sizeof(out));
+        assert(strlen(out) == 63);
+        faxe_bankpath_put(&bank, text);
+        assert(faxe_bankpath_take(&bank, out) == 1);
+        assert(strlen(out) == 63);
+    }
 
     printf("faxe_cbqueue: all assertions passed\n");
     return 0;

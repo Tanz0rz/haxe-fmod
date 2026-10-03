@@ -1,4 +1,5 @@
 -cp .
 -cp tests
+-cp tests/stubs
 -main tests.RunTests
 --interp

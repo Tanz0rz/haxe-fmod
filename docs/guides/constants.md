@@ -1,0 +1,56 @@
+# Generated constants
+
+Every event, bus, VCA, snapshot, and parameter in your FMOD Studio project becomes a Haxe constant. A parameter gets one when it is defined in the Parameters browser, global or not. A parameter created inside a single event has no path and gets none. The constants have autocomplete. A renamed event fails at compile time.
+
+```haxe
+FmodManager.PlaySong(FmodEvents.MusicMainLevel);
+FmodManager.SetBusVolume(FmodBuses.SFX, 0.8);
+```
+
+## The FMOD Studio export script
+
+The recommended way to run the generator is from inside FMOD Studio. Constants and banks then stay in step.
+
+1. Copy [`fmod-scripts/ExportHaxeConstants.js`](https://github.com/Tanz0rz/haxe-fmod/blob/master/fmod-scripts/ExportHaxeConstants.js) into your FMOD Studio scripts folder. That is `Scripts` next to your `.fspro`, or the global scripts directory under the Studio install.
+2. Reload scripts from the Scripts menu.
+3. Press `Ctrl+B` (Scripts, Export Haxe Constants and Build).
+
+Each run opens a dialog that asks for your Haxe project's `source` folder and an optional package. The dialog saves both in a `CachedHaxeConstantsOutputLocation` file next to the `.fspro`. Later runs open with the saved values filled in. Save writes the constants and builds the banks as one step. The [generate command](tools-cli.md#generate) runs the same generator from the command line.
+
+![Haxe constants demo](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_constants.gif)
+
+## What gets generated
+
+One class per path category found in the strings bank:
+
+| File | Paths |
+|---|---|
+| `FmodEvents.hx` | `event:/...` |
+| `FmodBuses.hx` | `bus:/...` |
+| `FmodVCAs.hx` | `vca:/...` |
+| `FmodSnapshots.hx` | `snapshot:/...` |
+| `FmodParameters.hx` | `parameter:/...` |
+
+The `FmodParameters` constants hold full `parameter:/` paths. Every parameter call in `FmodManager` and on `FmodEvent` takes either form. So do `setParameter`, `getParameter`, `getParameterFinal`, and `setParameterWithLabel` on `EventInstance` and `StudioSystem`. FMOD addresses a parameter by its bare name. The prefix is stripped for it. The parameter description lookups and FMOD's own `setParameterByName` forms take the bare name.
+
+Each file also holds a companion `...Guids` class with the same identifiers mapped to GUID strings. The class is separate so autocomplete on the main class shows paths only. Code that reads a `...Guids` class imports its file. `import FmodEvents;` does that.
+
+```haxe
+import FmodEvents;
+
+var path = FmodEvents.MusicMainLevel;      // "event:/Music/MainLevel"
+var guid = FmodEventsGuids.MusicMainLevel; // "{e5187c3f-...}"
+```
+
+`FmodEventEnum.hx` holds a plain enum that covers every event, with values named like the `FmodEvents` constants. `FmodEventTools.path()` and `guid()` map the enum back. Both work as static extensions. Plain enums suit switch statements and tools that import Haxe enums, such as LDtk external enums. Projects that never touch the enum can ignore the file.
+
+The generator derives an identifier from a path in four steps:
+
+1. Strip the category prefix.
+2. Split on `/` and on any character that is not a letter or digit.
+3. Uppercase the first letter of each piece.
+4. Concatenate the pieces.
+
+`Vehicles/Ride-on Mower` becomes `VehiclesRideOnMower`. The bus root becomes `Root`. A leading digit gets an underscore prefix. Duplicates get numeric suffixes. The generator drops non-ASCII characters.
+
+The identifier `Dynamic` becomes `Dynamic2`. A C++ build cannot compile a field with that name. A few C macro names such as `NAN` get the same suffix.

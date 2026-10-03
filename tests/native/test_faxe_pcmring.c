@@ -121,6 +121,7 @@ static void test_two_thread_stream(void) {
     unsigned char block[READ_BLOCK];
     long expected = 0;
     int idleReads = 0;
+    int underruns;
 
     gRing = faxe_pcmring_create(4096);
 
@@ -155,9 +156,11 @@ static void test_two_thread_stream(void) {
     pthread_join(th, NULL);
 #endif
 
-    /* underruns were counted while the consumer outpaced the producer;
-     * they only need to be non-negative and clearable */
-    assert(faxe_pcmring_take_underruns(gRing) >= 0);
+    /* underruns were counted while the consumer outpaced the producer.
+     * The count is non-negative, and the take leaves the counter at zero. */
+    underruns = faxe_pcmring_take_underruns(gRing);
+    assert(underruns >= 0);
+    assert(faxe_pcmring_take_underruns(gRing) == 0);
     faxe_pcmring_destroy(gRing);
 }
 

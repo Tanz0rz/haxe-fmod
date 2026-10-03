@@ -7,30 +7,79 @@ compat run goes wrong. This asserts the properties everything else
 leans on:
 
   1. Every [skip-build]-gated job condition carries the tag override, so
-     a release tag on an hdll auto-commit still runs the full suite.
-  2. update-hdlls runs only on branch refs (a tag checkout is a detached
-     HEAD with no branch to push to, and Windows hdll builds are not
-     byte-reproducible, so the push would always be attempted and fail).
+     a release tag on an hdll auto-commit runs the full suite.
+  2. update-hdlls runs only on branch refs. A tag checkout is a detached
+     HEAD with no branch to push to. Windows hdll builds are not
+     byte-reproducible, so the push would always be attempted and fail.
   3. Every job has a timeout.
-  4. The compat jobs assert the mismatched build FAILS (not just that a
-     banner appeared in a zero-exit build), with pipefail set explicitly
-     because only the Windows jobs' shell declaration implies it.
+  4. The compat jobs assert the mismatched build FAILS, beyond a banner
+     appearing in a zero-exit build. pipefail is set explicitly, because
+     only the Windows jobs' shell declaration implies it.
   5. linux-html5-chromium asserts a build against a doctored (wrong-version) web
-     SDK FAILS with the mismatch banner, with pipefail, since html5 pins
-     the web SDK version instead of translating DSP types.
-  6. Every job still contains its required test steps by name. Renaming
+     SDK FAILS with the mismatch banner, with pipefail. html5 pins the
+     web SDK version instead of translating DSP types.
+  6. Every job contains its required test steps by name. Renaming
      or deleting a probe step means updating the list here in the same
      commit.
   7. Every Node harness in tests/js/ is invoked somewhere in the
      workflow.
+  8. The plain portability loops name every native test that needs no
+     SDK header, and the sanitizer loops name every native test. Both
+     sets are read from tests/native and its includes, in the workflow
+     and in ci/local-ci.sh, so a test reaches every pass.
+     Each test that needs the SDK headers is built and run on its own
+     line with gcc, Apple clang, MSVC, and the 2.02.33 headers. The
+     2.02.33 step leaves out dspparams, which names 2.03 parameters.
+     Every shared header is in the package file list.
+  9. The HashLink commit is named once, in HASHLINK_COMMIT, and every
+     checkout and cache key reads it there.
+  10. HAXELIB_PINS names every pinned haxelib install and every haxelib
+     cache key carries it, so a bump rotates the caches. No install is
+     left unpinned outside the canary.
+  11. Every other workflow that repeats HASHLINK_COMMIT, HAXELIB_PINS,
+     or HAXE_VERSION carries the same value. Every other workflow's
+     pinned installs are in the pins, with or without the variable.
+  12. The seven manifest ABI parses across the workflows are the same
+     line, and a guard that refuses a non-number follows each one.
+  13. No workflow uses krdlab/setup-haxe directly, so every such install
+     goes through the local action with the retry. The macOS jobs
+     install Haxe through Homebrew, which retries on its own.
+  14. Every haxelib install, git clone, fetch, pull, and submodule
+     update, npm install or ci, playwright install, brew install, pip
+     install, curl, wget, ssh, rsync, and gh api or release download
+     call goes through ci/retry.sh.
+     That covers the workflows, the composite actions, and the run job
+     generator. Every apt-get goes through ci/apt.sh.
+  15. The steps gated on a stale pre-built hdll are the known few, so a
+     new gate cannot hide behind the branch escape hatch unnoticed. The
+     three HashLink build gates and the two hdll ABI check steps read
+     both hdll markers.
+  16. Every chromium install waits for the GPU content slot, and its
+     headless probe fails the step. Each install sits in the generated
+     run jobs, which the generator holds to its template.
+  17. A job that calls a ci/ wrapper checks the repo out first.
+  18. Every tests/build*.hxml suite runs in the workflow and in
+     ci/local-ci.sh.
+  19. The Linux hdll build fails when the hdll requires a glibc version
+     newer than 2.34 or a named glibc requirement. The job runs on a
+     pinned image.
+  20. The shim drop-point host test builds the HashLink shim with two
+     FMOD calls wrapped and runs it, in the workflow and in
+     ci/local-ci.sh.
+  21. The run-test-state action, every generated run_game function,
+     and stress-test.yml keep the game's exit status and fail on a
+     nonzero one.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
 
+import os
 import re
 import sys
 
-PATH = sys.argv[1] if len(sys.argv) > 1 else ".github/workflows/audio-test.yml"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_WORKFLOW = os.path.join(ROOT, ".github", "workflows", "audio-test.yml")
+PATH = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_WORKFLOW
 TAG_OVERRIDE = "startsWith(github.ref, 'refs/tags/')"
 failures = []
 
@@ -116,40 +165,427 @@ if len(mismatch_blocks) != 3:
 else:
     ok("all 3 compat jobs require the mismatched build to fail, with pipefail")
 if text.count('grep -q "FMOD SDK version mismatch"') < 3:
-    fail("compat jobs no longer grep for the mismatch banner")
+    fail("compat jobs do not grep for the mismatch banner")
 else:
-    ok("compat jobs still verify the mismatch banner text")
+    ok("compat jobs verify the mismatch banner text")
+
+# 9. The HashLink commit is named once in the workflow environment, and
+# every checkout and cache key reads it there
+if re.search(r"git checkout [0-9a-f]{40}", text):
+    fail("a HashLink checkout names the commit literally instead of HASHLINK_COMMIT")
+else:
+    ok("every HashLink checkout reads HASHLINK_COMMIT")
+hl_keys = re.findall(r"key: hashlink-[^\n]*", text)
+if not hl_keys or any("env.HASHLINK_COMMIT" not in k for k in hl_keys):
+    fail(f"a HashLink cache key lacks HASHLINK_COMMIT: {hl_keys}")
+else:
+    ok(f"{len(hl_keys)} HashLink cache keys read HASHLINK_COMMIT")
+
+# 10. Every pinned haxelib install appears in HAXELIB_PINS, and every
+# haxelib cache key carries the pins, so a bump rotates the caches
+pins_match = re.search(r"HAXELIB_PINS: (\S+)", text)
+pins = pins_match.group(1) if pins_match else ""
+installs = set(re.findall(r"haxelib install ([a-z]+) ([0-9][0-9.]*)", text))
+missing_pins = sorted(f"{lib}{ver}" for lib, ver in installs if f"{lib}{ver}" not in pins.split("-"))
+# The library under test is installed at whatever version is published
+unpinned = sorted(set(re.findall(r"haxelib install ([a-z]+) --", text)) - {"haxefmod"})
+haxelib_keys = re.findall(r"key: haxelib-[^\n]*", text)
+if missing_pins or unpinned or not haxelib_keys or any("env.HAXELIB_PINS" not in k for k in haxelib_keys):
+    fail(f"HAXELIB_PINS out of step: missing {missing_pins}, unpinned {unpinned}, keys {haxelib_keys}")
+else:
+    ok(f"HAXELIB_PINS covers {len(installs)} pinned installs across {len(haxelib_keys)} cache keys")
+
+# 11. The other workflows repeat the two values. A bump in one file
+# that misses another would build or cache against the old pin there.
+for other in sorted(os.listdir(os.path.dirname(PATH))):
+    other_path = os.path.join(os.path.dirname(PATH), other)
+    if not other.endswith(".yml") or os.path.abspath(other_path) == os.path.abspath(PATH):
+        continue
+    with open(other_path) as fh:
+        other_text = fh.read()
+    other_commit = re.search(r"HASHLINK_COMMIT: (\S+)", other_text)
+    this_commit = re.search(r"HASHLINK_COMMIT: (\S+)", text)
+    if other_commit and (not this_commit or other_commit.group(1) != this_commit.group(1)):
+        fail(f"{other} names HashLink commit {other_commit.group(1)}, this workflow names {this_commit.group(1) if this_commit else None}")
+    elif other_commit:
+        ok(f"{other} names the same HashLink commit")
+    if re.search(r"git checkout [0-9a-f]{40}", other_text):
+        fail(f"{other} checks a HashLink commit out literally")
+    other_haxe = re.search(r"HAXE_VERSION: (\S+)", other_text)
+    this_haxe = re.search(r"HAXE_VERSION: (\S+)", text)
+    if other_haxe and (not this_haxe or other_haxe.group(1) != this_haxe.group(1)):
+        fail(f"{other} names Haxe {other_haxe.group(1)}, this workflow names {this_haxe.group(1) if this_haxe else None}")
+    elif other_haxe:
+        ok(f"{other} names the same Haxe version")
+    # The canary installs the newest versions on purpose, every other
+    # sibling pins each install
+    other_unpinned = sorted(set(re.findall(r"haxelib install ([a-z]+) --", other_text)) - {"haxefmod"})
+    if other_unpinned and other != "canary.yml":
+        fail(f"{other} installs without a version: {other_unpinned}")
+    other_pins = re.search(r"HAXELIB_PINS: (\S+)", other_text)
+    if other_pins and other_pins.group(1) != pins:
+        fail(f"{other} carries HAXELIB_PINS {other_pins.group(1)}, this workflow carries {pins}")
+    # A workflow without the variable still installs pinned versions,
+    # which must be the ones the pins name
+    other_installs = set(re.findall(r"haxelib install ([a-z]+) ([0-9][0-9.]*)", other_text))
+    other_missing = sorted(f"{lib}{ver}" for lib, ver in other_installs if f"{lib}{ver}" not in pins.split("-"))
+    # A haxelib cache key in a sibling needs the pins in it, and the
+    # sibling then needs the variable the key reads
+    other_keys = re.findall(r"key: haxelib-[^\n]*", other_text)
+    if other_missing or (other_keys and not other_pins) or any("env.HAXELIB_PINS" not in k for k in other_keys):
+        fail(f"{other} installs out of step with HAXELIB_PINS: missing {other_missing}, keys {other_keys}, pins declared {bool(other_pins)}")
+    elif other_installs:
+        ok(f"{other} installs {len(other_installs)} pinned versions the pins name")
+
+# 12. The seven ABI parses of the manifest header are one line each, and
+# a numeric guard follows each. None of them can fail open again. Every
+# workflow is scanned, and the count is held, so an eighth parse under
+# another name or in another file is noticed.
+ABI_PARSE_COUNT = 7
+abi_parse = 'ABI=$(grep "^# abi-version:" native/manifest/studio_api.txt | grep -o "[0-9][0-9]*" | head -1 || true)'
+abi_lines = []
+for wf in sorted(os.listdir(os.path.dirname(PATH))):
+    if not wf.endswith(".yml"):
+        continue
+    with open(os.path.join(os.path.dirname(PATH), wf)) as fh:
+        wf_text = fh.read()
+    abi_lines += [(wf, l, nxt) for l, nxt in re.findall(r"\n *([A-Z_]+=\$\(grep \"\^# abi-version:\"[^\n]*)\n *([^\n]*)", wf_text)]
+abi_bad = [(wf, l) for wf, l, _ in abi_lines if l != abi_parse]
+abi_unguarded = [(wf, l) for wf, l, nxt in abi_lines if not nxt.strip().startswith('case "$ABI" in \'\'|*[!0-9]*)')]
+if len(abi_lines) != ABI_PARSE_COUNT or abi_bad or abi_unguarded:
+    fail(f"ABI parses out of step: {len(abi_lines)} found of {ABI_PARSE_COUNT}, differing {abi_bad}, unguarded {abi_unguarded}")
+else:
+    ok(f"{len(abi_lines)} ABI parses match and carry the numeric guard")
+
+# 13. No workflow uses krdlab/setup-haxe directly, so every such install
+# goes through the local action with the retry
+direct = []
+for wf in sorted(os.listdir(os.path.dirname(PATH))):
+    if not wf.endswith(".yml"):
+        continue
+    with open(os.path.join(os.path.dirname(PATH), wf)) as fh:
+        if re.search(r"uses: krdlab/setup-haxe", fh.read()):
+            direct.append(wf)
+if direct:
+    fail(f"a workflow uses krdlab/setup-haxe directly instead of the retrying action: {direct}")
+else:
+    ok("no workflow uses krdlab/setup-haxe directly")
+
+# 14. Every network fetch goes through the retry wrapper, and every
+# wrapper path resolves. A relative path after a cd, or a wrong depth
+# from an action directory, is exit 127 on the runner. The path check
+# is what catches both. Every apt-get goes through ci/apt.sh, which
+# bounds each download by the clock. A comment or echo naming one is
+# skipped.
+# The lookbehind rejects a name inside a longer word or after a dot. An
+# .ssh/config path or an env value never reads as a fetch, and a pip
+# reached by its path still does. A wrapper covers the command it
+# starts, so each segment between the shell's list and pipe operators
+# is checked on its own. Playwright's dependency dry run only simulates
+# an install and exits 1 when packages are missing, so it stays bare
+FETCH_RE = re.compile(r"(?<![\w.])(haxelib install|git (?:clone|fetch|pull|submodule)|npm (?:install|ci)|npx playwright install(?!-deps --dry-run)|curl\s|wget\s|brew install|pip\"? install|ssh\s|rsync\s|gh (?:api|release download))")
+WRAPPER_RE = re.compile(r"bash (\"?)(\$GITHUB_ACTION_PATH|\$GITHUB_WORKSPACE|)(/?(?:\.\./)*)ci/(retry|apt)\.sh\1")
+SEGMENT_RE = re.compile(r"\s*(?:&&|\|\||;|\|)\s*")
+fetch_files = [os.path.join(os.path.dirname(PATH), wf) for wf in sorted(os.listdir(os.path.dirname(PATH))) if wf.endswith(".yml")]
+actions_dir = os.path.join(ROOT, ".github", "actions")
+fetch_files += [os.path.join(actions_dir, a, "action.yml") for a in sorted(os.listdir(actions_dir))]
+fetch_files.append(os.path.join(ROOT, "ci", "generate-run-jobs.py"))
+bare = []
+unresolved = []
+unretried = []
+wrapped = 0
+for path in fetch_files:
+    with open(path) as fh:
+        raw_lines = fh.readlines()
+    # A command that continues over a backslash is one logical line, so a
+    # wrapper on the first line covers the whole fetch. Each logical line
+    # reports the number of its first physical line
+    lines = []
+    carry = ""
+    carrying = False
+    start = 0
+    for lineno, raw in enumerate(raw_lines, 1):
+        if not carrying:
+            start = lineno
+        if raw.rstrip("\n").endswith("\\"):
+            carry += raw.rstrip("\n")[:-1]
+            carrying = True
+            continue
+        lines.append((start, carry + raw))
+        carry = ""
+        carrying = False
+    if carrying:
+        lines.append((start, carry + "\n"))
+    block_indent = None
+    moved = False
+    for n, line in lines:
+        stripped = line.strip()
+        indent = len(line) - len(line.lstrip(" "))
+        if re.match(r"run: \|", stripped) or re.match(r"return f?" + chr(34) * 3, stripped):
+            block_indent = indent
+            moved = False
+            continue
+        if block_indent is not None and stripped and indent <= block_indent:
+            block_indent = None
+        if stripped.startswith("#"):
+            continue
+        line = "".join(seg for seg in re.split(r"(\s*(?:&&|\|\||;|\|)\s*)", line) if not seg.lstrip().startswith("echo "))
+        if re.search(r"\bapt-get\b", line) or re.search(r"(?<![\w./-])apt\s+(?:-\S+(?:\s+[^-\s]\S*=\S*)?\s+)*(?:install|reinstall|update|upgrade|full-upgrade|dist-upgrade)\b", line):
+            unretried.append(f"{os.path.relpath(path, ROOT)}:{n}")
+        # Playwright fetches packages with apt-get on its own. The step
+        # installs them through the wrapper first, so nothing is left
+        # for the unbounded fetch
+        if re.search(r"--with-deps|install-deps", line):
+            earlier = "".join(text_line for m, text_line in lines if n - 8 <= m < n and not text_line.lstrip().startswith("#"))
+            if not re.search(r"ci/apt\.sh\"? install", earlier):
+                unretried.append(f"{os.path.relpath(path, ROOT)}:{n} playwright fetches its packages unbounded")
+        if re.match(r"cd ", stripped) and not stripped.startswith("cd -"):
+            moved = True
+        if "retry.sh" in line or "apt.sh" in line:
+            m = WRAPPER_RE.search(line)
+            script = m.group(4) + ".sh" if m else ""
+            if not m:
+                unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} unrecognised wrapper spelling")
+            elif m.group(2) == "$GITHUB_ACTION_PATH":
+                base = os.path.dirname(path)
+                target = os.path.normpath(os.path.join(base, m.group(3).lstrip("/"), "ci", script))
+                if not os.path.exists(target):
+                    unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} resolves to {os.path.relpath(target, ROOT)}")
+            elif m.group(2) == "" and moved:
+                unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} relative wrapper after a cd")
+            elif m.group(2) != "$GITHUB_ACTION_PATH" and not os.path.exists(os.path.join(ROOT, "ci", script)):
+                unresolved.append(f"{os.path.relpath(path, ROOT)}:{n} ci/{script} is missing")
+        for segment in SEGMENT_RE.split(line):
+            if not FETCH_RE.search(segment):
+                continue
+            if "retry.sh" in segment:
+                wrapped += 1
+            else:
+                bare.append(f"{os.path.relpath(path, ROOT)}:{n}")
+if bare or unresolved or unretried or wrapped < 150:
+    fail(f"network fetches outside ci/retry.sh: {bare}, wrapper paths that do not resolve: {unresolved}, apt-get outside ci/apt.sh: {unretried} ({wrapped} wrapped)")
+else:
+    ok(f"{wrapped} network fetches go through ci/retry.sh, none bare, every wrapper path resolves, apt goes through ci/apt.sh")
+
+# 16. Every browser job waits for the chromium GPU content slot after
+# the install, and the headless probe that follows fails the step. The
+# snap's launcher dies at once without the wrapper, and the browser
+# legs were lost to that twice.
+# Each step that installs the snap carries the whole gate itself, so an
+# install written another way or a probe that stopped failing is caught.
+# Comment lines are dropped and continued lines joined first. Each gate
+# line starts its own line, and each loop bound equals its threshold.
+CHROMIUM_INSTALL = re.compile(r"\bapt(-get)?\b[^\n]*\binstall\b[^\n]*\bchromium-browser\b|snap install[^\n]*\bchromium\b")
+CHROMIUM_GATE = [
+    ("the snap purge before a retry", r"^{B}  sudo snap remove --purge chromium 2>/dev/null \|\| true$"),
+    ("the seed wait", r"^{B}sudo snap wait system seed\.loaded"),
+    ("the slot predicate", r"^{B}  snap connections chromium 2>/dev/null \| awk '\$1 ~ /\^content\\\[gpu-/ && \$3 != \"-\" \{ gpu = 1 \} \$1 ~ /\^content\\\[gnome-/ && \$3 != \"-\" \{ gnome = 1 \} END \{ exit gpu && gnome \? 0 : 1 \}'$"),
+    ("the slot wait loop", r"^{B}for i in \$\(seq 90\); do\n{B}  gpu_slot_connected && break$"),
+    ("a fatal slot wait", r'^{B}  \[ "\$i" = 90 \] && \{ echo "::error ::the chromium GPU content slot never connected after the install"[^\n]*exit 1; \}$'),
+    ("the namespace discard", r"^{B}sudo /usr/lib/snapd/snap-discard-ns chromium"),
+    ("the probe loop", r"^{B}for i in \$\(seq 45\); do\n{B}  chromium-browser --headless=new --no-sandbox --disable-gpu --dump-dom about:blank > /tmp/chromium-probe\.log 2>&1 && break$"),
+    ("a fatal probe", r'^{B}  \[ "\$i" = 45 \] && \{ echo "::error ::chromium never rendered a headless page after the install"[^\n]*exit 1; \}$'),
+]
+chromium_installs = 0
+ungated = []
+for step in re.split(r"\n(?= {6}- )", text):
+    body = re.sub(r"\\\n *", " ", step)
+    body = "\n".join(line for line in body.split("\n") if not line.lstrip().startswith("#"))
+    if not CHROMIUM_INSTALL.search(body):
+        continue
+    chromium_installs += 1
+    # Each gate line sits at the run block's own indentation, so one
+    # inside an if, a function, or a heredoc does not count
+    block = re.search(r"run: \|\n( +)", body)
+    base = block.group(1) if block else "          "
+    missing = [label for label, pattern in CHROMIUM_GATE if not re.search(pattern.replace("{B}", base), body, re.M)]
+    problems = ["lacks " + ", ".join(missing)] if missing else []
+    if re.search(r"^ *continue-on-error:", body, re.M):
+        problems.append("has continue-on-error")
+    if re.search(r"^ *done *\|\|", body, re.M):
+        problems.append("lets a loop fail quietly (done ||)")
+    if re.search(r"^" + base + r"(?:if|while|until|case|select|function|trap|exit|return)\b|^" + base + r"[({]|^" + base + r"(?=\S)[^\n]*;\s*exit\b", body, re.M):
+        problems.append("wraps or leaves around the gate at its own indentation")
+    if re.search(r"<<", body):
+        problems.append("holds a heredoc")
+    if re.search(r"^ *exit 0\b", body, re.M):
+        problems.append("can leave before the gate (exit 0)")
+    if [name for name in re.findall(r"^ *(\w+)\(\) *\{", body, re.M) if name != "gpu_slot_connected"]:
+        problems.append("wraps lines in a function of its own")
+    if problems:
+        name = re.search(r"- name: ([^\n]+)", step)
+        line = text[:text.index(step)].count("\n") + 1
+        ungated.append(f"line {line} ({name.group(1) if name else 'unnamed step'}) {', '.join(problems)}")
+# The gated installs are generated, so generate-run-jobs.py --check holds
+# each step to the template byte for byte. A copy outside the region
+# could wrap the gate in a block that never runs.
+generated_from = text.find("# ---- BEGIN generated run jobs")
+generated_to = text.find("# ---- END generated run jobs")
+for match in CHROMIUM_INSTALL.finditer(text):
+    if not (0 <= generated_from < match.start() < generated_to):
+        ungated.append(f"line {text[:match.start()].count(chr(10)) + 1} installs the browser outside the generated run jobs")
+# The generator's own check is what holds a step inside the region to
+# the template, so it runs here too
+if PATH == DEFAULT_WORKFLOW:
+    import subprocess
+    regenerated = subprocess.run([sys.executable, os.path.join(ROOT, "ci", "generate-run-jobs.py"), "--check"],
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    if regenerated.returncode != 0:
+        ungated.append("the generated run jobs differ from ci/generate-run-jobs.py")
+# A job may not shrug off a failed step either
+if re.search(r"^    continue-on-error:", text, re.M):
+    ungated.append("a job sets continue-on-error")
+# Any other step that names the browser package installs it some other way
+other = len(re.findall(r"chromium-browser xdotool|snap install[^\n]*chromium", text))
+if other != chromium_installs:
+    ungated.append(f"{other} lines name the browser package, {chromium_installs} gated installs")
+# A package list held in a variable hides the install from the scan above
+if re.search(r"^ *\w+=[^\n]*\bchromium-browser\b", text, re.M):
+    ungated.append("a variable holds the browser package name")
+if chromium_installs != 3 or ungated:
+    fail(f"chromium GPU slot waits out of step: {chromium_installs} installs, {ungated}")
+else:
+    ok(f"{chromium_installs} chromium installs wait for the GPU content slot and fail on a dead probe")
+
+# 15. The stale-hdll escape hatch gates the known steps only
+STALE_GATED = ["Doctor passes in a configured environment", "Build HashLink target from the installed package", "Validate build output"]
+STALE_REFERENCES = 5
+STALE_INLINE = 5
+gated = re.findall(r"- name: ([^\n]+)\n(?:[^\n]*\n){0,3}?[ ]*if: steps\.abi\.outputs\.stale != 'true'", text)
+stale_refs = len(re.findall(r"steps\.abi\.outputs\.stale", text))
+# The three HashLink build jobs gate inside their run block. Each of
+# those blocks reads both markers, so no inline hatch reads the ABI alone.
+inline_blocks = re.findall(r"\n[ ]*STALE=(?:0|false)\n(?:[^\n]*\n)*?[ ]*if \[ \"\$STALE\" = (?:\"1\"|true) \]", text)
+inline_half = [b for b in inline_blocks
+               if '[ "$SRCMARK" != "$SRC" ]' not in b or ('[ "$MARK" != "$ABI" ]' not in b and '[ "$MARKER" != "$ABI" ]' not in b)]
+if gated != STALE_GATED or stale_refs != STALE_REFERENCES or len(inline_blocks) != STALE_INLINE or inline_half:
+    fail(f"stale-hdll gates out of step: steps {gated}, {stale_refs} references of {STALE_REFERENCES}, {len(inline_blocks)} inline gates of {STALE_INLINE}, {len(inline_half)} reading one marker")
+else:
+    ok(f"the stale-hdll gate covers the {len(gated)} known steps, {stale_refs} references, and {len(inline_blocks)} inline gates on both markers")
+
+# 8. The plain portability loops name every native test that needs no SDK
+# header, and the sanitizer loops name every native test
+loops = re.findall(r"for (?:%%t|t) in \(?([a-z0-9_ ]+?)\)?(?:;| do\b)", text)
+# The ThreadSanitizer loops run the threaded tests only, so they are apart.
+# Both groups are pinned to the test files on disk. The plain loops name
+# every test that needs no SDK header, and the sanitizer loops name every
+# test. A new test file wired into neither group fails here too, and so
+# does a local replay loop that drifts from the workflow.
+NATIVE_DIR = os.path.join(ROOT, "tests", "native")
+NATIVE_TESTS = sorted(f[len("test_faxe_"):-2] for f in os.listdir(NATIVE_DIR)
+                      if f.startswith("test_faxe_") and f.endswith(".c"))
+
+
+def needs_sdk(path, seen=None):
+    # A test needs the FMOD headers when it, or a shared header it pulls
+    # in, includes one. A test that stubs FMOD_GUID and defines the
+    # common header's guard first compiles without them.
+    seen = seen or set()
+    if path in seen or not os.path.isfile(path):
+        return False
+    seen.add(path)
+    with open(path) as fh:
+        text = fh.read()
+    if "#define _FMOD_COMMON_H" in text:
+        return False
+    for inc in re.findall(r'#include\s+[<"]([^>"]+)[>"]', text):
+        if os.path.basename(inc).startswith("fmod"):
+            return True
+        if needs_sdk(os.path.normpath(os.path.join(os.path.dirname(path), inc)), seen):
+            return True
+    return False
+
+
+SDK_TESTS = {t for t in NATIVE_TESTS if needs_sdk(os.path.join(NATIVE_DIR, f"test_faxe_{t}.c"))}
+PLAIN_TESTS = sorted(set(NATIVE_TESTS) - SDK_TESTS)
+if not SDK_TESTS or not PLAIN_TESTS:
+    fail(f"the native test split reads wrong: SDK {sorted(SDK_TESTS)}, plain {PLAIN_TESTS}")
+# The local replay repeats the loops, so it is held to the same sets
+with open(os.path.join(ROOT, "ci", "local-ci.sh")) as fh:
+    local_loops = re.findall(r"for (?:%%t|t) in \(?([a-z0-9_ ]+?)\)?(?:;| do\b)", fh.read())
+loops = [l for l in loops if "handles" in l]
+local_loops = [l for l in local_loops if "handles" in l]
+plain = [l for l in loops if not SDK_TESTS & set(l.split())]
+sanitized = [l for l in loops if SDK_TESTS & set(l.split())]
+local_plain = [l for l in local_loops if not SDK_TESTS & set(l.split())]
+local_sanitized = [l for l in local_loops if SDK_TESTS & set(l.split())]
+plain_wrong = [l for l in plain + local_plain if sorted(l.split()) != PLAIN_TESTS]
+sanitized_wrong = [l for l in sanitized + local_sanitized if sorted(l.split()) != NATIVE_TESTS]
+if not plain or len(sanitized) < 2 or not local_plain or not local_sanitized or plain_wrong or sanitized_wrong:
+    fail(f"the shared header test loops differ from tests/native: plain {plain + local_plain} (expected {PLAIN_TESTS}), sanitized {sanitized + local_sanitized} (expected {NATIVE_TESTS})")
+else:
+    ok(f"{len(plain) + len(local_plain)} plain loops name the {len(PLAIN_TESTS)} header tests, {len(sanitized) + len(local_sanitized)} sanitizer loops name all {len(NATIVE_TESTS)}")
+
+# The tests that need the SDK headers are also built one by one against
+# each SDK and compiler. A test left out of one of those steps loses
+# that compiler or that header set. dspparams names 2.03 parameters, so
+# the 2.02.33 step leaves it out. Every shared header is in the package
+# file list.
+def sdk_tests_built(pattern):
+    # A test counts when its compile names an output and that output runs
+    # on a line of its own. A line that ends in || true or || : counts
+    # for nothing.
+    built = set()
+    for step in re.split(r"\n(?= {6}- )", text):
+        name = re.search(r"- name: ([^\n]+)", step)
+        if name and re.search(pattern, name.group(1)):
+            lines = re.sub(r"\\\n *", " ", step)
+            lines = [line.strip() for line in lines.split("\n") if not line.lstrip().startswith("#")]
+            lines = [line for line in lines if not re.search(r"\|\|\s*(?:true|:)\s*$", line)]
+            for line in lines:
+                for test in re.findall(r"tests[/\\]native[/\\]test_faxe_(\w+)\.c", line):
+                    out = re.search(r"(?:-o |/Fe:)(\S+)", line)
+                    if out and "$t" not in out.group(1) and "%%t" not in out.group(1):
+                        ran = out.group(1)
+                        if any(other == ran or other.startswith(ran + " ") for other in lines):
+                            built.add(test)
+    return built
+per_sdk_missing = []
+for label, pattern, exempt in (("the gcc steps against this SDK's headers", r"against this SDK's headers$", set()),
+                               ("the Apple clang step", r"^Test native headers with Apple clang", set()),
+                               ("the MSVC step", r"^Test native headers with MSVC", set()),
+                               ("the 2.02.33 headers step", r"against the 2\.02\.33 headers$", {"dspparams"})):
+    missing = sorted(SDK_TESTS - exempt - sdk_tests_built(pattern))
+    if missing:
+        per_sdk_missing.append(f"{label} lacks {missing}")
+shared_headers = sorted(name for name in os.listdir(os.path.join(ROOT, "native", "shared")) if name.endswith(".h"))
+listed = "\n".join(line for line in text.split("\n") if not line.lstrip().startswith("#"))
+unlisted = [name for name in shared_headers if not re.search(r'^ +"native/shared/' + re.escape(name) + r'" \\$', listed, re.M)]
+if unlisted:
+    per_sdk_missing.append(f"the package file list lacks {unlisted}")
+if per_sdk_missing or len(SDK_TESTS) < 5:
+    fail(f"SDK header tests not built everywhere: {per_sdk_missing} ({len(SDK_TESTS)} SDK tests)")
+else:
+    ok(f"{len(SDK_TESTS)} SDK header tests build with gcc, Apple clang, MSVC and the 2.02.33 headers, {len(shared_headers)} shared headers are packaged")
 
 # 5. linux-html5-chromium requires a FAILING build against a doctored web SDK,
-# with pipefail, and verifies the version-mismatch banner (paired to the
-# job so a copy of the block elsewhere cannot mask its removal here)
-html5_job = jobs.get("linux-html5-chromium", "")
+# with pipefail, and verifies the version-mismatch banner. The check is
+# paired to the job, so a copy of the block elsewhere cannot mask its removal.
+html5_job = jobs.get("linux-html5-chromium-build", "")
 web_gate = re.search(
     r'set -o pipefail[\s\S]*?'
     r'if FMOD_SDK_WEB="\$DOCTORED" haxelib run lime build html5 2>&1 \| tee [^\n]*; then\n'
     r'\s*echo "FAIL: build succeeded[^\n]*\n\s*exit 1\n\s*fi', html5_job)
 if not web_gate:
-    fail("linux-html5-chromium lost the web-SDK mismatch build-must-fail gate (with pipefail)")
+    fail("linux-html5-chromium-build lost the web-SDK mismatch build-must-fail gate (with pipefail)")
 else:
-    ok("linux-html5-chromium requires the doctored web-SDK build to fail, with pipefail")
+    ok("linux-html5-chromium-build requires the doctored web-SDK build to fail, with pipefail")
 if 'grep -q "FMOD web SDK version mismatch"' not in html5_job:
-    fail("linux-html5-chromium no longer greps for the web mismatch banner")
+    fail("linux-html5-chromium-build does not grep for the web mismatch banner")
 else:
-    ok("linux-html5-chromium verifies the web mismatch banner text")
+    ok("linux-html5-chromium-build verifies the web mismatch banner text")
 
 # 6. Required test steps per job. Names must match the workflow's
 # `- name:` lines exactly. When a step is renamed on purpose, rename it
 # here in the same commit.
-NATIVE_SUITE = ["Run api-probe state", "Run synth-test state", "Run cb-test state",
-                "Run ps-test state", "Run bank-test state", "Run pan-test state",
-                "Validate audio", "Validate volume/mute", "Validate synth audio",
-                "Validate build output"]
 REQUIRED_STEPS = {
     "unit-tests": [
         "Run unit tests",
         "Verify native shims match the FFI manifest",
         "Check binding coverage against the manifest",
         "Check workflow gating invariants",
+        "Check the run jobs match their generator",
+        "Check the extension package manifest",
         "Test native handle table (C99 and C++ modes)",
         "Test native callback queue (C99 and C++ modes)",
         "Test native GUID helpers (C99 and C++ modes)",
@@ -160,37 +596,57 @@ REQUIRED_STEPS = {
         "Run native tests under AddressSanitizer and UBSan",
         "Run threaded native tests under ThreadSanitizer",
         "Test define-driven settings (haxefmod_* and -debug)",
+        "Test the default bank failure path",
+        "Check the generated bindings table and example translations",
         "Check FMOD version literal lockstep",
         "Check hxcpp depend lockstep",
         "Compile the README examples",
+        "Test native instance context (C99 and C++ modes)",
+        "Check the DSP parameter enums match fmod_dsp_effects.h",
+        "Check the HTML5 compile gate",
+        "Check the HTML5 phrase matches the gate",
+        "Check the deprecated aliases still compile and warn",
+        "Check Haxe type declarations against the FMOD headers"
     ],
-    "linux-cpp": NATIVE_SUITE + ["Validate game log",
-                                 "Verify FMOD libraries have no executable stack",
-                                 "Build manual-update variant",
-                                 "Run api-probe state (manual update variant)"],
-    "linux-hl": NATIVE_SUITE + ["Validate game log",
-                                "Verify FMOD libraries have no executable stack",
-                                "Build HashLink target (pre-built hdll)",
-                                "Rebuild HashLink target (custom hdll)",
-                                "Run stress-test state (smoke)",
-                                "lime test end to end"],
-    "mac-cpp": NATIVE_SUITE + ["Validate game log",
-                               "Test native headers with Apple clang (sanitizers)"],
-    "mac-hl": NATIVE_SUITE + ["Validate game log"],
-    "windows-cpp": NATIVE_SUITE + ["Validate game log",
-                                   "Test native headers with MSVC (C and C++ modes)"],
-    "windows-hl": NATIVE_SUITE + ["Validate game log"],
-    "linux-html5-chromium": [
-        "Validate FMOD files replaced placeholders",
-        "Validate audio", "Validate volume/mute", "Validate synth audio",
-        "Run API probe (JS binding coverage)",
-        "Run synth test (generated PCM reaches the output)",
-        "Run callback test (JS payload delivery)",
-        "Run ps-test state (browser)", "Run bank-test state (browser)",
-        "Run pan-test state (browser)",
-        "Verify mismatched web SDK fails the build",
-        "Typecheck the flixel no-sound-system variant",
-    ],
+    "linux-cpp-build": ["Build C++ target", "Verify FMOD libraries have no executable stack", "Validate build output", "Build the test DSP plugin next to the game"],
+    "linux-cpp-build-manual": ["Build manual-update variant", "Validate build output", "Build the test DSP plugin next to the game"],
+    "linux-cpp": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)", "Run api-probe state (manual update variant)"],
+    "linux-hl-build": ["Build HashLink target (pre-built hdll)", "Build custom hdll via build-hdll", "Rebuild HashLink target (custom hdll)", "Upload compiled hdll", "Verify FMOD libraries have no executable stack", "Validate build output", "Stage FMOD runtime into a plain directory", "Build the test DSP plugin next to the game", "lime test end to end"],
+    "linux-hl": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
+    "mac-cpp-build": ["Build C++ target", "Validate build output", "Test native headers with Apple clang (sanitizers)"],
+    "mac-cpp": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
+    "mac-hl-build": ["Build HashLink target (pre-built hdll)", "Build custom hdll via build-hdll", "Rebuild HashLink target (custom hdll)", "Upload compiled hdll", "Validate build output"],
+    "mac-hl": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
+    "windows-cpp-build": ["Build C++ target", "Validate build output", "Test native headers with MSVC (C and C++ modes)"],
+    "windows-cpp": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
+    "windows-hl-build": ["Build HashLink target (pre-built hdll)", "Build custom hdll via build-hdll", "Verify custom hdll created", "Rebuild HashLink target (custom hdll)", "Upload compiled hdll", "Validate build output"],
+    "windows-hl": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
+    "linux-html5-chromium-build": ["Build HTML5 target", "Validate FMOD files replaced placeholders", "Stage FMOD web files into a plain directory", "Typecheck the flixel no-sound-system variant", "Verify mismatched web SDK fails the build"],
+    "linux-html5-chromium": ["Record audio", "Validate audio", "Validate volume/mute", "Record volume test", "Run state", "Validate synth audio"],
+    "heaps-hl-build": ["Build test variant", "Validate build output"],
+    "heaps-hl-build-manual": ["Build test variant", "Validate build output"],
+    "heaps-hl": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)", "Run api-probe state (manual update variant)"],
+    "heaps-html5-build": ["Build test variant", "Validate build output"],
+    "heaps-html5": ["Record audio", "Validate audio", "Validate volume/mute", "Record volume test", "Run state", "Validate synth audio"],
+    "kha-linux-build": ["Build test variant", "Validate build output", "Check out Kha"],
+    "kha-linux-build-manual": ["Build test variant", "Validate build output", "Check out Kha"],
+    "kha-linux": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)", "Run api-probe state (manual update variant)"],
+    "kha-hl-build": ["Build test variant", "Validate build output", "Check out Kha"],
+    "kha-hl": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
+    "kha-html5-build": ["Build test variant", "Validate build output", "Check out Kha"],
+    "kha-html5": ["Record audio", "Validate audio", "Validate volume/mute", "Record volume test", "Run state", "Validate synth audio"],
+    "heaps-mac-hl-build": ["Build test variant", "Validate build output"],
+    "heaps-mac-hl": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
+    "heaps-windows-hl-build": ["Build test variant", "Validate build output"],
+    "heaps-windows-hl": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
+    "kha-mac-build": ["Build test variant", "Validate build output", "Check out Kha"],
+    "kha-mac": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
+    "kha-mac-hl-build": ["Build test variant", "Validate build output", "Check out Kha"],
+    "kha-mac-hl": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
+    "kha-windows-build": ["Build test variant", "Validate build output", "Check out Kha"],
+    "kha-windows": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
+    "kha-windows-hl-build": ["Build test variant", "Validate build output", "Check out Kha"],
+    "kha-windows-hl": ["Record audio", "Validate audio", "Validate volume/mute", "Validate game log", "Record volume test", "Run state", "Validate synth audio", "Run stress-test state (smoke)"],
     "linux-html5-firefox": [
         "Build HTML5 target",
         "Start display and audio",
@@ -205,25 +661,23 @@ REQUIRED_STEPS = {
         "Build HashLink target (expect version mismatch failure)",
         "Test DSP type translation against the 2.02.33 headers",
         "Rebuild HashLink target (custom hdll)",
-        "Run api-probe state", "Validate audio", "Validate game log",
-    ],
+        "Run api-probe state", "Validate audio", "Validate game log", "Validate build output", "Validate volume/mute"],
     "mac-hl-compat": [
         "Use compat fixture banks",
         "Build HashLink target (expect version mismatch failure)",
         "Rebuild HashLink target (custom hdll)",
-        "Validate audio", "Validate game log",
-    ],
+        "Validate audio", "Validate game log", "Validate build output", "Validate volume/mute"],
     "windows-hl-compat": [
         "Use compat fixture banks",
         "Build HashLink target (expect version mismatch failure)",
         "Rebuild HashLink target (custom hdll)",
-        "Validate audio", "Validate game log",
-    ],
+        "Validate audio", "Validate game log", "Validate build output", "Validate volume/mute", "Verify custom hdll created"],
     "js-harness": [
         "Run jaxe harnesses against the real wasm",
         "Run Core dynamic-audio prototype against the real wasm",
     ],
     "env-doctor": [
+        "Check the pre-built hdll ABI",
         "Doctor passes in a configured environment",
         "Doctor rejects a missing FMOD_SDK (negative test)",
         "Build blocks without FMOD_SDK (hl)",
@@ -233,18 +687,30 @@ REQUIRED_STEPS = {
         "Postbuild rejects an SDK missing platform libraries",
     ],
     "package-check": [
+        "Check the pre-built hdll ABI",
         "Test DSP type translation against this SDK's headers",
         "Refuse to package without the pre-built hdlls",
         "Build the haxelib package",
         "Reconcile the package against the tracked tree",
         "Build HashLink target from the installed package",
         "Build HTML5 target from the installed package",
-        "Run CLI commands from the installed package",
-    ],
+        "Run CLI commands from the installed package", "Verify tag matches haxelib.json version", "Test the DSP parameter indices against this SDK's headers", "Validate build output", "Validate FMOD files replaced placeholders"],
     "package-check-cpp": [
         "Build the haxelib package",
         "Install libraries with haxefmod from the package",
         "Build C++ target from the installed package",
+    ],
+    "api-docs": [
+        "Install dox",
+        "Generate type XML",
+        "Render API docs",
+        "Upload API docs",
+    ],
+    "update-hdlls": [
+        "Ensure the run is on a branch",
+        "Download compiled hdlls",
+        "Update templates directory",
+        "Commit updated hdlls",
     ],
 }
 missing_steps = []
@@ -264,10 +730,17 @@ else:
     total = sum(len(v) for v in REQUIRED_STEPS.values())
     ok(f"all {total} required test steps present across {len(REQUIRED_STEPS)} jobs")
 
+# 6a. The required step table names every job and no other, so a new job
+# cannot ship without its probe steps listed
+uncovered = sorted(set(jobs) - set(REQUIRED_STEPS))
+orphaned = sorted(set(REQUIRED_STEPS) - set(jobs))
+if uncovered or orphaned:
+    fail(f"REQUIRED_STEPS out of sync: uncovered {uncovered}, orphaned {orphaned}")
+else:
+    ok("REQUIRED_STEPS names every job")
+
 # 7. Every Node harness in tests/js/ is wired into the workflow
-import os
-script_dir = os.path.dirname(os.path.abspath(__file__))
-js_dir = os.path.join(script_dir, "..", "tests", "js")
+js_dir = os.path.join(ROOT, "tests", "js")
 unwired = []
 harnesses = sorted(f for f in os.listdir(js_dir) if f.endswith(".js"))
 for harness in harnesses:
@@ -277,6 +750,179 @@ if unwired:
     fail(f"harnesses in tests/js/ not invoked by the workflow: {unwired}")
 else:
     ok(f"all {len(harnesses)} tests/js harnesses are wired into the workflow")
+
+# 17. A job that calls a ci/ wrapper by its relative path checks the repo
+# out first. Without the checkout the wrapper is a missing file, and a
+# command substitution around it swallows the error.
+no_checkout = []
+for path in fetch_files:
+    if not path.endswith(".yml") or os.sep + "actions" + os.sep in path:
+        continue
+    with open(path) as fh:
+        workflow = fh.read()
+    jobs_at = workflow.find("\njobs:\n")
+    if jobs_at < 0:
+        continue
+    for job in re.split(r"\n(?=  [\w-]+:\n)", workflow[jobs_at + 7:]):
+        job = "\n".join(line for line in job.split("\n") if not line.lstrip().startswith("#"))
+        call = re.search(r"(?<!\$GITHUB_ACTION_PATH/)(?<![\w.])ci/(?:retry|apt)\.sh", job)
+        if not call:
+            continue
+        # A real checkout step of this repo: no other repository, no path,
+        # no condition
+        checkout = -1
+        for step in re.finditer(r"^      - uses: actions/checkout@[^\n]*\n((?:        [^\n]*\n| *\n)*)", job, re.M):
+            if not re.search(r"^\s*(?:path|repository|if):", step.group(1), re.M):
+                checkout = step.start()
+                break
+        if checkout < 0 or checkout > call.start():
+            name = re.match(r"\s*([\w-]+):", job)
+            no_checkout.append(f"{os.path.relpath(path, ROOT)}:{name.group(1) if name else '?'}")
+if no_checkout:
+    fail(f"jobs that call a ci/ wrapper before any checkout: {no_checkout}")
+else:
+    ok("every job that calls a ci/ wrapper checks the repo out first")
+
+# 18. Every tests/build*.hxml suite runs in the workflow and in the local
+# runner. A suite left out of either keeps compiling and proves nothing.
+suites = sorted(name for name in os.listdir(os.path.join(ROOT, "tests")) if re.match(r"build.*\.hxml$", name))
+with open(os.path.join(ROOT, "ci", "local-ci.sh")) as fh:
+    local_runner = fh.read()
+def commands_only(body):
+    # Comment lines and echoed text name a suite without running it
+    return "\n".join(line for line in body.split("\n") if not re.match(r"\s*(#|echo\b)", line))
+not_run = [f"{where}: {suite}" for suite in suites for where, body in (("workflow", commands_only(text)), ("ci/local-ci.sh", commands_only(local_runner)))
+           if not re.search(r"(?:^\s*(?:run: |step \"[^\"]*\" )?|&& )haxe tests/" + re.escape(suite) + r"(?![\w.-])", body, re.M)]
+# A step switched off with a constant condition runs nothing
+if re.search(r"^\s*if:\s*[\"']?(?:false|0|\$\{\{\s*(?:false|0|!\s*true|null|''|false\s*&&[^}]*)\s*\}\})[\"']?\s*(?:#.*)?$", text, re.M):
+    not_run.append("workflow: a step or job is disabled with if: false")
+if not_run or len(suites) < 7:
+    fail(f"test suites not run: {not_run} ({len(suites)} suites)")
+else:
+    ok(f"{len(suites)} hxml suites run in the workflow and ci/local-ci.sh")
+
+# 19. The shipped Linux hdll comes from the linux-hl-build job, and its
+# glibc floor is checked in the step that builds it. Each gate line sits
+# at the run block's indentation, after the build.
+GLIBC_GATE = [
+    ("the build", r"^{B}haxelib run haxefmod build-hdll$"),
+    ("the version requirement read", r"^{B}NEEDS=\$\(objdump -p \.haxefmod/hlaxe_fmod\.hdll \| grep -o 'GLIBC_\[A-Za-z0-9_\.\]\*' \| sort -uV\)$"),
+    ("the newest numbered version", r"""^{B}NEWEST=\$\(printf '%s\\n' \$NEEDS \| grep -E '\^GLIBC_\[0-9\.\]\+\$' \| tail -n 1\)$"""),
+    ("a fatal empty read", r"""^{B}\[ -n "\$NEWEST" \] \|\| \{ echo "FAIL:[^\n]*; exit 1; \}$"""),
+    ("the named requirement read", r"""^{B}NAMED=\$\(printf '%s\\n' \$NEEDS \| grep -vE '\^GLIBC_\[0-9\.\]\+\$' \|\| true\)$"""),
+    ("a fatal named requirement", r"""^{B}\[ -z "\$NAMED" \] \|\| \{ echo "FAIL:[^\n]*; exit 1; \}$"""),
+    ("a fatal newer version", r"""^{B}\[ "\$\(printf '%s\\n' "\$NEWEST" GLIBC_2\.34 \| sort -V \| tail -n 1\)" = "GLIBC_2\.34" \] \|\| \{ echo "FAIL:[^\n]*; exit 1; \}$"""),
+]
+found = re.search(r"^  linux-hl-build:\n(?:(?!^  [\w-]+:\n).*\n?)*", text, re.M)
+hl_build = found.group(0) if found else ""
+glibc_steps = [step for step in re.split(r"\n(?= {6}- )", hl_build) if "build-hdll" in step and "objdump" in step]
+glibc_problems = []
+if len(glibc_steps) != 1:
+    glibc_problems.append(f"{len(glibc_steps)} steps in linux-hl-build build the hdll and read it with objdump")
+else:
+    body = "\n".join(line for line in glibc_steps[0].split("\n") if not line.lstrip().startswith("#"))
+    block = re.search(r"run: \|\n( +)", body)
+    base = block.group(1) if block else "          "
+    at = [re.search(pattern.replace("{B}", base), body, re.M) for label, pattern in GLIBC_GATE]
+    glibc_problems += ["lacks " + label for (label, pattern), hit in zip(GLIBC_GATE, at) if not hit]
+    if all(at) and [hit.start() for hit in at] != sorted(hit.start() for hit in at):
+        glibc_problems.append("has the gate lines out of order")
+    if re.search(r"^ *continue-on-error:", body, re.M):
+        glibc_problems.append("has continue-on-error")
+    if re.search(r"^ *exit 0\b|\bset \+e\b", body, re.M):
+        glibc_problems.append("can leave before the gate or ignore its failure")
+    rest = body
+    for label, pattern in GLIBC_GATE:
+        rest = re.sub(pattern.replace("{B}", base), "", rest, flags=re.M)
+    if re.search(r"^" + base + r"(?:if|while|until|case|select|function|trap|exit|return)\b|^" + base + r"[({]|^" + base + r"(?=\S)[^\n]*(?:;|&&|\|\|)\s*exit\b|<<|^ *\w+\(\) *\{", rest, re.M):
+        glibc_problems.append("wraps or leaves around the gate at its own indentation")
+    # A line that continues into the next one, a loop, an exec or a trap
+    # anywhere, a reassigned gate variable, or a shell other than the default
+    # each lets the step end clean around the gate
+    if re.search(r"^" + base + r"[^\n]*(?:&&|\|\||\||\\)[ \t]*$", body, re.M):
+        glibc_problems.append("continues a line into the next one")
+    # Quoted text and trailing comments name a keyword without running it
+    bare = re.sub(r"\"[^\"\n]*\"|'[^'\n]*'", "", rest)
+    bare = re.sub(r"[ \t]#[^\n]*", "", bare)
+    bare = re.sub(r"^ *- name:[^\n]*", "", bare, flags=re.M)
+    if re.search(r"\b(?:for|exec|trap|alias|shopt)\b", bare):
+        glibc_problems.append("loops, execs, traps or aliases around the gate")
+    if re.search(r"^ *(?:export +)?(?:NEEDS|NEWEST|NAMED|PATH)=", rest, re.M):
+        glibc_problems.append("sets a gate variable or PATH outside the gate lines")
+    top_defaults = re.search(r"^defaults:[^\n]*\n(?:[ \t]+[^\n]*\n)*", text, re.M)
+    job_defaults = re.search(r"^    defaults:[^\n]*\n(?: {5,}[^\n]*\n)*", hl_build, re.M)
+    if re.search(r"^ +shell:", body, re.M) or any(found and re.search(r"\bshell\s*:", found.group(0)) for found in (top_defaults, job_defaults)):
+        glibc_problems.append("runs under a shell other than the default")
+    if not re.search(r"^    runs-on: ubuntu-24\.04$", hl_build, re.M):
+        glibc_problems.append("does not build on the pinned ubuntu-24.04 image")
+if glibc_problems:
+    fail(f"the glibc floor gate in linux-hl-build: {glibc_problems}")
+else:
+    ok("the Linux hdll build fails on a glibc requirement newer than 2.34 or a named one")
+
+# 20. The shim drop-point host test builds the HashLink shim with two
+# FMOD calls wrapped and runs it. The workflow and the local runner both
+# build it with the wrapper file and run the program.
+host_missing = []
+for where, body in (("workflow", commands_only(text)), ("ci/local-ci.sh", commands_only(local_runner))):
+    for label, pattern in (("the wrapped build", r"gcc [^\n]*--wrap=FMOD_Sound_Release[^\n]*--wrap=FMOD_System_RecordStop[^\n]*native/hlaxe/hlaxe_fmod\.c tests/native/hlaxe_test_wraps\.c"),
+                           ("the program build", r"haxe -cp \. -main tests\.ShimDropPoints -hl "),
+                           ("the run", r"(?m)tests\.ShimDropPoints -hl [\s\S]{0,400}?LD_LIBRARY_PATH=\S+ (?:\w+=\S+ )*hl \"?\S*main\.hl\"?'?(?: _ [^\n]*|[ \t]+#[^\n]*)?$")):
+        if not re.search(pattern, body):
+            host_missing.append(f"{where}: {label}")
+if host_missing:
+    fail(f"the shim drop-point host test is not run: {host_missing}")
+else:
+    ok("the shim drop-point host test builds and runs in the workflow and ci/local-ci.sh")
+
+# 21. A state that leaves on its own must leave with status 0. The
+# action, the generated run function and the stress workflow each keep
+# the status and fail on it.
+status_missing = []
+KEEP = r"wait \$GAME_PID 2>/dev/null \|\| GAME_STATUS=\$\?"
+FAILS = r'^ *if \[ "\$GAME_STATUS" != 0 \] && \[ "\$GAME_STATUS" != killed \]; then(?: [^\n]*; exit 1; fi$|\n *fail "|(?:\n[^\n]*)?\n *exit 1$)'
+with open(os.path.join(ROOT, ".github", "actions", "run-test-state", "action.yml")) as fh:
+    state_action = fh.read()
+with open(os.path.join(os.path.dirname(PATH), "stress-test.yml")) as fh:
+    stress_workflow = fh.read()
+for where, body in (("run-test-state action", state_action), ("stress-test.yml", stress_workflow)):
+    if not re.search(KEEP, commands_only(body)) or not re.search(FAILS, commands_only(body), re.M):
+        status_missing.append(where)
+run_functions = len(re.findall(r"^ +run_game\(\) \{$", text, re.M))
+kept = len(re.findall(KEEP, commands_only(text)))
+failing = len(re.findall(FAILS, commands_only(text), re.M))
+if run_functions == 0 or kept != run_functions or failing != run_functions:
+    status_missing.append(f"audio-test.yml: {run_functions} run_game functions, {kept} keep the status, {failing} fail on it")
+if status_missing:
+    fail(f"game exit status not checked: {status_missing}")
+else:
+    ok(f"the state action, the stress workflow and {run_functions} generated game runs fail on a nonzero exit status")
+
+# 22. The trace mirror writes only on Windows, where a GUI executable has
+# no stdout. Everywhere else stdout is redirected into the log file, and a
+# second writer on the same file overwrites lines (a game log once read
+# "oin" where a Coin line had been).
+jobs_text = re.split(r"\n  [a-z0-9-]+:\n    name: ", text)[1:]
+mirror_wrong = []
+for body in jobs_text:
+    title = body.split("\n", 1)[0]
+    if "HAXEFMOD_LOG_FILE" in body and not re.search(r"runs-on: windows", body):
+        mirror_wrong.append(title)
+# On Windows the mirror owns the log, so stdout goes to a sidecar there.
+# A redirect into the mirrored file is the same two-writer fault.
+for body in jobs_text:
+    title = body.split("\n", 1)[0]
+    for m in re.finditer(r'export HAXEFMOD_LOG_FILE="?([^"\n]+)"?', body):
+        target = m.group(1)
+        if re.search(r"> \"?" + re.escape(target) + r"\"? 2>&1", body):
+            mirror_wrong.append(f"{title} redirects stdout into {target}")
+mirror_action = re.findall(r"^ *export HAXEFMOD_LOG_FILE=", state_action, re.M)
+action_case = re.search(r"MINGW\*\|MSYS\*\|CYGWIN\*\)\n\s*export HAXEFMOD_LOG_FILE=\"\$LOG_FILE\"\n\s*OUT_FILE=", state_action)
+action_redirect = '"$EXE" > "$OUT_FILE" 2>&1' in state_action and '"$EXE" > "$LOG_FILE"' not in state_action
+if mirror_wrong or len(mirror_action) != 1 or not action_case or not action_redirect:
+    fail(f"trace mirror and stdout share a file: {mirror_wrong}, action exports {len(mirror_action)}, windows case {bool(action_case)}, sidecar redirect {action_redirect}")
+else:
+    ok("the trace mirror is Windows-only and never shares its log file with the stdout redirect")
 
 print()
 if failures:

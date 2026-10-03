@@ -1,7 +1,9 @@
-// Loads the real jaxe.js shim under Node with browser stubs and runs the
-// ApiProbeState sequence against the real FMOD 2.03.12 wasm, extended to
-// cover the full domain-prefixed binding surface (sys_/bank_/evd_/evi_/vca_).
-// Usage: node harness.js
+// Loads the real jaxe.js shim under Node with browser stubs.
+// It then runs the ApiProbeState sequence against the real FMOD 2.03.12
+// wasm.
+// The sequence reaches the full domain-prefixed binding surface
+// (sys_/bank_/evd_/evi_/vca_).
+// Usage: node jaxe-harness-full.js
 
 
 // --- Browser stubs (jaxe.js expects window/document. FS preload uses XHR paths) ---
@@ -180,7 +182,7 @@ async function main() {
     expect('sys_get_bank_count', () => jaxe.fmod_sys_get_bank_count(), r => r === 2);
     expect('sys_get_bank_list', () => jaxe.fmod_sys_get_bank_list(ibuf), r => r === 2 && ibuf.slice(0, 2).includes(bank));
 
-    // --- global parameters (Intensity and Weather are authored. missing names must still fail clean) ---
+    // --- global parameters (Intensity and Weather are authored. missing names must fail clean) ---
     expect('sys_get_parameter_description_count', () => jaxe.fmod_sys_get_parameter_description_count(), r => r === 2);
     expect('sys_get_param_by_name missing', () => jaxe.fmod_sys_get_param_by_name('nope'), r => r === 0);
     expect('  lastResult nonzero', () => jaxe.fmod_sys_last_result(), r => r !== 0);
@@ -393,13 +395,13 @@ async function main() {
     expect('evd_get_user_property_string invalid', () => jaxe.fmod_evd_get_user_property_string(BAD, 0), r => r === '');
 
     // --- EventInstance surface ---
-    // legacy instance `evi` (never released) must still be tracked
+    // the first instance evi (never released) must remain tracked
     const inst = expect('evd_create_instance', () => jaxe.fmod_evd_create_instance(evd), r => r > 0);
     expect('evd_get_instance_count', () => jaxe.fmod_evd_get_instance_count(evd), r => r === 2);
     const nInst = expect('evd_get_instance_list', () => jaxe.fmod_evd_get_instance_list(evd, ibuf), r => r === 2);
     const instList = ibuf.slice(0, nInst);
     expect('instance list dedupe (new evi)', () => instList.includes(inst), r => r === true);
-    expect('instance list dedupe (legacy evi)', () => instList.includes(evi), r => r === true);
+    expect('instance list dedupe (first evi)', () => instList.includes(evi), r => r === true);
     expect('evi_get_description dedupe', () => jaxe.fmod_evi_get_description(inst), r => r === evd);
 
     expect('evi_is_valid', () => jaxe.fmod_evi_is_valid(inst), r => r === true);
@@ -503,10 +505,10 @@ async function main() {
     expect('evi_get_cpu_usage invalid', () => jaxe.fmod_evi_get_cpu_usage(BAD, ibuf), r => r === 30);
     expect('evi_get_memory_usage invalid', () => jaxe.fmod_evi_get_memory_usage(BAD, ibuf), r => r === 30);
 
-    // --- releaseAllInstances (legacy `evi` is the only one left) ---
+    // --- releaseAllInstances (the first `evi` is the only one left) ---
     expect('evd_release_all_instances', () => jaxe.fmod_evd_release_all_instances(evd), r => r === 0);
     await pump(5);
-    // released-but-tracked handles must still return safely, not throw
+    // released-but-tracked handles must return safely instead of throwing
     check('evi_get_playback_state on released-out instance', () => jaxe.fmod_evi_get_playback_state(evi));
     check('evi_release to drop stale handle', () => { jaxe.fmod_evi_release(evi); return 'ok'; });
 
@@ -586,9 +588,11 @@ async function main() {
     expect('handleResolve null after pending unload', () => jaxe.handleResolve(pbank, jaxe.TYPE_BANK), r => r === null);
     expect('live handle count restored', () => jaxe.fmod_debug_live_handle_count(), r => r === liveBeforePending);
 
-    // late completion after unload: this fake ignores the abort signal (a
-    // response already in flight when abort lands), so the fetch resolves
-    // 200ms after the unload - the cancelled flag must drop the bank
+    // late completion after unload.
+    // This fake ignores the abort signal, which models a response already in
+    // flight when abort lands.
+    // The fetch resolves 200ms after the unload, and the cancelled flag must
+    // drop the bank.
     let lateResolve = null;
     global.fetch = () => new Promise(resolve => { lateResolve = resolve; });
     const lbank = expect('sys_load_bank_async late completion', () => jaxe.fmod_sys_load_bank_async('Late.bank'), r => r > 0);
@@ -601,6 +605,66 @@ async function main() {
 
     jaxe.ASYNC_FETCH_TIMEOUT_MS = prevAsyncTimeout;
     global.fetch = prevFetch;
+
+    // --- shim-internal contracts shared with the C shims ---
+    // Queue strings are cut to the native record budgets (FAXE_CBQ_STR_MAX
+    // and FAXE_CBQ_STR2_MAX), on a codepoint boundary.
+    expect('cb_truncate keeps a short string', () => jaxe.cbTruncate('hi', 64), r => r === 'hi');
+    expect('cb_truncate str budget', () => jaxe.cbTruncate('a'.repeat(200), 64).length, r => r === 63);
+    expect('cb_truncate str2 budget', () => jaxe.cbTruncate('b'.repeat(400), 128).length, r => r === 127);
+    expect('cb_truncate two-byte boundary',
+        () => Buffer.byteLength(jaxe.cbTruncate('\u00e9'.repeat(60), 64), 'utf8'), r => r === 62);
+    expect('cb_truncate four-byte boundary',
+        () => Buffer.byteLength(jaxe.cbTruncate('\ud83d\ude00'.repeat(30), 64), 'utf8'), r => r === 60);
+
+    // Handle-table exhaustion reports FMOD_ERR_MEMORY, the code the C shims use
+    expect('ERR_MEMORY matches FMOD_RESULT', () => jaxe.ERR_MEMORY, r => r === 38);
+
+    // An inclusion list longer than the buffer behind it is ignored
+    const exShort = new Array(22).fill(0);
+    exShort[19] = 50;
+    expect('exinfo ignores an unbacked inclusion list',
+        () => jaxe.fillExInfo(exShort, '', '', '').inclusionlistnum, r => r === 0 || r === undefined);
+    const exFull = new Array(23).fill(0);
+    exFull[19] = 3;
+    expect('exinfo takes a backed inclusion list',
+        () => jaxe.fillExInfo(exFull, '', '', '').inclusionlistnum, r => r === 3);
+
+    // ps_clear with nothing left to deliver takes the handler off rather
+    // than installing one with an empty mask
+    const maskEvd = jaxe.fmod_sys_get_event('event:/Music/MainLevel');
+    const maskEvi = jaxe.fmod_evd_create_instance(maskEvd);
+    expect('mask 0 is tracked', () => {
+        jaxe.fmod_evi_set_callback_mask(maskEvi, 0);
+        return jaxe.hasCallbackState(maskEvi);
+    }, r => r === true);
+    expect('ps_clear on an empty mask uninstalls', () => {
+        jaxe.fmod_ps_clear(maskEvi);
+        return jaxe.hasCallbackState(maskEvi);
+    }, r => r === false);
+    jaxe.fmod_evi_release(maskEvi);
+
+    // The bank path cache only fills while a BANK_UNLOAD subscription wants it
+    expect('bank paths stay uncached without a subscription', () => {
+        jaxe.fmod_sys_set_studio_callback_mask(0);
+        jaxe.cacheAllBankPaths();
+        return jaxe.bankPathByRaw.size;
+    }, r => r === 0);
+    expect('bank paths cache under a subscription', () => {
+        jaxe.fmod_sys_set_studio_callback_mask(4);
+        jaxe.cacheAllBankPaths();
+        return jaxe.bankPathByRaw.size;
+    }, r => r > 0);
+    expect('dropping the subscription clears the cache', () => {
+        jaxe.fmod_sys_set_studio_callback_mask(0);
+        return jaxe.bankPathByRaw.size;
+    }, r => r === 0);
+    expect('a mask without the unload bit clears the cache', () => {
+        jaxe.fmod_sys_set_studio_callback_mask(4);
+        jaxe.cacheAllBankPaths();
+        jaxe.fmod_sys_set_studio_callback_mask(1);
+        return jaxe.bankPathByRaw.size;
+    }, r => r === 0);
 
     // --- command replay validity ---
     expect('replay_is_valid stale', () => jaxe.fmod_replay_is_valid(0), r => r === false);
