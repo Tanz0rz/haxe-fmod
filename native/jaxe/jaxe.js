@@ -5969,8 +5969,9 @@ class jaxe {
         return jaxe.lastResult;
     }
 
-    // FMOD 2.03.12 reports OK from both group readers and leaves the
-    // values at zero on every target, so they read back zeros here too
+    // FMOD 2.03.12 reports OK from both group readers. The occlusion
+    // reader writes zeros. The lowpass reader writes nothing, so it hands
+    // back whatever an earlier getter left in the glue's scratch float
     static fmod_cg_get_3d_occlusion(handle, fbuf) {
         var group = jaxe.resolveCg(handle);
         if (!group) { jaxe.lastResult = jaxe.ERR_INVALID_HANDLE; return jaxe.lastResult; }
