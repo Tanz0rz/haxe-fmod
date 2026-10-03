@@ -252,7 +252,7 @@ abstract ChannelGroup(Int) from Int to Int {
 
     /**
      * The group's lowpass gain, 0.0 on failure. FMOD 2.03.12 reports OK for a group but does not write the
-     * value. Native targets return 0.0. HTML5 returns an unset value near zero. Keep the gain you set if you need it back. StudioSystem.lastResult() holds the
+     * value. Native targets return 0.0. HTML5 returns a leftover value from an earlier getter. Keep the gain you set if you need it back. StudioSystem.lastResult() holds the
      * reason for a failure.
      */
     public inline function getLowPassGain():Float {
