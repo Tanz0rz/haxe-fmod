@@ -62,6 +62,10 @@ These FMOD features cannot be bound from Haxe. Most hand FMOD a function pointer
 
 - **List getters return at most 1024 entries** (banks, events, buses, VCAs, instances, and the other enumerations). A larger result logs a truncation warning with the real total.
 - **Programmer sound keys must be under 512 UTF-8 bytes, and instrument names under 64.** Longer keys or names are rejected with `FMOD_ERR_INVALID_PARAM` on every target. An instance holds at most eight named assignments.
+- **Callback events queue up to 256 between updates.** A fuller queue drops the oldest events. The library logs a warning when it does.
+- **Callback strings are cut at 63 UTF-8 bytes on every target.** That covers marker, plugin, and instrument names and the `BankUnload` path. The `Error` parameters are cut at 127.
+- **Some lists have smaller caps.** `get3DCustomRolloff` returns at most 341 points. `getFadePoints` returns at most 512 points. `setParametersByIDs` refuses more than 512 pairs with `FMOD_ERR_INVALID_PARAM`.
+- **Raw PCM sounds are mono or stereo.** `Sound.fromPcm`, `PcmStream`, and `Sound.createRecordBuffer` refuse other channel counts with `FMOD_ERR_INVALID_PARAM`.
 - **On C++ and HashLink an instance records at most 64 live plugin instruments.** A further one arrives in `PluginCreated` with `Dsp.NULL` as its effect. HTML5 has no plugin host.
 - **The handle table holds at most 65536 slots on every target.** Each slot serves 32767 handles and then retires. A call that finds no free slot returns the null handle, with `FMOD_ERR_MEMORY` in `lastResult()`.
 - **Only a group the game created can be released.** `ChannelGroup.release` and `SoundGroup.release` refuse every other group with `FMOD_ERR_INVALID_PARAM`. That covers the master group, a bus's group, an instance's group, and a group first reached through a walk. The handle stays usable.

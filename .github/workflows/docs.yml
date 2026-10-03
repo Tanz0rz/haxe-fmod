@@ -95,7 +95,7 @@ jobs:
           python3 ci/check-readme-snippets.py --kha-stubs /tmp/haxefmod-kha-stubs
           haxe -cp . -cp /tmp/haxefmod-kha-stubs \
             -lib flixel -lib openfl -lib lime -lib heaps \
-            -D FLX_STANDARD_ASSETS_DIRECTORY -D openfl-html5 -D html5 \
+            -D FLX_STANDARD_ASSETS_DIRECTORY -D openfl-html5 -D html5 -D haxefmod_html5_allow_unsupported \
             --no-output -js /dev/null \
             --macro "include('haxefmod', true, ['haxefmod.tools', 'haxefmod.studio.native'])" \
             --xml /tmp/haxefmod-docs/types.xml

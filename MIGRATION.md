@@ -18,7 +18,7 @@ case TimelineMarker(marker):       // FmodTimelineMarkerProperties: name, positi
 case NestedTimelineBeat(nested):   // FmodTimelineNestedBeatProperties: eventId, properties
 ```
 
-`PluginCreated(properties)` and `PluginDestroyed(properties)` carry `FmodPluginInstanceProperties` with `name` and `dsp`. `ProgrammerSoundCreated(properties)` and `ProgrammerSoundDestroyed(properties)` carry `FmodProgrammerSoundProperties` with `name`, `sound`, and `subsoundIndex`. These four replace the `Other(type)` fallback for their types. An exhaustive `switch` on `EventCallbackData` needs the four cases or a `default`. `ChannelEvent` gained `VirtualVoice(isVirtual)` and `Occlusion(direct, reverb)`. An exhaustive `switch` on it needs those cases or a `default`.
+`PluginCreated(properties)` and `PluginDestroyed(properties)` carry `FmodPluginInstanceProperties` with `name` and `dsp`. `ProgrammerSoundCreated(properties)` and `ProgrammerSoundDestroyed(properties)` carry `FmodProgrammerSoundProperties` with `name`, `sound`, and `subsoundIndex`. These four replace the `Other(type)` fallback for their types. An exhaustive `switch` on `EventCallbackData` needs the four cases or a `default`. `ChannelEvent` gained `VirtualVoice(isVirtual)` and `Occlusion(direct, reverb)`. An exhaustive `switch` on it needs those cases or a `default`. A channel handler now runs for these two events too. A handler that treats every call as `End` must check for `End`.
 
 ## The default callback mask is every type
 
@@ -61,6 +61,8 @@ instance.setCallback(handler, EventCallbackType.STARTED | EventCallbackType.TIME
 - The helper class uses FMOD's word for a playable thing. `FmodManager.PlaySound` is now `PlayEvent`. `PlaySoundOneShot`, `PlaySoundOneShotAt`, and `PlaySoundOneShotAttached` are `PlayOneShot`, `PlayOneShotAt`, and `PlayOneShotAttached`. `StopAllSounds`, `PauseAllSounds`, and `UnpauseAllSounds` are `StopAllEvents`, `PauseAllEvents`, and `UnpauseAllEvents`. The `FmodSound` handle type is `FmodEvent`. `FmodFlxUtilities.PlaySoundOneShotAttached` is `PlayOneShotAttached`. The old names remain as deprecated aliases for this release and the compiler warns at every use.
 - `FmodManager.SetEventParameterOnSong` and `GetEventParameterOnSong` are now `SetSongParameter` and `GetSongParameter`. `SetSongParameterWithLabel` sets a labeled parameter on the song. The old names remain as deprecated aliases for this release and the compiler warns at every use.
 - `FmodManager.SetWindowFocused(focused)` and `IsWindowFocused()` moved to `FmodRuntime.setWindowFocused(focused)` and `FmodRuntime.isWindowFocused()`. The engine setup calls already report focus there. A game that reported focus itself changes the two call sites. `FmodManager.SetMuteWhenUnfocused` stays.
+- `FmodFlxParameterTrigger` reads its zone once, when it is created. 2.0 read the `FlxRect` every frame. A later change to that `FlxRect` no longer moves the zone. Create a new trigger for a zone that moves.
+- Regenerated constants rename `Dynamic` to `Dynamic2`. `NAN`, `INFINITY`, and a few other C macro names take the same suffix. Update those references after you regenerate the constants.
 
 ## HTML5 builds
 
@@ -74,6 +76,10 @@ Seven calls a 2.0 js build compiled now fail that build:
 - `StudioSystem.getMemoryUsage`
 
 Each returned `null` or `FMOD_ERR_UNSUPPORTED` in a 2.0 browser build. Remove the call, guard it with `#if !js`, or set the define.
+
+A default bank that fails to load no longer holds `FmodManager.IsInitialized()` at false in a browser. Initialization completes without the bank. `FmodManager.InitializeFailed()` reports the failure. A `FmodRuntime.onceReady` handler without `onFailed` runs in that case too.
+
+`FMOD_SDK_WEB` must point at the full FMOD HTML5 package. The build now needs `api/core/inc/fmod_common.h` and `fmodstudio.wasm` there. A trimmed copy with only the wasm folder fails the build.
 
 ## HashLink
 

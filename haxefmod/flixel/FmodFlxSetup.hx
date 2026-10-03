@@ -11,7 +11,7 @@ import haxefmod.runtime.FmodSettings;
 
     It initializes FMOD. Settings pass through to FmodManager.Initialize.
     The first initialization wins. Settings are ignored if something
-    already initialized FMOD, like an HTML5 preloader.
+    already initialized FMOD, like FmodFlxPreloader.
 
     It adds FmodFlxUpdater so FmodManager.Update() runs after every frame.
 

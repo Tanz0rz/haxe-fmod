@@ -218,7 +218,8 @@ class FmodRuntime {
      * loads it from memory instead of fetching the file. The engine
      * preloaders call this with what the engine's own loader delivered.
      * The name is the entry in autoLoadBanks, with or without the folder.
-     * Call it before or after init, the bank is used either way. FMOD
+     * On HTML5 call it before or after init. A native target loads the
+     * default banks inside init, so provide them before init there. FMOD
      * copies the data, so the bytes are released after the load. A bank
      * provided after the runtime fetched it is ignored. A name that is
      * not in autoLoadBanks is dropped with a warning. Null bytes count

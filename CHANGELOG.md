@@ -3,6 +3,7 @@
 ## 3.0.0 (unreleased)
 
 ### Added
+- `HAXEFMOD_HDLL_ARCH=arm64` makes `haxelib run haxefmod build-hdll` build an arm64 hdll on macOS. Without it the command builds x86_64 as before.
 - `FmodHeapsUpdater.update()` and `FmodKhaUpdater.update()` tick every component and then update FMOD. A game that removed the hook calls it from its own frame code. `removeHook()` on all three updaters stays in effect. A component created later leaves the hook off. `init()` or the engine setup puts it back.
 - Engine preloaders that have FMOD ready before the first scene, on HTML5 too. `haxefmod.flixel.FmodFlxPreloader` is a lime preloader that initializes FMOD while lime loads the assets and takes the default banks from them. `FmodHeapsSetup.preload` loads the banks through `hxd.net.BinaryLoader` in the browser and from disk on HashLink. `FmodKhaSetup.preload` takes them from `kha.Assets.blobs`. Each calls back once FMOD is usable, or when a bank failed. The three example games start through them and have no loading scene.
 - `FmodRuntime.provideBank(fileName, bytes)`, `provideBankFailed(fileName, reason)`, `allBanksProvided()`, `providedBankCount()`, the `banksProvided` setting, `BankRegistry.loadMemory` and `isRegistered`, and an `onFailed` argument on `FmodRuntime.onceReady`. Together they let any loader hand the default banks to the runtime as bytes.
@@ -83,10 +84,11 @@
 - `setMixLevelsInput` and `setMixLevelsOutput` on `Channel` and `ChannelGroup`, `CoreSystem.setOutputByPlugin` and `getOutputByPlugin`, `Sound.getNumTagsUpdated`, `Dsp.addInputPreallocated`, `StudioSystem.clearSystemCallback`, and `EventDescription.hasCallback` and `clearAllCallbacks`.
 
 ### Changed
+- `FmodFlxParameterTrigger` copies its zone when it is created. A later change to the `FlxRect` no longer moves the zone.
 - The native binding ABI is 14. A prebuilt `hlaxe_fmod.hdll` from 2.0 is refused at build time with instructions. Run `haxelib run haxefmod build-hdll` once, or use the hdlls in the 3.0.0 package.
 - `FmodFlxUpdater` hooks `FlxG.signals.postUpdate` instead of registering an `FlxG` plugin. A plugin updates before the state, so it pushed the emitter and listener positions of the frame before. Every `haxefmod.flixel` component installs the hook from its constructor until the game calls `removeHook()`, the way the Heaps and Kha components do.
 - `FmodManager.ClearAllCallbacks` shrinks every native callback mask, so instances and channels with no handler stop filling the callback queue.
-- `haxelib run haxefmod check` reads the expected FMOD version from the library instead of a literal. It checks the hdll binding ABI the way the build does. It requires only the haxelibs a lime project file names. A Heaps or Kha project gets a skip instead of a failure.
+- `haxelib run haxefmod check` reads the expected FMOD version from the library instead of a literal. It checks the hdll binding ABI the way the build does. It requires lime, hxcpp, and the haxelibs a lime project file names. A Heaps or Kha project gets a skip instead of a failure.
 - `EventInstance.setCallback` delivers every callback type when no mask is given. That is the default FMOD's API and its C# integration use. `FmodManager.OnSongEvent`, `OnceSongEvent`, and `FmodEvent.onEvent` take the same default through it.
 - A long-lived `DspConnection` handle stays valid while its connection still joins its original two ends. A disconnect, a DSP or group release, a channel stop, or a `removeDsp` leaves other long-lived handles working. 2.0 ended every connection handle at those calls.
 - `StudioSystem.lookupID` returns `FmodGuid.NULL` on failure. 2.0 returned an empty string. A comparison with `""` no longer matches a failed lookup. Call `isNull()` on the result.
