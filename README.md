@@ -20,13 +20,18 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - Events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), and more
 
 - Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) with payloads (beats, timeline markers, etc.)
-- [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
-- [Helper class](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
-- [Generated constants](https://www.tanz0rz.com/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks
-- [TODO markers](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers) for sound effects to add later
-- [fmod.com extension](https://www.tanz0rz.com/haxe-fmod/guides/extension/) to integrate Haxe examples into the official docs
 
-If this library does not support something you need, open an Issue. 
+- [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
+
+- [Helper class](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
+
+- [Generated constants](https://www.tanz0rz.com/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks
+
+- [TODO markers](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers) for sound effects to add later
+
+- [fmod.com extension (beta)](https://www.tanz0rz.com/haxe-fmod/guides/extension/) to integrate Haxe examples into the official docs
+
+If this library does not support something you need, open an Issue.
 
 ## Getting Started
 
@@ -39,10 +44,8 @@ Once you are set up, `haxelib run haxefmod check` verifies your local dev enviro
 The `FmodManager` class is the primary way to interact with FMOD in your game. The `FmodEvents` constants used below are generated from your banks (see [Generating constants](https://www.tanz0rz.com/haxe-fmod/guides/constants/)). Every call and its description is in the [FmodManager API reference](https://www.tanz0rz.com/haxe-fmod/api/haxefmod/FmodManager.html).
 
 ```haxe
-var engine:FmodEvent;
-
 public function StartLevel():Void {
-    // One background song at a time. Transitions ride the authored fadeout
+    // One background song at a time, additional transition functions available when using this to manage game music
     FmodManager.PlaySong(FmodEvents.MusicMainLevel);
 }
 
@@ -51,8 +54,10 @@ public function JumpPressed():Void {
     FmodManager.PlayOneShot(FmodEvents.SFXJump);
 }
 
+var engine:FmodEvent;
+
 public function StartEngine():Void {
-    // Handle-based playback for events you control over time
+    // Handle-based playback for events you control after starting
     engine = FmodManager.PlayEvent(FmodEvents.SFXEngine);
     engine.setParameter("RPM", 0.2);
 }
@@ -66,7 +71,7 @@ public function OnBeat():Void {
 }
 ```
 
-FmodManager covers most common cases. Anything else FMOD exposes is reachable through the deeper layers:
+FmodManager covers most common cases, but deeper layers are available for more explicit control:
 
 ```haxe
 // Example of reaching beyond FmodManager: everything FMOD Studio exposes is reachable
@@ -116,7 +121,7 @@ More details can be found [in the docs here](https://www.tanz0rz.com/haxe-fmod/g
 
 ## fmod.com Extension (beta)
 
-**Experimental**: The code snippets are occasionally incorrect, but this will still provide value if you are a docs-first developer
+**Experimental feature**: The code snippets are occasionally incorrect, but this will still provide value if you are a docs-first developer
 
 ![The Haxe tab on fmod.com](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_extension.png)
 
