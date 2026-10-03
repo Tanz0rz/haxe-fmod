@@ -1,17 +1,10 @@
 # FMOD for Haxe
 
+This library provides Full FMOD Studio and FMOD Core support for Haxe
+
 Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then follow the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446).
 
 **Setup instructions, guides, and the API reference live on the [documentation site](https://www.tanz0rz.com/haxe-fmod/).**
-
-## Supported Platforms
-
-| Platform | Architecture          | HaxeFlixel    | Heaps                 | Kha                 |
-| -------- | --------------------- | ------------- | --------------------- | ------------------- |
-| HTML5    | All                   | WebAssembly   | WebAssembly           | WebAssembly         |
-| Windows  | x86_64                | C++, HashLink | HashLink              | Kore C++, Kore HL/C |
-| Linux    | x86_64                | C++, HashLink | HashLink              | Kore C++, Kore HL/C |
-| macOS    | ARM64 (Apple Silicon) | C++, HashLink | HashLink through HL/C | Kore C++, Kore HL/C |
 
 ## Features
 
@@ -20,17 +13,26 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 - Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) with payloads (beats, timeline markers, etc.)
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
 - [Helper class](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
-- [Generated constants](https://www.tanz0rz.com/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks
-- [TODO markers](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers) for sound effects to add later
-- [fmod.com extension (beta)](https://www.tanz0rz.com/haxe-fmod/guides/extension/) to integrate Haxe examples into the official docs
+- [Generated constants](https://www.tanz0rz.com/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks 
+- [TODO markers](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers) for sound effects you plan to add later
+- [fmod.com extension (beta)](https://www.tanz0rz.com/haxe-fmod/guides/extension/) to integrate Haxe examples into the official FMOD docs
 
 If this library does not support something you need, open an Issue.
 
+## Supported Platforms
+
+Built and tested on Haxe `4.3.6` and FMOD Engine `2.03.12`
+
+| Platform | Architecture          | HaxeFlixel    | Heaps                 | Kha                 |
+| -------- | --------------------- | ------------- | --------------------- | ------------------- |
+| HTML5    | All                   | WebAssembly   | WebAssembly           | WebAssembly         |
+| Windows  | x86_64                | C++, HashLink | HashLink              | Kore C++, Kore HL/C |
+| Linux    | x86_64                | C++, HashLink | HashLink              | Kore C++, Kore HL/C |
+| macOS    | ARM64 (Apple Silicon) | C++, HashLink | HashLink through HL/C | Kore C++, Kore HL/C |
+
 ## Getting Started
 
-The [getting started walkthrough](https://www.tanz0rz.com/haxe-fmod/getting-started/) takes a new project from an empty build file to a playing sound. Every step that differs by engine has HaxeFlixel, Heaps, and Kha tabs.
-
-Once you are set up, `haxelib run haxefmod check` verifies your local dev environment and is **highly recommended** whenever something misbehaves.
+The [getting started walkthrough](https://www.tanz0rz.com/haxe-fmod/getting-started/) is a complete guide to setting up this library from scratch. Every step that differs by engine has HaxeFlixel, Heaps, and Kha tabs.
 
 ## Using the Library in Code
 
@@ -48,7 +50,6 @@ public function JumpPressed():Void {
 }
 
 var engine:FmodEvent;
-
 public function StartEngine():Void {
     // Handle-based playback for events you control after starting
     engine = FmodManager.PlayEvent(FmodEvents.SFXEngine);
@@ -107,14 +108,15 @@ FmodManager.Todo("door creak when the vault opens");
 ```
 
 - `haxelib run haxefmod todos` lists every remaining marker with its file and line. 
-
-- Builds with `-D haxefmod_todo_beep` plays a short placeholder blip so you hear the sounds that are still missing while playtesting. 
+- Builds with `-D haxefmod_todo_beep` play a short placeholder blip so you hear the sounds that are still missing while playtesting. 
 
 More details can be found [in the docs here](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers).
 
 ## fmod.com Extension (beta)
 
 **Experimental feature**: The code snippets are occasionally incorrect, but this will still provide value if you are a docs-first developer
+
+This modifies the code examples in the official fmod.com documentation to natively include Haxe
 
 ![The Haxe tab on fmod.com](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_extension.png)
 
