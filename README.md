@@ -16,19 +16,12 @@ Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/
 ## Features
 
 - The [FMOD Studio API](https://www.fmod.com/docs/2.03/api/studio-api.html) and [FMOD Core API](https://www.fmod.com/docs/2.03/api/core-api.html) at runtime, with some known [limitations](https://www.tanz0rz.com/haxe-fmod/limitations/)
-
 - Events, buses, VCAs, snapshots, banks, global and labeled [parameters](https://www.fmod.com/docs/2.03/studio/parameters-reference.html), and more
-
 - Typed [callbacks](https://www.fmod.com/docs/2.03/api/studio-api-eventinstance.html#fmod_studio_event_callback_type) with payloads (beats, timeline markers, etc.)
-
 - [Live Update](https://fmod.com/docs/2.03/studio/editing-during-live-update.html) for mixing sounds while playtesting
-
 - [Helper class](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/) to map FMOD Studio calls/events to game code
-
 - [Generated constants](https://www.tanz0rz.com/haxe-fmod/guides/constants/) for every event, bus, VCA, snapshot, and parameter in your banks
-
 - [TODO markers](https://www.tanz0rz.com/haxe-fmod/guides/fmod-manager/#sound-todo-markers) for sound effects to add later
-
 - [fmod.com extension (beta)](https://www.tanz0rz.com/haxe-fmod/guides/extension/) to integrate Haxe examples into the official docs
 
 If this library does not support something you need, open an Issue.
