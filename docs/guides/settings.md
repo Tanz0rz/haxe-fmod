@@ -42,7 +42,7 @@ FmodRuntime.onceReady(() -> {
 | `sampleRate` | `haxefmod_sample_rate` | 0 | Mixer sample rate. 0 uses the device default. |
 | `speakerMode` | | 0 | `FMOD_SPEAKERMODE` value. 0 uses the device default. |
 | `rawSpeakers` | | 0 | Speaker count for `speakerMode` `RAW`. Every other mode ignores it. |
-| `output` | | `AUTODETECT` | `FmodOutputType` applied before init. `NOSOUND` and `NOSOUND_NRT` mix without a device. `WAVWRITER` writes the mix to a file. The platform values pick a driver. The `FMOD_WAVWRITER` environment variable still forces `WAVWRITER` into the file it names. HTML5 has only `WEBAUDIO`, `AUDIOWORKLET`, `NOSOUND`, and `NOSOUND_NRT`. Any other value there makes init fail with `FMOD_ERR_UNSUPPORTED`. |
+| `output` | | `AUTODETECT` | `FmodOutputType` applied before init. `NOSOUND` and `NOSOUND_NRT` mix without a device. `WAVWRITER` writes the mix to a file. The platform values pick a driver. The `FMOD_WAVWRITER` environment variable still forces `WAVWRITER` into the file it names. HTML5 has only `AUTODETECT`, `WEBAUDIO`, `AUDIOWORKLET`, `NOSOUND`, and `NOSOUND_NRT`. Any other value there makes init fail with `FMOD_ERR_UNSUPPORTED`. |
 | `resamplerMethod` | | `DEFAULT` | `FmodDspResampler` for sounds that play at another rate than the mixer. `DEFAULT` is FMOD's choice, `LINEAR`. |
 | `dspBufferSize` | `haxefmod_dsp_buffer_size` | 0 | Mixer block size in samples. Smaller buffers cut latency and cost CPU. 0 leaves FMOD's default of 1024 on desktop. The web build then sets 2048, the size FMOD recommends there. A size above 16777216 keeps the default. |
 | `dspNumBuffers` | | 0 | Mixer blocks queued ahead. It applies with a set `dspBufferSize` only. 0 then means 2 blocks. With `dspBufferSize` at 0 FMOD's default of 4 stands on desktop. |

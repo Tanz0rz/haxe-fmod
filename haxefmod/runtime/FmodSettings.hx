@@ -41,7 +41,7 @@ typedef FmodSettings = {
      * (WASAPI, ASIO, PULSEAUDIO, ALSA, COREAUDIO) pick a driver on the
      * platform that has it. The FMOD_WAVWRITER environment variable still
      * wins when set. It forces WAVWRITER into the file it names. On HTML5
-     * only WEBAUDIO, AUDIOWORKLET, NOSOUND, and NOSOUND_NRT exist. Any
+     * only AUTODETECT, WEBAUDIO, AUDIOWORKLET, NOSOUND, and NOSOUND_NRT exist. Any
      * other value makes init fail with FMOD_ERR_UNSUPPORTED.
      */
     @:optional var output:FmodOutputType;
