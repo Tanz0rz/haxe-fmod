@@ -5,7 +5,7 @@
 	"tags": ["fmod", "audio", "windows", "linux", "mac", "hashlink", "html5", "web", "openfl", "lime", "flixel", "heaps", "kha"],
 	"description" : "Use FMOD Studio with Haxe on HTML5, HashLink, Windows, Linux, and macOS",
 	"version" : "3.0.0",
-	"releasenote" : "FMOD API parity on native targets with typed declarations, callbacks with FMOD structs, and an HTML5 compile gate. Heaps and Kha join HaxeFlixel. The helper class gains banks, snapshots, and VCAs. Breaking release, see MIGRATION.md.",
+	"releasenote" : "More complete FMOD support, Heaps and Kha now supported, documentation site released, fmod.com experimental extension, and more",
 	"contributors" : ["Tanz0rz"],
 	"dependencies" : { },
 	"main" : "haxefmod.tools.Run"
