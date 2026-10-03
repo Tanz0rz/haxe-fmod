@@ -94,7 +94,7 @@ haxelib install haxefmod
 
 ## 2. Download FMOD Studio and set up your project
 
-FMOD Studio is the tool you use to manage all audio for your game. Download it [here](https://fmod.com/download). Then install the [constants export script](guides/constants.md#the-fmod-studio-export-script). A bank build then also writes the Haxe constants your code references.
+FMOD Studio is the tool you use to manage all audio for your game. Download it [here](https://fmod.com/download). Then install the [constants export script](guides/constants.md#the-fmod-studio-export-script). Its `Ctrl+B` command then writes the Haxe constants your code references and builds the banks.
 
 ## 3. Set up the FMOD Engine SDK
 
@@ -270,16 +270,17 @@ HTML5 initializes asynchronously. The preloaders above cover that. The first sce
 
     Pass `windows` instead of `linux` on Windows. Also swap `-lib hlsdl` for `-lib hldx` in the hxml. Heaps runs on DirectX there. A machine with no OpenGL driver, such as a CI runner, cannot create the context `hlsdl` needs.
 
-    The [stage command](guides/tools-cli.md#stage) copies the FMOD libraries and `hlaxe_fmod.hdll` into the directory. It also writes a launcher that starts the game with the right library path. The launcher is `run.sh`, or `run.cmd` on Windows.
+    The [stage command](guides/tools-cli.md#stage) copies the FMOD libraries and `hlaxe_fmod.hdll` into the directory. It also writes a launcher that starts the game with the right library path. The launcher is `run.sh`, or `run.cmd` on Windows. The stage command copies no banks. Copy your banks to `build/hl/assets/fmod/Desktop`. The launcher starts the game in `build/hl`. `preload` reads the banks relative to that directory.
 
     ```bash
     cd build/hl && ./run.sh
     ```
 
-    **On macOS**: the game compiles through HL/C into a native executable. The steps differ. Run `haxelib run haxefmod build-hdll` first. The command writes `.haxefmod/hlaxe_fmod.hdll`. Then send the compile to C and link it against your HashLink installation.
+    **On macOS**: the game compiles through HL/C into a native executable. The steps differ. Run `HAXEFMOD_HDLL_ARCH=arm64 haxelib run haxefmod build-hdll` first. Homebrew's HashLink is arm64. Without the variable the command builds an x86_64 hdll. The command writes `.haxefmod/hlaxe_fmod.hdll`. Then send the compile to C and link it against your HashLink installation.
 
     ```bash
     HL_PREFIX=$(brew --prefix)
+    mkdir -p build/hl
     haxe $(grep -v '^#' build-hl.hxml | grep -v '^-hl ') -hl build/hlc/main.c
     clang -O2 -std=gnu11 -w -o build/hl/game build/hlc/main.c -I build/hlc \
       -I "$HL_PREFIX/include" -L "$HL_PREFIX/lib" -lhl -luv $LIBS \
@@ -325,7 +326,7 @@ HTML5 initializes asynchronously. The preloaders above cover that. The first sce
 
     Linux and macOS ask for OpenGL instead of Kinc's default of Vulkan or Metal. OpenGL runs on any display, a virtual or GPU-less one included. Windows keeps Direct3D and takes no `--graphics` flag.
 
-    `linux` is the Kore C++ target. `linux-hl` builds the same game as HashLink instead. Kore compiles it to a native executable. For the HashLink targets, set `HAXEFMOD_KHA_HL=1` in the environment before khamake. The library then compiles its HashLink binding into the executable instead of the C++ one. On the other platforms the khamake targets are `osx`/`osx-hl` and `windows`/`windows-hl`. Pass the platform name to the [stage command](guides/tools-cli.md#stage).
+    `linux` is the Kore C++ target. `linux-hl` builds the same game as HashLink instead. Kore compiles it to a native executable. For the HashLink targets, set `HAXEFMOD_KHA_HL=1` in the environment before khamake. The library then compiles its HashLink binding into the executable instead of the C++ one. On the other platforms the khamake targets are `osx`/`osx-hl` and `windows`/`windows-hl`. The [stage command](guides/tools-cli.md#stage) takes `linux`, `mac`, or `windows`. It takes `mac` for the `osx` targets.
 
     The stage target is `cpp` for every native Kha build, the HashLink ones included. The binding is inside the executable either way. No hdll or VM is involved. Only the FMOD libraries need staging. Copy your banks to `assets/fmod/Desktop` next to the executable. On Linux start it through the `run.sh` the stage command wrote there. On macOS and Windows the libraries resolve next to the executable. Start it directly.
 

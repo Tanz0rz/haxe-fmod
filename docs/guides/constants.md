@@ -1,6 +1,6 @@
 # Generated constants
 
-Every event, bus, VCA, snapshot, and parameter in your FMOD Studio project becomes a Haxe constant. The constants have autocomplete. A renamed event fails at compile time.
+Every event, bus, VCA, snapshot, and global parameter in your FMOD Studio project becomes a Haxe constant. The constants have autocomplete. A renamed event fails at compile time.
 
 ```haxe
 FmodManager.PlaySong(FmodEvents.MusicMainLevel);
@@ -15,7 +15,7 @@ The recommended way to run the generator is from inside FMOD Studio. Constants a
 2. Reload scripts from the Scripts menu.
 3. Press `Ctrl+B` (Scripts, Export Haxe Constants and Build).
 
-The first run asks for your Haxe project's `source` folder. It caches the choice in a `CachedHaxeConstantsOutputLocation` file next to the `.fspro`. From then on `Ctrl+B` regenerates the constants and builds the banks as one step. The [generate command](tools-cli.md#generate) runs the same generator from the command line.
+Each run opens a dialog that asks for your Haxe project's `source` folder and an optional package. The dialog saves both in a `CachedHaxeConstantsOutputLocation` file next to the `.fspro`. Later runs open with the saved values filled in. Save writes the constants and builds the banks as one step. The [generate command](tools-cli.md#generate) runs the same generator from the command line.
 
 ![Haxe constants demo](https://raw.githubusercontent.com/Tanz0rz/haxe-fmod/master/.github/fmod_constants.gif)
 
@@ -33,9 +33,11 @@ One class per path category found in the strings bank:
 
 The `FmodParameters` constants hold full `parameter:/` paths. Every parameter call in `FmodManager` and on `FmodEvent` takes either form. So do `setParameter`, `getParameter`, `getParameterFinal`, and `setParameterWithLabel` on `EventInstance` and `StudioSystem`. FMOD addresses a parameter by its bare name. The prefix is stripped for it. The parameter description lookups and FMOD's own `setParameterByName` forms take the bare name.
 
-Each file also holds a companion `...Guids` class with the same identifiers mapped to GUID strings. The class is separate so autocomplete on the main class shows paths only.
+Each file also holds a companion `...Guids` class with the same identifiers mapped to GUID strings. The class is separate so autocomplete on the main class shows paths only. Code that reads a `...Guids` class imports its file. `import FmodEvents;` does that.
 
 ```haxe
+import FmodEvents;
+
 var path = FmodEvents.MusicMainLevel;      // "event:/Music/MainLevel"
 var guid = FmodEventsGuids.MusicMainLevel; // "{e5187c3f-...}"
 ```

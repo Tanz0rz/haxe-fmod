@@ -2,11 +2,11 @@
 
 `haxefmod.FmodManager` is the helper class most games talk to. It owns six areas. Those are lifecycle with banks, one background song slot, events, the mixer, global parameters, and game policy. The mixer means buses, VCAs, and snapshots. Every call takes an FMOD Studio path or name and holds no handle. The song slot is its one piece of state. `PlayEvent` and `CreateEvent` return an `FmodEvent`, the one handle with a lifetime. `GetBus`, `GetVCA`, and `GetEventDescription` return FMOD's own objects for anything beyond the path calls. It is built entirely on the public layers underneath. Anything it does not cover is reachable through `haxefmod.runtime.FmodRuntime` and `haxefmod.studio.*`, with no hidden state. See [Beyond the helper class](#beyond-the-helper-class).
 
-Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup calls](components.md#setup) only keep `Update()` running and wire focus and volume.
+Every call behaves the same on HaxeFlixel, Heaps, and Kha. The [engine setup calls](components.md#setup) only keep `Update()` running and wire focus. The HaxeFlixel setup also wires volume.
 
 ## Initialization and update
 
-`FmodManager.Initialize(?settings)` starts FMOD. Every other `FmodManager` call initializes with defaults on first use. Calling `Initialize` is optional. Call it yourself to pass [settings](settings.md#settings) or to control when the engine starts. The first initialization wins. The library ignores settings passed to a later call.
+`FmodManager.Initialize(?settings)` starts FMOD. Every other `FmodManager` call initializes with defaults on first use. The exceptions are `EnableDebugMessages`, `ClearAllCallbacks`, `Todo`, and the getters `IsAutoUpdate`, `IsMuteWhenUnfocused`, and `GetCurrentSongPath`. Calling `Initialize` is optional. Call it yourself to pass [settings](settings.md#settings) or to control when the engine starts. The first initialization wins. The library ignores settings passed to a later call.
 
 ```haxe
 FmodManager.Initialize({liveUpdate: true, numChannels: 256});
@@ -16,7 +16,7 @@ Call `FmodManager.Update()` once per frame. It delivers callbacks, pushes positi
 
 `IsInitialized()` reports true once the engine and the default banks are usable. Native targets initialize synchronously. `IsInitialized()` is true immediately there. HTML5 initializes asynchronously. The [engine preloaders](components.md#setup) wait for it before the first scene. A game that uses them never sees it false. `InitializeFailed()` reports that a default bank failed to load or was never provided, or that FMOD refused to initialize. A missing bank leaves the system running without it. Check `InitializeFailed()` first. `FmodFlxPreloader` shows a message and starts the game without that bank. The Heaps and Kha preloads call their `onFailed` instead, or `onReady` when there is none. `InitializeSettled()` turns true once every default bank is loaded or has failed, or FMOD refused. A loading scene of your own starts the game on that.
 
-`EnableDebugMessages()` traces every `FmodManager` operation. It also sets FMOD's log level to the most verbose value. See [Limitations](../limitations.md#fixed-behaviors-and-caps) for when FMOD writes that log. Debug builds enable it automatically.
+`EnableDebugMessages()` traces initialization and every song and event play call of the helper class. It also sets FMOD's log level to the most verbose value. See [Limitations](../limitations.md#fixed-behaviors-and-caps) for when FMOD writes that log. Debug builds enable it automatically.
 
 ### Banks
 
@@ -173,7 +173,7 @@ FmodRuntime.setWindowFocused(false);
 
 ## Sound TODO markers
 
-`FmodManager.Todo("description")` marks a spot in game code that still needs a sound. Release builds compile the call away. Debug builds trace each call site once. A build with `-D haxefmod_todo_beep` also plays a short placeholder blip. Missing sounds are then audible during playtesting.
+`FmodManager.Todo("description")` marks a spot in game code that still needs a sound. Release builds without `-D haxefmod_todo_beep` compile the call away. Debug builds and builds with that define trace each call site once. The define also plays a short placeholder blip. Missing sounds are then audible during playtesting.
 
 ```haxe
 FmodManager.Todo("door creak when the cellar opens");

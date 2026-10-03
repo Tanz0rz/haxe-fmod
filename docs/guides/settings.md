@@ -19,6 +19,7 @@ jump.release();
 
 ```haxe
 import haxefmod.runtime.FmodRuntime;
+import haxefmod.studio.StudioSystem;
 
 FmodRuntime.onceReady(() -> {
     StudioSystem.setParameter("TimeOfDay", 0.5);

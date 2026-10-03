@@ -18,6 +18,7 @@ FmodRuntime.banks.unload(path);
 
 ```haxe
 import haxefmod.runtime.FmodRuntime;
+import haxefmod.FmodManager;
 
 FmodRuntime.banks.loadAsync(FmodRuntime.bankPath("Vehicles.bank"));
 // in update, once per frame

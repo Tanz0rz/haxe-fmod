@@ -11,4 +11,4 @@ import FmodEvents;
 
 Add one line for each generated class your game uses, such as `FmodBuses` or `FmodParameters`.
 
-The `#if !macro` guard is required. The FMOD classes use build macros. An import inside the macro context breaks compilation.
+The `#if !macro` guard keeps these imports out of the macro context. Haxe applies `import.hx` to macro code in the same folder too.

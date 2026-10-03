@@ -9,7 +9,7 @@ haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS. 
 - Typed callbacks with payloads (beats, timeline markers, etc.), see [Callbacks](guides/callbacks.md)
 - [Live Update](live-update.md) for mixing sounds while playtesting
 - [Helper class](guides/fmod-manager.md) to map FMOD Studio calls/events to game code
-- [Generated constants](guides/constants.md) for every event, bus, VCA, snapshot, and parameter in your banks
+- [Generated constants](guides/constants.md) for every event, bus, VCA, snapshot, and global parameter in your banks
 - [TODO markers](guides/fmod-manager.md#sound-todo-markers) for sound effects to add later
 - An [extension for fmod.com (beta)](guides/extension.md) to integrate Haxe examples into the official docs
 
@@ -27,7 +27,7 @@ Pick the lowest tier that does what you need. The tiers compose. A game can star
 | --------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Helper class](guides/fmod-manager.md) | `haxefmod.FmodManager`, `haxefmod.FmodEvent` | One background song slot, events by path or handle, buses, VCAs, snapshots, banks, global parameters, and the focus mute policy. Enough for most games.                                             |
 | Runtime         | `haxefmod.runtime`                           | Settings-driven initialization, the bank registry, 3D attachment, and the per-frame update that everything else rides on.                                                                |
-| Studio and Core | `haxefmod.studio`, `haxefmod.core`           | Typed handles for every FMOD Studio and Core object. The binding is complete except for the callback-driven APIs that no Haxe target can host. A few raw-pointer entry points are left out too. [Limitations](limitations.md) lists them. |
+| Studio and Core | `haxefmod.studio`, `haxefmod.core`           | Typed handles for every FMOD Studio and Core object. The binding is complete except for the callback-driven APIs that no Haxe target can host. A few raw-pointer and platform-specific entry points are left out too. [Limitations](limitations.md) lists them. |
 
 `haxefmod.flixel`, `haxefmod.heaps`, and `haxefmod.kha` hold ready-made components for their engines. `haxefmod.tools` is the `haxelib run haxefmod` command line.
 

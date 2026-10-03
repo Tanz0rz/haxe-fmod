@@ -20,7 +20,7 @@
 haxelib run haxefmod check
 ```
 
-Run it after you install the SDK and whenever a build fails unexpectedly. It reports what is missing and how to fix it. The report includes the download link for the expected FMOD version and the compiler installation steps for your platform. It also counts the sound TODO markers in the project.
+Run it after you install the SDK and whenever a build fails unexpectedly. It reports what is missing and how to fix it. A failed check prints the download link for the expected FMOD version. On Windows a missing MSVC toolchain also prints the installation steps. It also counts the sound TODO markers in the project.
 
 ## generate
 
@@ -72,4 +72,4 @@ The command reads `FMOD_SDK` (or `FMOD_SDK_WEB` for HTML5). It stops with the re
 haxelib run haxefmod build-hdll
 ```
 
-The library ships pre-built HashLink libraries for FMOD Engine 2.03.12. Any other engine version needs the hdll compiled against your installed SDK. This command does it. It detects the platform and finds the HashLink headers in the usual locations. It compiles and places the result in a `.haxefmod/` directory in your project. The build then prefers that copy over the bundled one. Set `HASHLINK_DIR` to your HashLink installation if the command cannot find the headers. You must have a C compiler (`gcc` on Linux, `cc` on macOS, `cl` on Windows). See [Platforms](../platforms.md#hashlink) for how the hdll is resolved at build time.
+The library ships pre-built HashLink libraries for FMOD Engine 2.03.12. Any other engine version needs the hdll compiled against your installed SDK. This command does it. It detects the platform and finds the HashLink headers in the usual locations. It compiles and places the result in a `.haxefmod/` directory in your project. The build then prefers that copy over the bundled one. Set `HASHLINK_DIR` to your HashLink installation if the command cannot find the headers. You must have a C compiler (`gcc` on Linux, `cc` on macOS, `cl` on Windows). On macOS the command builds an x86_64 hdll by default. That matches the HashLink VM that lime bundles. Set `HAXEFMOD_HDLL_ARCH=arm64` for an arm64 HashLink such as Homebrew's. See [Platforms](../platforms.md#hashlink) for how the hdll is resolved at build time.

@@ -24,7 +24,7 @@ function update():Void {
 }
 ```
 
-`FmodManager.InitializeFailed()` reports that a default bank failed to load, or that FMOD refused to initialize. A missing bank leaves the system running without it. `InitializeSettled()` turns true once every default bank is loaded or has failed, or FMOD refused. A loading scene shows a message and starts the game on that. `FmodFlxPreloader` does this for you. `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` run the `onFailed` callback the game passed, or `onReady` anyway when there is none. `AnyBankFailed()` reports the same for a bank loaded later.
+`FmodManager.InitializeFailed()` reports that a default bank failed to load, or that FMOD refused to initialize. A missing bank leaves the system running without it. `InitializeSettled()` turns true once every default bank is loaded or has failed, or FMOD refused. A loading scene shows a message and starts the game on that. `FmodFlxPreloader` does this for you. `FmodHeapsSetup.preload` and `FmodKhaSetup.preload` run the `onFailed` callback the game passed, or `onReady` anyway when there is none. `AnyBankFailed()` reports a later bank whose load settled in error. That covers every HTML5 load and `loadAsync` on native. A failed native `LoadBank` prints a warning instead.
 
 ```haxe
 var audioWarned = false;
@@ -56,7 +56,7 @@ HashLink loads the binding from `hlaxe_fmod.hdll`, a native library compiled aga
 
 At build time `lime test hl` looks for the hdll in this order. The [stage command](guides/tools-cli.md#stage) does the same for Heaps builds.
 
-1. Project-local `.haxefmod/hlaxe_fmod.hdll`, when present and built for the SDK in `FMOD_SDK`. `haxelib run haxefmod build-hdll` writes it there.
+1. Project-local `.haxefmod/hlaxe_fmod.hdll`, when present. Its version marker must name the SDK in `FMOD_SDK`. An hdll without a marker is used as is. `haxelib run haxefmod build-hdll` writes both files.
 2. The pre-built `templates/bin/hl/<Platform>/hlaxe_fmod.hdll` inside the installed library.
 
 The build log states which one it used. At runtime the library checks the hdll's binding version against its own. On a mismatch it refuses to initialize and prints the `build-hdll` command to run.
@@ -65,11 +65,11 @@ Kha builds never use the hdll, the Kore HL/C target included, because the bindin
 
 ## C++
 
-C++ builds compile the binding (`linc_faxe.cpp`) into the executable next to your game. They link against the FMOD libraries in `FMOD_SDK`. Kha's native targets do this through the library's `kfile.js`. There is nothing version-specific to rebuild. To switch FMOD Engine versions, point `FMOD_SDK` at the new SDK and rebuild.
+C++ builds compile the binding (`linc_faxe.cpp`) into the executable next to your game. They link against the FMOD libraries in `FMOD_SDK`. Kha's Kore C++ targets do this through the library's `kfile.js`. Its HL/C targets compile `hlaxe_fmod.c` into the executable the same way. There is nothing version-specific to rebuild. To switch FMOD Engine versions, point `FMOD_SDK` at the new SDK and rebuild.
 
 ## Other FMOD Engine versions
 
-The officially supported FMOD Engine version is 2.03.12. Other versions can work but are not tested. C++ and Kha native builds compile against the SDK that `FMOD_SDK` points at. They need nothing extra. HTML5 builds need the 2.03.12 HTML5 package. The build stops on any other version.
+The officially supported FMOD Engine version is 2.03.12. CI also tests HashLink builds against FMOD Engine 2.02.33. Other versions can work but are not tested. C++ and Kha native builds compile against the SDK that `FMOD_SDK` points at. They need nothing extra. HTML5 builds need the 2.03.12 HTML5 package. The build stops on any other version.
 
 HashLink builds load the pre-built hdll, which is compiled against 2.03.12. For another version, compile the hdll from source against your installed SDK.
 
