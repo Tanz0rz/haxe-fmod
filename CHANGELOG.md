@@ -133,7 +133,7 @@
 - The `peak` and `rms` fields of the `Dsp.getMetering` result. Read `peakLevel` and `rmsLevel` on `FmodDspMeteringInfo`.
 
 ### Fixed
-- A second `FmodRuntime.init` call returns the result of the first. It returned `FMOD_OK` before.
+- A second `FmodRuntime.init` call returns the result of the initialization. It returned `FMOD_OK` before.
 - `FmodFlxSetup.init` adds its signal handlers without a remove first. An `init` call inside a focus or volume signal dropped the library's handler on that signal.
 - The HTML5 shim deletes an embind wrapper when its handle is freed and drops the out parameter it never keeps. The wasm heap no longer grows with every lookup.
 - `unloadAll` reclaims bank handle slots, so a stale bank handle cannot resolve onto a reloaded bank at the same address.
@@ -206,7 +206,7 @@
 - `haxelib run haxefmod generate` reports a strings bank with LIST chunks nested deeper than 32 levels as corrupt instead of overflowing the stack.
 - The Linux `run.sh` launcher is rewritten when its content changed. A fix to it reaches an existing build directory.
 - A C++ build no longer aborts when the auto-update thread cannot start.
-- The FMOD Studio export script reports a missing model class, an empty project, and an unwritable folder.
+- The FMOD Studio export script skips a model class that the running Studio lacks and exports the rest. It reports an empty project instead of a success. An unwritable folder gets a message about the folder instead of the file.
 - The HTML5 autoplay gate resumes the mixer after the system is initialized. `StudioSystem.setParameter`, `getParameter`, `getParameterFinal`, and `setParameterWithLabel` take the generated `parameter:/` paths too.
 - The HTML5 autoplay gate listens for `click`, `keydown`, `pointerdown`, and `touchstart` in the capture phase from script load. A gesture made during the loading screen now counts, and audio resumes once the module is ready. Before, only a click after initialization did.
 - `autoUpdate: false` works on HTML5. `FmodRuntime.update` ticks FMOD there in manual mode, so a game that drives FMOD from its own loop is serviced.
