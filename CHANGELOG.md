@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.0 (unreleased)
+## 3.0.0 (2026-10-03)
 
 ### Added
 - The FMOD Studio export script's dialog takes a Haxe package name, the same as `generate --package`.
