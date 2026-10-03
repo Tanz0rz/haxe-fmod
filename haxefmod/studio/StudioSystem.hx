@@ -350,13 +350,16 @@ class StudioSystem {
         return NativeStudio.sys_get_parameter_label(name, labelIndex);
     }
 
-    /** Every global parameter description, in index order. Empty when there are none or the system is down. */
+    /** Every global parameter description, in index order (up to Scratch.CAPACITY entries). Empty when there are none or the system is down. */
     public static function getParameterDescriptionList():Array<FmodParameterDescription> {
         var list = [];
-        for (i in 0...getParameterDescriptionCount()) {
+        var total = getParameterDescriptionCount();
+        var count = total < Scratch.CAPACITY ? total : Scratch.CAPACITY;
+        for (i in 0...count) {
             var desc = getParameterDescriptionByIndex(i);
             if (desc != null) list.push(desc);
         }
+        Scratch.warnTruncated("global parameter", count, total);
         return list;
     }
 

@@ -27,7 +27,7 @@ class Html5Gate {
         Context.error(method + " is unsupported in HTML5 (" + reason + ")."
             + " FMOD's web build cannot do this, so haxefmod refuses to compile the call for a js target."
             + " Build with -D haxefmod_html5_allow_unsupported to compile it anyway."
-            + " The call then returns FMOD_ERR_UNSUPPORTED at runtime in the browser and the game must handle that.",
+            + " The call then fails with FMOD_ERR_UNSUPPORTED at runtime in the browser, a getter returns its empty value, and the game must handle that.",
             Context.currentPos());
         return macro null;
     }
@@ -39,7 +39,7 @@ class Html5Gate {
     public static function disclaim():Array<Field> {
         if (Context.defined("js") && Context.defined("haxefmod_html5_allow_unsupported")) {
             Context.warning("haxefmod_html5_allow_unsupported is set: calls that FMOD's web build cannot make"
-                + " compile in this build and return FMOD_ERR_UNSUPPORTED at runtime in the browser."
+                + " compile in this build and fail with FMOD_ERR_UNSUPPORTED at runtime in the browser."
                 + " Check those results, or drop the define to have the compiler point out every such call.",
                 Context.currentPos());
         }
