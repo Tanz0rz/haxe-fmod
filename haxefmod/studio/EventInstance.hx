@@ -519,7 +519,8 @@ abstract EventInstance(Int) from Int to Int {
     #if (macro || (js && !haxefmod_html5_allow_unsupported))
     /** Removes every programmer-sound assignment, key, game sound, and names (unsupported in HTML5, where nothing can be assigned). */
     public macro function clearProgrammerSound(self:haxe.macro.Expr):haxe.macro.Expr {
-        return haxefmod.studio.native.Html5Gate.block("EventInstance.clearProgrammerSound", "programmer sounds fail inside FMOD's JavaScript runtime, so there is no assignment to clear");
+        return haxefmod.studio.native.Html5Gate.block("EventInstance.clearProgrammerSound", "programmer sounds fail inside FMOD's JavaScript runtime, so there is no assignment to clear",
+            "The call then returns FMOD_OK at runtime in the browser and does nothing.");
     }
     #else
     /** Removes every programmer-sound assignment, key, game sound, and names (unsupported in HTML5, where nothing can be assigned). */

@@ -66,7 +66,7 @@ instance.setCallback(handler, EventCallbackType.STARTED | EventCallbackType.TIME
 
 ## HTML5 builds
 
-A call to a method FMOD's web build cannot make is now a compile error in a js build. The error names the method and the reason. `-D haxefmod_html5_allow_unsupported` compiles it with a one-time warning. The call then fails with `FMOD_ERR_UNSUPPORTED` at runtime. A getter returns `null` or another empty value. `StudioSystem.lastResult()` then holds the code. `EventInstance.clearProgrammerSound` is the exception. It returns `FMOD_OK` because nothing can be assigned in a browser. Every such method carries "(unsupported in HTML5)" in its documentation.
+A call to a method FMOD's web build cannot make is now a compile error in a js build. The error names the method and the reason. `-D haxefmod_html5_allow_unsupported` compiles it with a one-time warning. The call then fails with `FMOD_ERR_UNSUPPORTED` at runtime. A getter returns its failure value, such as `null`, `false`, `0`, or `-1`. `StudioSystem.lastResult()` then holds the code. `EventInstance.clearProgrammerSound` is the exception. It returns `FMOD_OK` because nothing can be assigned in a browser. Every such method carries "(unsupported in HTML5)" in its documentation.
 
 Seven calls a 2.0 js build compiled now fail that build:
 
