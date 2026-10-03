@@ -9,7 +9,7 @@ import haxe.macro.Expr;
  * Compile-time gate for calls FMOD's web build cannot make.
  *
  * A method that works on native targets only is declared twice in its
- * type. One declaration is the real inline body. The other sits under
+ * type. One declaration is the real body. The other sits under
  * `#if (macro || (js && !haxefmod_html5_allow_unsupported))` and is a
  * macro method that calls `block`. On a js build the macro runs at every
  * call site and stops compilation there. The error names the method and
