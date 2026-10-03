@@ -56,19 +56,19 @@ nav:
   - Welcome: index.md
   - Getting started: getting-started.md
   - FmodManager: guides/fmod-manager.md
-  - Engine components: guides/components.md
   - Generated constants: guides/constants.md
   - Auto-imports: guides/auto-imports.md
+  - Live Update: live-update.md
+  - fmod.com extension (beta): guides/extension.md
+  - Handles and results: guides/handles-and-results.md
   - Runtime and settings: guides/settings.md
   - Bank loading: guides/bank-loading.md
   - Callbacks: guides/callbacks.md
   - 3D and listeners: guides/3d.md
-  - Handles and results: guides/handles-and-results.md
   - Core API helpers: guides/core-api.md
-  - Live Update: live-update.md
+  - Engine components: guides/components.md
   - Tools CLI: guides/tools-cli.md
   - Platforms: platforms.md
-  - fmod.com extension (beta): guides/extension.md
   - Coverage: coverage.md
   - Limitations: limitations.md
   - API reference: /haxe-fmod/api/
