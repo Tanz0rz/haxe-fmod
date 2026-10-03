@@ -1,10 +1,10 @@
 # FMOD for Haxe
 
-This library provides Full FMOD Studio and FMOD Core support for Haxe
+This library provides FMOD Studio and FMOD Core support for Haxe
+
+Setup instructions, guides, and the API reference live on the [documentation site](https://www.tanz0rz.com/haxe-fmod/).
 
 Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then follow the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446).
-
-**Setup instructions, guides, and the API reference live on the [documentation site](https://www.tanz0rz.com/haxe-fmod/).**
 
 ## Features
 
@@ -32,7 +32,7 @@ Built and tested on Haxe `4.3.6` and FMOD Engine `2.03.12`
 
 ## Getting Started
 
-The [getting started walkthrough](https://www.tanz0rz.com/haxe-fmod/getting-started/) is a complete guide to setting up this library from scratch. Every step that differs by engine has HaxeFlixel, Heaps, and Kha tabs.
+The [Getting Started section on the docs site](https://www.tanz0rz.com/haxe-fmod/getting-started/) is a complete guide to setting up this library in your Haxe project.
 
 ## Using the Library in Code
 
