@@ -1428,7 +1428,7 @@ enum abstract FmodStudioSystemCallbackType(Int) from Int to Int {
  * it to the header.
  */
 class FmodVersion {
-    /** FMOD_VERSION of the linked SDK, 2.03.12. */
+    /** The FMOD_VERSION haxefmod targets, 2.03.12. */
     public static inline var VERSION = 0x00020312;
 }
 
