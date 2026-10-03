@@ -9,7 +9,7 @@ haxefmod is FMOD Studio for Haxe on HTML5, HashLink, Windows, Linux, and macOS. 
 - Typed [callbacks](guides/callbacks.md) with payloads (beats, timeline markers, etc.)
 - [Live Update](live-update.md) for mixing sounds while playtesting
 - [Helper class](guides/fmod-manager.md) to map FMOD Studio calls/events to game code
-- [Generated constants](guides/constants.md) for every event, bus, VCA, snapshot, and global parameter in your banks
+- [Generated constants](guides/constants.md) for every event, bus, VCA, snapshot, and parameter in your banks
 - [TODO markers](guides/fmod-manager.md#sound-todo-markers) for sound effects to add later
 - [fmod.com extension (beta)](guides/extension.md) to integrate Haxe examples into the official docs
 

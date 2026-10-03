@@ -238,7 +238,7 @@ if (typeof studio !== "undefined") {
 
     // Collects {path, guid} entries from the open project: the same set the
     // built strings bank contains (events, snapshots, buses incl. the
-    // master "bus:/", VCAs, and global parameters)
+    // master "bus:/", VCAs, and the preset parameters of the Parameters browser)
     var MODEL_CLASSES = ["Event", "Snapshot", "MixerGroup", "MixerReturn", "MixerMaster", "MixerVCA", "ParameterPreset"];
 
     // Another Studio version can drop or rename a model class. The lookup

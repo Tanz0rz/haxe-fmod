@@ -1,6 +1,6 @@
 # Generated constants
 
-Every event, bus, VCA, snapshot, and global parameter in your FMOD Studio project becomes a Haxe constant. The constants have autocomplete. A renamed event fails at compile time.
+Every event, bus, VCA, snapshot, and parameter in your FMOD Studio project becomes a Haxe constant. A parameter gets one when it is defined in the Parameters browser, global or not. A parameter created inside a single event has no path and gets none. The constants have autocomplete. A renamed event fails at compile time.
 
 ```haxe
 FmodManager.PlaySong(FmodEvents.MusicMainLevel);
