@@ -220,7 +220,7 @@
 - A channel callback that throws no longer stops the rest of the frame's queue.
 - `FmodManager.SetAutoUpdate(false)` after init left FMOD unserviced. The runtime kept skipping its manual `update()` call because the resolved setting still said auto. The setting now follows the call.
 - A `.haxefmod/hlaxe_fmod.version` marker with no `hlaxe_fmod.hdll` next to it made PostBuild and `check` report a matching custom hdll. They then shipped the pre-built hdll for another FMOD version. The marker now counts only with the hdll present.
-- PostBuild compares FMOD version literals as numbers. A header that writes `0X` or uppercase hex no longer fails the gate with two identical versions in the message.
+- PostBuild compares FMOD version literals as numbers. A header that writes the version without leading zeros no longer fails the gate with identical versions in the message.
 - PostBuild fails the build when no FMOD library matched the copy instead of reporting success. It checks each copy's exit code. It finds the ABI marker at the end of an hdll. It keeps the executable-stack edits it made when a later program header is truncated. It no longer mistakes an asset whose name contains `.so` for a library.
 - `haxelib run haxefmod check` drains the child process's stderr, so a chatty `haxelib` or `haxe` no longer hangs it. It reports every check it cannot verify instead of printing nothing.
 - `BankRegistry` drops the registry entry when a reload fails. `refCount` and `loadingState` no longer describe a bank that was unloaded.
