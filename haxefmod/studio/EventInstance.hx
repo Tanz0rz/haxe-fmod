@@ -383,6 +383,7 @@ abstract EventInstance(Int) from Int to Int {
      * Sets several parameters on this instance in one call. ids and values
      * pair up by index, the shorter list sets the count. At most
      * Scratch.CAPACITY / 2 pairs, more returns FMOD_ERR_INVALID_PARAM.
+     * Native FMOD refuses more than 32 pairs with the same code.
      */
     public function setParametersByIDs(ids:Array<FmodParameterId>, values:Array<Float>, ignoreSeekSpeed:Bool = false):FmodResult {
         var count = @:privateAccess StudioSystem.packParameterBatch(ids, values);

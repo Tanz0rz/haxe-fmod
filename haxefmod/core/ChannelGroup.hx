@@ -251,8 +251,8 @@ abstract ChannelGroup(Int) from Int to Int {
     }
 
     /**
-     * The group's lowpass gain, 0.0 on failure. FMOD 2.03.12 reports OK for a group but leaves the value at
-     * zero on every target. Keep the gain you set if you need it back. StudioSystem.lastResult() holds the
+     * The group's lowpass gain, 0.0 on failure. FMOD 2.03.12 reports OK for a group but does not write the
+     * value. Native targets return 0.0. HTML5 returns an unset value near zero. Keep the gain you set if you need it back. StudioSystem.lastResult() holds the
      * reason for a failure.
      */
     public inline function getLowPassGain():Float {
@@ -365,8 +365,9 @@ abstract ChannelGroup(Int) from Int to Int {
      * custom on, customLevel (0 to 1) replaces the distance-derived
      * attenuation and centerFreq sets the filter's center in Hz. The
      * distanceFilter setting must be on at init for any of this to take
-     * effect. FMOD supports it on a Channel only. The call returns FMOD_OK
-     * on a group and changes nothing.
+     * effect. FMOD supports it on a Channel only. A group without a 3D mode
+     * returns FMOD_ERR_NEEDS3D. A 3D group returns FMOD_OK and stores the
+     * values for get3DDistanceFilter.
      */
     public inline function set3DDistanceFilter(custom:Bool, customLevel:Float, centerFreq:Float):FmodResult {
         return NativeStudio.cg_set_3d_distance_filter(this, custom, customLevel, centerFreq);

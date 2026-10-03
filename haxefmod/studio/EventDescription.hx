@@ -279,7 +279,7 @@ abstract EventDescription(Int) from Int to Int {
         return NativeStudio.evd_get_user_property_count(this);
     }
 
-    /** User property by name, or null when the event has none with it. */
+    /** User property by name, or null when the event has none with it. On HTML5 a numeric property returns null too. */
     public function getUserProperty(name:String):Null<FmodUserProperty> {
         var count = getUserPropertyCount();
         for (i in 0...count) {
