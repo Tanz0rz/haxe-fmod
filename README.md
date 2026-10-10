@@ -136,6 +136,6 @@ This entire project was started as an expansion of Aaron Shea's [faxe](https://g
 
 For feature requests or problems with the library, do one or both of the following:
 
-- [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then ask any questions you have in the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446). Responses are quick.
+- [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then ask any questions you have in the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446).
 
 - [Open an Issue](https://github.com/Tanz0rz/haxe-fmod/issues) here on GitHub.
