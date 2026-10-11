@@ -1,0 +1,105 @@
+name: Example Games
+
+# Builds the HaxeFlixel, Heaps and Kha example games for the browser and
+# publishes them under https://www.tanz0rz.com/haxe-fmod/games/. Run it by
+# hand after a change to the games. Every docs deploy copies the published
+# games into its own release, so they stay live between runs.
+#
+# The new release starts as a hard-linked copy of the live site. The games
+# go in on top, and publish.sh swaps it in like a docs release. The shared
+# concurrency group keeps this run and a docs deploy from swapping at the
+# same time.
+
+on:
+  workflow_dispatch:
+
+env:
+  HAXELIB_PINS: lime8.3.0-openfl9.5.0-flixel6.1.2-heaps2.1.0-hxcpp4.3.2-hashlink1.15.0-hlsdl1.15.0-hldx1.15.0-dox1.6.0
+  HAXE_VERSION: 4.3.6
+  KHA_COMMIT: 1fb7ad4b5bc1e1b15a3f2be4b762cd4068d5f64c
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: false
+
+jobs:
+  games:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download FMOD SDK
+        uses: ./.github/actions/fmod-sdk
+        with:
+          version: "2.03.12"
+          platform: html5
+          dest: ${{ runner.temp }}/fmod-sdk-web
+          token: ${{ secrets.FMOD_SDK_TOKEN }}
+
+      - name: Setup Haxe
+        uses: ./.github/actions/setup-haxe
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib setup ~/haxelib
+          bash ci/retry.sh haxelib install lime 8.3.0 --always --quiet
+          bash ci/retry.sh haxelib install openfl 9.5.0 --always --quiet
+          bash ci/retry.sh haxelib install flixel 6.1.2 --always --quiet
+          bash ci/retry.sh haxelib install heaps 2.1.0 --always --quiet
+          haxelib dev haxefmod "$GITHUB_WORKSPACE"
+
+      - name: Point at the Kha checkout
+        run: echo "KHA=$RUNNER_TEMP/Kha" >> "$GITHUB_ENV"
+
+      - name: Cache Kha
+        id: kha-cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/Kha
+          key: kha-${{ runner.os }}-${{ env.KHA_COMMIT }}
+
+      - name: Check out Kha
+        if: steps.kha-cache.outputs.cache-hit != 'true'
+        run: |
+          bash ci/retry.sh --clean "$RUNNER_TEMP/Kha" git clone --no-checkout --depth 1 https://github.com/Kode/Kha.git "$RUNNER_TEMP/Kha"
+          cd "$RUNNER_TEMP/Kha"
+          # A shallow clone holds the tip only, so ask for the pinned commit
+          bash "$GITHUB_WORKSPACE/ci/retry.sh" git fetch --depth 1 origin "$KHA_COMMIT"
+          git checkout --detach FETCH_HEAD
+          bash "$GITHUB_WORKSPACE/ci/retry.sh" git submodule update --init --recursive --depth 1
+
+      - name: Build the games
+        env:
+          FMOD_SDK_WEB: ${{ runner.temp }}/fmod-sdk-web
+        run: bash ci/build-example-games.sh "$RUNNER_TEMP/games"
+
+      - name: Play each game in chromium
+        run: |
+          bash ci/retry.sh npm install playwright@1.63.0 > /dev/null
+          # The runner has chromium's system libraries preinstalled, and
+          # --with-deps would need apt and root
+          bash ci/retry.sh npx playwright install chromium
+          node ci/check-example-games.js "$RUNNER_TEMP/games"
+
+      - name: Ship the games to www.tanz0rz.com
+        env:
+          RELEASE: ${{ github.run_id }}-${{ github.run_attempt }}
+          SSH_CONFIG: /home/runner/.ssh/tanz0rz_deploy_config
+        run: |
+          # A retry starts the copy over, so the release directory goes first
+          bash ci/retry.sh ssh -F "$SSH_CONFIG" deploy-target "rm -rf /var/www/releases/$RELEASE && mkdir -p /var/www/releases/$RELEASE && cp -al /var/www/tanz0rz/haxe-fmod /var/www/releases/$RELEASE/haxe-fmod"
+          bash ci/retry.sh rsync -az --delete \
+            -e "ssh -F $SSH_CONFIG" \
+            "$RUNNER_TEMP/games/" "deploy-target:/var/www/releases/$RELEASE/haxe-fmod/games/"
+          bash ci/retry.sh ssh -F "$SSH_CONFIG" deploy-target "bash /var/www/releases/publish.sh /var/www/releases/$RELEASE"
+          for game in haxeflixel heaps kha; do
+            bash ci/retry.sh curl -fsS -o /dev/null "https://www.tanz0rz.com/haxe-fmod/games/$game/"
+            bash ci/retry.sh curl -fsS -o /dev/null "https://www.tanz0rz.com/haxe-fmod/games/$game/lib/fmodstudio.wasm"
+          done
+          bash ci/retry.sh curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/

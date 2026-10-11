@@ -7,8 +7,8 @@ import platformer.TileGrid;
 class Level {
     public var grid(default, null):TileGrid;
 
-    public function new() {
-        grid = new TileGrid(haxe.Resource.getString("level"));
+    public function new(resource:String = "level") {
+        grid = new TileGrid(haxe.Resource.getString(resource));
     }
 
     public function moveAndCollide(body:Body, dt:Float):Void {

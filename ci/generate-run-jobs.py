@@ -273,8 +273,9 @@ def setup_steps(j):
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            # 1641 and 3010 are success with a reboot pending
-            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending. A feed outage
+            # can exit 0 with nothing installed, so the package must exist.
+            if ((@(0, 1641, 3010) -contains $LASTEXITCODE) -and (Test-Path C:/ProgramData/chocolatey/lib/ffmpeg/tools)) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }

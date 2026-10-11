@@ -1171,9 +1171,12 @@ class ApiProbeScenario implements TestScenario {
         check("helper_bus_volume", Math.abs(FmodManager.GetBusVolume(FmodBuses.Reverb) - 0.25) < 0.001,
             'value=${FmodManager.GetBusVolume(FmodBuses.Reverb)}');
         FmodManager.SetBusVolume(FmodBuses.Reverb, reverbVolume);
+        // A bus mute is a Studio command, so flush before reading it back
         FmodManager.SetBusMute(FmodBuses.Reverb, true);
+        StudioSystem.flushCommands();
         check("helper_bus_muted", FmodManager.IsBusMuted(FmodBuses.Reverb), "");
         FmodManager.SetBusMute(FmodBuses.Reverb, false);
+        StudioSystem.flushCommands();
         check("helper_bus_unmuted", !FmodManager.IsBusMuted(FmodBuses.Reverb)
             && Math.abs(FmodManager.GetBusVolume(FmodBuses.Reverb) - reverbVolume) < 0.001, "");
 

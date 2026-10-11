@@ -9,11 +9,16 @@ edit_uri: !ENV [DOCS_EDIT_URI, "edit/master/docs/"]
 docs_dir: docs
 site_dir: site
 strict: true
+# The theme override lives under docs/ so the haxelib package check never sees it
+exclude_docs: |
+  /overrides/
 validation:
   anchors: warn
 
 theme:
   name: material
+  # The header override adds the example games link
+  custom_dir: docs/overrides
   features:
     - navigation.sections
     - navigation.top
@@ -47,6 +52,13 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 
+# The example games page loads each game on request. example-games.yml
+# publishes the games under games/.
+extra_css:
+  - stylesheets/example-games.css
+extra_javascript:
+  - javascripts/example-games.js
+
 # Serves LIMITATIONS.md from the repo root inside the site so it appears
 # in the nav without a second copy in docs/
 hooks:
@@ -72,3 +84,4 @@ nav:
   - Coverage: coverage.md
   - Limitations: limitations.md
   - API reference: /haxe-fmod/api/
+  - Example games: example-games.md

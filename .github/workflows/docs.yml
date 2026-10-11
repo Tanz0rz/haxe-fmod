@@ -1,11 +1,11 @@
 name: Docs
 
 # Builds the documentation site: the guides from docs/ plus the dox API
-# reference under /api/. It runs on every push to the default branch,
-# the 3.0.0 branch, and release tags, and publishes the site to
+# reference under /api/. It runs on every push to the default branch and
+# on release tags, and publishes the site to
 # https://www.tanz0rz.com/haxe-fmod/. The site is rsynced from the self-hosted runner
-# to the docs host and swapped in atomically. GitHub Pages keeps serving a
-# redirect to www.tanz0rz.com for links made before the move.
+# to the docs host and swapped in atomically. The GitHub Pages redirect
+# for links made before the move deploys from pages-redirect.yml.
 
 # A paths filter under push covers the tag entry too, and a release tag
 # whose commit touched nothing under docs/ would then skip the build. The
@@ -13,7 +13,7 @@ name: Docs
 # path feeds this site anyway, so the filter saved little.
 on:
   push:
-    branches: [master, 3.0.0]
+    branches: [master]
     tags: ["*"]
   workflow_dispatch:
 
@@ -22,7 +22,6 @@ env:
   HAXELIB_PINS: lime8.3.0-openfl9.5.0-flixel6.1.2-heaps2.1.0-hxcpp4.3.2-hashlink1.15.0-hlsdl1.15.0-hldx1.15.0-dox1.6.0
   HAXE_VERSION: 4.3.6
 
-# The build job reads only. The deploy job raises its own grant for Pages.
 permissions:
   contents: read
 
@@ -124,8 +123,12 @@ jobs:
           DOCS_EDIT_URI="edit/${EDIT_REF}/docs/" DOCS_BRANCH="${GITHUB_REF_NAME}" mkdocs build --strict
           # The dox output takes the api/ path, so a docs/api page cannot exist
           if [ -e site/api ]; then echo "FAIL: site/api exists before the API reference is moved in"; exit 1; fi
+          # The games come from example-games.yml, so no docs page may take their path
+          if [ -e site/games ]; then echo "FAIL: site/games exists, the path belongs to the example games"; exit 1; fi
           mv site-api site/api
           python3 ci/check-site-links.py site
+          # The venv python, which has mkdocs-material, comes first on the path
+          python3 ci/check-docs-header.py site
 
       - name: Ship the site to www.tanz0rz.com
         # The self-hosted runner holds the SSH config and key for the docs
@@ -136,34 +139,12 @@ jobs:
           SSH_CONFIG: /home/runner/.ssh/tanz0rz_deploy_config
         run: |
           bash ci/retry.sh ssh -F "$SSH_CONFIG" deploy-target "mkdir -p /var/www/releases/$RELEASE"
-          bash ci/retry.sh rsync -az --delete --link-dest=/var/www/tanz0rz/haxe-fmod/ \
+          bash ci/retry.sh rsync -az --delete --exclude=/games/ --link-dest=/var/www/tanz0rz/haxe-fmod/ \
             -e "ssh -F $SSH_CONFIG" \
             site/ "deploy-target:/var/www/releases/$RELEASE/haxe-fmod/"
+          # example-games.yml publishes the games and runs by hand, so each
+          # docs release takes them over from the live site as hard links
+          bash ci/retry.sh ssh -F "$SSH_CONFIG" deploy-target "rm -rf /var/www/releases/$RELEASE/haxe-fmod/games && if [ -d /var/www/tanz0rz/haxe-fmod/games ]; then cp -al /var/www/tanz0rz/haxe-fmod/games /var/www/releases/$RELEASE/haxe-fmod/games; fi"
           bash ci/retry.sh ssh -F "$SSH_CONFIG" deploy-target "bash /var/www/releases/publish.sh /var/www/releases/$RELEASE"
           bash ci/retry.sh curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/
           bash ci/retry.sh curl -fsS -o /dev/null https://www.tanz0rz.com/haxe-fmod/api/
-
-      - name: Upload the GitHub Pages redirect
-        # The redirect is static, and the Pages environment allows
-        # branches only, so a tag run skips it
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: ci/pages-redirect
-
-  deploy:
-    # Keeps the GitHub Pages address alive as a redirect to www.tanz0rz.com
-    needs: build
-    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-    permissions:
-      pages: write
-      id-token: write
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5

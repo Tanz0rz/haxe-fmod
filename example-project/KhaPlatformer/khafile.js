@@ -12,6 +12,7 @@ project.addSources('src');
 project.addSources('../shared');
 project.addLibrary('haxefmod');
 project.addParameter('-resource ../EZPlatformer/assets/level.csv@level');
+project.addParameter('-resource ../EZPlatformer/assets/playable-level.csv@playable_level');
 if (platform === 'html5') {
 	// The default banks load as Kha assets in the browser, so
 	// FmodKhaSetup.preload has them before the first scene (Master.bank is
@@ -28,6 +29,10 @@ if (platform === 'html5') {
 }
 if (process.env.KHA_AUDIO_TEST === '1') {
 	project.addDefine('audio_test');
+}
+// The playable level in place of the scripted run (build.sh with KHA_PLAYABLE=1)
+if (process.env.KHA_PLAYABLE === '1') {
+	project.addDefine('playable');
 }
 if (process.env.KHA_MANUAL_UPDATE === '1') {
 	project.addDefine('audio_test_manual_update');

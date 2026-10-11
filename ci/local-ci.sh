@@ -11,11 +11,12 @@
 # The Mac and Windows jobs have no local equivalent. Of docs.yml, the
 # unit-tests job replays the snippet compile, the review ledger, and the
 # line counts. The site build, the API reference, the extension test, and
-# the link check are not replayed.
+# the link check are not replayed. Of example-games.yml, the example-games
+# job replays the build and the chromium play check, not the ship step.
 #
 # Usage: ci/local-ci.sh [job ...]
 #   jobs: unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox
-#         heaps-hl heaps-html5 kha-linux kha-hl kha-html5
+#         heaps-hl heaps-html5 kha-linux kha-hl kha-html5 example-games
 #   no argument runs all of them
 #
 # Environment:
@@ -64,7 +65,7 @@ export HXCPP_COMPILE_CACHE="$OUT/hxcpp-cache"
 export HXCPP_CACHE_MB=4000
 
 JOBS=("$@")
-[ ${#JOBS[@]} -eq 0 ] && JOBS=(unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox heaps-hl heaps-html5 kha-linux kha-hl kha-html5)
+[ ${#JOBS[@]} -eq 0 ] && JOBS=(unit-tests linux-cpp linux-hl linux-html5-chromium linux-html5-firefox heaps-hl heaps-html5 kha-linux kha-hl kha-html5 example-games)
 
 mkdir -p "$OUT"
 FAILED_STEPS=()
@@ -342,6 +343,7 @@ job_unit_tests() {
   done
   step "Negative-test the synth frequency gate" python3 ci/synth-gate-selftest.py
   step "Check workflow gating invariants" python3 ci/workflow-invariants.py
+  step "Check the Pages stub redirects to the docs home page" python3 ci/check-pages-redirect.py ci/pages-redirect
   step "Check the run jobs match their generator" python3 ci/generate-run-jobs.py --check
   step "Check FMOD version literal lockstep" python3 ci/version-lockstep.py
   step "Check hxcpp depend lockstep" python3 ci/depend-lockstep.py
@@ -436,7 +438,7 @@ job_linux_cpp() {
 job_linux_hl() {
   begin_job linux-hl
   require_sdk
-  step "Run the shim drop-point host test" bash -eo pipefail -c 'HL="${HASHLINK_DIR:-/usr/local}"; D="$2/shim-drop-points"; mkdir -p "$D"; gcc -shared -fPIC -O1 -std=c99 -DHLAXE_SRC_HASH=test -Wl,-rpath,"\$ORIGIN" -Wl,--wrap=FMOD_Sound_Release -Wl,--wrap=FMOD_System_RecordStop -I "$HL/include" -I "$1/api/core/inc" -I "$1/api/studio/inc" -o "$D/hlaxe_fmod.hdll" native/hlaxe/hlaxe_fmod.c tests/native/hlaxe_test_wraps.c -L "$HL/lib" -L "$1/api/core/lib/x86_64" -L "$1/api/studio/lib/x86_64" -lfmod -lfmodstudio -lhl -lpthread; haxe -cp . -main tests.ShimDropPoints -hl "$D/main.hl"; LD_LIBRARY_PATH="$D:$1/api/core/lib/x86_64:$1/api/studio/lib/x86_64:$HL/lib" hl "$D/main.hl"' _ "$FMOD_SDK" "$TMP"
+  step "Run the shim drop-point host test" bash -eo pipefail -c 'HL="${HASHLINK_DIR:-/usr/local}"; D="$2/shim-drop-points"; mkdir -p "$D"; gcc -shared -fPIC -O1 -std=c99 -DHLAXE_SRC_HASH=test -Wl,-rpath,"\$ORIGIN" -Wl,--wrap=FMOD_Sound_Release -Wl,--wrap=FMOD_System_RecordStop -I "$HL/include" -I "$1/api/core/inc" -I "$1/api/studio/inc" -o "$D/hlaxe_fmod.hdll" native/hlaxe/hlaxe_fmod.c tests/native/hlaxe_test_wraps.c -L "$HL/lib" -L "$1/api/core/lib/x86_64" -L "$1/api/studio/lib/x86_64" -lfmod -lfmodstudio -lhl -lpthread; haxe -cp . -main tests.ShimDropPoints -hl "$D/main.hl"; LD_LIBRARY_PATH="$D:$1/api/core/lib/x86_64:$1/api/studio/lib/x86_64:$HL/lib" hl "$D/main.hl"; haxe -cp . -main tests.MuteReadback -hl "$D/mute.hl"; LD_LIBRARY_PATH="$D:$1/api/core/lib/x86_64:$1/api/studio/lib/x86_64:$HL/lib" hl "$D/mute.hl"' _ "$FMOD_SDK" "$TMP"
   local bin="$EXAMPLE/export/hl/bin"
   # A clean checkout has no custom hdll, and the first build must pick the
   # pre-built one
@@ -787,6 +789,16 @@ record_volume_kha_html5() {
   grep -o "VOLUME_TEST.*" "$TMP/volume-test-kha-html5-console.log" | sed 's/",.*$//' || true
 }
 
+# ---------------------------------------------------------------- example-games
+
+job_example_games() {
+  begin_job example-games
+  require_sdk
+  [ -d "$KHA/Tools/khamake" ] || { skip_job "no Kha checkout at $KHA (set KHA)"; return; }
+  step "Build the games" bash ci/build-example-games.sh "$TMP/games"
+  step "Play each game in chromium" node ci/check-example-games.js "$TMP/games"
+}
+
 # ---------------------------------------------------------------- main
 
 for job in "${JOBS[@]}"; do
@@ -801,6 +813,7 @@ for job in "${JOBS[@]}"; do
     kha-linux) job_kha_linux ;;
     kha-hl) job_kha_hl ;;
     kha-html5) job_kha_html5 ;;
+    example-games) job_example_games ;;
     *) echo "unknown job: $job"; exit 2 ;;
   esac
 done

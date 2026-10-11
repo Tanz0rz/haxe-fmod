@@ -8,6 +8,7 @@ import fmodtest.TestHost;
 import haxefmod.flixel.FmodFlxBankLoader;
 import haxefmod.flixel.FmodFlxSetup;
 import haxefmod.flixel.FmodFlxUpdater;
+import haxefmod.studio.StudioSystem;
 
 /** The flixel side of the shared test scenarios. */
 class FlxTestHost implements TestHost {
@@ -128,19 +129,24 @@ class FlxTestHost implements TestHost {
         FlxG.sound.volume = 0.5;
         check("flx_bridge_volume", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
             'value=${FmodManager.GetMasterVolume()}');
+        // A bus mute is a Studio command, so flush before reading it back
         FlxG.sound.toggleMuted();
+        StudioSystem.flushCommands();
         check("flx_bridge_mute", FmodManager.IsMasterMuted(), "");
         // Volume is carried by the mute flag, so it must survive the mute
         check("flx_bridge_volume_kept", Math.abs(FmodManager.GetMasterVolume() - 0.5) < 0.001,
             'value=${FmodManager.GetMasterVolume()}');
         FlxG.sound.toggleMuted();
+        StudioSystem.flushCommands();
         check("flx_bridge_mute_cleared", !FmodManager.IsMasterMuted(), "");
         // The muted field has no signal, so the setup polls it each frame
         FlxG.sound.muted = true;
         FlxG.signals.postUpdate.dispatch();
+        StudioSystem.flushCommands();
         check("flx_bridge_mute_field", FmodManager.IsMasterMuted(), "");
         FlxG.sound.muted = false;
         FlxG.signals.postUpdate.dispatch();
+        StudioSystem.flushCommands();
         check("flx_bridge_mute_field_cleared", !FmodManager.IsMasterMuted(), "");
         FlxG.sound.volume = 1.0;
         check("flx_bridge_volume_restored", Math.abs(FmodManager.GetMasterVolume() - 1.0) < 0.001,

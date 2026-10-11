@@ -6,6 +6,7 @@
 -lib haxefmod
 -main Main
 -resource ../EZPlatformer/assets/level.csv@level
+-resource ../EZPlatformer/assets/playable-level.csv@playable_level
 -D windowSize=640x480
 --macro haxefmod.tools.BuildCheck.verify()
 -hl build/hl/game.hl

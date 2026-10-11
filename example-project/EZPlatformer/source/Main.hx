@@ -55,6 +55,8 @@ class Main extends Sprite {
             case "synth-test": SynthTestState;
             default: VolumeTestState;
         }
+        #elseif playable
+        return PlayableState;
         #else
         return PlayState;
         #end

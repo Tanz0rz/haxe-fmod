@@ -1,10 +1,12 @@
 package;
 
+import kha.Color;
 import kha.Framebuffer;
 import haxefmod.kha.FmodKhaSetup;
 import haxefmod.runtime.FmodSettings;
 import haxefmod.studio.Types;
 import kha.Scheduler;
+import kha.graphics2.Graphics;
 import kha.System;
 
 /**
@@ -42,6 +44,16 @@ class Main {
         // The game's own reaction to focus. The FMOD master mute on
         // focus loss is wired separately by FmodKhaSetup.
         System.notifyOnApplicationState(onForeground, onForeground, onBackground, onBackground, null);
+        #if (js && !audio_test)
+        // Kha focuses its canvas at startup, inside a page's frame too. A
+        // framed game gives that focus back. Keys reach the game only while
+        // its canvas has focus, so until a click it waits behind the pause
+        // screen.
+        if (js.Browser.window != js.Browser.window.top && js.Browser.document.activeElement != null) {
+            js.Browser.document.activeElement.blur();
+        }
+        focused = js.Browser.document.hasFocus() && Std.isOfType(js.Browser.document.activeElement, js.html.CanvasElement);
+        #end
 
         // Kha runs frame tasks in ascending priority order. The game moves
         // things at 0, and FmodKhaUpdater samples them at its higher number.
@@ -93,7 +105,11 @@ class Main {
             return;
         }
         #end
+        #if playable
+        switchScene(new PlayableScene());
+        #else
         switchScene(new PlayScene());
+        #end
     }
 
     function onFmodFailed():Void {
@@ -108,7 +124,7 @@ class Main {
         // One long frame would step the player through the floor
         if (dt > 0.1) dt = 0.1;
         lastStamp = now;
-        if (scene != null) scene.update(dt);
+        if (scene != null && !paused()) scene.update(dt);
         #if sys
         // A virtual display has no vsync, so pace the loop by hand. The
         // scenarios count frames and expect roughly 60 per second.
@@ -126,6 +142,7 @@ class Main {
         // The flixel game runs 320x240 doubled into a 640x480 window
         g2.pushTransformation(kha.math.FastMatrix3.scale(2, 2));
         if (scene != null) scene.render(g2);
+        if (paused()) drawPauseScreen(g2);
         g2.popTransformation();
         g2.end();
     }
@@ -156,11 +173,44 @@ class Main {
         scene.create();
     }
 
+    var focused:Bool = true;
+
+    // The game freezes while the window is out of focus, like flixel's
+    // autoPause. The music keeps playing, since FMOD runs on its own
+    // updater. Test builds keep running, as their scenarios count frames.
+    inline function paused():Bool {
+        #if audio_test
+        return false;
+        #else
+        return !focused;
+        #end
+    }
+
+    // Draws the screen flixel shows while paused. It darkens the game by
+    // half and puts a white play arrow in the middle.
+    static function drawPauseScreen(g2:Graphics):Void {
+        g2.color = Color.fromFloats(0, 0, 0, 0.5);
+        g2.fillRect(0, 0, 320, 240);
+        var halfWidth = 160;
+        var halfHeight = 120;
+        var helper = Std.int(Math.min(halfWidth, halfHeight) / 3);
+        g2.color = Color.fromFloats(1, 1, 1, 0.65);
+        g2.fillTriangle(halfWidth - helper, halfHeight - helper, halfWidth + helper, halfHeight,
+            halfWidth - helper, halfHeight + helper);
+        g2.color = Color.White;
+    }
+
+    function isGameScene():Bool {
+        return Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2) || Std.isOfType(scene, PlayableScene);
+    }
+
     function onForeground():Void {
-        if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetSongParameter("HighPass", 0);
+        focused = true;
+        if (isGameScene()) FmodManager.SetSongParameter("HighPass", 0);
     }
 
     function onBackground():Void {
-        if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetSongParameter("HighPass", 1);
+        focused = false;
+        if (isGameScene()) FmodManager.SetSongParameter("HighPass", 1);
     }
 }

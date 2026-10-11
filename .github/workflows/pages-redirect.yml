@@ -1,0 +1,55 @@
+name: Pages Redirect
+
+# The docs moved from GitHub Pages to https://www.tanz0rz.com/haxe-fmod/
+# on 2026-09-07. GitHub Pages now serves only the stub in
+# ci/pages-redirect. Every old address goes to the home page of the docs
+# site, so the structure of that site can change without breaking old
+# links. A Pages deployment stays live until Pages is turned off, so the
+# stub deploys only when it changes.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - ci/pages-redirect/**
+      - ci/check-pages-redirect.py
+      - .github/workflows/pages-redirect.yml
+  workflow_dispatch:
+
+# The build job reads only. The deploy job raises its own grant for Pages.
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-redirect
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check the stub sends every page to the docs home page
+        run: python3 ci/check-pages-redirect.py ci/pages-redirect
+
+      - name: Upload the stub
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ci/pages-redirect
+
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

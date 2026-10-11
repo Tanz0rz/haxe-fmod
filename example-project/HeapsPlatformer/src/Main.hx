@@ -39,7 +39,15 @@ class Main extends hxd.App {
         engine.backgroundColor = 0xffaaaaaa;
 
 
+        pauseScreen = drawPauseScreen();
+        pauseScreen.visible = false;
+        s2d.addChild(pauseScreen);
         hxd.Window.getInstance().addEventTarget(onWindowEvent);
+        #if (js && !audio_test)
+        // Keys reach the game only while its canvas has focus. Until then
+        // it waits behind the pause screen, inside a page's frame too.
+        focused = js.Browser.document.hasFocus() && Std.isOfType(js.Browser.document.activeElement, js.html.CanvasElement);
+        #end
         // FMOD initializes and the default banks load through Heaps'
         // own binary loader. The first scene starts once both are ready,
         // on HTML5 too, so no loading scene is needed.
@@ -86,7 +94,11 @@ class Main extends hxd.App {
             return;
         }
         #end
+        #if playable
+        switchScene(new PlayableScene());
+        #else
         switchScene(new PlayScene());
+        #end
     }
 
     function onFmodFailed():Void {
@@ -100,7 +112,11 @@ class Main extends hxd.App {
         // Frame counter the test page's heartbeat reports
         untyped window.__frames = (untyped window.__frames || 0) + 1;
         #end
-        if (scene != null) scene.update(dt);
+        // Scenes add their objects after the pause screen, so it moves to
+        // the top each time it shows
+        if (paused() && !pauseScreen.visible) s2d.over(pauseScreen);
+        pauseScreen.visible = paused();
+        if (scene != null && !paused()) scene.update(dt);
         #if hl
         // HashLink has no frame cap of its own and a virtual display has
         // no vsync, so pace the loop by hand
@@ -137,14 +153,58 @@ class Main extends hxd.App {
         if (scene != null) scene.dispose();
         scene = next;
         scene.create(s2d);
+        // The game can start paused, before its first scene exists
+        s2d.over(pauseScreen);
+    }
+
+    var focused:Bool = true;
+
+    // The game freezes while the window is out of focus, like flixel's
+    // autoPause. The music keeps playing, since FMOD runs on its own
+    // updater. Test builds keep running, as their scenarios count frames.
+    inline function paused():Bool {
+        #if audio_test
+        return false;
+        #else
+        return !focused;
+        #end
+    }
+
+    var pauseScreen:h2d.Graphics;
+
+    // Draws the screen flixel shows while paused. It darkens the game by
+    // half and puts a white play arrow in the middle.
+    static function drawPauseScreen():h2d.Graphics {
+        var g = new h2d.Graphics();
+        g.beginFill(0x000000, 0.5);
+        g.drawRect(0, 0, 320, 240);
+        g.endFill();
+        var halfWidth = 160;
+        var halfHeight = 120;
+        var helper = Std.int(Math.min(halfWidth, halfHeight) / 3);
+        g.beginFill(0xffffff, 0.65);
+        g.moveTo(halfWidth - helper, halfHeight - helper);
+        g.lineTo(halfWidth + helper, halfHeight);
+        g.lineTo(halfWidth - helper, halfHeight + helper);
+        g.lineTo(halfWidth - helper, halfHeight - helper);
+        g.endFill();
+        return g;
+    }
+
+    function isGameScene():Bool {
+        return Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2) || Std.isOfType(scene, PlayableScene);
     }
 
     // The game's own reaction to focus. The FMOD master mute on focus
     // loss is wired separately by FmodHeapsSetup.
     function onWindowEvent(event:Event):Void {
         switch (event.kind) {
-            case EFocus: if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetSongParameter("HighPass", 0);
-            case EFocusLost: if (Std.isOfType(scene, PlayScene) || Std.isOfType(scene, PlayScene2)) FmodManager.SetSongParameter("HighPass", 1);
+            case EFocus:
+                focused = true;
+                if (isGameScene()) FmodManager.SetSongParameter("HighPass", 0);
+            case EFocusLost:
+                focused = false;
+                if (isGameScene()) FmodManager.SetSongParameter("HighPass", 1);
             default:
         }
     }

@@ -1,0 +1,39 @@
+{#- The nav leaves the example games page out, so the header links to it.
+    The style ships inside the page, since browsers keep an extra stylesheet
+    for hours and a stale copy left the icon at full size. md-icon sizes the
+    icon from Material's own stylesheet. -#}
+<style>
+  .md-header__button.md-header__games {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .md-header__games-label {
+    font-size: 0.7rem;
+    line-height: 1.2rem;
+  }
+  @media screen and (max-width: 59.984375em) {
+    .md-header__games-label {
+      display: none;
+    }
+  }
+  /* On wide screens the link is a button, lighter than the header bar */
+  @media screen and (min-width: 60em) {
+    .md-header__button.md-header__games {
+      height: 1.8rem;
+      padding: 0 0.6rem;
+      gap: 0.4rem;
+      border-radius: 0.1rem;
+      background-color: #ffffff26;
+      transition: background-color 0.25s;
+    }
+    .md-header__button.md-header__games:hover {
+      background-color: #ffffff40;
+      opacity: 1;
+    }
+  }
+</style>
+<a href="{{ 'example-games/' | url }}" class="md-header__button md-icon md-header__games" title="Example games">
+  {% include ".icons/material/gamepad-variant.svg" %}
+  <span class="md-header__games-label">Example games</span>
+</a>

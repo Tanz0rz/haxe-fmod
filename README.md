@@ -2,7 +2,7 @@
 
 This library provides FMOD Studio and FMOD Core support for Haxe
 
-Setup instructions, guides, and the API reference live on the [documentation site](https://www.tanz0rz.com/haxe-fmod/).
+Setup instructions, guides, simple example games, and the API docs can be found on the [documentation site](https://www.tanz0rz.com/haxe-fmod/).
 
 Having problems or want to chat? [Join the Haxe Discord](https://discordapp.com/invite/0uEuWH3spjck73Lo), then follow the [haxe-fmod thread](https://discord.com/channels/162395145352904705/1472372604433076446).
 

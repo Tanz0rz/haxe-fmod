@@ -1312,6 +1312,8 @@ jobs:
           gcc -shared -fPIC -O1 -std=c99 -DHLAXE_SRC_HASH=test -Wl,-rpath,'$ORIGIN' -Wl,--wrap=FMOD_Sound_Release -Wl,--wrap=FMOD_System_RecordStop -I /usr/local/include -I "$FMOD_SDK/api/core/inc" -I "$FMOD_SDK/api/studio/inc" -o /tmp/shim-drop-points/hlaxe_fmod.hdll native/hlaxe/hlaxe_fmod.c tests/native/hlaxe_test_wraps.c -L /usr/local/lib -L "$FMOD_SDK/api/core/lib/x86_64" -L "$FMOD_SDK/api/studio/lib/x86_64" -lfmod -lfmodstudio -lhl -lpthread
           haxe -cp . -main tests.ShimDropPoints -hl /tmp/shim-drop-points/main.hl
           LD_LIBRARY_PATH="/tmp/shim-drop-points:$FMOD_SDK/api/core/lib/x86_64:$FMOD_SDK/api/studio/lib/x86_64" hl /tmp/shim-drop-points/main.hl
+          haxe -cp . -main tests.MuteReadback -hl /tmp/shim-drop-points/mute.hl
+          LD_LIBRARY_PATH="/tmp/shim-drop-points:$FMOD_SDK/api/core/lib/x86_64:$FMOD_SDK/api/studio/lib/x86_64" hl /tmp/shim-drop-points/mute.hl
 
       - name: Rebuild HashLink target (custom hdll)
         run: |
@@ -1989,8 +1991,9 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            # 1641 and 3010 are success with a reboot pending
-            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending. A feed outage
+            # can exit 0 with nothing installed, so the package must exist.
+            if ((@(0, 1641, 3010) -contains $LASTEXITCODE) -and (Test-Path C:/ProgramData/chocolatey/lib/ffmpeg/tools)) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -2119,8 +2122,9 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            # 1641 and 3010 are success with a reboot pending
-            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending. A feed outage
+            # can exit 0 with nothing installed, so the package must exist.
+            if ((@(0, 1641, 3010) -contains $LASTEXITCODE) -and (Test-Path C:/ProgramData/chocolatey/lib/ffmpeg/tools)) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -2735,8 +2739,9 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            # 1641 and 3010 are success with a reboot pending
-            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending. A feed outage
+            # can exit 0 with nothing installed, so the package must exist.
+            if ((@(0, 1641, 3010) -contains $LASTEXITCODE) -and (Test-Path C:/ProgramData/chocolatey/lib/ffmpeg/tools)) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -5220,8 +5225,9 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            # 1641 and 3010 are success with a reboot pending
-            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending. A feed outage
+            # can exit 0 with nothing installed, so the package must exist.
+            if ((@(0, 1641, 3010) -contains $LASTEXITCODE) -and (Test-Path C:/ProgramData/chocolatey/lib/ffmpeg/tools)) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -5411,8 +5417,9 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            # 1641 and 3010 are success with a reboot pending
-            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending. A feed outage
+            # can exit 0 with nothing installed, so the package must exist.
+            if ((@(0, 1641, 3010) -contains $LASTEXITCODE) -and (Test-Path C:/ProgramData/chocolatey/lib/ffmpeg/tools)) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -6393,8 +6400,9 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            # 1641 and 3010 are success with a reboot pending
-            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending. A feed outage
+            # can exit 0 with nothing installed, so the package must exist.
+            if ((@(0, 1641, 3010) -contains $LASTEXITCODE) -and (Test-Path C:/ProgramData/chocolatey/lib/ffmpeg/tools)) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -7787,8 +7795,9 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            # 1641 and 3010 are success with a reboot pending
-            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending. A feed outage
+            # can exit 0 with nothing installed, so the package must exist.
+            if ((@(0, 1641, 3010) -contains $LASTEXITCODE) -and (Test-Path C:/ProgramData/chocolatey/lib/ffmpeg/tools)) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }
@@ -7978,8 +7987,9 @@ jobs:
           $ok = $false
           foreach ($attempt in 1..4) {
             choco install ffmpeg -y --no-progress
-            # 1641 and 3010 are success with a reboot pending
-            if (@(0, 1641, 3010) -contains $LASTEXITCODE) { $ok = $true; break }
+            # 1641 and 3010 are success with a reboot pending. A feed outage
+            # can exit 0 with nothing installed, so the package must exist.
+            if ((@(0, 1641, 3010) -contains $LASTEXITCODE) -and (Test-Path C:/ProgramData/chocolatey/lib/ffmpeg/tools)) { $ok = $true; break }
             Start-Sleep -Seconds 45
           }
           if (-not $ok) { throw "choco could not install ffmpeg after 4 attempts" }

@@ -5,6 +5,7 @@
 -lib haxefmod
 -main Main
 -resource ../EZPlatformer/assets/level.csv@level
+-resource ../EZPlatformer/assets/playable-level.csv@playable_level
 --macro haxefmod.tools.BuildCheck.verify()
 # The api-probe calls methods FMOD's web build cannot serve on purpose and checks the FMOD_ERR_UNSUPPORTED results at runtime
 -D haxefmod_html5_allow_unsupported

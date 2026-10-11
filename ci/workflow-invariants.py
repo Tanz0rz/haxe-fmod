@@ -69,6 +69,11 @@ leans on:
   21. The run-test-state action, every generated run_game function,
      and stress-test.yml keep the game's exit status and fail on a
      nonzero one.
+  23. example-games.yml runs by hand only, builds and plays the games
+     before it ships them, and starts its release from the live site.
+     docs.yml keeps its rsync off the games and copies the live games
+     into each release. Both share the docs-deploy concurrency group,
+     and the Kha pin matches this workflow's.
 
 Run: python3 ci/workflow-invariants.py [workflow-file]
 """
@@ -862,18 +867,21 @@ else:
 
 # 20. The shim drop-point host test builds the HashLink shim with two
 # FMOD calls wrapped and runs it. The workflow and the local runner both
-# build it with the wrapper file and run the program.
+# build it with the wrapper file and run the program. The mute readback
+# host runs on the same shim right after it.
 host_missing = []
 for where, body in (("workflow", commands_only(text)), ("ci/local-ci.sh", commands_only(local_runner))):
     for label, pattern in (("the wrapped build", r"gcc [^\n]*--wrap=FMOD_Sound_Release[^\n]*--wrap=FMOD_System_RecordStop[^\n]*native/hlaxe/hlaxe_fmod\.c tests/native/hlaxe_test_wraps\.c"),
                            ("the program build", r"haxe -cp \. -main tests\.ShimDropPoints -hl "),
-                           ("the run", r"(?m)tests\.ShimDropPoints -hl [\s\S]{0,400}?LD_LIBRARY_PATH=\S+ (?:\w+=\S+ )*hl \"?\S*main\.hl\"?'?(?: _ [^\n]*|[ \t]+#[^\n]*)?$")):
+                           ("the run", r"(?m)tests\.ShimDropPoints -hl [\s\S]{0,400}?LD_LIBRARY_PATH=\S+ (?:\w+=\S+ )*hl \"?\S*main\.hl\"?"),
+                           ("the readback build", r"haxe -cp \. -main tests\.MuteReadback -hl "),
+                           ("the readback run", r"(?m)tests\.MuteReadback -hl [\s\S]{0,400}?LD_LIBRARY_PATH=\S+ (?:\w+=\S+ )*hl \"?\S*mute\.hl\"?'?(?: _ [^\n]*|[ \t]+#[^\n]*)?$")):
         if not re.search(pattern, body):
             host_missing.append(f"{where}: {label}")
 if host_missing:
     fail(f"the shim drop-point host test is not run: {host_missing}")
 else:
-    ok("the shim drop-point host test builds and runs in the workflow and ci/local-ci.sh")
+    ok("the shim drop-point and mute readback hosts build and run in the workflow and ci/local-ci.sh")
 
 # 21. A state that leaves on its own must leave with status 0. The
 # action, the generated run function and the stress workflow each keep
@@ -923,6 +931,72 @@ if mirror_wrong or len(mirror_action) != 1 or not action_case or not action_redi
     fail(f"trace mirror and stdout share a file: {mirror_wrong}, action exports {len(mirror_action)}, windows case {bool(action_case)}, sidecar redirect {action_redirect}")
 else:
     ok("the trace mirror is Windows-only and never shares its log file with the stdout redirect")
+
+# 23. The example games publish from their own workflow, by hand. A docs
+# release is built fresh from site/, so it has to take the live games
+# over, and the two deploys must never swap the docroot at once.
+wf_dir = os.path.dirname(PATH)
+with open(os.path.join(wf_dir, "example-games.yml")) as fh:
+    games_wf = fh.read()
+with open(os.path.join(wf_dir, "docs.yml")) as fh:
+    docs_wf = fh.read()
+games_problems = []
+games_on = re.search(r"^on:\n((?:  .*\n|\n)*)", games_wf, re.M)
+if not games_on or games_on.group(1).strip() != "workflow_dispatch:":
+    games_problems.append("example-games.yml has a trigger other than workflow_dispatch")
+for name, wf in (("example-games.yml", games_wf), ("docs.yml", docs_wf)):
+    if not re.search(r"^concurrency:\n  group: docs-deploy\n  cancel-in-progress: false$", wf, re.M):
+        games_problems.append(f"{name} is not in the docs-deploy concurrency group")
+kha_here = re.search(r"KHA_COMMIT: (\S+)", text)
+kha_games = re.search(r"KHA_COMMIT: (\S+)", games_wf)
+if not kha_here or not kha_games or kha_here.group(1) != kha_games.group(1):
+    games_problems.append("example-games.yml pins a different Kha commit")
+order = [
+    "bash ci/build-example-games.sh",
+    "node ci/check-example-games.js",
+    "cp -al /var/www/tanz0rz/haxe-fmod /var/www/releases/$RELEASE/haxe-fmod",
+    "haxe-fmod/games/\"",
+    "bash /var/www/releases/publish.sh",
+]
+positions = [games_wf.find(o) for o in order]
+if -1 in positions or positions != sorted(positions):
+    games_problems.append(f"example-games.yml steps out of order or missing: {dict(zip(order, positions))}")
+docs_order = [
+    "if [ -e site/games ]; then",
+    "rsync -az --delete --exclude=/games/ ",
+    "then cp -al /var/www/tanz0rz/haxe-fmod/games /var/www/releases/$RELEASE/haxe-fmod/games; fi",
+    "bash /var/www/releases/publish.sh",
+]
+docs_positions = [docs_wf.find(o) for o in docs_order]
+if -1 in docs_positions or docs_positions != sorted(docs_positions):
+    games_problems.append(f"docs.yml does not carry the games forward: {dict(zip(docs_order, docs_positions))}")
+if games_problems:
+    fail(f"example games publishing: {games_problems}")
+else:
+    ok("the example games ship by hand and every docs release carries them forward")
+
+# 24. Every choco install counts as done only when its package folder
+# exists. A Chocolatey feed outage once exited 0 with nothing installed,
+# the retry loop stopped, and the next step found no ffmpeg.
+choco_files = [os.path.join(wf_dir, wf) for wf in sorted(os.listdir(wf_dir)) if wf.endswith(".yml")]
+choco_files.append(os.path.join(ROOT, "ci", "generate-run-jobs.py"))
+choco_total = 0
+choco_unchecked = []
+for path in choco_files:
+    with open(path) as fh:
+        lines = fh.read().split("\n")
+    for i, line in enumerate(lines):
+        m = re.search(r"^\s*choco install ([\w.-]+)", line)
+        if not m:
+            continue
+        choco_total += 1
+        success = next((l for l in lines[i + 1:i + 6] if "$ok = $true" in l), "")
+        if "Test-Path C:/ProgramData/chocolatey/lib/" + m.group(1) + "/" not in success:
+            choco_unchecked.append(f"{os.path.basename(path)}:{i + 1}")
+if choco_total == 0 or choco_unchecked:
+    fail(f"choco installs that count an exit code alone as success: {choco_unchecked} ({choco_total} found)")
+else:
+    ok(f"{choco_total} choco installs succeed only when the package folder exists")
 
 print()
 if failures:

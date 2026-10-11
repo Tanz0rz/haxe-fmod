@@ -10,9 +10,9 @@ class Level {
     public var root:Object;
     public var grid(default, null):TileGrid;
 
-    public function new(parent:Object) {
+    public function new(parent:Object, resource:String = "level") {
         root = new Object(parent);
-        grid = new TileGrid(haxe.Resource.getString("level"));
+        grid = new TileGrid(haxe.Resource.getString(resource));
         var tile = Tile.fromColor(0x555555, TileGrid.TILE, TileGrid.TILE);
         grid.forEachSolid((tx, ty) -> {
             var bitmap = new Bitmap(tile, root);
